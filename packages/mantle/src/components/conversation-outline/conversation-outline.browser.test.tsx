@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
+import { commands } from "vitest/browser";
 import * as Conversation from "../conversation/conversation-parts.js";
 import * as Message from "../message/message-parts.js";
 import * as ConversationOutline from "./conversation-outline-parts.js";
@@ -137,6 +138,56 @@ describe("ConversationOutline", () => {
 		expect(Math.abs(offsetInView("q1") - 16)).toBeLessThanOrEqual(2);
 	});
 
+	test("a jump in a short chat keeps following the end as an answer streams", async () => {
+		const user = userEvent.setup();
+		const short = (lines: number): Turn[] => [
+			{ id: "q0", from: "user", text: "What's live?" },
+			{ id: "a0", from: "assistant", text: answer(lines) },
+		];
+		const { rerender } = render(<Chat turns={short(1)} />);
+
+		await user.click(screen.getByRole("button", { name: "Conversation outline" }));
+		await user.click(item("What's live?"));
+		rerender(<Chat turns={short(40)} />);
+
+		await waitFor(() => {
+			const element = viewport();
+			expect(element.scrollHeight - element.clientHeight - element.scrollTop).toBeLessThanOrEqual(
+				1,
+			);
+		});
+	});
+
+	test("with reduced motion, a jump lands at once, even in a smooth scroller", async () => {
+		await commands.emulateMedia({ reducedMotion: "reduce" });
+		try {
+			const user = userEvent.setup();
+			render(<Chat turns={turnsWith(30)} />);
+			viewport().style.scrollBehavior = "smooth";
+
+			await user.click(screen.getByRole("button", { name: "Conversation outline" }));
+			await user.click(item("Which endpoints have no policy?"));
+
+			expect(Math.abs(offsetInView("q1") - 16)).toBeLessThanOrEqual(2);
+		} finally {
+			await commands.emulateMedia({ reducedMotion: "no-preference" });
+		}
+	});
+
+	test("marks a message that a taller viewport reveals, with no scroll", async () => {
+		const user = userEvent.setup();
+		render(<Chat turns={turnsWith(30)} />);
+		viewport().scrollTo({ top: 0, behavior: "instant" });
+
+		await user.click(screen.getByRole("button", { name: "Conversation outline" }));
+		expect(item("Which endpoints have no policy?")).not.toHaveAttribute("data-in-view");
+		viewport().style.height = `${offsetInView("q1") + 40}px`;
+
+		await waitFor(() => {
+			expect(item("Which endpoints have no policy?")).toHaveAttribute("data-in-view");
+		});
+	});
+
 	test("works by keyboard", async () => {
 		const user = userEvent.setup();
 		render(<Chat turns={turnsWith(30)} />);
@@ -150,11 +201,14 @@ describe("ConversationOutline", () => {
 
 		await waitFor(() => {
 			expect(document.getElementById("q1")).toHaveFocus();
+			expect(Math.abs(offsetInView("q1") - 16)).toBeLessThanOrEqual(2);
 		});
+		const trigger = screen.getByRole("button", { name: "Conversation outline" });
+		trigger.focus();
+		await user.keyboard("{Enter}");
+		expect(item("Which endpoints have no policy?")).toHaveFocus();
 		await user.keyboard("{Escape}");
-		expect(screen.getByRole("button", { name: "Conversation outline" })).toHaveAttribute(
-			"aria-expanded",
-			"false",
-		);
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
+		expect(trigger).toHaveFocus();
 	});
 });

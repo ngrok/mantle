@@ -111,7 +111,7 @@ ConversationOutline.Root
 
 ## Where to put the trigger
 
-Put the trigger in the chat's header, at every width: a side panel, a full-width page, and a phone. The outline is not a frequent action, so it stays clear of the message box and `Conversation.ScrollButton`, which own the bottom of the chat. It opens below the trigger, aligned to its end.
+Put the trigger in the chat's header, at every width: a side panel, a full-width page, and a phone. The outline is not a frequent action, so it stays clear of the message box and `Conversation.ScrollButton`, which own the bottom of the chat. Pass `align="end"` to `ConversationOutline.Content` so the outline opens below the trigger and lines up with its end, as the example does.
 
 Render the trigger once the person has sent three messages, as the example above does. With one or two, a scroll is faster, and an outline of one line looks broken. Put it before the header's other actions, so they do not move when it appears.
 

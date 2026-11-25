@@ -181,7 +181,7 @@ function ChatOutline({ messages }: { messages: ChatMessage[] }) {
 			<ConversationOutline.Content align="end">
 				{questions.map((message) => (
 					<ConversationOutline.Item key={message.id} target={message.id}>
-						{message.text || message.files.map((file) => file.name).join(", ")}
+						{message.text.trim() || message.files.map((file) => file.name).join(", ")}
 					</ConversationOutline.Item>
 				))}
 			</ConversationOutline.Content>

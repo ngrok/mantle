@@ -25,7 +25,12 @@ type OutlinePlace = {
  */
 function outlinePlace(messages: (Edges | null)[], viewport: Edges): OutlinePlace {
 	const inView = messages.map(
-		(message) => message != null && message.bottom > viewport.top && message.top < viewport.bottom,
+		(message) =>
+			message != null &&
+			// Why the height check: a collapsed box shows nothing, even between the edges.
+			message.bottom > message.top &&
+			message.bottom > viewport.top &&
+			message.top < viewport.bottom,
 	);
 	let current = inView.indexOf(true);
 	if (current === -1) {

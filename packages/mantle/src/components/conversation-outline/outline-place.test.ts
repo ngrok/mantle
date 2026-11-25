@@ -39,4 +39,16 @@ describe("outlinePlace", () => {
 		});
 		expect(outlinePlace([{ top: -50, bottom: 0 }, null], viewport).current).toBe(0);
 	});
+
+	test("a collapsed message is never in view, so the next one is current", () => {
+		expect(
+			outlinePlace(
+				[
+					{ top: 150, bottom: 150 },
+					{ top: 200, bottom: 230 },
+				],
+				viewport,
+			),
+		).toEqual({ inView: [false, true], current: 1 });
+	});
 });

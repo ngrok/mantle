@@ -168,6 +168,7 @@ function Content({
 	"data-slot": dataSlot,
 	className,
 	onCloseAutoFocus,
+	onEscapeKeyDown,
 	onOpenAutoFocus,
 	ref,
 	...props
@@ -179,15 +180,43 @@ function Content({
 		if (content == null) {
 			return;
 		}
+		// Why at once: the open autofocus reads the current item in this commit.
+		markPlaces(content);
+		let frame = 0;
+		// Why one frame: each mark pass measures every message, so a burst of events measures once.
 		const update = () => {
-			markPlaces(content);
+			if (frame === 0) {
+				frame = requestAnimationFrame(() => {
+					frame = 0;
+					markPlaces(content);
+				});
+			}
 		};
-		update();
 		const document = content.ownerDocument;
+		const view = document.defaultView;
 		// Why capture: a scroll event does not bubble, and the transcript is not an ancestor.
 		document.addEventListener("scroll", update, { capture: true, passive: true });
+		view?.addEventListener("resize", update, { passive: true });
+		// Why: a new or retargeted item needs its marks with no scroll.
+		const items = new MutationObserver(update);
+		items.observe(content, {
+			childList: true,
+			subtree: true,
+			attributes: true,
+			attributeFilter: ["data-target"],
+		});
+		// Why: a viewport that changes height can show or hide a message with no scroll.
+		const resizes = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+		for (const viewport of document.querySelectorAll('[data-slot~="conversation-viewport"]')) {
+			resizes?.observe(viewport);
+		}
 		return () => {
+			contentRef.current = null;
+			resizes?.disconnect();
+			cancelAnimationFrame(frame);
 			document.removeEventListener("scroll", update, { capture: true });
+			view?.removeEventListener("resize", update);
+			items.disconnect();
 		};
 	}, []);
 	const composedRef = useComposedRefs(ref, markItems);
@@ -205,7 +234,7 @@ function Content({
 			onOpenAutoFocus={(event) => {
 				onOpenAutoFocus?.(event);
 				const current = contentRef.current?.querySelector<HTMLElement>(
-					'[data-slot~="conversation-outline-item"][aria-current]',
+					'[data-slot~="conversation-outline-item"][aria-current]:not(:disabled)',
 				);
 				if (event.defaultPrevented || current == null) {
 					return;
@@ -213,6 +242,11 @@ function Content({
 				// Why the current item: it says where the reader is, and Tab moves on from there.
 				event.preventDefault();
 				current.focus();
+			}}
+			onEscapeKeyDown={(event) => {
+				onEscapeKeyDown?.(event);
+				// Why: Escape closes the outline with no jump, so focus returns to the trigger.
+				jumpTargetRef.current = null;
 			}}
 			onCloseAutoFocus={(event) => {
 				onCloseAutoFocus?.(event);
@@ -223,10 +257,12 @@ function Content({
 				}
 				// Why: a screen reader then reads on from the message the person chose.
 				event.preventDefault();
-				if (!target.hasAttribute("tabindex")) {
-					target.tabIndex = -1;
-				}
 				target.focus({ preventScroll: true });
+				// Why only on a miss: a link or a message with its own tab stop takes focus as it is.
+				if (target.ownerDocument.activeElement !== target) {
+					target.tabIndex = -1;
+					target.focus({ preventScroll: true });
+				}
 			}}
 			{...props}
 		/>
@@ -249,9 +285,13 @@ function markPlaces(content: HTMLElement) {
 	});
 	const first = targets.find((target) => target != null);
 	if (first == null) {
+		for (const item of items) {
+			item.removeAttribute(IN_VIEW_ATTRIBUTE);
+			item.removeAttribute("aria-current");
+		}
 		return;
 	}
-	const viewport = scrollerOf(first).getBoundingClientRect();
+	const viewport = visibleEdges(first);
 	const { inView, current } = outlinePlace(
 		targets.map((target) => target?.getBoundingClientRect() ?? null),
 		viewport,
@@ -266,12 +306,14 @@ function markPlaces(content: HTMLElement) {
 	});
 }
 
-/** The element that scrolls `message`: its `Conversation.Viewport`, else the page. */
-function scrollerOf(message: HTMLElement): HTMLElement {
-	return (
-		message.closest<HTMLElement>('[data-slot~="conversation-viewport"]') ??
-		message.ownerDocument.documentElement
-	);
+/** The visible edges of the area that scrolls `message`: its `Conversation.Viewport`, else the window. */
+function visibleEdges(message: HTMLElement): { top: number; bottom: number } {
+	const viewport = message.closest<HTMLElement>('[data-slot~="conversation-viewport"]');
+	if (viewport != null) {
+		return viewport.getBoundingClientRect();
+	}
+	// Why not the root's rect: it spans the whole document, not the part on screen.
+	return { top: 0, bottom: message.ownerDocument.documentElement.clientHeight };
 }
 
 /**
@@ -283,10 +325,10 @@ function scrollerOf(message: HTMLElement): HTMLElement {
 function jumpTo(message: HTMLElement, behavior: ScrollBehavior) {
 	const viewport = message.closest<HTMLElement>('[data-slot~="conversation-viewport"]');
 	if (viewport == null) {
-		message.scrollIntoView({ block: "start", behavior });
+		// Why `?.`: jsdom has no element scroll APIs, and a consumer's tests click items there.
+		message.scrollIntoView?.({ block: "start", behavior });
 		return;
 	}
-	releaseFollow(viewport);
 	// Why not `scrollIntoView`: it also scrolls the page and each scroller around the viewport.
 	const margin = Number.parseFloat(getComputedStyle(message).scrollMarginTop) || 0;
 	const top =
@@ -294,7 +336,13 @@ function jumpTo(message: HTMLElement, behavior: ScrollBehavior) {
 		message.getBoundingClientRect().top -
 		viewport.getBoundingClientRect().top -
 		margin;
-	viewport.scrollTo({ top, behavior });
+	const max = viewport.scrollHeight - viewport.clientHeight;
+	// Why 8: it is how close to the end `Conversation.Viewport` counts as the end.
+	// A jump that lands there, such as in a short chat, keeps following the end.
+	if (max - Math.min(Math.max(top, 0), max) > 8) {
+		releaseFollow(viewport);
+	}
+	viewport.scrollTo?.({ top, behavior });
 }
 
 /**
@@ -360,7 +408,7 @@ function Item({
 					return;
 				}
 				jumpTargetRef.current = message;
-				jumpTo(message, scrollBehavior);
+				jumpTo(message, scrollBehavior === "smooth" ? "smooth" : "instant");
 			}}
 			{...props}
 		/>
