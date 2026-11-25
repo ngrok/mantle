@@ -181,6 +181,38 @@ describe("Chip", () => {
 		expect(screen.getByRole("button", { name: "Read" })).toHaveAttribute("aria-pressed", "false");
 	});
 
+	test("an aria-disabled removable chip announces a disabled remove button and keeps its value", async () => {
+		const onRemove = vi.fn<() => void>();
+		render(
+			<Chip aria-disabled="true" onRemove={onRemove} removeLabel="Remove Read">
+				Read
+			</Chip>,
+		);
+		const remove = screen.getByRole("button", { name: "Remove Read" });
+		expect(remove).toHaveAttribute("aria-disabled", "true");
+		await userEvent.setup().click(remove);
+		expect(onRemove).not.toHaveBeenCalled();
+	});
+
+	test("an aria-disabled chip blocks Backspace and Delete before the caller's onKeyDown", async () => {
+		const onKeyDown = vi.fn<() => void>();
+		render(
+			<Chip
+				aria-disabled="true"
+				tabIndex={-1}
+				onKeyDown={onKeyDown}
+				onRemove={() => {}}
+				removeLabel="Remove Read"
+			>
+				Read
+			</Chip>,
+		);
+		const user = userEvent.setup();
+		screen.getByText("Read").closest<HTMLElement>('[data-slot~="chip"]')?.focus();
+		await user.keyboard("{Backspace}{Delete}");
+		expect(onKeyDown).not.toHaveBeenCalled();
+	});
+
 	test("forwards the ref, className, and data attributes", () => {
 		const ref = createRef<HTMLButtonElement>();
 		render(

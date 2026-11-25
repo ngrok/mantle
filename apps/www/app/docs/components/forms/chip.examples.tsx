@@ -1,5 +1,6 @@
 import { CubeIcon } from "@phosphor-icons/react/Cube";
 import { Chip } from "@ngrok/mantle/chip";
+import { Field } from "@ngrok/mantle/field";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 import { useState } from "react";
 import { PreviewCanvas } from "~/components/preview-canvas";
@@ -85,18 +86,18 @@ export function AppearanceExample() {
 	return (
 		<PreviewCanvas>
 			<div className="flex flex-wrap items-start justify-center gap-6">
-				<div>
-					<p className="mb-2 text-center font-mono text-xs">Appearance pill (default)</p>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Appearance pill (default)</Field.Legend>
 					<Chip size="sm" onRemove={() => {}} removeLabel="Remove us-east-1">
 						us-east-1
 					</Chip>
-				</div>
-				<div>
-					<p className="mb-2 text-center font-mono text-xs">Appearance square</p>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Appearance square</Field.Legend>
 					<Chip appearance="square" size="sm" onRemove={() => {}} removeLabel="Remove eu-west-1">
 						eu-west-1
 					</Chip>
-				</div>
+				</Field.Set>
 			</div>
 		</PreviewCanvas>
 	);
@@ -107,36 +108,36 @@ export function SizeExample() {
 	return (
 		<PreviewCanvas>
 			<div className="flex flex-wrap items-start justify-center gap-6">
-				<div>
-					<p className="mb-2 text-center font-mono text-xs">Size xs (default)</p>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size xs (default)</Field.Legend>
 					<Chip selectable size="xs">
 						Read
 					</Chip>
-				</div>
-				<div>
-					<p className="mb-2 text-center font-mono text-xs">Size sm</p>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size sm</Field.Legend>
 					<Chip selectable size="sm">
 						Read
 					</Chip>
-				</div>
-				<div>
-					<p className="mb-2 text-center font-mono text-xs">Size md</p>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size md</Field.Legend>
 					<Chip selectable size="md">
 						Read
 					</Chip>
-				</div>
-				<div>
-					<p className="mb-2 text-center font-mono text-xs">Size lg</p>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size lg</Field.Legend>
 					<Chip selectable size="lg">
 						Read
 					</Chip>
-				</div>
-				<div>
-					<p className="mb-2 text-center font-mono text-xs">Size xl</p>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size xl</Field.Legend>
 					<Chip selectable size="xl">
 						Read
 					</Chip>
-				</div>
+				</Field.Set>
 			</div>
 		</PreviewCanvas>
 	);

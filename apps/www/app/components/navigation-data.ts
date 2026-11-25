@@ -97,6 +97,7 @@ export const componentsByCategory = {
 	],
 	Forms: [
 		"Checkbox",
+		"Chip",
 		"Choice",
 		"Combobox",
 		"Field",
@@ -160,7 +161,6 @@ export const prodReadyComponents: readonly ProdReadyComponent[] = componentCateg
 export const previewComponents = [
 	//,
 	"Calendar",
-	"Chip",
 	"Time Zone",
 	"World Map",
 ] as const;
@@ -182,6 +182,7 @@ export const prodReadyComponentRouteLookup = {
 	Button: "/components/actions/button",
 	Card: "/components/structure/card",
 	Checkbox: "/components/forms/checkbox",
+	Chip: "/components/forms/chip",
 	Choice: "/components/forms/choice",
 	Code: "/components/data-display/code",
 	"Code Block": "/components/data-display/code-block",
@@ -257,7 +258,6 @@ export const prodReadyComponentRouteLookup = {
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
 	Calendar: "/components/preview/calendar",
-	Chip: "/components/preview/chip",
 	"Time Zone": "/components/preview/time-zone",
 	"World Map": "/components/preview/world-map",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
@@ -269,7 +269,6 @@ export const previewComponentsRouteLookup = {
  */
 export const previewComponentCategoryLookup = {
 	Calendar: "Forms",
-	Chip: "Forms",
 	"Time Zone": "Primitives",
 	"World Map": "Charts",
 } as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;

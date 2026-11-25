@@ -94,12 +94,13 @@ Set `size` on `SegmentedControl.Root` to set the height of the whole control, de
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
+import { Field } from "@ngrok/mantle/field";
 import { SegmentedControl } from "@ngrok/mantle/segmented-control";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 
 <div className="flex flex-wrap items-start justify-center gap-6">
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size xs</p>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size xs</Field.Legend>
 		<div className="flex items-center gap-2">
 			<SegmentedControl.Root aria-label="Event view, size xs" defaultValue="headers" size="xs">
 				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
@@ -114,9 +115,9 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 				icon={<CopyIcon />}
 			/>
 		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size sm</p>
+	</Field.Set>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size sm</Field.Legend>
 		<div className="flex items-center gap-2">
 			<SegmentedControl.Root aria-label="Event view, size sm" defaultValue="headers" size="sm">
 				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
@@ -131,9 +132,9 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 				icon={<CopyIcon />}
 			/>
 		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size md (default)</p>
+	</Field.Set>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size md (default)</Field.Legend>
 		<div className="flex items-center gap-2">
 			<SegmentedControl.Root aria-label="Event view, size md" defaultValue="headers" size="md">
 				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
@@ -148,9 +149,9 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 				icon={<CopyIcon />}
 			/>
 		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size lg</p>
+	</Field.Set>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size lg</Field.Legend>
 		<div className="flex items-center gap-2">
 			<SegmentedControl.Root aria-label="Event view, size lg" defaultValue="headers" size="lg">
 				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
@@ -165,9 +166,9 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 				icon={<CopyIcon />}
 			/>
 		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size xl</p>
+	</Field.Set>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size xl</Field.Legend>
 		<div className="flex items-center gap-2">
 			<SegmentedControl.Root aria-label="Event view, size xl" defaultValue="headers" size="xl">
 				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
@@ -182,7 +183,7 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 				icon={<CopyIcon />}
 			/>
 		</div>
-	</div>
+	</Field.Set>
 </div>;
 ```
 

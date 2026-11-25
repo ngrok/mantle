@@ -60,12 +60,13 @@ Set the `size` prop on `SplitButton.Root` to control the height of the whole com
 <Example name="components/actions/split-button/size" title="Split Button size example">
 
 ```tsx
+import { Field } from "@ngrok/mantle/field";
 import { SplitButton } from "@ngrok/mantle/split-button";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 
 <div className="flex flex-wrap items-start justify-center gap-6">
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size xs</p>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size xs</Field.Legend>
 		<SplitButton.Root size="xs">
 			<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
 			<SplitButton.MenuTrigger label="Open create options" />
@@ -73,9 +74,9 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 				<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
 			</SplitButton.MenuContent>
 		</SplitButton.Root>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size sm</p>
+	</Field.Set>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size sm</Field.Legend>
 		<SplitButton.Root size="sm">
 			<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
 			<SplitButton.MenuTrigger label="Open create options" />
@@ -83,9 +84,9 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 				<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
 			</SplitButton.MenuContent>
 		</SplitButton.Root>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size md (default)</p>
+	</Field.Set>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size md (default)</Field.Legend>
 		<SplitButton.Root size="md">
 			<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
 			<SplitButton.MenuTrigger label="Open create options" />
@@ -93,9 +94,9 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 				<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
 			</SplitButton.MenuContent>
 		</SplitButton.Root>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size lg</p>
+	</Field.Set>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size lg</Field.Legend>
 		<SplitButton.Root size="lg">
 			<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
 			<SplitButton.MenuTrigger label="Open create options" />
@@ -103,9 +104,9 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 				<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
 			</SplitButton.MenuContent>
 		</SplitButton.Root>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size xl</p>
+	</Field.Set>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size xl</Field.Legend>
 		<SplitButton.Root size="xl">
 			<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
 			<SplitButton.MenuTrigger label="Open create options" />
@@ -113,7 +114,7 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 				<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
 			</SplitButton.MenuContent>
 		</SplitButton.Root>
-	</div>
+	</Field.Set>
 </div>;
 ```
 

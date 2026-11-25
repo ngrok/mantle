@@ -849,11 +849,11 @@ All props of an `<input>` except `value`, `defaultValue`, and `autoComplete`. Ke
 
 The default tag component rendered inside `MultiSelect.TagValues` for each selected value. Displays the value label with a remove button. Renders a `role="listitem"` inside the `role="list"` that `MultiSelect.TagValues` renders. The tag that keyboard navigation is on has DOM focus; style it with `focus-visible:`.
 
-Arrow-key navigation and Backspace/Delete removal come from the `MultiSelect.TagValues` render props; spread them onto the tag to get them. On its own, `Tag` only blocks Backspace and Delete on a locked tag.
+Arrow-key navigation and Backspace/Delete removal come from the `MultiSelect.TagValues` render props; spread them onto the tag to get them. On its own, `Tag` only blocks Backspace and Delete on a locked or `aria-disabled` tag.
 
-Use this when building a custom `TagValues`-like component and you want the default tag chrome with consistent styling. The tag is a `square` [`Chip`](/components/preview/chip) at the `sm` size.
+Use this when building a custom `TagValues`-like component and you want the default tag chrome with consistent styling. The tag is a `square` [`Chip`](/components/forms/chip) at the `sm` size.
 
-Also accepts all standard `span` element props (except `children`). The `onKeyDown` prop is supported and is called after the internal locked-key handling.
+Also accepts all standard `span` element props (except `children`). The `onKeyDown` prop is supported and is called after the internal handling that blocks removal keys on a locked or `aria-disabled` tag.
 
 | Prop        | Type         | Default | Description                                                                                                                                      |
 | :---------- | :----------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------- |

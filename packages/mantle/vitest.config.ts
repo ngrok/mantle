@@ -175,11 +175,10 @@ const mantleEasings = async (): Promise<string> => {
 // really compiles for a component. A hand-written copy keeps passing when Tailwind
 // drops a rule. The path is relative to the test file.
 // Why the theme is opt-in: older tests pin Tailwind's default colors.
-const tailwindCss: BrowserCommand<[sourceFile: string, options?: { theme?: boolean }]> = async (
-	{ testPath },
-	sourceFile,
-	options,
-) => {
+// Why `mantleCss`: a contrast test needs every light and dark token, so it compiles against all of mantle.css.
+const tailwindCss: BrowserCommand<
+	[sourceFile: string, options?: { theme?: boolean; mantleCss?: boolean }]
+> = async ({ testPath }, sourceFile, options) => {
 	if (testPath == null) {
 		throw new Error("tailwindCss runs only inside a test file.");
 	}
@@ -188,13 +187,13 @@ const tailwindCss: BrowserCommand<[sourceFile: string, options?: { theme?: boole
 	const candidates = new Scanner({ sources: [] })
 		.getCandidatesWithPositions({ content, extension: path.extname(file).slice(1) })
 		.map(({ candidate }) => candidate);
-	const compiler = await compile(
-		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${options?.theme ? await mantleTheme() : ""}\n${await mantleEasings()}\n${await mantleCustomVariants()}\n${await mantleUtilities()}\n${await mantleAnimations()}`,
-		{
-			base: import.meta.dirname,
-			onDependency: () => {},
-		},
-	);
+	const input = options?.mantleCss
+		? `@import "./src/mantle.css";`
+		: `@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${options?.theme ? await mantleTheme() : ""}\n${await mantleEasings()}\n${await mantleCustomVariants()}\n${await mantleUtilities()}\n${await mantleAnimations()}`;
+	const compiler = await compile(input, {
+		base: import.meta.dirname,
+		onDependency: () => {},
+	});
 	return compiler.build(candidates);
 };
 

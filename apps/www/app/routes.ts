@@ -96,6 +96,7 @@ const docsPages = [
 	"components/feedback/toast",
 	// forms
 	"components/forms/checkbox",
+	"components/forms/chip",
 	"components/forms/choice",
 	"components/forms/combobox",
 	"components/forms/field",
@@ -129,7 +130,6 @@ const docsPages = [
 	"components/overlays/tooltip",
 	// preview (lifecycle namespace, not a category)
 	"components/preview/calendar",
-	"components/preview/chip",
 	"components/preview/time-zone",
 	"components/preview/world-map",
 	// primitives

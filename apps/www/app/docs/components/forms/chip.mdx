@@ -8,13 +8,11 @@ aliases: [toggle chip, filter chip, scope chip, removable chip]
 import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
 
-<PageHeader id="chip" isPreview>
-	Chip
-</PageHeader>
+<PageHeader id="chip">Chip</PageHeader>
 
 A compact label for a value or a selectable choice. Press a selectable chip to turn it on or off. A chip can also have a separate remove control.
 
-<Example name="components/preview/chip/overview" title="Chip example">
+<Example name="components/forms/chip/overview" title="Chip example">
 
 ```tsx
 import { Chip } from "@ngrok/mantle/chip";
@@ -38,7 +36,7 @@ function Example() {
 
 Pass `onRemove` and a `removeLabel` that names the value. Press the remove button to dismiss it.
 
-<Example name="components/preview/chip/removable" title="Removable Chip example">
+<Example name="components/forms/chip/removable" title="Removable Chip example">
 
 ```tsx
 import { Chip } from "@ngrok/mantle/chip";
@@ -62,7 +60,7 @@ function Example() {
 
 Set `locked` to keep the remove control visible and block removal. A locked chip ignores Delete and Backspace when it has focus.
 
-<Example name="components/preview/chip/locked" title="Locked Chip example">
+<Example name="components/forms/chip/locked" title="Locked Chip example">
 
 ```tsx
 import { Chip } from "@ngrok/mantle/chip";
@@ -82,7 +80,7 @@ function Example() {
 
 Pass `icon` to place an SVG before the label. On a selectable chip, it replaces the plus or check icon. Change its weight to show the selected state without color alone.
 
-<Example name="components/preview/chip/icon" title="Chip with icon example">
+<Example name="components/forms/chip/icon" title="Chip with icon example">
 
 ```tsx
 import { CubeIcon } from "@phosphor-icons/react/Cube";
@@ -110,7 +108,7 @@ function Example() {
 
 Set `selectable` to render a button with `aria-pressed`. By default, its plus or check icon makes the state visible without color.
 
-<Example name="components/preview/chip/selectable" title="Selectable Chip example">
+<Example name="components/forms/chip/selectable" title="Selectable Chip example">
 
 ```tsx
 import { Chip } from "@ngrok/mantle/chip";
@@ -134,7 +132,7 @@ function Example() {
 
 Pass `pressed` and `onPressedChange` when the page owns the state. The chip reports the next state and waits for the new prop.
 
-<Example name="components/preview/chip/controlled" title="Controlled Chip example">
+<Example name="components/forms/chip/controlled" title="Controlled Chip example">
 
 ```tsx
 import { Chip } from "@ngrok/mantle/chip";
@@ -154,28 +152,29 @@ function Example() {
 
 ## Appearance
 
-A chip is a `pill` by default. Set `appearance="square"` and `size="sm"` to match the value tags in [`Multi Select`](/components/forms/multi-select), such as for chips beside a form field. A one-line `square` chip is 2px shorter than a `pill` chip of the same size. A long `square` label wraps.
+A chip is a `pill` by default. Set `appearance="square"` and `size="sm"` to match the value tags in [`Multi Select`](/components/forms/multi-select), such as for chips beside a form field. A one-line `square` chip is 2px shorter than a `pill` chip of the same size. A long `square` label wraps. A long `pill` label stays on one line and ends in an ellipsis at the width of its container.
 
-<Example name="components/preview/chip/appearance" title="Chip appearance example">
+<Example name="components/forms/chip/appearance" title="Chip appearance example">
 
 ```tsx
 import { Chip } from "@ngrok/mantle/chip";
+import { Field } from "@ngrok/mantle/field";
 
 function Example() {
 	return (
 		<div className="flex flex-wrap items-start justify-center gap-6">
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Appearance pill (default)</p>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="w-full text-center">Appearance pill (default)</Field.Legend>
 				<Chip size="sm" onRemove={() => {}} removeLabel="Remove us-east-1">
 					us-east-1
 				</Chip>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Appearance square</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="w-full text-center">Appearance square</Field.Legend>
 				<Chip appearance="square" size="sm" onRemove={() => {}} removeLabel="Remove eu-west-1">
 					eu-west-1
 				</Chip>
-			</div>
+			</Field.Set>
 		</div>
 	);
 }
@@ -187,44 +186,45 @@ function Example() {
 
 Chip uses the `Button` size scale, from `xs` (24px) to `xl` (48px). A `pill` chip is as tall as a `Button` of the same size. Use `xs` in a data row, and match the size of the buttons beside a chip.
 
-<Example name="components/preview/chip/size" title="Chip size example">
+<Example name="components/forms/chip/size" title="Chip size example">
 
 ```tsx
 import { Chip } from "@ngrok/mantle/chip";
+import { Field } from "@ngrok/mantle/field";
 
 function Example() {
 	return (
 		<div className="flex flex-wrap items-start justify-center gap-6">
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size xs (default)</p>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="w-full text-center">Size xs (default)</Field.Legend>
 				<Chip selectable size="xs">
 					Read
 				</Chip>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size sm</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="w-full text-center">Size sm</Field.Legend>
 				<Chip selectable size="sm">
 					Read
 				</Chip>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size md</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="w-full text-center">Size md</Field.Legend>
 				<Chip selectable size="md">
 					Read
 				</Chip>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size lg</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="w-full text-center">Size lg</Field.Legend>
 				<Chip selectable size="lg">
 					Read
 				</Chip>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size xl</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="w-full text-center">Size xl</Field.Legend>
 				<Chip selectable size="xl">
 					Read
 				</Chip>
-			</div>
+			</Field.Set>
 		</div>
 	);
 }
@@ -234,9 +234,9 @@ function Example() {
 
 ## Disabled
 
-A disabled selectable chip keeps its state visible. It does not change state when the user presses it.
+A disabled selectable chip keeps its state visible. It does not change state when the user presses it. Set `aria-disabled` in place of `disabled` to keep the chip in the tab order: it looks the same and does not change. On a removable chip, `aria-disabled` also disables the remove button.
 
-<Example name="components/preview/chip/disabled" title="Disabled Chip example">
+<Example name="components/forms/chip/disabled" title="Disabled Chip example">
 
 ```tsx
 import { Chip } from "@ngrok/mantle/chip";
@@ -261,7 +261,7 @@ function Example() {
 
 Name the group when its chips answer one question. Keep the selected items in one state value.
 
-<Example name="components/preview/chip/scopes" title="Access scope Chip example">
+<Example name="components/forms/chip/scopes" title="Access scope Chip example">
 
 ```tsx
 import { Chip } from "@ngrok/mantle/chip";
@@ -297,7 +297,7 @@ function Example() {
 
 Use `Tooltip.Trigger asChild` to add a short hint to a chip. The chip passes its ref to its button.
 
-<Example name="components/preview/chip/tooltip" title="Chip with tooltip example">
+<Example name="components/forms/chip/tooltip" title="Chip with tooltip example">
 
 ```tsx
 import { Chip } from "@ngrok/mantle/chip";
@@ -323,7 +323,7 @@ function Example() {
 
 `Chip` accepts `asChild` to pass its props to one child. A selectable chip needs a button child. A removable chip needs a non-interactive container child so its remove button is not nested inside another control.
 
-<Example name="components/preview/chip/polymorphism" title="Chip asChild example">
+<Example name="components/forms/chip/polymorphism" title="Chip asChild example">
 
 ```tsx
 import { Chip } from "@ngrok/mantle/chip";
