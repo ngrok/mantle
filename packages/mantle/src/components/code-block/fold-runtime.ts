@@ -30,6 +30,13 @@ type FoldGeometry = {
 
 const FOLD_GEOMETRY_CACHE = new WeakMap<Element, FoldGeometry>();
 
+/** How long a fold opens or closes. `mantle.css` holds the same duration. */
+const FOLD_MOTION_MS = 200;
+
+/** The toggle that last showed each line, so the timer of an older toggle leaves a newer open alone. */
+const LINE_SHOWN_BY = new WeakMap<HTMLElement, number>();
+let lastToggle = 0;
+
 /**
  * Splits a space-separated string into a `Set`, dropping empty entries. Used
  * to parse `data-fold-regions` and `data-folded-regions` attribute values.
@@ -123,13 +130,14 @@ function isGeometryConnected(geometry: FoldGeometry): boolean {
 
 /**
  * Reconciles a single line's hidden state with the currently-folded region
- * set. A line is hidden if any of its parent regions are folded.
+ * set. A line is hidden if any of its parent regions are folded. Returns
+ * `true` when a hidden line shows again.
  */
 function syncLineHidden(
 	line: HTMLElement,
 	foldedRegions: Set<string>,
 	lineRegions: Set<string>,
-): void {
+): boolean {
 	let isHidden = false;
 	for (const region of lineRegions) {
 		if (foldedRegions.has(region)) {
@@ -137,11 +145,19 @@ function syncLineHidden(
 			break;
 		}
 	}
+	// Why at once: a line that closes stays on screen while it animates, and keyboard focus must not reach it.
+	line.inert = isHidden;
 	if (isHidden) {
 		line.dataset.foldHidden = "true";
-	} else {
-		delete line.dataset.foldHidden;
+		return false;
 	}
+	if (line.dataset.foldHidden !== "true") {
+		return false;
+	}
+	// Why "false" and not no attribute: `mantle.css` opens the line from
+	// `[data-fold-hidden="false"]`, so a line that loads open does not animate.
+	line.dataset.foldHidden = "false";
+	return true;
 }
 
 /**
@@ -182,13 +198,29 @@ function toggleFoldFromButton(button: HTMLButtonElement): boolean {
 
 	const { regionToLines, lineToRegions } = getFoldGeometry(codeElement);
 	const lines = regionToLines.get(regionId);
+	const shown: HTMLElement[] = [];
 	if (lines != null) {
 		for (const line of lines) {
 			const lineRegions = lineToRegions.get(line);
-			if (lineRegions != null) {
-				syncLineHidden(line, foldedRegions, lineRegions);
+			if (lineRegions != null && syncLineHidden(line, foldedRegions, lineRegions)) {
+				shown.push(line);
 			}
 		}
+	}
+	if (shown.length > 0) {
+		lastToggle += 1;
+		const toggle = lastToggle;
+		for (const line of shown) {
+			LINE_SHOWN_BY.set(line, toggle);
+		}
+		// Why a timer, not `transitionend`: a hidden tab or an interrupted transition fires no event.
+		setTimeout(() => {
+			for (const line of shown) {
+				if (LINE_SHOWN_BY.get(line) === toggle && line.dataset.foldHidden === "false") {
+					delete line.dataset.foldHidden;
+				}
+			}
+		}, FOLD_MOTION_MS);
 	}
 
 	return true;

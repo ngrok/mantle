@@ -1,6 +1,6 @@
 "use client";
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
 import mantleCss from "../../mantle.css?raw";
@@ -105,6 +105,8 @@ describe("CodeBlock JSON folding", () => {
 		expect(arrayButton).toHaveAttribute("aria-expanded", "false");
 		expect(innerLine3).toHaveAttribute("data-fold-hidden", "true");
 		expect(innerLine4).toHaveAttribute("data-fold-hidden", "true");
+		// Why: a closing line stays on screen while it animates, so focus must not reach it.
+		expect(innerLine3).toHaveAttribute("inert");
 	});
 
 	test("clicking the same toggle a second time restores visibility", async () => {
@@ -130,8 +132,14 @@ describe("CodeBlock JSON folding", () => {
 		expect(arrayButton).toHaveAttribute("aria-expanded", "true");
 		const innerLine3 = document.querySelector('[data-line-number="3"]');
 		const innerLine4 = document.querySelector('[data-line-number="4"]');
-		expect(innerLine3).not.toHaveAttribute("data-fold-hidden");
-		expect(innerLine4).not.toHaveAttribute("data-fold-hidden");
+		// Why two checks: the lines show at once, and the open motion's marker goes when the motion ends.
+		expect(innerLine3).not.toHaveAttribute("data-fold-hidden", "true");
+		expect(innerLine4).not.toHaveAttribute("data-fold-hidden", "true");
+		expect(innerLine3).not.toHaveAttribute("inert");
+		await waitFor(() => {
+			expect(innerLine3).not.toHaveAttribute("data-fold-hidden");
+			expect(innerLine4).not.toHaveAttribute("data-fold-hidden");
+		});
 	});
 
 	test("replacing highlighted HTML clears stale folded state from the code element", async () => {
