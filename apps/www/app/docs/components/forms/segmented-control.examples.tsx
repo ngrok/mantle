@@ -125,7 +125,7 @@ export function SizeExample() {
 		<PreviewCanvas>
 			<div className="flex flex-wrap items-start justify-center gap-6">
 				<Field.Set className="w-auto items-center">
-					<Field.Legend className="mx-auto">Size xs</Field.Legend>
+					<Field.Legend className="w-full text-center">Size xs</Field.Legend>
 					<div className="flex items-center gap-2">
 						<SegmentedControl.Root
 							aria-label="Event view, size xs"
@@ -146,7 +146,7 @@ export function SizeExample() {
 					</div>
 				</Field.Set>
 				<Field.Set className="w-auto items-center">
-					<Field.Legend className="mx-auto">Size sm</Field.Legend>
+					<Field.Legend className="w-full text-center">Size sm</Field.Legend>
 					<div className="flex items-center gap-2">
 						<SegmentedControl.Root
 							aria-label="Event view, size sm"
@@ -167,7 +167,7 @@ export function SizeExample() {
 					</div>
 				</Field.Set>
 				<Field.Set className="w-auto items-center">
-					<Field.Legend className="mx-auto">Size md (default)</Field.Legend>
+					<Field.Legend className="w-full text-center">Size md (default)</Field.Legend>
 					<div className="flex items-center gap-2">
 						<SegmentedControl.Root
 							aria-label="Event view, size md"
@@ -188,7 +188,7 @@ export function SizeExample() {
 					</div>
 				</Field.Set>
 				<Field.Set className="w-auto items-center">
-					<Field.Legend className="mx-auto">Size lg</Field.Legend>
+					<Field.Legend className="w-full text-center">Size lg</Field.Legend>
 					<div className="flex items-center gap-2">
 						<SegmentedControl.Root
 							aria-label="Event view, size lg"
@@ -209,7 +209,7 @@ export function SizeExample() {
 					</div>
 				</Field.Set>
 				<Field.Set className="w-auto items-center">
-					<Field.Legend className="mx-auto">Size xl</Field.Legend>
+					<Field.Legend className="w-full text-center">Size xl</Field.Legend>
 					<div className="flex items-center gap-2">
 						<SegmentedControl.Root
 							aria-label="Event view, size xl"

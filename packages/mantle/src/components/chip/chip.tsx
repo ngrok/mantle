@@ -37,11 +37,11 @@ type ChipAppearance = "pill" | "square";
  */
 const chipClassName = {
 	pill: {
-		xs: "h-6 w-fit min-w-0 max-w-full gap-0.5 whitespace-nowrap rounded-full px-2 font-sans text-xs font-medium",
-		sm: "h-7 w-fit min-w-0 max-w-full gap-0.5 whitespace-nowrap rounded-full px-2.5 font-sans text-sm font-medium",
-		md: "h-9 w-fit min-w-0 max-w-full gap-1 whitespace-nowrap rounded-full px-3 font-sans text-sm font-medium",
-		lg: "h-10 w-fit min-w-0 max-w-full gap-1 whitespace-nowrap rounded-full px-3.5 font-sans text-sm font-medium",
-		xl: "h-12 w-fit min-w-0 max-w-full gap-1.5 whitespace-nowrap rounded-full px-4 font-sans text-base font-medium",
+		xs: "h-6 min-h-6 w-fit min-w-0 max-w-full gap-0.5 whitespace-nowrap rounded-full px-2 font-sans text-xs font-medium",
+		sm: "h-7 min-h-7 w-fit min-w-0 max-w-full gap-0.5 whitespace-nowrap rounded-full px-2.5 font-sans text-sm font-medium",
+		md: "h-9 min-h-9 w-fit min-w-0 max-w-full gap-1 whitespace-nowrap rounded-full px-3 font-sans text-sm font-medium",
+		lg: "h-10 min-h-10 w-fit min-w-0 max-w-full gap-1 whitespace-nowrap rounded-full px-3.5 font-sans text-sm font-medium",
+		xl: "h-12 min-h-12 w-fit min-w-0 max-w-full gap-1.5 whitespace-nowrap rounded-full px-4 font-sans text-base font-medium",
 	},
 	square: {
 		xs: "gap-1 rounded-xs px-2 py-0.5 has-data-[slot=chip-remove]:pr-0.5 text-xs font-normal",

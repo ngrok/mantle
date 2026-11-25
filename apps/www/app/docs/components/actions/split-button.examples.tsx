@@ -37,7 +37,7 @@ export function SizeExample() {
 		<PreviewCanvas className="min-h-160 items-start">
 			<div className="flex flex-wrap items-start justify-center gap-6">
 				<Field.Set className="w-auto items-center">
-					<Field.Legend className="mx-auto">Size xs</Field.Legend>
+					<Field.Legend className="w-full text-center">Size xs</Field.Legend>
 					<SplitButton.Root size="xs">
 						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
 						<SplitButton.MenuTrigger label="Open create options" />
@@ -47,7 +47,7 @@ export function SizeExample() {
 					</SplitButton.Root>
 				</Field.Set>
 				<Field.Set className="w-auto items-center">
-					<Field.Legend className="mx-auto">Size sm</Field.Legend>
+					<Field.Legend className="w-full text-center">Size sm</Field.Legend>
 					<SplitButton.Root size="sm">
 						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
 						<SplitButton.MenuTrigger label="Open create options" />
@@ -57,7 +57,7 @@ export function SizeExample() {
 					</SplitButton.Root>
 				</Field.Set>
 				<Field.Set className="w-auto items-center">
-					<Field.Legend className="mx-auto">Size md (default)</Field.Legend>
+					<Field.Legend className="w-full text-center">Size md (default)</Field.Legend>
 					<SplitButton.Root size="md">
 						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
 						<SplitButton.MenuTrigger label="Open create options" />
@@ -67,7 +67,7 @@ export function SizeExample() {
 					</SplitButton.Root>
 				</Field.Set>
 				<Field.Set className="w-auto items-center">
-					<Field.Legend className="mx-auto">Size lg</Field.Legend>
+					<Field.Legend className="w-full text-center">Size lg</Field.Legend>
 					<SplitButton.Root size="lg">
 						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
 						<SplitButton.MenuTrigger label="Open create options" />
@@ -77,7 +77,7 @@ export function SizeExample() {
 					</SplitButton.Root>
 				</Field.Set>
 				<Field.Set className="w-auto items-center">
-					<Field.Legend className="mx-auto">Size xl</Field.Legend>
+					<Field.Legend className="w-full text-center">Size xl</Field.Legend>
 					<SplitButton.Root size="xl">
 						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
 						<SplitButton.MenuTrigger label="Open create options" />

@@ -249,7 +249,7 @@ type TagProps = Omit<ComponentProps<"span">, "children"> & {
  *
  * Arrow-key navigation and Backspace/Delete removal come from the
  * `MultiSelect.TagValues` render props; spread them onto the tag to get them.
- * On its own, `Tag` only blocks Backspace and Delete on a locked tag.
+ * On its own, `Tag` only blocks Backspace and Delete on a locked or `aria-disabled` tag.
  *
  * Use this when building a custom `TagValues`-like component and you want the
  * default tag chrome with consistent styling. The tag is a `square` `Chip` at the `sm` size.

@@ -18,7 +18,7 @@ export function OverviewExample() {
 	return (
 		<PreviewCanvas className="flex flex-col items-center gap-6">
 			<Field.Set className="w-auto items-center">
-				<Field.Legend className="mx-auto">Neutral</Field.Legend>
+				<Field.Legend className="w-full text-center">Neutral</Field.Legend>
 				<div className="flex flex-wrap items-center justify-center gap-2">
 					<Button appearance="ghost" intent="neutral">
 						Ghost
@@ -35,7 +35,7 @@ export function OverviewExample() {
 				</div>
 			</Field.Set>
 			<Field.Set className="w-auto items-center">
-				<Field.Legend className="mx-auto">Accent</Field.Legend>
+				<Field.Legend className="w-full text-center">Accent</Field.Legend>
 				<div className="flex flex-wrap items-center justify-center gap-2">
 					<Button appearance="ghost" intent="accent">
 						Ghost
@@ -52,7 +52,7 @@ export function OverviewExample() {
 				</div>
 			</Field.Set>
 			<Field.Set className="w-auto items-center">
-				<Field.Legend className="mx-auto">Danger</Field.Legend>
+				<Field.Legend className="w-full text-center">Danger</Field.Legend>
 				<div className="flex flex-wrap items-center justify-center gap-2">
 					<Button appearance="ghost" intent="danger">
 						Ghost
@@ -166,7 +166,7 @@ export function IsloadingExample() {
 	return (
 		<PreviewCanvas className="flex-col gap-4">
 			<Field.Set className="w-auto items-center">
-				<Field.Legend className="mx-auto">Idle</Field.Legend>
+				<Field.Legend className="w-full text-center">Idle</Field.Legend>
 				<div className="flex flex-wrap items-center justify-center gap-2">
 					<Button appearance="outlined" intent="neutral">
 						No Icon + Idle
@@ -185,7 +185,7 @@ export function IsloadingExample() {
 				</div>
 			</Field.Set>
 			<Field.Set className="w-auto items-center">
-				<Field.Legend className="mx-auto">isLoading</Field.Legend>
+				<Field.Legend className="w-full text-center">isLoading</Field.Legend>
 				<div className="flex flex-wrap items-center justify-center gap-2">
 					<Button appearance="outlined" intent="neutral" isLoading>
 						No Icon + isLoading

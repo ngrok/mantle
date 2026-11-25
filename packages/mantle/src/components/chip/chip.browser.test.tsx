@@ -222,6 +222,18 @@ describe("Chip width", () => {
 			expect(label && label.scrollWidth > label.clientWidth).toBe(true);
 		}
 	});
+
+	test("a pill keeps its height in a short scrolling column", () => {
+		render(
+			<div style={{ display: "flex", flexDirection: "column", maxHeight: 40, overflowY: "auto" }}>
+				<Chip selectable>Read</Chip>
+				<Chip selectable>Write</Chip>
+			</div>,
+		);
+		for (const name of ["Read", "Write"]) {
+			expect(screen.getByRole("button", { name }).getBoundingClientRect().height).toBe(24);
+		}
+	});
 });
 
 describe("Chip aria-disabled", () => {

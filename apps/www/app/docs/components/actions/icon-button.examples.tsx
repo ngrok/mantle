@@ -37,7 +37,7 @@ export function SizeExample() {
 	return (
 		<PreviewCanvas className="min-h-160 flex flex-wrap gap-6">
 			<Field.Set className="w-auto items-center">
-				<Field.Legend className="mx-auto">Size 2xs</Field.Legend>
+				<Field.Legend className="w-full text-center">Size 2xs</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -63,7 +63,7 @@ export function SizeExample() {
 				</div>
 			</Field.Set>
 			<Field.Set className="w-auto items-center">
-				<Field.Legend className="mx-auto">Size xs</Field.Legend>
+				<Field.Legend className="w-full text-center">Size xs</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -89,7 +89,7 @@ export function SizeExample() {
 				</div>
 			</Field.Set>
 			<Field.Set className="w-auto items-center">
-				<Field.Legend className="mx-auto">Size sm</Field.Legend>
+				<Field.Legend className="w-full text-center">Size sm</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -115,7 +115,7 @@ export function SizeExample() {
 				</div>
 			</Field.Set>
 			<Field.Set className="w-auto items-center">
-				<Field.Legend className="mx-auto">Size md</Field.Legend>
+				<Field.Legend className="w-full text-center">Size md</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -138,7 +138,7 @@ export function SizeExample() {
 				</div>
 			</Field.Set>
 			<Field.Set className="w-auto items-center">
-				<Field.Legend className="mx-auto">Size lg</Field.Legend>
+				<Field.Legend className="w-full text-center">Size lg</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -164,7 +164,7 @@ export function SizeExample() {
 				</div>
 			</Field.Set>
 			<Field.Set className="w-auto items-center">
-				<Field.Legend className="mx-auto">Size xl</Field.Legend>
+				<Field.Legend className="w-full text-center">Size xl</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -190,7 +190,7 @@ export function SizeExample() {
 				</div>
 			</Field.Set>
 			<Field.Set className="w-auto items-center">
-				<Field.Legend className="mx-auto">Disabled</Field.Legend>
+				<Field.Legend className="w-full text-center">Disabled</Field.Legend>
 				<div className="flex items-center gap-2">
 					<Tooltip.Root>
 						<Tooltip.Trigger asChild>
@@ -239,7 +239,7 @@ export function IsloadingExample() {
 	return (
 		<PreviewCanvas className="flex-col gap-4">
 			<Field.Set className="w-auto items-center">
-				<Field.Legend className="mx-auto">idle</Field.Legend>
+				<Field.Legend className="w-full text-center">idle</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -256,7 +256,7 @@ export function IsloadingExample() {
 				</div>
 			</Field.Set>
 			<Field.Set className="w-auto items-center">
-				<Field.Legend className="mx-auto">isLoading</Field.Legend>
+				<Field.Legend className="w-full text-center">isLoading</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
