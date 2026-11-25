@@ -1268,7 +1268,10 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  * When the panel covers the row, it is modal. The row's other children (the
  * card and the sidebar) go `inert` while it is open, so nothing beneath it is
  * clickable or read; `useFocusTrap` wraps `Tab` inside it and moves focus
- * into it on open. The one `<aside>` stays mounted across the lane, the
+ * into it on open. A panel that is open on mount (`defaultOpen` or a saved
+ * cookie) still covers the card and keeps the row `inert`, but it does not
+ * take focus: the trap starts when focus first enters the panel or the reader
+ * opens it again. The one `<aside>` stays mounted across the lane, the
  * float, and the cover, so a conversation keeps its DOM and the trap turns
  * on and off with the viewport.
  *
@@ -1397,6 +1400,15 @@ const SidePanel = ({
 	const covers = useMatchesMediaQuery(sidePanelCoverQuery[mobileBreakpoint]);
 	const isModal = open && covers;
 
+	// Why: a panel open since mount (`defaultOpen` or a saved cookie) is a page
+	// state, not an open the reader asked for, so the trap must not take focus
+	// from the page or from a parent frame. The trap arms on the first focus
+	// inside the panel, and every later open is one the reader started.
+	const [openSinceMount, setOpenSinceMount] = useState(open);
+	if (openSinceMount && !open) {
+		setOpenSinceMount(false);
+	}
+
 	// Why a layout effect: the sidebar's state is in `Sidebar.Root`, above or
 	// below the panel's root, and the request must land before the paint.
 	const requestSidebarWidth = useContext(SidebarWidthRequestContext);
@@ -1412,7 +1424,7 @@ const SidePanel = ({
 	// Why siblings: the card and the sidebar are the panel's siblings in the row,
 	// and `AppLayout` knows nothing about the sidebar.
 	useInertSiblings(panelRef, { active: isModal });
-	useFocusTrap(panelRef, { active: isModal });
+	useFocusTrap(panelRef, { active: isModal && !openSinceMount });
 
 	// Why a document capture listener, registered at mount: a combobox or a
 	// popover inside the panel closes on the same Escape from a document
@@ -1491,6 +1503,7 @@ const SidePanel = ({
 			onFocus={(event) => {
 				onFocus?.(event);
 				lastFocusedInsideRef.current = event.target;
+				setOpenSinceMount(false);
 			}}
 			onBlur={(event) => {
 				onBlur?.(event);

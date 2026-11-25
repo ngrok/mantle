@@ -1076,8 +1076,11 @@ custom control composes the same state from [`useSidePanel`](#usesidepanel).
   The page beneath stays usable. A panel in the lane is a docked pane and ignores `Escape`.
 - **Covering, the panel is modal.** The row's other children, the card and the sidebar, go `inert` while it
   is open, so nothing beneath it is clickable or read, and [`useFocusTrap`](/hooks#usefocustrap) wraps
-  `Tab` inside it and moves focus into it on open. The one `<aside>` stays mounted across the lane, the
-  float, and the cover, so a conversation keeps its DOM and the trap turns on and off with the viewport.
+  `Tab` inside it and moves focus into it on open. A panel that is open on mount (`defaultOpen` or a saved
+  cookie) still covers the card and keeps the row `inert`, but it does not take focus from the page: the
+  trap starts when focus first enters the panel or the reader opens it again. The one `<aside>` stays
+  mounted across the lane, the float, and the cover, so a conversation keeps its DOM and the trap turns on
+  and off with the viewport.
 
 The panel keeps the card gutter on its top, end, and bottom edges and none on its start edge, so the card's
 own end margin is the gap between the two: one gutter wide, the same number as the inset from the window.
@@ -2186,7 +2189,8 @@ export function Shell() {
   current breakpoint, or a disabled one, cannot take focus either, so a responsive header with one trigger
   per breakpoint lands on the visible one (see [Side panel](#side-panel)). Floating, the panel closes on
   `Escape`. Covering the card, it is modal: the card and the sidebar go `inert`, and a focus trap wraps `Tab`
-  inside it; the landmark keeps its name.
+  inside it once the reader opens it or moves focus into it; a panel open on mount does not take focus.
+  The landmark keeps its name.
 - `AppLayout.SidePanelTrigger` carries `aria-expanded` and `aria-controls` for the panel, and a tooltip
   with its label, since it is icon-only. Keep one outside the panel at every breakpoint, or a closed panel
   has no way back open.
@@ -2478,7 +2482,8 @@ away in every presentation: a floating panel slides, and a panel in the lane shr
 animation does. A floating panel is also an overlay: `Escape` closes it while focus is inside. A panel in
 the lane is a docked pane and ignores `Escape`. A covering panel is modal: the row's other children go
 `inert` while it is open, and [`useFocusTrap`](/hooks#usefocustrap) wraps `Tab` inside it and moves focus
-into it on open. The one `<aside>` stays mounted across the lane, the float, and the cover.
+into it on open. A panel open on mount stays modal but takes no focus until focus enters it or the reader
+opens it again. The one `<aside>` stays mounted across the lane, the float, and the cover.
 
 It does not take `asChild`: the panel is a fixed two-element structure (the clip box and the inner column),
 so no single element could be swapped.

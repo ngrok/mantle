@@ -1128,13 +1128,49 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 	});
 
-	test("a covering panel makes the row's other children inert and moves focus inside", () => {
+	test("a covering panel open on mount makes the row's other children inert and leaves focus on the page", () => {
 		mockMatchMedia({ [coverQuery]: true });
 		render(coveringShell());
 		expect(screen.getByTestId("sidebar")).toHaveAttribute("inert");
 		expect(screen.getByTestId("card")).toHaveAttribute("inert");
 		expect(screen.getByTestId("panel")).not.toHaveAttribute("inert");
+		expect(document.body).toHaveFocus();
+	});
+
+	test("a covering panel the reader opens moves focus inside", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot>
+					<AppLayout.Workspace>
+						<AppLayout.Content data-testid="card">
+							<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+						</AppLayout.Content>
+						<AppLayout.SidePanel aria-label="Assistant">
+							<AppLayout.SidePanelHeader>
+								<AppLayout.SidePanelTrigger label="Close the assistant" />
+							</AppLayout.SidePanelHeader>
+						</AppLayout.SidePanel>
+					</AppLayout.Workspace>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		await user.click(screen.getByRole("button", { name: "Toggle the assistant" }));
+		expect(screen.getByTestId("card")).toHaveAttribute("inert");
 		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
+	});
+
+	test("a covering panel open on mount traps Tab once focus enters it", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		render(coveringShell());
+		// Why focus by hand: happy-dom's tab order ignores `inert`; the browser test tabs in.
+		act(() => {
+			screen.getByRole("button", { name: "Close the assistant" }).focus();
+		});
+		await user.tab({ shift: true });
+		expect(screen.getByRole("button", { name: "send" })).toHaveFocus();
 	});
 
 	test("Tab wraps inside a covering panel", async () => {
