@@ -75,7 +75,7 @@ export function HeaderExample() {
 	);
 }
 
-/** A panel inside another landmark, as a `<section>`. */
+/** A panel as a `<section>` named by its heading: a `region` landmark. */
 export function PolymorphismExample() {
 	return (
 		<PreviewCanvas>

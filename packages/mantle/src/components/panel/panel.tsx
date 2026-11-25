@@ -20,22 +20,66 @@ import { Slot } from "../slot/index.js";
 const headerBandClassName =
 	"h-14 group-has-[[data-slot~=sidebar-header]:not([data-mobile]_*)]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]";
 
-/** The props for `Panel.Root`: an `<aside>`'s props, `asChild`, and `data-slot`. */
+/**
+ * The props for `Panel.Root`: an `<aside>`'s props, `asChild`, and `data-slot`.
+ *
+ * @see https://mantle.ngrok.com/components/preview/panel#panelroot
+ *
+ * @example
+ * ```tsx
+ * <Panel.Root aria-label="Assistant" className="h-120">
+ *   <Panel.Header>
+ *     <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+ *     <IconButton type="button" appearance="ghost" intent="neutral" icon={<XIcon />} label="Close" />
+ *   </Panel.Header>
+ *   <Panel.Body>
+ *     <AssistantConversation />
+ *   </Panel.Body>
+ *   <Panel.Footer>
+ *     <AssistantComposer />
+ *   </Panel.Footer>
+ * </Panel.Root>
+ * ```
+ */
 type PanelRootProps = ComponentProps<"aside"> & WithAsChild & WithDataSlot;
 
-/** The props for `Panel.Header`, `Panel.Body`, and `Panel.Footer`. */
+/**
+ * The props for `Panel.Header`, `Panel.Body`, and `Panel.Footer`: a `<div>`'s
+ * props, `asChild`, and `data-slot`.
+ *
+ * @see https://mantle.ngrok.com/components/preview/panel#api-reference
+ *
+ * @example
+ * ```tsx
+ * <Panel.Root aria-label="Assistant" className="h-120">
+ *   <Panel.Header>
+ *     <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+ *     <IconButton type="button" appearance="ghost" intent="neutral" icon={<XIcon />} label="Close" />
+ *   </Panel.Header>
+ *   <Panel.Body>
+ *     <AssistantConversation />
+ *   </Panel.Body>
+ *   <Panel.Footer>
+ *     <AssistantComposer />
+ *   </Panel.Footer>
+ * </Panel.Root>
+ * ```
+ */
 type PanelPartProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
  * The card surface of a panel: a column with the card background, a muted
  * hairline border, rounded corners, and a small shadow, which clips its
  * children to the corners. Renders an `<aside>`, so it is the `complementary`
- * landmark; name it with `aria-label`. Compose a `<section>` or a `<div>` with
- * `asChild` when the panel is not a landmark, such as inside another `<aside>`.
+ * landmark; name it with `aria-label`. Compose a `<div>` with `asChild` when the
+ * panel is not a landmark, such as inside another `<aside>`. A `<section>` named
+ * by its heading is a `region` landmark.
  *
  * It has no size and no open state. The caller sets the height, and the
  * header, the body, and the footer split it: the body takes what is left and
- * scrolls.
+ * scrolls. It is `relative`, so an absolute control inside stays in the card,
+ * and `min-h-0 min-w-0`, so it shrinks as a flex item instead of growing to its
+ * content.
  *
  * @see https://mantle.ngrok.com/components/preview/panel#panelroot
  *
@@ -68,7 +112,7 @@ const Root = ({
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "panel")}
 			className={cx(
-				"bg-card border-card-muted flex flex-col rounded-xl border shadow-sm",
+				"bg-card border-card-muted relative flex min-h-0 min-w-0 flex-col rounded-xl border shadow-sm",
 				// clip, not hidden: `hidden` makes a scroll container, and a sticky
 				// child would stick to the panel instead of to the body.
 				"overflow-clip",

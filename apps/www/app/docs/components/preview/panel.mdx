@@ -122,7 +122,7 @@ Panel.Root
 
 Every part accepts `asChild`:
 
-- **`Panel.Root`**: a `<section>` or a `<div>` when the panel is not a landmark, such as inside another `<aside>`. `AppLayout.SidePanel` does this, because its own `<aside>` is the landmark.
+- **`Panel.Root`**: a `<div>` when the panel is not a landmark, such as inside another `<aside>`. `AppLayout.SidePanel` does this, because its own `<aside>` is the landmark. A `<section>` named by its heading makes the panel a `region` landmark in place of `complementary`, as in this example.
 - **`Panel.Header`**: a `<header>` when the row introduces the panel.
 - **`Panel.Body`**: an `<ol>` when the body is one list.
 - **`Panel.Footer`**: a `<form>` when the bar is a composer.
@@ -159,7 +159,7 @@ function Example() {
 
 ### Panel.Root
 
-The card surface: a column with the card background, a muted hairline border, rounded corners, and a small shadow. Renders an `<aside>`, so name it with `aria-label`.
+The card surface: a column with the card background, a muted hairline border, rounded corners, and a small shadow. Renders an `<aside>`, so name it with `aria-label`. It is `relative`, and it shrinks as a flex item instead of growing to its content.
 
 All props from [aside](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/aside#attributes), plus:
 
