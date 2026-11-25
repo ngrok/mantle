@@ -17,8 +17,8 @@ const mantlePackageJson = "packages/mantle/package.json";
 /**
  * Stamp each unreleased migration guide (one with no `introducedIn`) with the
  * release `version`. A guide with no `number` takes the next free one, in
- * file-name order, so two guides in one release number by slug. A guide with
- * a codemod and no `codemodIn` gets `codemodIn`, also when the
+ * file-name order, so two guides in one release number by slug. A slug-named
+ * guide with a codemod and no `codemodIn` gets `codemodIn`, also when the
  * codemod comes after the guide shipped. Returns the stamped guide names.
  *
  * @example
@@ -42,7 +42,10 @@ export function stampMigrations({
 	const stamped: string[] = [];
 	for (const { name, file, source } of guides) {
 		const released = frontmatterValue(source, "introducedIn") != null;
+		// Why not a released 0001 to 0035: each sets `codemodIn` by hand, and
+		// `migrate.test.ts` fails when one with a codemod has none.
 		const needsCodemodIn =
+			!(released && /^\d{4}-/.test(name)) &&
 			frontmatterValue(source, "codemodIn") == null &&
 			fs.existsSync(path.join(paths.rulesDir, rulesDirName(name), "rules.yml"));
 		if (released && !needsCodemodIn) {

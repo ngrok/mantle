@@ -225,13 +225,17 @@ describe("migration docs", () => {
 	const numberedGuides = guides.filter(({ fileNumber }) => fileNumber != null);
 	const slugGuides = guides.filter(({ fileNumber }) => fileNumber == null);
 
-	// Catches: a new guide that picks the next number in its file name, and a
-	// numbered file whose frontmatter names another number.
-	it.each(numberedGuides)("$name carries a number in its file name only up to 0035", (guide) => {
+	// Catches: a new guide that picks the next number in its file name, a
+	// numbered file whose frontmatter names another number, and a codemod with
+	// no `codemodIn`.
+	it.each(numberedGuides)("$name is numbered up to 0035 and pins its versions", (guide) => {
 		expect(Number(guide.fileNumber)).toBeLessThanOrEqual(lastNumberedFileName);
 		expect(guide.number).toBe(String(Number(guide.fileNumber)));
 		// Why: the release stamps a guide with no `introducedIn` with its own version.
 		expect(guide.introducedIn).not.toBeNull();
+		// Why: the release does not stamp `codemodIn` on these guides, and without
+		// it the MCP `migrate` tool says to migrate by hand.
+		expect(guide.codemodIn != null).toBe(codemodDirs.includes(rulesDirName(guide.name)));
 	});
 
 	// Catches: a slug-named guide that takes an old unnumbered URL. That URL
