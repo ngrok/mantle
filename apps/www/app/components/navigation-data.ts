@@ -1,4 +1,5 @@
 import type { href } from "react-router";
+import migrationGuides from "virtual:migration-guides";
 
 type Route = Parameters<typeof href>[0];
 
@@ -444,324 +445,54 @@ export const recipeDescriptions = {
  */
 export type Migration = {
 	/**
-	 * The guide's publish-order number. A guide keeps its number forever, and no
-	 * later guide takes it. It is the four-digit prefix of `route` and of the
-	 * MDX file name.
+	 * The guide's publish-order number, or `null` before the guide ships. The
+	 * release stamps it into the guide's frontmatter, and a guide keeps it forever.
 	 */
-	number: number;
+	number: number | null;
 	/**
-	 * The URL slug without the number prefix. The guides shipped at
+	 * The URL slug without a number prefix. Guides 1 to 35 also shipped at
 	 * `/migrations/<slug>` before they carried a number, so this is the source
-	 * of each guide's legacy redirect.
+	 * of each one's legacy redirect.
 	 */
 	slug: string;
 	/** The short name the index page and the sidebar show. */
 	title: string;
 	/** The one-sentence summary the index page shows under the title. */
 	description: string;
-	/** The canonical docs route: `/migrations/<number>-<slug>`. */
-	route: Route;
+	/** The canonical docs route: `/migrations/<file name>`. */
+	route: `/migrations/${string}`;
 };
 
 /**
- * Zero-pad a migration number to the four digits its URL slug carries.
+ * Format a migration number as the four-digit badge text, or `Unreleased`
+ * before the guide ships.
  *
  * @example
  * formatMigrationNumber(6); // "0006"
+ * formatMigrationNumber(null); // "Unreleased"
  */
-export function formatMigrationNumber(number: number): string {
-	return String(number).padStart(4, "0");
+export function formatMigrationNumber(number: number | null): string {
+	return number == null ? "Unreleased" : String(number).padStart(4, "0");
 }
 
 /**
- * Migration guides in publish order, oldest first. Add a new guide at the end
- * with the next number. Its MDX file lives at
- * `app/docs/migrations/<number>-<slug>.mdx` and its slug is also listed in
- * `app/routes.ts`.
+ * Migration guides, one for each `app/docs/migrations/<name>.mdx`, read from
+ * its frontmatter. A new guide needs no entry here.
  */
-export const migrations = [
-	{
-		number: 1,
-		slug: "code-block-migration",
-		title: "CodeBlock",
-		description: "Migrate from PrismJS-powered code blocks to mantle's Shiki-powered CodeBlock.",
-		route: "/migrations/0001-code-block-migration",
-	},
-	{
-		number: 2,
-		slug: "data-table-action-header-migration",
-		title: "DataTable Action Column",
-		description:
-			"Switch a pinned action column's header to DataTable.ActionHeader so it stays aligned on horizontal scroll.",
-		route: "/migrations/0002-data-table-action-header-migration",
-	},
-	{
-		number: 3,
-		slug: "dialog-footer-dom-order-migration",
-		title: "Dialog.Footer DOM Order",
-		description:
-			"Dialog.Footer now renders children in DOM order. Reverse footer children to preserve their layout.",
-		route: "/migrations/0003-dialog-footer-dom-order-migration",
-	},
-	{
-		number: 4,
-		slug: "priority-to-intent-migration",
-		title: "Priority → Intent",
-		description:
-			"priority is now intent across Button, Alert, AlertDialog, and Toast. Button and IconButton also require explicit appearance and intent.",
-		route: "/migrations/0004-priority-to-intent-migration",
-	},
-	{
-		number: 5,
-		slug: "field-item-owns-control-id-migration",
-		title: "Field.Item Control Id",
-		description:
-			"Field.Item owns the control id: move a child id to Field.Item, drop htmlFor from Field.Label, and update PasswordInput toggle selectors.",
-		route: "/migrations/0005-field-item-owns-control-id-migration",
-	},
-	{
-		number: 6,
-		slug: "data-table-tanstack-v9-migration",
-		title: "DataTable TanStack Table v9",
-		description:
-			"Move a DataTable from TanStack Table v8 to v9: useTable with a features object, columnHelper.columns, sortFn, and table.state.",
-		route: "/migrations/0006-data-table-tanstack-v9-migration",
-	},
-	{
-		number: 7,
-		slug: "app-layout-header-slots-migration",
-		title: "App Layout Header Slots",
-		description:
-			"Compose AppLayout.Header from its three slots, let AppLayout.Body be the main landmark, and render the header in every route instead of the shell.",
-		route: "/migrations/0007-app-layout-header-slots-migration",
-	},
-	{
-		number: 8,
-		slug: "tabs-separator-migration",
-		title: "Tabs Separator",
-		description:
-			"Tabs.List no longer draws a border: compose Tabs.Separator after the list, delete hideBorder, and set --tabs-gap instead of a gap-* class on Tabs.Root.",
-		route: "/migrations/0008-tabs-separator-migration",
-	},
-	{
-		number: 9,
-		slug: "chart-root-mode-migration",
-		title: "Chart Root Mode",
-		description:
-			'The chart Roots take mode in place of the decorative boolean: rewrite decorative to mode="decorative", and move sparklines to mode="static".',
-		route: "/migrations/0009-chart-root-mode-migration",
-	},
-	{
-		number: 10,
-		slug: "button-icon-swap-migration",
-		title: "Button Icon Swap",
-		description:
-			"The Button and IconButton icon now sits inside a span. Replace a [&>svg] selector on the button with [&_svg], or size the icon element itself.",
-		route: "/migrations/0010-button-icon-swap-migration",
-	},
-	{
-		number: 11,
-		slug: "eliminate-high-contrast-migration",
-		title: "Eliminate High Contrast",
-		description:
-			"The high-contrast themes, stylesheets, and variants are gone, MantleStyleSheets takes only darkCssUrl, and ThemeSwitcher is one light/dark toggle.",
-		route: "/migrations/0011-eliminate-high-contrast-migration",
-	},
-	{
-		number: 12,
-		slug: "single-stylesheet-migration",
-		title: "Single Stylesheet",
-		description:
-			"mantle.css holds both themes, so mantle-dark.css, MantleStyleSheets, and mantleStyleSheetUrls are gone.",
-		route: "/migrations/0012-single-stylesheet-migration",
-	},
-	{
-		number: 13,
-		slug: "chart-svg-renderer-migration",
-		title: "Chart SVG Renderer",
-		description:
-			"Bar, Line, and Area charts paint an svg instead of a canvas. Update selectors and tests that read the canvas.",
-		route: "/migrations/0013-chart-svg-renderer-migration",
-	},
-	{
-		number: 14,
-		slug: "chart-named-colors-migration",
-		title: "Chart Named Colors",
-		description:
-			"Every chart series names its color with a mantle color name, the same names Badge takes. The chart-1 to chart-8 tokens, chart-other, and seriesSlot are gone, and color is required.",
-		route: "/migrations/0014-chart-named-colors-migration",
-	},
-	{
-		number: 15,
-		slug: "segmented-control-migration",
-		title: "Segmented Control",
-		description:
-			"RadioGroup.ButtonGroup and RadioGroup.Button are gone. Use SegmentedControl.Root and SegmentedControl.Item from @ngrok/mantle/segmented-control.",
-		route: "/migrations/0015-segmented-control-migration",
-	},
-	{
-		number: 16,
-		slug: "side-panel-lane-collapsed-migration",
-		title: "Side Panel Lane Collapsed",
-		description:
-			"The theme token --container-side-panel-lane-icon-rail is now --container-side-panel-lane-collapsed. Rename it where you set it or read it.",
-		route: "/migrations/0016-side-panel-lane-collapsed-migration",
-	},
-	{
-		number: 17,
-		slug: "select-owned-behavior-migration",
-		title: "Select Owned Behavior",
-		description:
-			"Select no longer uses Radix Select. Select.Content drops its positioning props and Radix handlers, and the --radix-select-* CSS variables are gone.",
-		route: "/migrations/0017-select-owned-behavior-migration",
-	},
-	{
-		number: 18,
-		slug: "combobox-owned-behavior-migration",
-		title: "Combobox Owned Behavior",
-		description:
-			"Combobox no longer uses Ariakit. Its parts take a fixed set of props, Combobox.Content portals, and the highlighted item carries data-highlighted.",
-		route: "/migrations/0018-combobox-owned-behavior-migration",
-	},
-	{
-		number: 19,
-		slug: "multi-select-owned-behavior-migration",
-		title: "MultiSelect Owned Behavior",
-		description:
-			"MultiSelect no longer uses Ariakit. Its parts take a fixed set of props, the list portals into the layer container, and the highlighted item carries data-highlighted.",
-		route: "/migrations/0019-multi-select-owned-behavior-migration",
-	},
-	{
-		number: 20,
-		slug: "native-floats-migration",
-		title: "Native Floats",
-		description:
-			"Popover, Tooltip, and HoverCard are native popovers in the top layer. The Radix positioning props, Popover.Root modal, and HoverCard.Portal are gone, and --anchor-width and --available-height replace the Radix CSS variables.",
-		route: "/migrations/0020-native-floats-migration",
-	},
-	{
-		number: 21,
-		slug: "native-radio-group-migration",
-		title: "Native Radio Group",
-		description:
-			"RadioGroup and SegmentedControl items are now a label around a native radio. Style item state with has-[>input:checked], has-[>input:disabled], and has-[>input:focus-visible] in place of aria-checked, aria-disabled, and focus-visible.",
-		route: "/migrations/0021-native-radio-group-migration",
-	},
-	{
-		number: 22,
-		slug: "alert-center-server-render-migration",
-		title: "Alert Center Server Render",
-		description:
-			"AlertCenter items now render their children on the server, and the top item shows in the server HTML. Gate items and children that only the browser can decide with useIsHydrated, and prefetch the alert data in the root loader.",
-		route: "/migrations/0022-alert-center-server-render-migration",
-	},
-	{
-		number: 23,
-		slug: "tabs-owned-behavior-migration",
-		title: "Tabs Owned Behavior",
-		description:
-			"Tabs and the CodeBlock tabs no longer use Radix. A Radix Tabs part inside a mantle Tabs.Root has no context and throws. Use Tabs.Trigger instead.",
-		route: "/migrations/0023-tabs-owned-behavior-migration",
-	},
-	{
-		number: 24,
-		slug: "command-owned-behavior-migration",
-		title: "Command Owned Behavior",
-		description:
-			"Command no longer uses cmdk. Its parts drop the cmdk-* attributes for data-slot, a filtered item stays mounted with hidden, and groups sort by their best match.",
-		route: "/migrations/0024-command-owned-behavior-migration",
-	},
-	{
-		number: 25,
-		slug: "stone-palette-migration",
-		title: "Stone Palette",
-		description:
-			"mantle.css no longer has the stone palette, so stone classes make no CSS. Use gray, or set the stone stops you need in your own @theme block.",
-		route: "/migrations/0025-stone-palette-migration",
-	},
-	{
-		number: 26,
-		slug: "native-dropdown-menu-migration",
-		title: "Native Dropdown Menu",
-		description:
-			"DropdownMenu is built on native popovers in the top layer. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a menu is not modal by default.",
-		route: "/migrations/0026-native-dropdown-menu-migration",
-	},
-	{
-		number: 27,
-		slug: "native-dialog-migration",
-		title: "Native Dialog",
-		description:
-			"Dialog, AlertDialog, and Sheet render the browser's modal <dialog> in place of Radix Dialog. Set modal={false} on an overlay that holds a third-party frame, and read the backdrop and the panel from their new elements.",
-		route: "/migrations/0027-native-dialog-migration",
-	},
-	{
-		number: 28,
-		slug: "native-slider-migration",
-		title: "Native Slider",
-		description:
-			"Each Slider thumb is now a native range input inside the thumb span. Target the input for focus, keys, ids, and test queries, and expect a disabled slider to submit no value.",
-		route: "/migrations/0028-native-slider-migration",
-	},
-	{
-		number: 29,
-		slug: "data-attribute-contract-migration",
-		title: "Data Attribute Contract",
-		description:
-			"Mantle's data attributes follow one small contract. Triggers, tabs, options, and checkable items use ARIA state, a boolean state is a presence attribute such as data-open, and mantle.css registers no data-* variants, so style with Tailwind's built-in forms.",
-		route: "/migrations/0029-data-attribute-contract-migration",
-	},
-	{
-		number: 30,
-		slug: "between-variant-migration",
-		title: "Between Variant",
-		description:
-			"Mantle's parts space and divide their children with the new between: variant, not space-* or divide-*. Write an override on those parts with between: too, such as between:border-b-0 on Accordion.Root.",
-		route: "/migrations/0030-between-variant-migration",
-	},
-	{
-		number: 31,
-		slug: "anchored-child-variant-migration",
-		title: "Anchored Child Variant",
-		description:
-			"Mantle's parts style their children with arbitrary variants such as [&>*]:, not *: or **:. Write an override of those styles with the same arbitrary variant, such as [&>:first-child]:size-9 on Sidebar.SwitcherTrigger.",
-		route: "/migrations/0031-anchored-child-variant-migration",
-	},
-	{
-		number: 32,
-		slug: "query-filter-operators-migration",
-		title: "Query Filter Operators",
-		description:
-			"The query-filter language now reads NOT, !, parentheses, and typed comparisons. Handle the new token kinds, and narrow a key before you call its matches.",
-		route: "/migrations/0032-query-filter-operators-migration",
-	},
-	{
-		number: 33,
-		slug: "compact-code-markup-migration",
-		title: "Compact Code Markup",
-		description:
-			"Highlighted code now colors tokens with short classes and draws line numbers, the fold caret, and the fold ellipsis in CSS. Update a selector or a parser that read the old markup.",
-		route: "/migrations/0033-compact-code-markup-migration",
-	},
-	{
-		number: 34,
-		slug: "combobox-item-text-migration",
-		title: "Combobox Item Text",
-		description:
-			"A Combobox pick writes the text that the item's children show into the input, not the item's value. A preset value shows that text too. Filter on the text, and submit the value from Combobox.Root.",
-		route: "/migrations/0034-combobox-item-text-migration",
-	},
-	{
-		number: 35,
-		slug: "table-column-width-migration",
-		title: "Table Column Width",
-		description:
-			'Table and DataTable cells now stay on one line, share the spare width, and truncate a long value. Pass width="wrap" to a cell whose text must wrap, and remove hand-set column widths.',
-		route: "/migrations/0035-table-column-width-migration",
-	},
-] as const satisfies readonly Migration[];
+export const migrations: readonly Migration[] = migrationGuides.map((guide) => ({
+	number: guide.number,
+	slug: guide.name.replace(/^\d{4}-/, ""),
+	title: guide.title.replace(/ Migration$/, ""),
+	description: guide.description,
+	route: `/migrations/${guide.name}`,
+}));
 
-/** Migration guides, newest first: the order the index page and the sidebar show. */
+/**
+ * Migration guides, newest first: the order the index page and the sidebar
+ * show. Unreleased guides come first, by slug.
+ */
 export const migrationsNewestFirst: readonly Migration[] = migrations.toSorted(
-	(a, b) => b.number - a.number,
+	(a, b) =>
+		(b.number ?? Number.POSITIVE_INFINITY) - (a.number ?? Number.POSITIVE_INFINITY) ||
+		a.slug.localeCompare(b.slug),
 );

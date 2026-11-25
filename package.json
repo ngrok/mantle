@@ -32,7 +32,7 @@
     "tailwind:fix": "node ./scripts/tailwind-canonical.ts --write",
     "prepare": "husky",
     "changeset": "changeset",
-    "changeset:version": "changeset version",
+    "changeset:version": "changeset version && node ./scripts/stamp-migrations.ts",
     "changeset:publish": "turbo run build --filter=@ngrok/mantle --filter=@ngrok/mantle-vite-plugins --filter=@ngrok/mantle-server-syntax-highlighter && changeset publish",
     "migrate": "node ./scripts/migrate.ts"
   },

@@ -66,16 +66,19 @@ describe("MigrationsList", () => {
 		);
 	}
 
-	it("lists every guide newest first, each linked to its numbered route", () => {
+	it("lists every guide newest first, each linked to its route", () => {
 		renderList();
+		const badgeTexts = migrationsNewestFirst.map((migration) =>
+			formatMigrationNumber(migration.number),
+		);
 
 		const links = within(screen.getByRole("list")).getAllByRole("link");
 		expect(links.map((link) => link.getAttribute("href"))).toEqual(
 			migrationsNewestFirst.map((migration) => migration.route),
 		);
-		expect(links.map((link) => link.textContent?.slice(0, 4))).toEqual(
-			migrationsNewestFirst.map((migration) => formatMigrationNumber(migration.number)),
-		);
+		expect(
+			links.map((link, index) => link.textContent?.slice(0, badgeTexts[index]?.length)),
+		).toEqual(badgeTexts);
 	});
 
 	it("narrows the list as the user types and restores it on clear", async () => {

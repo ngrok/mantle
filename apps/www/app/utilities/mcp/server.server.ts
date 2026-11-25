@@ -1227,7 +1227,10 @@ async function readDocs(slug: string): Promise<string | undefined> {
 const migrationGuideFrontmatter = z.object({
 	title: z.string(),
 	description: z.string(),
-	introducedIn: z.string().regex(/^\d+\.\d+\.\d+$/),
+	introducedIn: z
+		.string()
+		.regex(/^\d+\.\d+\.\d+$/)
+		.optional(),
 	codemodIn: z
 		.string()
 		.regex(/^\d+\.\d+\.\d+$/)
@@ -1236,24 +1239,34 @@ const migrationGuideFrontmatter = z.object({
 });
 
 /**
- * Every migration guide with its frontmatter and `## Codemod` section. Throws
- * when a guide lacks `introducedIn`, so a new guide cannot ship without it.
+ * Every released migration guide with its frontmatter and `## Codemod`
+ * section. A guide has no `introducedIn` until the release stamps it, and no
+ * version range reaches it before then.
  */
 export async function loadMigrationGuides(): Promise<MigrationGuide[]> {
 	const slugs = Array.from(urlToFileMap.keys()).filter((slug) => slug.startsWith("migrations/"));
-	return Promise.all(
-		slugs.map(async (slug): Promise<MigrationGuide> => {
+	const guides = await Promise.all(
+		slugs.map(async (slug): Promise<MigrationGuide[]> => {
 			const filePath = urlToFileMap.get(slug) ?? "";
-			const frontmatter = migrationGuideFrontmatter.parse(await loadFrontmatter(filePath));
+			const { introducedIn, ...frontmatter } = migrationGuideFrontmatter.parse(
+				await loadFrontmatter(filePath),
+			);
+			if (introducedIn == null) {
+				return [];
+			}
 			const markdown = (await readDocs(slug)) ?? "";
-			return {
-				slug,
-				...frontmatter,
-				url: canonicalHref(`/${slug}`),
-				codemodSection: fitMarkdown({ markdown, sections: ["Codemod"] }).text,
-			};
+			return [
+				{
+					slug,
+					...frontmatter,
+					introducedIn,
+					url: canonicalHref(`/${slug}`),
+					codemodSection: fitMarkdown({ markdown, sections: ["Codemod"] }).text,
+				},
+			];
 		}),
 	);
+	return guides.flat();
 }
 
 const docPageFrontmatter = z.object({

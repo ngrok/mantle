@@ -42,7 +42,7 @@ describe("pending changesets", () => {
 				return;
 			}
 			const source = fs.readFileSync(path.join(changesetDir, name), "utf8");
-			const links = source.matchAll(/mantle\.ngrok\.com\/migrations\/(\d{4}-[a-z0-9-]+)/g);
+			const links = source.matchAll(/mantle\.ngrok\.com\/migrations\/([a-z0-9-]+)/g);
 
 			for (const [, slug] of links) {
 				expect(migrationSlugs()).toContain(slug);
