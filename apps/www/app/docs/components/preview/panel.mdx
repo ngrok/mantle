@@ -1,0 +1,219 @@
+---
+title: Panel
+description: The look of the app shell's side panel as a part of its own, with a header row, a scroll body, and a pinned footer.
+category: Structure
+aliases: [assistant panel, aside card, panel header]
+---
+
+import { Example } from "~/components/example";
+import { PageHeader } from "~/components/page-header";
+
+<PageHeader id="panel" isPreview>
+	Panel
+</PageHeader>
+
+The look of the app shell's side panel as a part of its own, with a header row, a scroll body, and a pinned footer. It has no open state and no placement: set its height, and the body takes what the header and the footer leave.
+
+<Example name="components/preview/panel/overview" title="Panel example">
+
+```tsx
+import { Button, IconButton } from "@ngrok/mantle/button";
+import { DescriptionList } from "@ngrok/mantle/description-list";
+import { Panel } from "@ngrok/mantle/panel";
+import { XIcon } from "@phosphor-icons/react/X";
+
+const endpoint = [
+	["URL", "https://api.example.com"],
+	["Region", "us-cal-1"],
+	["Traffic policy", "rate-limit.yml"],
+	["Created", "Nov 25, 2026"],
+	["Owner", "ops@example.com"],
+	["Requests today", "14,210"],
+] as const;
+
+function Example() {
+	return (
+		<Panel.Root aria-label="Endpoint details" className="h-96 w-full max-w-md">
+			<Panel.Header>
+				<p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Endpoint details</p>
+				<IconButton
+					type="button"
+					appearance="ghost"
+					intent="neutral"
+					icon={<XIcon />}
+					label="Close the details"
+				/>
+			</Panel.Header>
+			<Panel.Body>
+				<div className="p-4">
+					<DescriptionList.Root>
+						{endpoint.map(([term, details]) => (
+							<DescriptionList.Item key={term}>
+								<DescriptionList.Label>{term}</DescriptionList.Label>
+								<DescriptionList.Value>{details}</DescriptionList.Value>
+							</DescriptionList.Item>
+						))}
+					</DescriptionList.Root>
+				</div>
+			</Panel.Body>
+			<Panel.Footer className="flex-row justify-end pt-3">
+				<Button type="button" appearance="outlined" intent="neutral">
+					Edit
+				</Button>
+			</Panel.Footer>
+		</Panel.Root>
+	);
+}
+```
+
+</Example>
+
+## When to use
+
+- Show a titled surface beside other content, with a header row, a body that scrolls on its own, and an optional bar pinned to the bottom, such as an assistant beside the page.
+- Use [`AppLayout.SidePanel`](/layouts/app-layout#side-panel) when the panel opens and closes beside the page card of an app shell. It renders `Panel` inside and adds the open state, the placement, and the spacing around it.
+- Use [`Card`](/components/structure/card) when the content sits in the page flow and does not scroll on its own.
+- Use [`Sheet`](/components/overlays/sheet) when the panel is a modal overlay with a backdrop.
+
+## Header on its own
+
+`Panel.Header` also stands alone as the header row of a full page, such as a chat page, so the page and a panel share one header. It sits on the same band as `AppLayout.Header`.
+
+<Example name="components/preview/panel/header" title="Panel header example">
+
+```tsx
+import { IconButton } from "@ngrok/mantle/button";
+import { Panel } from "@ngrok/mantle/panel";
+import { XIcon } from "@phosphor-icons/react/X";
+
+function Example() {
+	return (
+		<div className="flex h-64 w-full flex-col">
+			<Panel.Header>
+				<h1 className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</h1>
+				<IconButton
+					type="button"
+					appearance="ghost"
+					intent="neutral"
+					icon={<XIcon />}
+					label="Close the assistant"
+				/>
+			</Panel.Header>
+			<Panel.Body>
+				<p className="p-4 text-sm">Ask about your endpoints.</p>
+			</Panel.Body>
+		</div>
+	);
+}
+```
+
+</Example>
+
+## Composition
+
+```text showLineNumbers=false
+Panel.Root
+├── Panel.Header
+├── Panel.Body
+└── Panel.Footer
+```
+
+## Polymorphism
+
+Every part accepts `asChild`:
+
+- **`Panel.Root`**: a `<section>` or a `<div>` when the panel is not a landmark, such as inside another `<aside>`. `AppLayout.SidePanel` does this, because its own `<aside>` is the landmark.
+- **`Panel.Header`**: a `<header>` when the row introduces the panel.
+- **`Panel.Body`**: an `<ol>` when the body is one list.
+- **`Panel.Footer`**: a `<form>` when the bar is a composer.
+
+<Example name="components/preview/panel/polymorphism" title="Panel asChild example">
+
+```tsx
+import { Panel } from "@ngrok/mantle/panel";
+
+function Example() {
+	return (
+		<Panel.Root asChild className="h-48 w-full max-w-sm">
+			<section aria-labelledby="panel-polymorphism-title">
+				<Panel.Header>
+					<h2
+						id="panel-polymorphism-title"
+						className="text-strong min-w-0 flex-1 truncate text-sm font-medium"
+					>
+						Recent activity
+					</h2>
+				</Panel.Header>
+				<Panel.Body>
+					<p className="p-4 text-sm">No requests in the last hour.</p>
+				</Panel.Body>
+			</section>
+		</Panel.Root>
+	);
+}
+```
+
+</Example>
+
+## API Reference
+
+### Panel.Root
+
+The card surface: a column with the card background, a muted hairline border, rounded corners, and a small shadow. Renders an `<aside>`, so name it with `aria-label`.
+
+All props from [aside](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/aside#attributes), plus:
+
+| Prop       | Type      | Default | Description                                         |
+| ---------- | --------- | ------- | --------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Compose the panel's styling onto the child element. |
+
+| Data Attribute | Value     | Description       |
+| -------------- | --------- | ----------------- |
+| `data-slot`    | `"panel"` | The root element. |
+
+### Panel.Header
+
+The toolbar row at the top of the panel, on the same band as `AppLayout.Header`. Render it as the first child of `Panel.Root`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                          |
+| ---------- | --------- | ------- | ---------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Compose the header's styling onto the child element. |
+
+| CSS Variable               | Default  | Description                                                                                                                           |
+| -------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `--sidebar-header-height`  | `4.5rem` | Read, not owned: `Sidebar.Header` owns this token. In an `AppLayout` shell with a sidebar header, the row derives its height from it. |
+| `--app-layout-card-gutter` | `0.5rem` | Read, not owned: `AppLayout.Content` owns this token. The derived height subtracts twice its value.                                   |
+
+| Data Attribute | Value            | Description     |
+| -------------- | ---------------- | --------------- |
+| `data-slot`    | `"panel-header"` | The header row. |
+
+### Panel.Body
+
+The scroll region, and the only part of the panel that scrolls. Render it after `Panel.Header`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                        |
+| ---------- | --------- | ------- | -------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Compose the body's styling onto the child element. |
+
+| Data Attribute | Value          | Description        |
+| -------------- | -------------- | ------------------ |
+| `data-slot`    | `"panel-body"` | The scroll region. |
+
+### Panel.Footer
+
+The bar pinned to the bottom of the panel, outside the scroll region. Render it after `Panel.Body`. Optional.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                          |
+| ---------- | --------- | ------- | ---------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Compose the footer's styling onto the child element. |
+
+| Data Attribute | Value            | Description     |
+| -------------- | ---------------- | --------------- |
+| `data-slot`    | `"panel-footer"` | The pinned bar. |

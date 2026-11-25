@@ -62,6 +62,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/otp-input": () => import("@ngrok/mantle/otp-input"),
 	"@ngrok/mantle/overlay-prompt": () => import("@ngrok/mantle/overlay-prompt"),
 	"@ngrok/mantle/pagination": () => import("@ngrok/mantle/pagination"),
+	"@ngrok/mantle/panel": () => import("@ngrok/mantle/panel"),
 	"@ngrok/mantle/popover": () => import("@ngrok/mantle/popover"),
 	"@ngrok/mantle/progress": () => import("@ngrok/mantle/progress"),
 	"@ngrok/mantle/prompt-input": () => import("@ngrok/mantle/prompt-input"),

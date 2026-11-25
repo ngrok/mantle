@@ -24,6 +24,8 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import * as Panel from "../panel/panel-parts.js";
+import { headerBandClassName } from "../panel/panel.js";
 import { isTabbable } from "../alert/tabbable-neighbors.js";
 import type { IconButtonProps } from "../button/icon-button.js";
 import { escapeBelongsToNestedPopup } from "../dialog/targets.js";
@@ -367,22 +369,6 @@ const Content = ({
 		</Comp>
 	);
 };
-
-/**
- * The toolbar band `AppLayout.Header` and `AppLayout.SidePanelHeader` share, so
- * the two rows and the sidebar header's switcher row center on one line.
- * Standalone the band is `h-14`. With a `Sidebar.Header` in the shell, the
- * height derives from the sidebar's `--sidebar-header-height` token, except
- * when the sidebar is the mobile sheet (`data-mobile`), which sits above the
- * page instead of beside the header: the row
- * sits below the card's gutter and its 1px border, so center parity needs the
- * band minus twice each. The band is the sidebar header's first row, so a header
- * that stacks a second row leaves this height alone. Set
- * `--sidebar-header-height` on a common ancestor (e.g. `AppLayout.Root`) and
- * every row moves together.
- */
-const headerBandClassName =
-	"h-14 group-has-[[data-slot~=sidebar-header]:not([data-mobile]_*)]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]";
 
 /**
  * The toolbar row at the top of the content card. Render it as the **first
@@ -1546,16 +1532,13 @@ const SidePanel = ({
 			{/* The card: pinned to the box's end inset at the open width, so the
 			    header, the body, and the footer keep their layout and the box's start
 			    edge sweeps across them instead of reflowing or moving them. */}
-			<div
-				className={cx(
-					"bg-card border-card-muted absolute inset-y-0 flex flex-col rounded-xl border shadow-sm",
-					"right-(--_side-panel-content-inset) w-(--_side-panel-content-width)",
-					// clip, not hidden: the same trap AppLayout.Content avoids.
-					"overflow-clip",
-				)}
-			>
-				{children}
-			</div>
+			{/* Why asChild: the `<aside>` above is the landmark, and a second one
+			    inside it would read as a second panel. */}
+			<Panel.Root asChild>
+				<div className="absolute inset-y-0 right-(--_side-panel-content-inset) w-(--_side-panel-content-width)">
+					{children}
+				</div>
+			</Panel.Root>
 		</aside>
 	);
 };
@@ -1817,7 +1800,6 @@ const SidePanelHeader = ({
 	ref,
 	...props
 }: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
-	const Comp = asChild ? Slot : "div";
 	// Why nullable: the header renders outside `AppLayout.SidePanelRoot` too,
 	// and only the swipe needs the root.
 	const context = useContext(SidePanelContext);
@@ -1839,21 +1821,17 @@ const SidePanelHeader = ({
 	});
 
 	return (
-		<Comp
+		<Panel.Header
 			ref={composedRef}
+			asChild={asChild}
 			data-slot={joinDataSlot(dataSlot, "app-layout-side-panel-header")}
-			className={cx(
-				"border-card-muted flex shrink-0 items-center gap-2 border-b px-4",
-				// Why pan-y: the row is the swipe handle on a floating panel, and a
-				// vertical swipe on it must still scroll.
-				"touch-pan-y",
-				headerBandClassName,
-				className,
-			)}
+			// Why pan-y: the row is the swipe handle on a floating panel, and a
+			// vertical swipe on it must still scroll.
+			className={cx("touch-pan-y", className)}
 			{...props}
 		>
 			{children}
-		</Comp>
+		</Panel.Header>
 	);
 };
 
@@ -1919,19 +1897,15 @@ const SidePanelBody = ({
 	"data-slot": dataSlot,
 	...props
 }: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
-	const Comp = asChild ? Slot : "div";
-
 	return (
-		<Comp
+		<Panel.Body
+			asChild={asChild}
 			data-slot={joinDataSlot(dataSlot, "app-layout-side-panel-body")}
-			className={cx(
-				"scrollbar scrollbar-gutter-stable relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none",
-				className,
-			)}
+			className={className}
 			{...props}
 		>
 			{children}
-		</Comp>
+		</Panel.Body>
 	);
 };
 
@@ -1999,16 +1973,15 @@ const SidePanelFooter = ({
 	"data-slot": dataSlot,
 	...props
 }: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
-	const Comp = asChild ? Slot : "div";
-
 	return (
-		<Comp
+		<Panel.Footer
+			asChild={asChild}
 			data-slot={joinDataSlot(dataSlot, "app-layout-side-panel-footer")}
-			className={cx("flex shrink-0 flex-col gap-2 px-3 pb-3", className)}
+			className={className}
 			{...props}
 		>
 			{children}
-		</Comp>
+		</Panel.Footer>
 	);
 };
 
