@@ -114,8 +114,10 @@ type DragSession = {
 	dragging: boolean;
 	/** The thumb's offset from the checked item when the drag started, mid-slide or `0`. */
 	base: number;
-	/** The thumb's offset, clamped to the track: where it draws. */
+	/** The thumb's offset, clamped to the track: where it draws, in viewport pixels. */
 	offset: number;
+	/** The group's scale from a transformed ancestor: CSS pixels times it are viewport pixels. */
+	scale: number;
 	/** The offset the pointer asks for, not clamped: where the thumb lands. */
 	reach: number;
 	lastPoint: number;
@@ -213,6 +215,7 @@ function useSlidingThumb(
 				...spanOf(item.getBoundingClientRect(), axis),
 				disabled:
 					item.matches(disabled) ||
+					item.closest("[inert]") != null ||
 					(typeof item.checkVisibility === "function" &&
 						!item.checkVisibility({ visibilityProperty: true })),
 			}));
@@ -285,7 +288,7 @@ function useSlidingThumb(
 			running.base += shift;
 			running.offset += shift;
 			running.reach += shift;
-			group.style.setProperty(offset, `${running.offset}px`);
+			group.style.setProperty(offset, `${running.offset / running.scale}px`);
 		};
 
 		let lastChecked = readChecked();
@@ -323,9 +326,9 @@ function useSlidingThumb(
 		};
 
 		const endSession = () => {
-			document.removeEventListener("pointermove", handleMove);
-			document.removeEventListener("pointerup", handleRelease);
-			document.removeEventListener("pointercancel", handleRelease);
+			document.removeEventListener("pointermove", handleMove, true);
+			document.removeEventListener("pointerup", handleRelease, true);
+			document.removeEventListener("pointercancel", handleRelease, true);
 			session = null;
 		};
 
@@ -338,6 +341,22 @@ function useSlidingThumb(
 			const all = readItems();
 			const checked = all.find((item) => item.contains(target));
 			if (checked == null || !checked.matches(checkedSelector) || checked.matches(disabled)) {
+				return;
+			}
+			// Why: a press in a field inside the item selects text, and it must not drag.
+			const field =
+				target instanceof Element
+					? target.closest('textarea, select, [contenteditable="true"], input:not([type="radio"])')
+					: null;
+			if (field != null && checked.contains(field)) {
+				return;
+			}
+			// Why the touch action: CSS decides where a finger drags. Where the item
+			// lets the browser pan, such as in a list that scrolls, a swipe scrolls.
+			if (
+				event.pointerType === "touch" &&
+				!/pan-[xy]/.test(getComputedStyle(checked).touchAction)
+			) {
 				return;
 			}
 			const axis = readAxis();
@@ -370,20 +389,23 @@ function useSlidingThumb(
 				spans,
 				trackStart,
 				trackEnd,
-				give: trackStart - visibleStart,
+				// Why the smaller side: free space on one side of the items, such as a
+				// short row in RTL, is not padding at the other end.
+				give: Math.max(0, Math.min(trackStart - visibleStart, visibleEnd - trackEnd)),
 				dragging: false,
 				base: 0,
 				offset: 0,
+				scale: scaleOf(group),
 				reach: 0,
 				lastPoint: point,
 				lastTime: event.timeStamp,
 				velocity: 0,
 			};
-			// Why the document: a release outside the group must still end the drag,
-			// even where pointer capture does not route it to the group.
-			document.addEventListener("pointermove", handleMove);
-			document.addEventListener("pointerup", handleRelease);
-			document.addEventListener("pointercancel", handleRelease);
+			// Why the document in the capture phase: a release outside the group must
+			// still end the drag, also when an ancestor stops the event.
+			document.addEventListener("pointermove", handleMove, true);
+			document.addEventListener("pointerup", handleRelease, true);
+			document.addEventListener("pointercancel", handleRelease, true);
 		};
 
 		const handleMove = (event: PointerEvent) => {
@@ -411,7 +433,7 @@ function useSlidingThumb(
 					return;
 				}
 				session.dragging = true;
-				session.base = readTranslate(session.checked);
+				session.base = readTranslate(session.checked) * session.scale;
 				// Why the size goes on: a press on a thumb in the middle of a slide keeps
 				// its size, and the drag takes over only its position.
 				const grabbed = slide == null ? null : readThumb(session.checked);
@@ -437,11 +459,13 @@ function useSlidingThumb(
 			session.reach = session.base + travel;
 			session.offset = thumbOffset({
 				travel: session.reach,
-				min: session.trackStart - session.checkedStart,
-				max: session.trackEnd - session.checkedEnd,
+				// Why the zeros: a checked item wider than the visible track must not
+				// snap away from the pointer.
+				min: Math.min(0, session.trackStart - session.checkedStart),
+				max: Math.max(0, session.trackEnd - session.checkedEnd),
 				give: session.give,
 			});
-			group.style.setProperty(offset, `${session.offset}px`);
+			group.style.setProperty(offset, `${session.offset / session.scale}px`);
 			// Why the reach and not the drawn offset: a wide thumb clamped at an end
 			// could never reach a narrow item at that end.
 			const checkedCenter = (session.checkedStart + session.checkedEnd) / 2;
@@ -476,8 +500,10 @@ function useSlidingThumb(
 			const checkedSpan = spanOf(finished.checked.getBoundingClientRect(), finished.axis);
 			const checkedCenter = (checkedSpan.start + checkedSpan.end) / 2;
 			const projected = checkedCenter + finished.reach + velocity * flickProjectionMs;
-			const spans = readSpans(finished.items, finished.axis);
-			const target = finished.items[nearestItem(spans, projected)];
+			// Why a new read of the items: one can mount during the drag, such as a
+			// link tab that turns enabled.
+			const current = readItems();
+			const target = current[nearestItem(readSpans(current, finished.axis), projected)];
 			if (target != null && target !== finished.checked) {
 				commitItem(target, event);
 			}

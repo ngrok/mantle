@@ -53,9 +53,12 @@ const thumbOptions: SlidingThumbOptions = {
 
 let overflowObserver: ResizeObserver | undefined;
 
-/** Marks `list` with `data-overflowing="true"` while it is wider than its box, else `"false"`. */
+/** Marks `list` with `data-overflowing="true"` while it scrolls, else `"false"`. */
 const measureOverflow = (list: Element) => {
-	list.setAttribute("data-overflowing", String(list.scrollWidth > list.clientWidth));
+	list.setAttribute(
+		"data-overflowing",
+		String(list.scrollWidth > list.clientWidth || list.scrollHeight > list.clientHeight),
+	);
 };
 
 /**
@@ -222,7 +225,7 @@ const listVariants = cva("flex", {
  * | `data-slot`        | `"tabs-list"`                  | On the tablist element.               |
  * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.               |
  * | `data-dragging`    | present during a drag          | The indicator follows the pointer. Presence-only. |
- * | `data-overflowing` | `"true"` \| `"false"`          | Set once measured. `"true"` while a horizontal list is wider than its box. |
+ * | `data-overflowing` | `"true"` \| `"false"`          | Set once measured. `"true"` while the list scrolls. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
@@ -367,12 +370,12 @@ const triggerVariants = cva(
 					"rounded-tl-md rounded-tr-md",
 					// Why only the active tab: an offset indicator on another tab would widen the scroll area.
 					"aria-selected:after:translate-x-(--_tabs-thumb-offset,0px)",
-					"aria-selected:in-data-[overflowing=false]:touch-pan-y",
+					"aria-selected:in-data-[overflowing=false]:touch-pan-y aria-selected:in-data-[overflowing=false]:touch-pinch-zoom",
 				),
 				vertical: cx(
 					"rounded-bl-md rounded-tl-md pr-3",
 					"aria-selected:after:translate-y-(--_tabs-thumb-offset,0px)",
-					"aria-selected:touch-pan-x",
+					"aria-selected:in-data-[overflowing=false]:touch-pan-x aria-selected:in-data-[overflowing=false]:touch-pinch-zoom",
 				),
 			} as const satisfies Record<Orientation, string>,
 			appearance: {

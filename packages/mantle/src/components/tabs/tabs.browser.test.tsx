@@ -1561,7 +1561,7 @@ describe("Tabs indicator", () => {
 			expect(screen.getByRole("tablist")).toHaveAttribute("data-overflowing", "false");
 		});
 		const fits = screen.getByRole("tab", { name: "Settings and access" });
-		expect(getComputedStyle(fits).touchAction).toBe("pan-y");
+		expect(getComputedStyle(fits).touchAction).toBe("pan-y pinch-zoom");
 		cleanup();
 
 		renderSections({ width: 160 });
@@ -1674,6 +1674,61 @@ describe("Tabs indicator", () => {
 		release(travel, 400);
 
 		expect(onValueChange).toHaveBeenLastCalledWith("overview");
+	});
+
+	/** Sends a pointer event to `target`, at the height of the tab row. */
+	function sendTo(target: Element, type: string, init: PointerEventInit) {
+		const box = screen.getByRole("tab", { name: "Settings and access" }).getBoundingClientRect();
+		target.dispatchEvent(
+			new PointerEvent(type, {
+				pointerId: 1,
+				isPrimary: true,
+				button: 0,
+				buttons: type === "pointerup" ? 0 : 1,
+				bubbles: true,
+				clientY: box.top + box.height / 2,
+				...init,
+			}),
+		);
+	}
+
+	test("a touch on the active tab of a list that scrolls starts no drag", async () => {
+		renderSections({ width: 160 });
+		const list = screen.getByRole("tablist");
+		await vi.waitFor(() => {
+			expect(list).toHaveAttribute("data-overflowing", "true");
+		});
+		const active = screen.getByRole("tab", { name: "Settings and access" });
+		const x = active.getBoundingClientRect().left + 10;
+
+		sendTo(active, "pointerdown", { clientX: x, pointerType: "touch" });
+		sendTo(active, "pointermove", { clientX: x - 30, pointerType: "touch" });
+
+		expect(list).not.toHaveAttribute("data-dragging");
+		sendTo(active, "pointerup", { clientX: x - 30, pointerType: "touch" });
+	});
+
+	test("a release that an ancestor stops still ends the drag", async () => {
+		const { onValueChange, move, release, list } = renderSections();
+		const root = list.closest("[data-slot~=tabs]");
+		root?.addEventListener("pointerup", (event) => event.stopPropagation());
+		const travel = travelTo("Overview");
+
+		move([-20, travel]);
+		release(travel, 200);
+
+		expect(list).not.toHaveAttribute("data-dragging");
+		expect(onValueChange).toHaveBeenLastCalledWith("overview");
+	});
+
+	test("a drag skips an inert tab", () => {
+		const { onValueChange, move, release } = renderSections({ overview: { inert: true } });
+		const travel = travelTo("Overview");
+
+		move([-20, travel]);
+		release(travel, 200);
+
+		expect(onValueChange).toHaveBeenLastCalledWith("logs");
 	});
 
 	test("a drag onto a link tab follows the link", async () => {

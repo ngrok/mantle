@@ -199,7 +199,7 @@ const Item = ({ className, ...props }: SegmentedControlItemProps) => {
 				// Why: during a drag, the label under the thumb is strong, and the checked item can be away from it.
 				"data-thumb-over:text-strong",
 				// Why pan-y: a sideways swipe on the checked item drags the thumb, and the page still scrolls.
-				"has-[>input:checked]:touch-pan-y",
+				"has-[>input:checked]:touch-pan-y has-[>input:checked]:touch-pinch-zoom",
 				className,
 			)}
 			{...props}

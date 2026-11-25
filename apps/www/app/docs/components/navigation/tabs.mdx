@@ -714,7 +714,7 @@ The active indicator slides from the tab that was active to the new one on every
 
 Press the active tab and move along the list to drag the indicator with a mouse or a finger, in either appearance. On release, it slides to the nearest enabled tab, and that tab activates as a click would: its panel shows and `onValueChange` fires once. A tab the indicator passes over during the drag does not activate, so the panels do not flash. A flick carries the indicator further. A drag onto a link tab follows the link.
 
-On a touch screen, a swipe across the list drags the indicator only once the list is measured to fit. Before hydration, and when a horizontal list overflows, a swipe on the active tab scrolls the list, like a swipe anywhere else on it. A swipe that goes more across the list than along it does not start a drag, so the page still scrolls.
+On a touch screen, a swipe across the list drags the indicator only once the list is measured to fit. Before hydration, and when the list overflows, a swipe on the active tab scrolls the list, like a swipe anywhere else on it. A swipe that goes more across the list than along it does not start a drag, so the page still scrolls.
 
 With reduced motion, the indicator moves at once. The keyboard and screen reader contract does not change.
 
@@ -740,7 +740,7 @@ With reduced motion, the indicator moves at once. The keyboard and screen reader
 | `data-separator`   | present                                                                                                                                       | Presence-only, on the separator. Set by the mantle `Separator`.                                                |
 | `aria-selected`    | `"true"` \| `"false"`                                                                                                                         | On each trigger. Whether the trigger's panel is shown. Style it with `aria-selected:`.                         |
 | `data-dragging`    | present during a drag                                                                                                                         | Presence-only, on the list. The indicator follows the pointer.                                                 |
-| `data-overflowing` | `"true"` \| `"false"`                                                                                                                         | On the list, once measured. `"true"` while a horizontal list is wider than its box.                            |
+| `data-overflowing` | `"true"` \| `"false"`                                                                                                                         | On the list, once measured. `"true"` while the list scrolls.                                                   |
 | `data-thumb-over`  | present during a drag                                                                                                                         | Presence-only, on the trigger under the dragged indicator.                                                     |
 | `hidden`           | present while inactive                                                                                                                        | On each content panel. The browser hides the panel. `"until-found"` with `hiddenUntilFound`.                   |
 
@@ -792,12 +792,12 @@ The list draws no border of its own. Compose [`Tabs.Separator`](#tabsseparator) 
 
 #### Data attributes
 
-| Data Attribute     | Value                          | Description                                                                |
-| ------------------ | ------------------------------ | -------------------------------------------------------------------------- |
-| `data-slot`        | `"tabs-list"`                  | On the tablist element.                                                    |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.                                                    |
-| `data-dragging`    | present during a drag          | The indicator follows the pointer. Presence-only.                          |
-| `data-overflowing` | `"true"` \| `"false"`          | Set once measured. `"true"` while a horizontal list is wider than its box. |
+| Data Attribute     | Value                          | Description                                         |
+| ------------------ | ------------------------------ | --------------------------------------------------- |
+| `data-slot`        | `"tabs-list"`                  | On the tablist element.                             |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.                             |
+| `data-dragging`    | present during a drag          | The indicator follows the pointer. Presence-only.   |
+| `data-overflowing` | `"true"` \| `"false"`          | Set once measured. `"true"` while the list scrolls. |
 
 ### Tabs.Separator
 
