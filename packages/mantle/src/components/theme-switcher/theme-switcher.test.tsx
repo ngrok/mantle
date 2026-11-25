@@ -77,6 +77,12 @@ beforeEach(() => {
 	document.cookie = "mantle-ui-theme=system; path=/";
 });
 
+/** Waits until a new shared status region takes messages: after the next paint. */
+const afterPaint = () =>
+	new Promise((resolve) => {
+		requestAnimationFrame(() => setTimeout(resolve));
+	});
+
 /**
  * Stubs `prefers-color-scheme` so a test can pick the OS preference the
  * switcher resolves `"system"` against.
@@ -171,9 +177,10 @@ describe("ThemeSwitcher", () => {
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("light");
 	});
 
-	test("a click says the theme it applied in a status", () => {
+	test("a click says the theme it applied in a status", async () => {
 		stubPrefersDarkMode(false);
 		renderSwitcher();
+		await afterPaint();
 
 		// Why not `getByRole("status")`: the theme probe is an `<output>`, a status too.
 		const status = () =>
@@ -185,7 +192,7 @@ describe("ThemeSwitcher", () => {
 		expect(status()).toHaveTextContent("Light theme (system default)");
 	});
 
-	test("in a dialog, the status is in the dialog, where a modal leaves it audible", () => {
+	test("in a dialog, the status is in the dialog, where a modal leaves it audible", async () => {
 		stubPrefersDarkMode(false);
 		render(
 			<ThemeProvider>
@@ -196,7 +203,41 @@ describe("ThemeSwitcher", () => {
 		);
 
 		fireEvent.click(getSwitcher());
-		expect(within(screen.getByRole("dialog")).getByRole("status")).toHaveTextContent("Dark theme");
+		await waitFor(() => {
+			expect(within(screen.getByRole("dialog")).getByRole("status")).toHaveTextContent(
+				"Dark theme",
+			);
+		});
+	});
+
+	test("a second press to the same theme announces again after another control reset it", async () => {
+		stubPrefersDarkMode(false);
+		function Reset() {
+			const [, setTheme] = useTheme();
+			return (
+				<button type="button" onClick={() => setTheme("system")}>
+					Reset
+				</button>
+			);
+		}
+		render(
+			<ThemeProvider>
+				<ThemeSwitcher />
+				<Reset />
+			</ThemeProvider>,
+		);
+		await afterPaint();
+		const status = () =>
+			screen.getAllByRole("status").find((element) => element.tagName !== "OUTPUT");
+
+		fireEvent.click(getSwitcher());
+		const first = status()?.textContent;
+		expect(first).toBe("Dark theme");
+		fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+		fireEvent.click(getSwitcher());
+		// Why: a screen reader reads only a changed text, so the press must change it.
+		expect(status()?.textContent).not.toBe(first);
+		expect(status()).toHaveTextContent("Dark theme");
 	});
 
 	test("an onClick that calls preventDefault keeps the theme", () => {
@@ -481,6 +522,24 @@ describe("ThemeSwitcher theme swap", () => {
 		await waitFor(() =>
 			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
 		);
+	});
+
+	test("three presses before the updates run announce the theme that applies", async () => {
+		stubPrefersDarkMode(false);
+		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
+		const { finish, runUpdates } = stubViewTransition({ deferUpdate: true });
+		renderSwitcher();
+		await afterPaint();
+		const button = getSwitcher();
+		fireEvent.click(button);
+		fireEvent.click(button);
+		fireEvent.click(button);
+		await act(async () => runUpdates());
+
+		const status = screen.getAllByRole("status").find((element) => element.tagName !== "OUTPUT");
+		await waitFor(() => expect(screen.getByTestId("current-theme")).toHaveTextContent("dark"));
+		expect(status).toHaveTextContent("Dark theme");
+		finish();
 	});
 
 	test("fast clicks during the swap start no second view transition, and each click toggles", async () => {

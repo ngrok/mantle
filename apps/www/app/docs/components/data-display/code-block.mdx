@@ -621,7 +621,7 @@ The two parts differ on whether a call site may turn the guard off. `CodeBlock.C
 
 ## Accessibility
 
-- `CodeBlock.CopyButton` is an icon button named by `label` (default "Copy code"). After a copy, an always-mounted `role="status"` element beside the button announces "Copied", so a screen-reader user hears the result and not only the icon swap.
+- `CodeBlock.CopyButton` is an icon button named by `label` (default "Copy code"). After a copy, a shared `role="status"` region announces "Copied", so a screen-reader user hears the result and not only the icon swap. All copy buttons in a page, or in a dialog, use the same region: an answer with many code blocks holds one region, not one for each.
 - `CodeBlock.ExpanderButton` carries `aria-expanded` and `aria-controls` that points at the `<pre>`. The `<pre>` itself carries no ARIA state; a presence-only `data-expanded` drives the styling.
 - Fold toggles are real `<button>` elements named "Toggle code folding" with `aria-expanded`. Enter and Space toggle them. The folded marker is `aria-hidden`.
 - A code block with fold toggles uses a 24px line height instead of 20px. The toggles of adjacent lines are then 24px apart, the spacing that WCAG 2.5.8 needs. The `--mantle-code-fold-line-height` CSS variable holds the value.
@@ -719,7 +719,7 @@ All props from [standard HTML button attributes](https://developer.mozilla.org/e
 | `onCopyError?` | `(error: unknown) => void` |               | Callback fired when an error occurs during copying.                                                                                                 |
 | `asChild?`     | `boolean`                  | `false`       | Use the `asChild` prop to compose the `CodeBlock.CopyButton` styling and functionality onto alternative element types or your own React components. |
 
-After a copy, an always-mounted `role="status"` element inside the part announces "Copied".
+After a copy, the button gets `data-copied` for two seconds, and its icon changes to a check. A shared `role="status"` region at the end of the page, or of the dialog around the button, announces "Copied". The region exists while a copy button is mounted.
 
 ### CodeBlock.ExpanderButton
 
