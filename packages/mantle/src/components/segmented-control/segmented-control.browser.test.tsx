@@ -380,13 +380,12 @@ describe("SegmentedControl drag", () => {
 
 	test("a new value during a drag keeps the thumb under the pointer", () => {
 		const { send, setValue, start } = renderEnvironments();
-		const group = screen.getByRole("radiogroup", { name: "Environment" });
 		const prodLeft = screen.getByRole("radio", { name: "Prod" }).getBoundingClientRect().left;
 		const devLeft = screen.getByRole("radio", { name: "Dev" }).getBoundingClientRect().left;
-		// Why the computed translate: the thumb sits at the checked segment's left
+		// Why the computed translate: the checked item draws the thumb at its left
 		// edge, moved by its `translate`.
 		const thumbLeft = () =>
-			devLeft + Number.parseFloat(getComputedStyle(group, "::before").translate);
+			devLeft + Number.parseFloat(getComputedStyle(item("Dev"), "::before").translate);
 
 		send({ type: "pointerdown", clientX: start, timeStamp: 0 });
 		send({ type: "pointermove", clientX: start - 60, timeStamp: 16 });

@@ -1,10 +1,11 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import axe from "axe-core";
+import type { ComponentProps } from "react";
 import { useState } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+import { commands, userEvent } from "vitest/browser";
 import * as Tabs from "./tabs-parts.js";
 
 /**
@@ -1316,5 +1317,471 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		expect(screen.getByRole("tabpanel", { name: "B" })).toBe(panelB);
 		container.remove();
 		history.replaceState(null, "", window.location.pathname);
+	});
+});
+
+describe("Tabs indicator", () => {
+	let indicatorStyle: HTMLStyleElement;
+
+	// Why the compiled CSS: the indicator's geometry, its offset variable, and its
+	// touch action are the trigger's own utilities.
+	beforeAll(async () => {
+		indicatorStyle = document.createElement("style");
+		indicatorStyle.textContent = [
+			// Why: preflight, which the browser project does not load, takes the UA border off a button.
+			"button { border: 0; }",
+			await commands.tailwindCss("./tabs.tsx"),
+			await commands.tailwindCss("./headless-tabs.tsx"),
+		].join("\n");
+		document.head.appendChild(indicatorStyle);
+	});
+
+	afterAll(() => {
+		indicatorStyle.remove();
+	});
+
+	afterEach(async () => {
+		await commands.emulateMedia({ reducedMotion: "no-preference" });
+	});
+
+	/**
+	 * Renders three tabs of different widths, "Overview", "Logs", and
+	 * "Settings", with "Settings" active. `drag` moves a synthetic pointer from
+	 * the center of "Settings" through each stop along the list's axis, one
+	 * frame (16ms) apart, and rests before the release, so it is not a flick.
+	 */
+	function renderSections({
+		appearance,
+		orientation = "horizontal",
+		dir,
+		width = 480,
+		overview,
+		hidden,
+	}: {
+		appearance?: "classic" | "pill";
+		orientation?: "horizontal" | "vertical";
+		dir?: "rtl";
+		width?: number;
+		/** Props for the "Overview" trigger. */
+		overview?: Partial<ComponentProps<typeof Tabs.Trigger>>;
+		/** Renders a first tab, "Archive", with `display: none`. */
+		hidden?: boolean;
+	} = {}) {
+		const onValueChange = vi.fn<(value: string) => void>();
+		const ui = (overviewProps = overview) => (
+			<div dir={dir} style={{ width }}>
+				<Tabs.Root
+					defaultValue="settings"
+					appearance={appearance}
+					orientation={orientation}
+					onValueChange={onValueChange}
+				>
+					<Tabs.List aria-label="Sections">
+						{hidden && (
+							<Tabs.Trigger value="archive" style={{ display: "none" }}>
+								Archive
+							</Tabs.Trigger>
+						)}
+						<Tabs.Trigger value="overview" {...overviewProps}>
+							Overview
+						</Tabs.Trigger>
+						<Tabs.Trigger value="logs">Logs</Tabs.Trigger>
+						<Tabs.Trigger value="settings">Settings and access</Tabs.Trigger>
+					</Tabs.List>
+					<Tabs.Content value="archive">Archive panel</Tabs.Content>
+					<Tabs.Content value="overview">Overview panel</Tabs.Content>
+					<Tabs.Content value="logs">Logs panel</Tabs.Content>
+					<Tabs.Content value="settings">Settings panel</Tabs.Content>
+				</Tabs.Root>
+			</div>
+		);
+		const { rerender } = render(ui());
+		/** Renders the "Overview" trigger with new props, as a parent does. */
+		const setOverview = (props: Partial<ComponentProps<typeof Tabs.Trigger>>) =>
+			rerender(ui(props));
+		const vertical = orientation === "vertical";
+		const active = screen.getByRole("tab", { name: "Settings and access" });
+		const rect = active.getBoundingClientRect();
+		const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+		const send = (type: string, travel: number, timeStamp: number) => {
+			const event = new PointerEvent(type, {
+				pointerId: 1,
+				isPrimary: true,
+				button: 0,
+				buttons: type === "pointerup" ? 0 : 1,
+				bubbles: true,
+				clientX: center.x + (vertical ? 0 : travel),
+				clientY: center.y + (vertical ? travel : 0),
+			});
+			Object.defineProperty(event, "timeStamp", { value: timeStamp });
+			active.dispatchEvent(event);
+		};
+		const move = (stops: readonly number[]) => {
+			send("pointerdown", 0, 0);
+			for (const [index, stop] of stops.entries()) {
+				send("pointermove", stop, (index + 1) * 16);
+			}
+		};
+		const release = (travel: number, timeStamp: number) => send("pointerup", travel, timeStamp);
+		return { onValueChange, move, release, setOverview, list: screen.getByRole("tablist") };
+	}
+
+	/** The box that `tab`'s indicator shows when its one slide starts, relative to `tab`. */
+	function slideStart(tab: HTMLElement) {
+		// Why subtree: an element's own list leaves out its pseudo-elements.
+		const slides = tab
+			.getAnimations({ subtree: true })
+			.filter(
+				({ effect }) => effect instanceof KeyframeEffect && effect.pseudoElement === "::after",
+			);
+		expect(slides).toHaveLength(1);
+		for (const slide of slides) {
+			slide.pause();
+			slide.currentTime = 0;
+		}
+		const style = getComputedStyle(tab, "::after");
+		const [x = "0", y = "0"] = style.translate.split(" ");
+		return {
+			x: Number.parseFloat(style.left) + Number.parseFloat(x),
+			y: Number.parseFloat(style.top) + Number.parseFloat(y),
+			width: Number.parseFloat(style.width),
+			height: Number.parseFloat(style.height),
+		};
+	}
+
+	test.each(["classic", "pill"] as const)(
+		"a click slides and resizes the %s indicator from the tab that was active",
+		async (appearance) => {
+			renderSections({ appearance });
+			const from = screen.getByRole("tab", { name: "Settings and access" }).getBoundingClientRect();
+			const overview = screen.getByRole("tab", { name: "Overview" });
+			const to = overview.getBoundingClientRect();
+
+			await userEvent.click(overview);
+
+			const slide = slideStart(overview);
+			expect(slide.x).toBeCloseTo(from.left - to.left, 0);
+			expect(slide.width).toBeCloseTo(from.width, 0);
+		},
+	);
+
+	test("a vertical indicator slides and resizes along the y axis", async () => {
+		renderSections({ orientation: "vertical" });
+		const from = screen.getByRole("tab", { name: "Settings and access" }).getBoundingClientRect();
+		const overview = screen.getByRole("tab", { name: "Overview" });
+		const to = overview.getBoundingClientRect();
+
+		await userEvent.click(overview);
+
+		const slide = slideStart(overview);
+		expect(slide.y).toBeCloseTo(from.top - to.top, 0);
+		expect(slide.height).toBeCloseTo(from.height, 0);
+	});
+
+	test("with reduced motion, the indicator moves at once", async () => {
+		await commands.emulateMedia({ reducedMotion: "reduce" });
+		renderSections();
+
+		await userEvent.click(screen.getByRole("tab", { name: "Overview" }));
+
+		expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
+		expect(screen.getByRole("tablist").getAnimations({ subtree: true })).toHaveLength(0);
+	});
+
+	test.each([
+		{ appearance: "classic", orientation: "horizontal", dir: undefined, travel: -1 },
+		{ appearance: "pill", orientation: "horizontal", dir: undefined, travel: -1 },
+		{ appearance: "classic", orientation: "vertical", dir: undefined, travel: -1 },
+		// Why right: in RTL, "Settings" is on the left and "Overview" is on the right.
+		{ appearance: "classic", orientation: "horizontal", dir: "rtl", travel: 1 },
+	] as const)(
+		"a $orientation $appearance drag ($dir) activates the tab it lands on at the release",
+		async ({ appearance, orientation, dir, travel }) => {
+			const { onValueChange, move, release, list } = renderSections({
+				appearance,
+				orientation,
+				dir,
+			});
+			const overview = screen.getByRole("tab", { name: "Overview" });
+			const settings = screen.getByRole("tab", { name: "Settings and access" });
+			const distance = Math.abs(
+				orientation === "vertical"
+					? overview.getBoundingClientRect().top - settings.getBoundingClientRect().top
+					: overview.getBoundingClientRect().left - settings.getBoundingClientRect().left,
+			);
+
+			move([travel * 20, travel * distance]);
+
+			// Why: the panel switches when the drag lands, not while it passes a tab.
+			expect(list).toHaveAttribute("data-dragging");
+			expect(overview).toHaveAttribute("data-thumb-over");
+			expect(onValueChange).not.toHaveBeenCalled();
+			expect(screen.getByRole("tabpanel")).toHaveTextContent("Settings panel");
+
+			release(travel * distance, 200);
+
+			expect(list).not.toHaveAttribute("data-dragging");
+			expect(onValueChange).toHaveBeenCalledTimes(1);
+			expect(onValueChange).toHaveBeenLastCalledWith("overview");
+			await vi.waitFor(() => {
+				expect(screen.getByRole("tabpanel")).toHaveTextContent("Overview panel");
+			});
+			expect(overview).toHaveFocus();
+			expect(overview.matches(":focus-visible")).toBe(false);
+			expect(overview).toHaveAttribute("tabindex", "0");
+		},
+	);
+
+	test("a press on an inactive tab that moves starts no drag", () => {
+		renderSections();
+		const overview = screen.getByRole("tab", { name: "Overview" });
+		const { x, y } = overview.getBoundingClientRect();
+		for (const [type, clientX] of [
+			["pointerdown", x + 5],
+			["pointermove", x + 200],
+		] as const) {
+			overview.dispatchEvent(
+				new PointerEvent(type, {
+					pointerId: 1,
+					isPrimary: true,
+					buttons: 1,
+					bubbles: true,
+					clientX,
+					clientY: y + 5,
+				}),
+			);
+		}
+
+		expect(screen.getByRole("tablist")).not.toHaveAttribute("data-dragging");
+	});
+
+	test("a touch swipe on the active tab drags in a list that fits and scrolls a list that overflows", async () => {
+		renderSections({ width: 480 });
+		await vi.waitFor(() => {
+			expect(screen.getByRole("tablist")).toHaveAttribute("data-overflowing", "false");
+		});
+		const fits = screen.getByRole("tab", { name: "Settings and access" });
+		expect(getComputedStyle(fits).touchAction).toBe("pan-y pinch-zoom");
+		cleanup();
+
+		renderSections({ width: 160 });
+		const list = screen.getByRole("tablist");
+		await vi.waitFor(() => {
+			expect(list).toHaveAttribute("data-overflowing", "true");
+		});
+		const overflows = screen.getByRole("tab", { name: "Settings and access" });
+		expect(getComputedStyle(overflows).touchAction).toBe("auto");
+	});
+
+	/** The travel from the center of "Settings and access" to the center of `name`. */
+	function travelTo(name: string) {
+		const from = screen.getByRole("tab", { name: "Settings and access" }).getBoundingClientRect();
+		const to = screen.getByRole("tab", { name }).getBoundingClientRect();
+		return to.left + to.width / 2 - (from.left + from.width / 2);
+	}
+
+	test("an onMouseDown that vetoes a press on a tab also vetoes a drag onto it", async () => {
+		const { onValueChange, move, release } = renderSections({
+			overview: { onMouseDown: (event) => event.preventDefault() },
+		});
+		const travel = travelTo("Overview");
+
+		move([-20, travel]);
+		release(travel, 200);
+
+		await expect.poll(() => screen.getByRole("tabpanel").textContent).toBe("Settings panel");
+		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
+	test("a drag lands on the nearest enabled tab when its target turns disabled mid-drag", async () => {
+		const { onValueChange, move, release, setOverview } = renderSections();
+		const travel = travelTo("Overview");
+
+		move([-20, travel]);
+		setOverview({ disabled: true });
+		release(travel, 200);
+
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenLastCalledWith("logs");
+	});
+
+	test("a flick toward the start never lands on a tab with display: none", () => {
+		const { onValueChange, move, release } = renderSections({ hidden: true });
+		const travel = travelTo("Overview");
+
+		// Why no rest: the flick carries the indicator past the first shown tab.
+		move([travel / 2, travel]);
+		release(travel, 32);
+
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenLastCalledWith("overview");
+	});
+
+	test("a drag lands where the indicator is when the active tab resizes mid-drag", () => {
+		const { onValueChange, move, release } = renderSections();
+		const settings = screen.getByRole("tab", { name: "Settings and access" });
+		const travel = travelTo("Overview");
+
+		move([-20, travel]);
+		// Why: a label that grows, such as a badge count, widens the indicator from its start edge.
+		settings.style.width = `${settings.getBoundingClientRect().width + 240}px`;
+		const indicator = getComputedStyle(settings, "::after");
+		const indicatorCenter =
+			settings.getBoundingClientRect().left +
+			Number.parseFloat(indicator.left) +
+			Number.parseFloat(indicator.translate) +
+			Number.parseFloat(indicator.width) / 2;
+		const nearest = ["Overview", "Logs"]
+			.map((name) => {
+				const box = screen.getByRole("tab", { name }).getBoundingClientRect();
+				return { name, distance: Math.abs(box.left + box.width / 2 - indicatorCenter) };
+			})
+			.toSorted((a, b) => a.distance - b.distance)[0]?.name;
+		release(travel, 200);
+
+		expect(nearest).toBe("Logs");
+		expect(onValueChange).toHaveBeenLastCalledWith("logs");
+	});
+
+	test("the mousedown a touch sends after the release does not activate the tab it started on", async () => {
+		const { onValueChange, move, release } = renderSections();
+		const travel = travelTo("Overview");
+
+		move([-20, travel]);
+		release(travel, 200);
+		await expect.poll(() => screen.getByRole("tabpanel").textContent).toBe("Overview panel");
+		// Why: Chromium sends a compatibility `mousedown` to the pressed tab after a short touch.
+		screen
+			.getByRole("tab", { name: "Settings and access" })
+			.dispatchEvent(
+				new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0, detail: 1 }),
+			);
+
+		await expect.poll(() => screen.getByRole("tabpanel").textContent).toBe("Overview panel");
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenLastCalledWith("overview");
+	});
+
+	test("a slow drag reaches a narrow tab past a wide active tab", () => {
+		const { onValueChange, move, release } = renderSections({
+			overview: { style: { width: 40 } },
+		});
+		const settings = screen.getByRole("tab", { name: "Settings and access" });
+		settings.style.width = "300px";
+		const travel = travelTo("Overview");
+
+		move([-20, travel / 2, travel]);
+		release(travel, 400);
+
+		expect(onValueChange).toHaveBeenLastCalledWith("overview");
+	});
+
+	/** Sends a pointer event to `target`, at the height of the tab row. */
+	function sendTo(target: Element, type: string, init: PointerEventInit) {
+		const box = screen.getByRole("tab", { name: "Settings and access" }).getBoundingClientRect();
+		target.dispatchEvent(
+			new PointerEvent(type, {
+				pointerId: 1,
+				isPrimary: true,
+				button: 0,
+				buttons: type === "pointerup" ? 0 : 1,
+				bubbles: true,
+				clientY: box.top + box.height / 2,
+				...init,
+			}),
+		);
+	}
+
+	test("a touch on the active tab of a list that scrolls starts no drag", async () => {
+		renderSections({ width: 160 });
+		const list = screen.getByRole("tablist");
+		await vi.waitFor(() => {
+			expect(list).toHaveAttribute("data-overflowing", "true");
+		});
+		const active = screen.getByRole("tab", { name: "Settings and access" });
+		const x = active.getBoundingClientRect().left + 10;
+
+		sendTo(active, "pointerdown", { clientX: x, pointerType: "touch" });
+		sendTo(active, "pointermove", { clientX: x - 30, pointerType: "touch" });
+
+		expect(list).not.toHaveAttribute("data-dragging");
+		sendTo(active, "pointerup", { clientX: x - 30, pointerType: "touch" });
+	});
+
+	test("a release that an ancestor stops still ends the drag", async () => {
+		const { onValueChange, move, release, list } = renderSections();
+		const root = list.closest("[data-slot~=tabs]");
+		root?.addEventListener("pointerup", (event) => event.stopPropagation());
+		const travel = travelTo("Overview");
+
+		move([-20, travel]);
+		release(travel, 200);
+
+		expect(list).not.toHaveAttribute("data-dragging");
+		expect(onValueChange).toHaveBeenLastCalledWith("overview");
+	});
+
+	test("a drag skips an inert tab", () => {
+		const { onValueChange, move, release } = renderSections({ overview: { inert: true } });
+		const travel = travelTo("Overview");
+
+		move([-20, travel]);
+		release(travel, 200);
+
+		expect(onValueChange).toHaveBeenLastCalledWith("logs");
+	});
+
+	test("a vertical list that fits is measured as fitting, so a finger can drag its indicator", async () => {
+		renderSections({ orientation: "vertical" });
+		const list = screen.getByRole("tablist");
+
+		await vi.waitFor(() => {
+			expect(list).toHaveAttribute("data-overflowing", "false");
+		});
+		expect(
+			getComputedStyle(screen.getByRole("tab", { name: "Settings and access" })).touchAction,
+		).toBe("pan-x pinch-zoom");
+	});
+
+	test("a drag lands where the pointer is released, not where it last moved", () => {
+		const { onValueChange, move, release } = renderSections();
+		const travel = travelTo("Overview");
+
+		move([-20, travel]);
+		release(0, 200);
+
+		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
+	test("a drag onto a link tab follows the link", async () => {
+		render(<LinkTabs />);
+		const tabA = screen.getByRole("tab", { name: "Tab A" });
+		const tabB = screen.getByRole("tab", { name: "Tab B" });
+		const a = tabA.getBoundingClientRect();
+		const b = tabB.getBoundingClientRect();
+		const send = (type: string, clientX: number) =>
+			tabA.dispatchEvent(
+				new PointerEvent(type, {
+					pointerId: 1,
+					isPrimary: true,
+					button: 0,
+					buttons: type === "pointerup" ? 0 : 1,
+					bubbles: true,
+					clientX,
+					clientY: a.top + a.height / 2,
+				}),
+			);
+		const start = a.left + a.width / 2;
+
+		send("pointerdown", start);
+		send("pointermove", start + 20);
+		send("pointermove", start + (b.left - a.left));
+		send("pointerup", start + (b.left - a.left));
+
+		// Why a wait: Firefox moves to a fragment that a script's click follows a task later.
+		await vi.waitFor(() => {
+			expect(window.location.hash).toBe("#b");
+			expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel B");
+		});
 	});
 });
