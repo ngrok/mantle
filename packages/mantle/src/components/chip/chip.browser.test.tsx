@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { commands } from "vitest/browser";
+import preflightCss from "tailwindcss/preflight.css?raw";
 import { Chip } from "./chip.js";
 
 let styleElement: HTMLStyleElement;
@@ -41,5 +42,33 @@ describe("Chip motion", () => {
 		expect(getComputedStyle(screen.getByRole("button", { name: "Read" })).transitionDuration).toBe(
 			"0s",
 		);
+	});
+});
+
+describe("Chip size", () => {
+	test("a pill chip is as tall as a Button of the same size", () => {
+		// Why preflight: apps load it, and its border-box sizing sets the rendered height.
+		const preflight = document.createElement("style");
+		preflight.textContent = preflightCss;
+		document.head.prepend(preflight);
+		try {
+			const sizes = ["xs", "sm", "md", "lg", "xl"] as const;
+			render(
+				<>
+					{sizes.map((size) => (
+						<Chip key={size} selectable size={size}>
+							{size}
+						</Chip>
+					))}
+				</>,
+			);
+			expect(
+				sizes.map(
+					(size) => screen.getByRole("button", { name: size }).getBoundingClientRect().height,
+				),
+			).toEqual([24, 28, 36, 40, 48]);
+		} finally {
+			preflight.remove();
+		}
 	});
 });

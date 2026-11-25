@@ -46,9 +46,9 @@ const chipClassName = {
 	square: {
 		xs: "gap-1 rounded-xs px-2 py-0.5 has-data-[slot=chip-remove]:pr-0.5 text-xs font-normal",
 		sm: "gap-1 rounded-xs px-2 py-0.5 has-data-[slot=chip-remove]:pr-0.5 text-sm font-normal",
-		md: "gap-1 rounded-sm px-2.5 py-1.5 has-data-[slot=chip-remove]:pr-1 text-sm font-normal",
-		lg: "gap-1.5 rounded-sm px-3 py-2 has-data-[slot=chip-remove]:pr-1.5 text-sm font-normal",
-		xl: "gap-1.5 rounded-md px-3.5 py-2.5 has-data-[slot=chip-remove]:pr-2 text-base font-normal",
+		md: "gap-1 rounded-sm px-2.5 py-1.5 has-data-[slot=chip-remove]:pe-1 text-sm font-normal",
+		lg: "gap-1.5 rounded-sm px-3 py-2 has-data-[slot=chip-remove]:pe-1.5 text-sm font-normal",
+		xl: "gap-1.5 rounded-md px-3.5 py-2.5 has-data-[slot=chip-remove]:pe-2 text-base font-normal",
 	},
 } as const satisfies Record<ChipAppearance, Record<ChipSize, string>>;
 
