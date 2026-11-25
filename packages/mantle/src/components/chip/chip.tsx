@@ -1,9 +1,7 @@
 "use client";
 
 import { CheckIcon } from "@phosphor-icons/react/Check";
-import { LockIcon } from "@phosphor-icons/react/Lock";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
-import { XIcon } from "@phosphor-icons/react/X";
 import {
 	Children,
 	cloneElement,
@@ -29,10 +27,44 @@ import { Slot } from "../slot/index.js";
 /** The `xs` and `sm` steps of the Button size scale. */
 type ChipSize = Extract<ButtonSize, "xs" | "sm">;
 
-const chipSizeClassName = {
-	xs: "h-6 gap-0.5 px-2 text-xs",
-	sm: "h-7 gap-0.5 px-2.5 text-sm",
-} as const satisfies Record<ChipSize, string>;
+/** The chip's shape: a fully rounded `pill`, or a `square` with small corner radii. */
+type ChipAppearance = "pill" | "square";
+
+/**
+ * The root classes for each appearance and size. A `square` chip at `sm` matches
+ * the 26px value tags inside a 36px `MultiSelect` trigger.
+ */
+const chipClassName = {
+	pill: {
+		xs: "h-6 gap-0.5 rounded-full px-2 text-xs font-medium",
+		sm: "h-7 gap-0.5 rounded-full px-2.5 text-sm font-medium",
+	},
+	square: {
+		xs: "h-5.5 gap-0.5 rounded-xs px-1.5 text-xs font-normal",
+		sm: "h-6.5 gap-0.5 rounded-xs px-1.5 text-sm font-normal",
+	},
+} as const satisfies Record<ChipAppearance, Record<ChipSize, string>>;
+
+/**
+ * Phosphor's `Lock` (regular) and `X` (bold) paths for the remove button.
+ * Why inline paths: one host element in place of four parts for each chip.
+ */
+const LOCK_PATH =
+	"M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Zm-68-56a12,12,0,1,1-12-12A12,12,0,0,1,140,152Z";
+const X_PATH =
+	"M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z";
+
+/** The remove button and icon classes for each appearance and size. */
+const removeClassName = {
+	pill: {
+		xs: { button: "-me-0.5 rounded-full", icon: "size-3" },
+		sm: { button: "-me-0.5 rounded-full", icon: "size-3" },
+	},
+	square: {
+		xs: { button: "-me-1 rounded-xs", icon: "size-3" },
+		sm: { button: "-me-1 rounded-xs", icon: "size-4" },
+	},
+} as const satisfies Record<ChipAppearance, Record<ChipSize, { button: string; icon: string }>>;
 
 type ChipPressedState =
 	| {
@@ -52,7 +84,17 @@ type ChipPressedState =
 
 type ChipSharedProps = WithAsChild &
 	WithDataSlot & {
-		/** Height and spacing on the Button scale. `xs` is 24px; `sm` is 28px. @default "xs" */
+		/**
+		 * The chip's shape. `pill` is fully rounded. `square` has small corner radii and
+		 * matches `MultiSelect` value tags.
+		 * @default "pill"
+		 */
+		appearance?: ChipAppearance;
+		/**
+		 * Height and spacing on the Button scale. A `pill` chip is 24px at `xs` and 28px at `sm`.
+		 * A `square` chip is 2px shorter.
+		 * @default "xs"
+		 */
 		size?: ChipSize;
 	};
 
@@ -121,6 +163,7 @@ function SelectableChip({
 	pressed,
 	defaultPressed = false,
 	onPressedChange,
+	appearance = "pill",
 	size = "xs",
 	className,
 	children,
@@ -154,18 +197,19 @@ function SelectableChip({
 		"aria-pressed": isPressed,
 		"data-slot": joinDataSlot(dataSlot, "chip"),
 		"data-state": isPressed ? "on" : "off",
+		"data-appearance": appearance,
 		"data-size": size,
 		disabled,
 		onClick: handleClick,
 		ref,
 		className: cx(
-			"inline-flex w-fit shrink-0 cursor-pointer items-center rounded-full border border-solid bg-transparent font-sans font-medium whitespace-nowrap",
+			"inline-flex w-fit shrink-0 cursor-pointer items-center border border-solid bg-transparent font-sans whitespace-nowrap",
 			"focus-visible:ring-focus-accent focus-visible:ring-4 focus-visible:outline-hidden",
 			"disabled:cursor-default disabled:opacity-50",
 			"motion-safe:transition motion-safe:duration-200 motion-safe:ease-out-strong motion-safe:not-disabled:active:scale-97",
 			"not-aria-pressed:border-base not-aria-pressed:text-muted not-aria-pressed:not-disabled:hover:text-body not-aria-pressed:not-disabled:hover:bg-neutral-500/10",
 			"aria-pressed:bg-accent-500/20 aria-pressed:text-accent-700 aria-pressed:not-disabled:hover:bg-accent-500/30 aria-pressed:border-transparent",
-			chipSizeClassName[size],
+			chipClassName[appearance][size],
 			className,
 		),
 	};
@@ -223,6 +267,7 @@ function LabelChip({
 	removeButtonTabIndex = 0,
 	removeLabel,
 	ref,
+	appearance = "pill",
 	size = "xs",
 	...props
 }: (PlainChipProps | RemovableChipProps) & { rootSlot?: "chip" | "multi-select-tag" }) {
@@ -262,14 +307,15 @@ function LabelChip({
 	const spanProps = {
 		...props,
 		"data-slot": joinDataSlot(dataSlot, rootSlot),
+		"data-appearance": appearance,
 		"data-size": size,
 		"data-locked": locked ? "" : undefined,
 		onKeyDown: handleKeyDown,
 		ref: composedRef,
 		className: cx(
-			"text-strong inline-flex w-fit shrink-0 items-center whitespace-nowrap rounded-full border border-neutral-500/20 bg-neutral-500/10 font-sans font-medium",
+			"text-strong inline-flex w-fit shrink-0 items-center whitespace-nowrap border border-neutral-500/20 bg-neutral-500/10 font-sans",
 			"motion-safe:data-shake:animate-shake",
-			chipSizeClassName[size],
+			chipClassName[appearance][size],
 			className,
 		),
 	};
@@ -281,14 +327,23 @@ function LabelChip({
 			aria-disabled={locked || undefined}
 			tabIndex={removeButtonTabIndex}
 			className={cx(
-				"text-strong/40 hover:bg-neutral-500/15 hover:text-strong -me-0.5 cursor-pointer rounded-full p-0.5",
+				"text-strong/40 hover:bg-neutral-500/15 hover:text-strong cursor-pointer p-0.5",
+				removeClassName[appearance][size].button,
 				"focus-visible:ring-focus-accent focus-visible:ring-2 focus-visible:outline-hidden",
 				"aria-disabled:cursor-default aria-disabled:hover:bg-transparent aria-disabled:hover:text-strong/40",
 			)}
 			onClick={handleRemoveClick}
 			onMouseDown={handleRemoveMouseDown}
 		>
-			<Icon svg={locked ? <LockIcon /> : <XIcon weight="bold" />} className="size-3" />
+			<svg
+				aria-hidden
+				data-slot="icon svg-only"
+				viewBox="0 0 256 256"
+				fill="currentColor"
+				className={cx("shrink-0", removeClassName[appearance][size].icon)}
+			>
+				<path d={locked ? LOCK_PATH : X_PATH} />
+			</svg>
 		</button>
 	);
 	const contentFor = (label: ReactNode) => (
@@ -337,6 +392,7 @@ function TagChip(props: RemovableChipProps) {
  * | `data-slot` | `"chip-icon"` | The optional leading icon. |
  * | `data-slot` | `"chip-remove"` | The optional remove button. |
  * | `data-state` | `"on"` \| `"off"` | The selectable state. |
+ * | `data-appearance` | `"pill"` \| `"square"` | The shape of the chip. |
  * | `data-size` | `"xs"` \| `"sm"` | The size of the chip. |
  * | `data-locked` | present when locked | Removal is blocked. |
  *

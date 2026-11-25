@@ -22,6 +22,22 @@ describe("Chip", () => {
 		expect(container.querySelector('[data-slot="chip"]')).toHaveTextContent("Read");
 	});
 
+	test("appearance defaults to pill and stamps data-appearance on each root", () => {
+		render(
+			<>
+				<Chip data-testid="plain">Read</Chip>
+				<Chip selectable appearance="square">
+					Write
+				</Chip>
+			</>,
+		);
+		expect(screen.getByTestId("plain")).toHaveAttribute("data-appearance", "pill");
+		expect(screen.getByRole("button", { name: "Write" })).toHaveAttribute(
+			"data-appearance",
+			"square",
+		);
+	});
+
 	test("a removable chip names its button and calls onRemove", async () => {
 		const onRemove = vi.fn<() => void>();
 		const onClick = vi.fn<() => void>();

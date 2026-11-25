@@ -152,9 +152,34 @@ function Example() {
 
 </Example>
 
+## Appearance
+
+A chip is a `pill` by default. Set `appearance="square"` to match the value tags in [`Multi Select`](/components/forms/multi-select), such as for chips beside a form field. A `square` chip is 2px shorter than a `pill` chip of the same size.
+
+<Example name="components/preview/chip/appearance" title="Chip appearance example">
+
+```tsx
+import { Chip } from "@ngrok/mantle/chip";
+
+function Example() {
+	return (
+		<div className="flex items-center gap-3">
+			<Chip size="sm" onRemove={() => {}} removeLabel="Remove us-east-1">
+				us-east-1
+			</Chip>
+			<Chip appearance="square" size="sm" onRemove={() => {}} removeLabel="Remove eu-west-1">
+				eu-west-1
+			</Chip>
+		</div>
+	);
+}
+```
+
+</Example>
+
 ## Size
 
-Use `xs` in a data row. Use `sm` beside a small button. The two sizes match the `Button` height scale.
+Use `xs` in a data row. Use `sm` beside a small button. A `pill` chip matches the `Button` height scale.
 
 <Example name="components/preview/chip/size" title="Chip size example">
 
@@ -290,28 +315,30 @@ function Example() {
 
 The default chip accepts native span props. A selectable chip accepts native button props except `type` and `aria-pressed`.
 
-| Prop                    | Type                         | Default | Description                                                 |
-| ----------------------- | ---------------------------- | ------- | ----------------------------------------------------------- |
-| `asChild?`              | `boolean`                    | `false` | Pass the chip props to one child with the same semantics.   |
-| `icon?`                 | `ReactNode`                  |         | SVG icon before the label; replaces the default state icon. |
-| `onRemove`              | `() => void`                 |         | Adds a remove button; requires `removeLabel`.               |
-| `removeLabel`           | `string`                     |         | Accessible name of the remove button.                       |
-| `locked?`               | `boolean`                    | `false` | Blocks removal and shows a lock icon.                       |
-| `removeButtonTabIndex?` | `number`                     | `0`     | Use `-1` when a parent list owns keyboard focus.            |
-| `selectable?`           | `boolean`                    | `false` | Renders a toggle button.                                    |
-| `pressed`               | `boolean`                    |         | Controlled state. Requires `onPressedChange`.               |
-| `defaultPressed?`       | `boolean`                    | `false` | Initial state when the chip owns its state.                 |
-| `onPressedChange?`      | `(pressed: boolean) => void` |         | Receives the next state after a press.                      |
-| `size?`                 | `"xs" \| "sm"`               | `"xs"`  | Height and spacing on the `Button` scale.                   |
+| Prop                    | Type                         | Default  | Description                                                 |
+| ----------------------- | ---------------------------- | -------- | ----------------------------------------------------------- |
+| `appearance?`           | `"pill" \| "square"`         | `"pill"` | The shape: fully rounded, or small corner radii.            |
+| `asChild?`              | `boolean`                    | `false`  | Pass the chip props to one child with the same semantics.   |
+| `icon?`                 | `ReactNode`                  |          | SVG icon before the label; replaces the default state icon. |
+| `onRemove`              | `() => void`                 |          | Adds a remove button; requires `removeLabel`.               |
+| `removeLabel`           | `string`                     |          | Accessible name of the remove button.                       |
+| `locked?`               | `boolean`                    | `false`  | Blocks removal and shows a lock icon.                       |
+| `removeButtonTabIndex?` | `number`                     | `0`      | Use `-1` when a parent list owns keyboard focus.            |
+| `selectable?`           | `boolean`                    | `false`  | Renders a toggle button.                                    |
+| `pressed`               | `boolean`                    |          | Controlled state. Requires `onPressedChange`.               |
+| `defaultPressed?`       | `boolean`                    | `false`  | Initial state when the chip owns its state.                 |
+| `onPressedChange?`      | `(pressed: boolean) => void` |          | Receives the next state after a press.                      |
+| `size?`                 | `"xs" \| "sm"`               | `"xs"`   | Height and spacing on the `Button` scale.                   |
 
 `onRemove` and `selectable` cannot be combined. A plain chip renders a span; a selectable chip renders a button.
 
-| Data Attribute | Value             | Description                                  |
-| -------------- | ----------------- | -------------------------------------------- |
-| `data-slot`    | `"chip"`          | The root element.                            |
-| `data-slot`    | `"chip-label"`    | The label wrapper, with `display: contents`. |
-| `data-slot`    | `"chip-icon"`     | The optional leading icon.                   |
-| `data-slot`    | `"chip-remove"`   | The optional remove button.                  |
-| `data-state`   | `"on"` \| `"off"` | The selectable state.                        |
-| `data-size`    | `"xs"` \| `"sm"`  | The size of the chip.                        |
-| `data-locked`  | present           | Removal is blocked.                          |
+| Data Attribute    | Value                  | Description                                  |
+| ----------------- | ---------------------- | -------------------------------------------- |
+| `data-slot`       | `"chip"`               | The root element.                            |
+| `data-slot`       | `"chip-label"`         | The label wrapper, with `display: contents`. |
+| `data-slot`       | `"chip-icon"`          | The optional leading icon.                   |
+| `data-slot`       | `"chip-remove"`        | The optional remove button.                  |
+| `data-state`      | `"on"` \| `"off"`      | The selectable state.                        |
+| `data-appearance` | `"pill"` \| `"square"` | The shape of the chip.                       |
+| `data-size`       | `"xs"` \| `"sm"`       | The size of the chip.                        |
+| `data-locked`     | present                | Removal is blocked.                          |

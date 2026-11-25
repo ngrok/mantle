@@ -113,7 +113,7 @@
   },
   "attachment": {
     "entry": "import { Attachment } from \"@ngrok/mantle/attachment\"; export default [Attachment.List, Attachment.Root, Attachment.Preview, Attachment.Name, Attachment.Size, Attachment.Remove];",
-    "maxGzipBytes": 10419
+    "maxGzipBytes": 10338
   },
   "prompt-input-attach": {
     "entry": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit, PromptInput.AttachButton];",

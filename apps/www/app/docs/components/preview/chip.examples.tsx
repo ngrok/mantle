@@ -80,6 +80,20 @@ export function ControlledExample() {
 	);
 }
 
+/** The pill and square Chip appearances. */
+export function AppearanceExample() {
+	return (
+		<PreviewCanvas className="gap-3">
+			<Chip size="sm" onRemove={() => {}} removeLabel="Remove us-east-1">
+				us-east-1
+			</Chip>
+			<Chip appearance="square" size="sm" onRemove={() => {}} removeLabel="Remove eu-west-1">
+				eu-west-1
+			</Chip>
+		</PreviewCanvas>
+	);
+}
+
 /** The two Chip sizes. */
 export function SizeExample() {
 	return (

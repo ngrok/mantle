@@ -148,7 +148,7 @@ const Trigger = ({
 	validation: _validation,
 	...props
 }: MultiSelectTriggerProps) => {
-	const { inputRef, listbox, open, selected, setOpen, tags, triggerRef } = useMultiSelectContext();
+	const { inputRef, listbox, open, setOpen, tags, triggerRef } = useMultiSelectContext();
 	// Why a hook: a new ref callback on each render would run the caller's callback ref again.
 	const composedRef = useComposedRefs(triggerRef, ref);
 	const inTag = (target: EventTarget) =>
@@ -167,10 +167,9 @@ const Trigger = ({
 				// carry the semantics.
 				role="presentation"
 				data-slot={joinDataSlot(dataSlot, "multi-select-trigger")}
-				data-has-selection={selected.length > 0 ? "" : undefined}
 				className={cx(
 					"cursor-text select-none font-sans text-sm",
-					"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 data-has-selection:px-1 data-has-selection:py-0",
+					"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-data-[slot=multi-select-tag]:px-1",
 					"has-focus-within:focus-ring has-aria-expanded:focus-ring",
 					"has-focus-within:border-accent-600 has-aria-expanded:border-accent-600",
 					"data-[validation=success]:border-success-600 data-[validation=success]:has-focus-within:border-success-600 data-[validation=success]:has-focus-within:ring-focus-success data-[validation=success]:has-aria-expanded:border-success-600 data-[validation=success]:has-aria-expanded:ring-focus-success",
@@ -253,11 +252,13 @@ type TagProps = Omit<ComponentProps<"span">, "children"> & {
  * On its own, `Tag` only blocks Backspace and Delete on a locked tag.
  *
  * Use this when building a custom `TagValues`-like component and you want the
- * default tag chrome with consistent styling.
+ * default tag chrome with consistent styling. The tag is a `square` `Chip` at the `sm` size.
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-locked` | present when `locked` | The tag cannot be removed. |
+ * | `data-appearance` | `"square"` | The `Chip` appearance of the tag. |
+ * | `data-size` | `"sm"` | The `Chip` size of the tag. |
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttag
  *
@@ -292,13 +293,14 @@ const Tag = ({
 			role="listitem"
 			tabIndex={-1}
 			data-slot={dataSlot}
+			appearance="square"
 			size="sm"
 			locked={locked}
 			onRemove={() => onRemove?.()}
 			removeLabel={`Remove ${value}`}
 			removeButtonTabIndex={-1}
 			className={cx(
-				"cursor-default text-sm font-normal",
+				"cursor-default",
 				"focus-visible:border-accent-600/50 focus-visible:ring-3 focus-visible:focus-ring",
 				className,
 			)}

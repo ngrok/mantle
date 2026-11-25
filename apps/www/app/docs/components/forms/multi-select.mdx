@@ -851,7 +851,7 @@ The default tag component rendered inside `MultiSelect.TagValues` for each selec
 
 Arrow-key navigation and Backspace/Delete removal come from the `MultiSelect.TagValues` render props; spread them onto the tag to get them. On its own, `Tag` only blocks Backspace and Delete on a locked tag.
 
-Use this when building a custom `TagValues`-like component and you want the default tag chrome with consistent styling.
+Use this when building a custom `TagValues`-like component and you want the default tag chrome with consistent styling. The tag is a `square` [`Chip`](/components/preview/chip) at the `sm` size.
 
 Also accepts all standard `span` element props (except `children`). The `onKeyDown` prop is supported and is called after the internal locked-key handling.
 
@@ -861,9 +861,11 @@ Also accepts all standard `span` element props (except `children`). The `onKeyDo
 | `onRemove?` | `() => void` |         | Called when the remove button is clicked. `MultiSelect.TagValues` passes one through its render props that removes the value from the selection. |
 | `locked?`   | `boolean`    | `false` | When true, shows a lock icon, disables the remove button, and shakes on Delete/Backspace key presses.                                            |
 
-| Data Attribute | Value                 | Description                |
-| :------------- | :-------------------- | :------------------------- |
-| `data-locked`  | present when `locked` | The tag cannot be removed. |
+| Data Attribute    | Value                 | Description                       |
+| :---------------- | :-------------------- | :-------------------------------- |
+| `data-locked`     | present when `locked` | The tag cannot be removed.        |
+| `data-appearance` | `"square"`            | The `Chip` appearance of the tag. |
+| `data-size`       | `"sm"`                | The `Chip` size of the tag.       |
 
 ### MultiSelect.Content
 

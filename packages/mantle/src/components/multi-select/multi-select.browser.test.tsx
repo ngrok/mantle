@@ -4,6 +4,7 @@ import { userEvent as browserUser } from "vitest/browser";
 import { type ReactNode, useState } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { commands } from "vitest/browser";
+import preflightCss from "tailwindcss/preflight.css?raw";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { installShakeStyle } from "../../test-utils/shake-style.js";
 import * as AlertDialog from "../alert-dialog/alert-dialog-parts.js";
@@ -76,26 +77,83 @@ describe("MultiSelect (browser)", () => {
 		return tagEl;
 	};
 
-	test("selecting the first value keeps the trigger height", async () => {
+	test("selected tags keep the 0.95.0 tag and trigger geometry", async () => {
 		const style = document.createElement("style");
-		// Why border-box: the browser test loads utilities without the site's Tailwind preflight.
-		style.textContent = `${await commands.tailwindCss("./multi-select.tsx")}\n${await commands.tailwindCss("../chip/chip.tsx")}\n*,*::before,*::after{box-sizing:border-box}`;
+		const css = await Promise.all(
+			["./multi-select.tsx", "../chip/chip.tsx", "./multi-select.browser.test.tsx"].map((file) =>
+				commands.tailwindCss(file, { theme: true }),
+			),
+		);
+		// Why preflight: the docs site and apps load it, and it resets the native button and svg boxes.
+		style.textContent = `${preflightCss}\n${css.join("\n")}`;
 		document.head.append(style);
 		try {
 			const user = setupUser();
-			render(<Subject />);
+			render(
+				<>
+					<Subject />
+					{/* The tag markup that @ngrok/mantle@0.95.0 shipped, as the reference. */}
+					<div className="font-sans">
+						<span
+							data-testid="released-tag"
+							className="cursor-default bg-neutral-500/10 border border-neutral-500/20 rounded-xs text-strong inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 text-sm font-normal"
+						>
+							apple
+							<button
+								type="button"
+								className="cursor-pointer text-strong/40 hover:bg-neutral-500/15 hover:text-strong rounded-xs p-0.5"
+							>
+								<svg viewBox="0 0 256 256" className="size-4 shrink-0" />
+							</button>
+						</span>
+					</div>
+				</>,
+			);
 			const input = screen.getByRole("combobox");
 			const trigger = input.closest<HTMLElement>('[data-slot~="multi-select-trigger"]');
 			if (trigger == null) {
 				throw new Error("Expected a MultiSelect trigger");
 			}
-			const height = trigger.getBoundingClientRect().height;
+			const emptyHeight = trigger.getBoundingClientRect().height;
 			await user.click(input);
 			await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
 			await user.click(getListboxOption("Apple"));
-			expect(getTagOption("apple")).toHaveAttribute("data-slot", "multi-select-tag");
-			expect(getComputedStyle(trigger).paddingTop).toBe("0px");
-			expect(trigger.getBoundingClientRect().height).toBe(height);
+
+			const tag = getTagOption("apple");
+			const released = screen.getByTestId("released-tag");
+			/** The box of each part, relative to its tag, plus the styles a reader sees. */
+			const measure = (root: HTMLElement) => {
+				const origin = root.getBoundingClientRect();
+				const button = root.querySelector("button");
+				const icon = root.querySelector("svg");
+				const textNode = [...root.querySelectorAll("*"), root]
+					.flatMap((element) => [...element.childNodes])
+					.find((node) => node.nodeType === Node.TEXT_NODE && node.textContent === "apple");
+				if (button == null || icon == null || textNode == null) {
+					throw new Error("Expected a label, a remove button, and an icon");
+				}
+				const range = document.createRange();
+				range.selectNodeContents(textNode);
+				const relative = (rect: DOMRect) => ({
+					left: rect.left - origin.left,
+					top: rect.top - origin.top,
+					width: rect.width,
+					height: rect.height,
+				});
+				const rootStyle = getComputedStyle(root);
+				return {
+					root: { width: origin.width, height: origin.height },
+					text: relative(range.getBoundingClientRect()),
+					button: relative(button.getBoundingClientRect()),
+					icon: relative(icon.getBoundingClientRect()),
+					radius: [rootStyle.borderRadius, getComputedStyle(button).borderRadius],
+					colors: [rootStyle.backgroundColor, rootStyle.borderColor, rootStyle.color],
+					font: [rootStyle.fontSize, rootStyle.fontWeight, rootStyle.lineHeight],
+				};
+			};
+
+			expect(measure(tag)).toEqual(measure(released));
+			expect(trigger.getBoundingClientRect().height).toBe(emptyHeight);
 		} finally {
 			style.remove();
 		}
