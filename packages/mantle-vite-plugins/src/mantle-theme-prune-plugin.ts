@@ -218,6 +218,9 @@ function canJoin(run: ChildNode[]) {
  * When another file of the build reads a stop that the stylesheet does not, it warns. `vite dev`
  * serves the full CSS.
  *
+ * `mantleSourcesPlugin` runs this plugin by default. Add it on its own only in a build without
+ * `mantleSourcesPlugin`.
+ *
  * @see https://mantle.ngrok.com/vite-plugins#mantlethemepruneplugin
  * @example
  * ```ts
@@ -267,6 +270,10 @@ function mantleThemePrunePlugin(): Plugin {
 							removed.add(name);
 						}
 					}
+				}
+				// Why: with no stop removed, no read can warn, so skip reading every file of the bundle.
+				if (removed.size === 0) {
+					return;
 				}
 				// A read from another file cannot keep a stop: the pruned stylesheet would change
 				// under the same hashed name. Warn about every read of a stop that any mantle

@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import MagicString from "magic-string";
 import type { Plugin } from "vite";
+import { mantleThemePrunePlugin } from "./mantle-theme-prune-plugin.js";
 
 /**
  * Options for {@link mantleSourcesPlugin}.
@@ -34,6 +35,14 @@ type MantleSourcesPluginOptions = {
 	 * @default 15000
 	 */
 	idleTimeoutMs?: number;
+	/**
+	 * Whether the build also runs {@link mantleThemePrunePlugin}, which removes the dark and
+	 * `invert-theme` values of each palette stop the stylesheet does not read. Pass `false` when
+	 * a file outside the stylesheet reads stops that the stylesheet does not, such as CSS another
+	 * app serves.
+	 * @default true
+	 */
+	themePrune?: boolean;
 };
 
 /**
@@ -750,6 +759,10 @@ function findMissing(input: {
  * The plugin must run in the same `vite build` as `@tailwindcss/vite`. Its position in the
  * `plugins` array does not matter.
  *
+ * It also runs {@link mantleThemePrunePlugin}, so the stylesheet keeps the dark and
+ * `invert-theme` value of a palette stop only when it reads that stop. `themePrune: false`
+ * turns that off.
+ *
  * @see https://mantle.ngrok.com/vite-plugins#mantlesourcesplugin
  * @example
  * ```ts
@@ -763,12 +776,15 @@ function findMissing(input: {
  * });
  * ```
  */
-function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
+function mantleSourcesPlugin(
+	options: MantleSourcesPluginOptions = {},
+): [sources: Plugin, ...prune: Plugin[]] {
 	const {
 		onMiss = "error",
 		include = [],
 		verbose = false,
 		idleTimeoutMs = DEFAULT_IDLE_TIMEOUT_MS,
+		themePrune = true,
 	} = options;
 	const listedPackages = new Set([MANTLE_PACKAGE_NAME, ...include]);
 	const packageOf = createPackageLocator();
@@ -809,7 +825,7 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 		return null;
 	}
 
-	return {
+	const sources: Plugin = {
 		name: "vite-plugin-mantle-sources",
 		apply: "build",
 		// Why shared: `vite build --app` re-creates the plugin per environment by default. The
@@ -988,6 +1004,7 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 			}
 		},
 	};
+	return themePrune ? [sources, mantleThemePrunePlugin()] : [sources];
 }
 
 export {
