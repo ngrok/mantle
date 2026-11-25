@@ -735,6 +735,14 @@ export const migrations = [
 			"The query-filter language now reads NOT, !, parentheses, and typed comparisons. Handle the new token kinds, and narrow a key before you call its matches.",
 		route: "/migrations/0032-query-filter-operators-migration",
 	},
+	{
+		number: 33,
+		slug: "compact-code-markup-migration",
+		title: "Compact Code Markup",
+		description:
+			"Highlighted code now colors tokens with short classes and draws line numbers, the fold caret, and the fold ellipsis in CSS. Update a selector or a parser that read the old markup.",
+		route: "/migrations/0033-compact-code-markup-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { createHighlighter } from "shiki";
+import type { createHighlighter, ShikiTransformer } from "shiki";
 import {
 	decorateHighlightedHtml,
 	inferIndentation,
@@ -12,6 +12,7 @@ import {
 	type Indentation,
 	type LineRange,
 	type SupportedLanguage,
+	tokenClassForColor,
 } from "@ngrok/mantle/highlight-utils";
 import { createLruCache } from "./lru-cache.js";
 import {
@@ -117,6 +118,32 @@ type MantleServerHighlighter = {
 	highlight: (input: MantleHighlightInput) => Promise<MantleHighlightResult>;
 };
 
+/**
+ * Replaces each token's inline `style="color:…"` with a short class from
+ * `mantle.css`, and unwraps runs in the inherited foreground color. The colors
+ * stay the same; the markup shrinks.
+ */
+const tokenClassTransformer: ShikiTransformer = {
+	name: "mantle:token-classes",
+	line(node) {
+		node.children = node.children.flatMap((child) => {
+			const style = child.type === "element" ? child.properties.style : undefined;
+			if (child.type !== "element" || typeof style !== "string" || !style.startsWith("color:")) {
+				return [child];
+			}
+			const tokenClass = tokenClassForColor(style.slice("color:".length));
+			if (tokenClass == null) {
+				return [child];
+			}
+			if (tokenClass === "") {
+				return child.children;
+			}
+			child.properties = { class: tokenClass };
+			return [child];
+		});
+	},
+};
+
 let highlighterPromise: Promise<ShikiHighlighter> | undefined;
 const mantleHighlightCache = createLruCache<string, Promise<MantleHighlightResult>>(
 	mantleHighlightCacheMaxEntries,
@@ -197,6 +224,7 @@ async function highlightWithMantleShiki(
 			includeExplanation: wantsTokens ? "scopeName" : false,
 			transformers: wantsTokens
 				? [
+						tokenClassTransformer,
 						{
 							name: "mantle:capture-tokens",
 							tokens(tokens) {
@@ -204,7 +232,7 @@ async function highlightWithMantleShiki(
 							},
 						},
 					]
-				: undefined,
+				: [tokenClassTransformer],
 		});
 		const baseHtml = extractHighlightedCodeInnerHtml(fullHtml);
 
@@ -224,7 +252,6 @@ async function highlightWithMantleShiki(
 			highlightLines,
 			html: baseHtml,
 			lineNumberStart,
-			showLineNumbers,
 		});
 
 		return {

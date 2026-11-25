@@ -28,7 +28,6 @@ function makeJsonValue(code: string, foldableRanges?: FoldableRange[]) {
 		foldableRanges: ranges,
 		html: shikiLines(code),
 		lineNumberStart: 1,
-		showLineNumbers: true,
 	});
 	return createMantleCodeBlockValue({
 		language: "json",
@@ -48,7 +47,6 @@ function makeFoldedValue(
 		foldableRanges,
 		html: shikiLines(code),
 		lineNumberStart: 1,
-		showLineNumbers: true,
 	});
 	return createMantleCodeBlockValue({
 		language,
@@ -218,7 +216,7 @@ describe("CodeBlock JSON folding", () => {
 		expect(screen.queryByRole("button", { name: /toggle code folding/i })).toBeNull();
 	});
 
-	test("opener lines render an aria-hidden fold ellipsis placeholder", () => {
+	test("keeps the fold caret and ellipsis out of the code's text", () => {
 		render(
 			<CodeBlock.Root>
 				<CodeBlock.Body>
@@ -227,11 +225,9 @@ describe("CodeBlock JSON folding", () => {
 			</CodeBlock.Root>,
 		);
 
-		const ellipses = document.querySelectorAll("[data-slot='fold-ellipsis']");
-		expect(ellipses.length).toBe(2);
-		for (const ellipsis of ellipses) {
-			expect(ellipsis).toHaveAttribute("aria-hidden", "true");
-		}
+		// Why: CSS draws both, so copy, find in page, and crawlers read only the code.
+		expect(document.querySelectorAll(".mantle-code-line-opener")).toHaveLength(2);
+		expect(document.querySelector("pre code")?.textContent).toBe(SIMPLE_JSON);
 	});
 
 	test("toggles a fold in a 1000+ line JSON block", async () => {
@@ -352,9 +348,11 @@ describe("mantle.css fold rules", () => {
 	});
 
 	test("the fold ellipsis shows only while its own toggle is collapsed", () => {
-		expect(mantleCss).toMatch(/\.mantle-code-fold-ellipsis\s*\{\s*display:\s*none/);
 		expect(mantleCss).toMatch(
-			/\.mantle-code-line:has\(>\s*\.mantle-code-fold-toggle\[aria-expanded="false"\]\)\s*\.mantle-code-fold-ellipsis\s*\{\s*display:\s*inline/,
+			/\.mantle-code-line-opener > \.mantle-code-line-content::after\s*\{\s*content:\s*"⋯";\s*content:\s*"⋯" \/ "";\s*display:\s*none/,
+		);
+		expect(mantleCss).toMatch(
+			/\.mantle-code-line:has\(>\s*\.mantle-code-fold-toggle\[aria-expanded="false"\]\)\s*>\s*\.mantle-code-line-content::after\s*\{\s*display:\s*inline/,
 		);
 	});
 });

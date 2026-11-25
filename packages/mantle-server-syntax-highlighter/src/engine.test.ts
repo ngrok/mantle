@@ -28,7 +28,8 @@ describe("highlightWithMantleShiki", () => {
 			language: "tf",
 		});
 		expect(result.language).toEqual("tf");
-		expect(result.html).toContain("--shiki-token-");
+		// Why a class: a token color is a short class from mantle.css, not an inline style.
+		expect(result.html).toMatch(/<span class="t[a-z]">/);
 	});
 
 	test("folds a multi-line Terraform block with the bracket strategy", async () => {
@@ -36,6 +37,6 @@ describe("highlightWithMantleShiki", () => {
 			code: 'resource "ngrok_domain" "api" {\n  domain      = "api.example.com"\n  description = "Production API"\n}',
 			language: "terraform",
 		});
-		expect(result.html).toContain('data-slot="fold-toggle"');
+		expect(result.html).toContain('class="mantle-code-fold-toggle"');
 	});
 });

@@ -26,25 +26,23 @@ function buildLargeJson(itemCount: number): string {
 	return lines.join("\n");
 }
 
-// Why a byte ratio: a per-line spacer span on non-opener lines pushes the
-// fold overhead past 12%, whatever its class name. The ratio is deterministic,
-// not a wall-clock budget.
-test("HTML payload overhead vs no-fold decoration is under 12%", () => {
+// Why bytes per line: a non-opener line carries only `data-fold-regions`
+// (about 24 bytes here), and a spacer span on each line adds at least 30 more,
+// whatever its class name. The count is deterministic, not a wall-clock budget.
+test("fold markup adds under 32 bytes for each line", () => {
 	const code = buildLargeJson(1000);
 	const baseHtml = shikiShapedHtml(code);
 
 	const baseline = decorateHighlightedHtml({
 		html: baseHtml,
 		lineNumberStart: 1,
-		showLineNumbers: true,
 	});
 	const withFolds = decorateHighlightedHtml({
 		foldableRanges: computeJsonFoldRanges(code),
 		html: baseHtml,
 		lineNumberStart: 1,
-		showLineNumbers: true,
 	});
 
-	const overhead = (withFolds.length - baseline.length) / baseline.length;
-	expect(overhead).toBeLessThan(0.12);
+	const lineCount = code.split("\n").length;
+	expect((withFolds.length - baseline.length) / lineCount).toBeLessThan(32);
 });

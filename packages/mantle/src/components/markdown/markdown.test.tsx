@@ -43,8 +43,8 @@ describe("Markdown", () => {
 		);
 		const code = container.querySelector("[data-slot='code-block-code']");
 		expect(code).toHaveAttribute("data-lang", "yaml");
-		const lines = [...(code?.querySelectorAll("[data-slot='line-content']") ?? [])];
-		expect(lines.map((line) => line.textContent)).toEqual(["on_http_request:", "  - name: block"]);
+		// Why the whole text: copy, find in page, and crawlers read it, so it must be the code itself.
+		expect(code?.textContent).toBe("on_http_request:\n  - name: block");
 		expect(screen.getByRole("heading", { name: "yaml" })).toBeInTheDocument();
 	});
 

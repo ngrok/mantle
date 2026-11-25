@@ -145,6 +145,10 @@ describe("CodeBlock (browser)", () => {
 			min-width: 100%;
 			width: max-content;
 		}
+		pre[data-slot="code-block-code"][data-syntax-highlighted] > code {
+			display: flex;
+			flex-direction: column;
+		}
 		.mantle-code-line {
 			display: flex;
 			align-items: flex-start;
@@ -163,7 +167,14 @@ describe("CodeBlock (browser)", () => {
 			min-width: 0;
 			flex: 1 1 auto;
 		}
-		.mantle-code-line-number {
+		pre[data-mantle-line-numbers="true"] > code {
+			counter-reset: mantle-line calc(var(--mantle-line-number-start, 1) - 1);
+		}
+		pre[data-mantle-line-numbers="true"] .mantle-code-line {
+			counter-increment: mantle-line;
+		}
+		pre[data-mantle-line-numbers="true"] .mantle-code-line::before {
+			content: counter(mantle-line) / "";
 			position: sticky;
 			left: 0;
 			z-index: 1;
@@ -284,7 +295,6 @@ describe("CodeBlock (browser)", () => {
 						`<span class="line"><span style="display:inline-block;width:${width}px"></span></span>`,
 				)
 				.join("\n"),
-			showLineNumbers,
 		});
 		return createMantleCodeBlockValue({
 			language: "typescript",
@@ -402,20 +412,24 @@ describe("CodeBlock (browser)", () => {
 			);
 
 			const pre = getPre();
-			const number = pre.querySelector(".mantle-code-line-number");
+			const line = pre.querySelector(".mantle-code-line");
 			const content = pre.querySelector(".mantle-code-line-content");
-			if (number == null || content == null) {
-				throw new Error("expected a line number and line content");
+			if (line == null || content == null) {
+				throw new Error("expected a line and its content");
 			}
 
+			// Why a hit test: the number is a pseudo-element, and a hit on it
+			// returns its line. A gutter that scrolled away exposes the content.
 			const preLeft = pre.getBoundingClientRect().left;
+			const { top, height } = content.getBoundingClientRect();
+			const gutterHit = () => document.elementFromPoint(preLeft + 2, top + height / 2);
 			const contentLeftBefore = content.getBoundingClientRect().left;
-			expect(number.getBoundingClientRect().left - preLeft).toBe(0);
+			expect(gutterHit()).toBe(line);
 
 			pre.scrollLeft = 100;
 			expect(pre.scrollLeft).toBe(100);
 
-			expect(number.getBoundingClientRect().left - preLeft).toBe(0);
+			expect(gutterHit()).toBe(line);
 			expect(content.getBoundingClientRect().left).toBe(contentLeftBefore - 100);
 		});
 
