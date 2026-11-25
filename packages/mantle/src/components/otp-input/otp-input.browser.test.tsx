@@ -281,6 +281,37 @@ describe("OtpInput (browser)", () => {
 		expect(slots[1]).not.toHaveAttribute("data-highlighted");
 	});
 
+	test("the empty active slot draws a 1px caret in the slot's text color, and it blinks", async () => {
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./otp-input.tsx", { mantleCss: true });
+		document.head.append(style);
+		try {
+			const user = userEvent.setup();
+			const { input, slots } = renderOtp();
+
+			await user.click(input);
+			await user.keyboard("1");
+			await expect.poll(() => slots[1]?.hasAttribute("data-highlighted")).toBe(true);
+
+			const blink = slots[1]?.querySelector("[aria-hidden]");
+			const caret = blink?.firstElementChild;
+			if (!(blink instanceof HTMLElement) || !(caret instanceof HTMLElement) || slots[1] == null) {
+				throw new Error("expected a caret in the active slot");
+			}
+			const caretStyle = getComputedStyle(caret);
+			expect(caretStyle.borderInlineStartWidth).toBe("1px");
+			expect(caretStyle.borderInlineStartColor).toBe(getComputedStyle(slots[1]).color);
+			const { height } = caret.getBoundingClientRect();
+			expect(height).toBeGreaterThan(0);
+			expect(height).toBeLessThan(slots[1].getBoundingClientRect().height);
+			expect(getComputedStyle(blink).animationName).toBe("caret-blink");
+			// A filled slot shows its character, not a caret.
+			expect(slots[0]?.querySelector("[aria-hidden]")).toBeNull();
+		} finally {
+			style.remove();
+		}
+	});
+
 	describe("selection", () => {
 		// Why the vitest/browser keyboard: an arrow key must move the native selection.
 		test("a caret on a filled slot selects that slot, so typing replaces its character", async () => {

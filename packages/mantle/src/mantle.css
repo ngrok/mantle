@@ -314,6 +314,15 @@ in a plain stylesheet (a third-party widget override) resolves to nothing.
 			translate: 0;
 		}
 	}
+	/* A drawn text caret's blink: on for 500ms, then off for 500ms, with no fade. It matches
+	   Chromium's default native caret. Why it runs under reduced motion: native carets blink there
+	   too in Chromium, Firefox, and WebKit, and a blink changes opacity, not position. */
+	--animate-caret-blink: caret-blink 1s step-end infinite;
+	@keyframes caret-blink {
+		50% {
+			opacity: 0;
+		}
+	}
 	/* The narrowest workspace row that holds the expanded sidebar (13rem), the content card at
 	   the side panel's floor (21rem), the panel itself (21rem), and the three gutters (1.5rem).
 	   Below it `AppLayout.SidePanel` floats over the card, so the page is never narrower than

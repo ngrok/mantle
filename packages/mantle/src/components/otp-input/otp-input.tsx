@@ -640,9 +640,12 @@ const OtpInputSlotImpl = ({
 		>
 			{char}
 			{isActive && char == null && (
-				<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-					<div className="bg-strong h-4 w-px animate-pulse" />
-				</div>
+				// The input's own caret is hidden, so the slot draws one like it: 1px of the
+				// text color. Why an empty inline span with a border: its box is the font's
+				// content area, which is the height a native caret takes.
+				<span aria-hidden className="animate-caret-blink">
+					<span className="border-s border-current" />
+				</span>
 			)}
 		</div>
 	);
