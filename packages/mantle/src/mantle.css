@@ -2108,7 +2108,7 @@ pre[data-mantle-line-numbers="true"] .mantle-code-line::before {
 	background-color: var(--background-color-base);
 }
 
-pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) {
+pre[data-slot~="code-block-code"][data-foldable] {
 	--_gutter-overhang: calc(
 		var(--mantle-code-line-number-gap) + var(--mantle-code-fold-gutter-width) +
 			var(--mantle-code-fold-gutter-gap)
@@ -2184,7 +2184,7 @@ pre[data-mantle-line-numbers="true"] .mantle-code-fold-toggle {
  * Why `--tw-leading`: this rule is in no layer, so it wins over a `leading-*`
  * class from the consumer. That class sets `--tw-leading`, and it stays first.
  */
-pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) {
+pre[data-slot~="code-block-code"][data-foldable] {
 	line-height: var(--tw-leading, var(--mantle-code-fold-line-height));
 }
 
@@ -2235,18 +2235,18 @@ pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) {
 
 /*
  * Reserve the fold-gutter column so non-opener lines stay aligned with opener
- * lines (whose toggle button occupies the gutter). A single per-<pre> `:has()`
- * scopes this to fold-enabled blocks; within them every line's content gets the
+ * lines (whose toggle button occupies the gutter). The `data-foldable` attribute
+ * of the <pre> scopes this to fold-enabled blocks; within them every line's content gets the
  * gutter margin by default, and opener lines (tagged `mantle-code-line-opener`
  * at HTML-generation time; see decorate-highlighted-html.ts) reset it. This
  * replaces the old *per-line* relational `:not(:has())` probe (whose cost scaled
  * with line count) with a flat class match, while keeping HTML payload tiny:
  * only the sparse opener lines carry an extra class.
  */
-pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-content {
+pre[data-slot~="code-block-code"][data-foldable] .mantle-code-line-content {
 	margin-left: calc(var(--mantle-code-fold-gutter-width) + var(--mantle-code-fold-gutter-gap));
 }
-pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle)
+pre[data-slot~="code-block-code"][data-foldable]
 	.mantle-code-line-opener
 	> .mantle-code-line-content {
 	margin-left: 0;
