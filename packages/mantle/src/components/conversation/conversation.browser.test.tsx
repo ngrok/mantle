@@ -494,6 +494,69 @@ describe("Conversation", () => {
 		expect(viewport()).toHaveFocus();
 	});
 
+	test("Up then Down to the newest message follows the stream again", async () => {
+		const short: Turn = { id: "a1", from: "assistant", text: "Line 1" };
+		const { rerender } = render(<Transcript turns={[question, short]} />);
+		await nextFrame();
+		message(-1).focus();
+		await browserUser.keyboard("{ArrowUp}{ArrowDown}");
+		expect(message(-1)).toHaveFocus();
+		rerender(<Transcript turns={[question, { ...short, text: longAnswer }]} />);
+		await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
+	});
+
+	test("a sent message moves lost focus to the newest message, not an earlier answer", async () => {
+		const answer: Turn = { id: "a1", from: "assistant", text: "Two have none." };
+		const { rerender } = render(
+			<Transcript turns={[question, answer]} actions={<button type="button">Suggestion</button>} />,
+		);
+		await nextFrame();
+		screen.getByRole("button", { name: "Suggestion" }).focus();
+		rerender(
+			<Transcript
+				turns={[
+					question,
+					answer,
+					{ ...question, id: "q2" },
+					{ id: "a2", from: "assistant", text: longAnswer },
+				]}
+			/>,
+		);
+		await waitFor(() => expect(message(-1)).toHaveFocus());
+		expect(message(-1)).toHaveAttribute("tabindex", "0");
+		expect(message(1)).toHaveAttribute("tabindex", "-1");
+	});
+
+	test("removing the only focused message hands focus to the viewport", async () => {
+		const { rerender } = render(<Transcript turns={[question]} />);
+		await nextFrame();
+		message(0).focus();
+		rerender(<Transcript turns={[]} />);
+		await waitFor(() => expect(viewport()).toHaveFocus());
+	});
+
+	test("Control+End from a link in a scrolling pane stays in the pane", async () => {
+		render(
+			<>
+				<Transcript
+					turns={[question, { id: "a1", from: "assistant", text: "Here is the policy." }]}
+					actions={
+						<pre style={{ height: 40, overflowY: "auto" }}>
+							<a href="#policy">policy</a>
+							{longAnswer}
+						</pre>
+					}
+				/>
+				<textarea aria-label="Message the assistant" />
+			</>,
+		);
+		await nextFrame();
+		const link = screen.getByRole("link", { name: "policy" });
+		link.focus();
+		await browserUser.keyboard("{Control>}{End}{/Control}");
+		expect(link).toHaveFocus();
+	});
+
 	test("a removed focused message hands focus to the new tab stop", async () => {
 		const answer: Turn = { id: "a1", from: "assistant", text: "Two have none." };
 		const { rerender } = render(<Transcript turns={[question, answer]} />);

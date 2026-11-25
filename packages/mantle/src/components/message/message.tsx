@@ -108,7 +108,8 @@ function Root({
 		<MessageContext value={context}>
 			<Component
 				// Why: the feed pattern names each article; the speaker label in `Message.Content` says who wrote it.
-				aria-labelledby={labelId}
+				// Why `aria-label` wins: a caller's own name for the message beats the speaker label.
+				aria-labelledby={props["aria-label"] == null ? labelId : undefined}
 				data-slot={joinDataSlot(dataSlot, "message")}
 				data-from={from}
 				className={cx(

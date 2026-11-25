@@ -244,7 +244,10 @@ function Viewport({
 		if (element == null) {
 			return;
 		}
-		return rovingMessages(element, { release: () => releaseFollow(element) });
+		return rovingMessages(element, {
+			release: () => releaseFollow(element),
+			resume: () => follows.get(element)?.scrollToEnd("instant"),
+		});
 	}, [element]);
 
 	useLayoutEffect(() => {
@@ -507,13 +510,21 @@ function isEditable(target: EventTarget | null): boolean {
 	);
 }
 
-/** Whether `element` is a scroll container with more to show, such as a code pane. */
-function canScroll(element: Element): boolean {
-	if (element.scrollHeight <= element.clientHeight) {
-		return false;
+/** Whether `target` sits in a scroll container below `viewport`, such as a code pane, which takes Control+End. */
+function insideScroller(target: Element, viewport: HTMLElement): boolean {
+	for (
+		let node: Element | null = target;
+		node != null && node !== viewport;
+		node = node.parentElement
+	) {
+		if (node.scrollHeight > node.clientHeight) {
+			const { overflowY } = getComputedStyle(node);
+			if (overflowY === "auto" || overflowY === "scroll") {
+				return true;
+			}
+		}
 	}
-	const { overflowY } = getComputedStyle(element);
-	return overflowY === "auto" || overflowY === "scroll";
+	return false;
 }
 
 /** Whether an element between `target` and `viewport` can scroll up, so it takes an upward wheel. */
@@ -608,7 +619,10 @@ function scrollToMessage(viewport: HTMLElement, message: HTMLElement) {
  * Why apart from `followEnd`: it acts only when a message is added, removed,
  * or focused, never on each streamed token.
  */
-function rovingMessages(viewport: HTMLElement, { release }: { release: () => void }): () => void {
+function rovingMessages(
+	viewport: HTMLElement,
+	{ release, resume }: { release: () => void; resume: () => void },
+): () => void {
 	const document = viewport.ownerDocument;
 	/** The message the reader focused, while it is not the newest. */
 	let pinned: HTMLElement | null = null;
@@ -643,7 +657,12 @@ function rovingMessages(viewport: HTMLElement, { release }: { release: () => voi
 		focusTarget = null;
 		focused = null;
 		const active = document.activeElement;
-		if (message == null || (active != null && active !== document.body)) {
+		if (active != null && active !== document.body) {
+			return;
+		}
+		if (message == null) {
+			// Why the viewport: an empty transcript has no message to take focus.
+			viewport.focus({ preventScroll: true });
 			return;
 		}
 		message.focus({ preventScroll: true });
@@ -661,10 +680,12 @@ function rovingMessages(viewport: HTMLElement, { release }: { release: () => voi
 	const mutations = new MutationObserver((records) => {
 		if (records.some(addsUserMessage)) {
 			pinned = null;
+			// Why: lost focus goes to the new tab stop, which follows the end, not to an earlier answer.
+			focused = null;
 		}
 		if (records.some(changesMessages)) {
 			update();
-		} else {
+		} else if (focusTarget != null && !focusTarget.isConnected) {
 			// Why: a removed link or button in a message that stays must hand focus to that message.
 			restoreFocus(pinned ?? newestMessage(viewport) ?? undefined);
 		}
@@ -692,8 +713,10 @@ function rovingMessages(viewport: HTMLElement, { release }: { release: () => voi
 		}
 		// Why a microtask: Chromium fires focusout on a removed element before it leaves the DOM.
 		// A removed message's focus must be restored; a click outside must not pull focus back.
+		const blurred = event.target;
 		queueMicrotask(() => {
-			if (focusTarget?.isConnected) {
+			// Why the match: a restore can move focus before this runs, and that focus must stay tracked.
+			if (blurred instanceof Node && focusTarget === blurred && blurred.isConnected) {
 				focusTarget = null;
 				focused = null;
 			}
@@ -719,7 +742,7 @@ function rovingMessages(viewport: HTMLElement, { release }: { release: () => voi
 			if (
 				(event.key === "End" || event.key === "Home") &&
 				!isEditable(target) &&
-				(target.matches(MESSAGE_SELECTOR) || !canScroll(target))
+				!insideScroller(target, viewport)
 			) {
 				const conversation = viewport.closest('[data-slot~="conversation"]') ?? viewport;
 				const after = event.key === "End";
@@ -739,20 +762,31 @@ function rovingMessages(viewport: HTMLElement, { release }: { release: () => voi
 		}
 		if (
 			(event.key === "ArrowDown" || event.key === "ArrowUp") &&
-			target.matches(MESSAGE_SELECTOR)
+			target.matches(MESSAGE_SELECTOR) &&
+			!isEditable(target)
 		) {
-			const list = messages();
+			// Why the filter: a hidden message cannot take focus, so the keys skip it. jsdom has no `checkVisibility`.
+			const list = messages().filter(
+				(message) => typeof message.checkVisibility !== "function" || message.checkVisibility(),
+			);
 			const next = list[list.indexOf(target) + (event.key === "ArrowDown" ? 1 : -1)];
 			if (next == null) {
 				return;
 			}
 			event.preventDefault();
-			// Why: a streamed update would otherwise scroll an earlier message out from under focus.
-			// The newest message keeps following, so a stream keeps it in view.
-			if (next !== list.at(-1)) {
+			if (next === list.at(-1)) {
+				scrollToMessage(viewport, next);
+				// Why: back at the end, the newest message follows the stream again.
+				if (viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= END_THRESHOLD) {
+					resume();
+				}
+			} else {
+				// Why: a streamed update would otherwise scroll an earlier message out from under focus.
 				release();
+				// Why the instant scroll: it stops a smooth scroll that the scroll button started.
+				viewport.scrollTo?.({ top: viewport.scrollTop, behavior: "instant" });
+				scrollToMessage(viewport, next);
 			}
-			scrollToMessage(viewport, next);
 			next.focus({ preventScroll: true });
 		}
 	};
@@ -762,10 +796,9 @@ function rovingMessages(viewport: HTMLElement, { release }: { release: () => voi
 	viewport.addEventListener("focusout", onFocusOut);
 	document.addEventListener("keydown", onKeyDown);
 	// Why: a child can hold focus before this runs, such as one with `autoFocus`.
+	update();
 	if (viewport.contains(document.activeElement)) {
 		track(document.activeElement);
-	} else {
-		update();
 	}
 
 	return () => {
