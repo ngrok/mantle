@@ -30,7 +30,7 @@ const rootSizeClasses = {
 
 // Why: the same horizontal padding as a `Button` of the same size. Why a short line at xs and sm:
 // the thumb is 8px shorter than the track, so a label line keeps 2px above and below it.
-// Why a 1.5rem basis at xs and sm: one-character and icon targets stay 24px apart (WCAG 2.5.8),
+// Why a 1.5rem basis at xs and sm: one-character targets stay 24px apart (WCAG 2.5.8),
 // and `min-width: auto` still keeps a long label at its full width.
 const itemSizeClasses = {
 	xs: "flex-[1_0_1.5rem] px-2 text-xs/3",
@@ -179,20 +179,22 @@ const Item = ({ className, ...props }: SegmentedControlItemProps) => {
 		<RadioPrimitive.Item
 			part="segmented-control-item"
 			className={cx(
-				"group/radio [&_label]:cursor-inherit text-strong font-medium relative flex flex-1 select-none items-center justify-center gap-2 rounded-xs",
+				"group/radio [&_label]:cursor-inherit text-muted font-medium relative flex flex-1 select-none items-center justify-center gap-2 rounded-xs",
 				itemSizeClasses[size],
 				// Why nowrap: `SegmentedControl.Root` has a fixed height, so a wrapped label spills out of the item.
 				"whitespace-nowrap",
-				// Why: an icon and its `sr-only` name make a square item, like an `IconButton`. CSS cannot see a text node,
-				// so the 2px padding keeps a bare text label beside the icon readable when it matches too.
+				// Why: an icon and its `sr-only` name make a square item, like an `IconButton`, at every size.
+				// CSS cannot see a text node, so a visible label beside an icon needs an element around it.
 				"has-[>[data-slot=segmented-control-item-label]>svg]:not-has-[>[data-slot=segmented-control-item-label]>:not(svg,.sr-only)]:aspect-square",
-				"has-[>[data-slot=segmented-control-item-label]>svg]:not-has-[>[data-slot=segmented-control-item-label]>:not(svg,.sr-only)]:px-0.5",
+				"has-[>[data-slot=segmented-control-item-label]>svg]:not-has-[>[data-slot=segmented-control-item-label]>:not(svg,.sr-only)]:basis-auto",
+				"has-[>[data-slot=segmented-control-item-label]>svg]:not-has-[>[data-slot=segmented-control-item-label]>:not(svg,.sr-only)]:px-0",
 				"has-[>input:focus-visible]:focus-ring has-[>input:focus-visible]:z-1",
 				"cursor-pointer has-[>input:disabled]:cursor-default has-[>input:disabled]:opacity-50",
-				// Why not the checked item: its hover tint would stack on the thumb.
-				"not-has-[>input:checked]:not-has-[>input:disabled]:hover:bg-neutral-500/10",
+				"not-has-[>input:disabled]:hover:text-strong",
 				// Why an anchor: the thumb slides under the checked item.
-				"has-[>input:checked]:[anchor-name:var(--_segmented-control-thumb)]",
+				"has-[>input:checked]:not-in-data-dragging:text-strong has-[>input:checked]:[anchor-name:var(--_segmented-control-thumb)]",
+				// Why: during a drag, the label under the thumb is strong, and the checked item can be away from it.
+				"data-thumb-over:text-strong",
 				// Why pan-y: a sideways swipe on the checked item drags the thumb, and the page still scrolls.
 				"has-[>input:checked]:touch-pan-y",
 				// Why: a browser with no anchor positioning draws no thumb, so the item fills itself.

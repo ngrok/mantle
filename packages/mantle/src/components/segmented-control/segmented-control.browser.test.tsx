@@ -145,6 +145,10 @@ describe("SegmentedControl size", () => {
 			expect(control.getBoundingClientRect().height).toBe(buttonHeight);
 			const iconControl = screen.getByRole("radiogroup", { name: "Layout" });
 			expect(iconControl.getBoundingClientRect().height).toBe(buttonHeight);
+			for (const name of ["List", "Grid"]) {
+				const { width, height } = item(name).getBoundingClientRect();
+				expect(width).toBe(height);
+			}
 			const buttonPadding = getComputedStyle(
 				screen.getByRole("button", { name: "Save" }),
 			).paddingInlineStart;
