@@ -89,6 +89,8 @@ function alignOnAxis({
  * when the preferred side does not fit and the opposite side does, or when
  * neither fits and the opposite side has more room.
  * It shifts along the side to stay `VIEWPORT_PADDING` inside the viewport.
+ * Beside the anchor, when neither side fits, it also moves over the anchor to
+ * stay inside the viewport.
  *
  * @example
  * ```ts
@@ -136,9 +138,16 @@ function computePlacement({
 			y: placedSide === "top" ? anchor.top - sideOffset - size.height : anchor.bottom + sideOffset,
 		};
 	}
+	const besideX =
+		placedSide === "left" ? anchor.left - sideOffset - size.width : anchor.right + sideOffset;
 	return {
 		side: placedSide,
-		x: placedSide === "left" ? anchor.left - sideOffset - size.width : anchor.right + sideOffset,
+		// Why the clamp: on a narrow screen a submenu can have room on neither side
+		// of its menu. It covers part of the menu, not leave the screen.
+		x: Math.max(
+			VIEWPORT_PADDING,
+			Math.min(besideX, viewport.width - VIEWPORT_PADDING - size.width),
+		),
 		y: alignOnAxis({
 			align,
 			start: anchor.top,
