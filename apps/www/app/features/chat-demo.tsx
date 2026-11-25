@@ -179,9 +179,13 @@ function ChatOutline({ messages }: { messages: ChatMessage[] }) {
  * no network. Ask anything with "fail" in it to see a failed answer.
  *
  * One gutter sets the layout at each width, as Amp does. The composer sits one
- * gutter in from the edge. The transcript sits 0.5rem further in, so its edges
- * line up with the composer's buttons and the composer is always the wider of
- * the two. The gutter is 0.75rem, and 1rem when the chat is wider than 32rem.
+ * gutter in from the edge. The gutter is 0.75rem, and 1rem when the chat is
+ * wider than 32rem. When it is narrower, as in a side panel or on a phone, the
+ * composer sits in a footer below a border, as a sheet's footer does, and the
+ * transcript sits 0.5rem further in, so its edges line up with the composer's
+ * buttons. When it is wider, the transcript scrolls under the composer and
+ * sits 1rem further in, the composer's corner radius, so the edge of a code
+ * block or a table meets the composer where its corner ends.
  */
 function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 	const [draft, setDraft] = useState("");
@@ -240,7 +244,7 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 							<Conversation.Viewport>
 								<Conversation.Content
 									aria-label="Conversation with the assistant"
-									className="mx-auto w-full max-w-3xl px-[calc(var(--gutter)+(--spacing(2)))] py-6"
+									className="mx-auto w-full max-w-3xl px-[calc(var(--gutter)+(--spacing(2)))] py-6 @lg:px-[calc(var(--gutter)+(--spacing(4)))]"
 								>
 									{chat.messages.map((message) =>
 										message.from === "user" ? (
@@ -286,11 +290,11 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 						)}
 						{/* Why the column: the button sits just outside the transcript's right edge, not at the window's. */}
 						<div className="absolute inset-x-0 bottom-3 mx-auto max-w-3xl">
-							<Conversation.ScrollButton className="right-[calc(var(--gutter)+(--spacing(1.5)))] bottom-0" />
+							<Conversation.ScrollButton className="right-[calc(var(--gutter)+(--spacing(1.5)))] bottom-0 @lg:right-[calc(var(--gutter)+(--spacing(3.5)))]" />
 						</div>
 					</Conversation.Root>
 				</Panel.Body>
-				<Panel.Footer className="mx-auto w-full max-w-3xl px-(--gutter) pb-(--gutter)">
+				<Panel.Footer className="border-separator mx-auto w-full max-w-3xl border-t p-(--gutter) @lg:border-t-0 @lg:pt-0">
 					<PromptInput.Root
 						streaming={chat.streaming}
 						onStop={chat.stop}
