@@ -55,7 +55,7 @@ for (const token of parseFilterQuery(grammar, query)) {
 	}
 }
 
-// AFTER: `terms` is one AND group, so a negation moves onto each term, and a group is refused
+// AFTER: `terms` is one AND group, so a negation moves onto each term, and an OR or a group is refused
 const tokens = parseFilterQuery(grammar, query);
 const negations = getEffectiveNegations(tokens);
 for (const [index, token] of tokens.entries()) {
@@ -64,10 +64,10 @@ for (const [index, token] of tokens.entries()) {
 		case "text":
 			terms.push({ ...token, negated: negations[index] ?? false });
 			break;
-		case "group-start":
-			problems.push({ kind: "group-unsupported", span: token });
-			break;
 		case "or":
+		case "group-start":
+			problems.push({ kind: "or-unsupported", span: token });
+			break;
 		case "and":
 		case "not":
 		case "group-end":
@@ -125,4 +125,4 @@ const savedQuery = '"!important" is:open';
 
 ## How to verify
 
-Run the type checker: a call to `matches` on the union names each missing narrow, and a `switch` on `token.kind` names a missing kind only when it has an exhaustive check. For each code path from step 1, compile `NOT key:value` and check that it excludes as `-key:value` does, and compile `NOT (a b)` and check that it is refused or reads as `NOT a OR NOT b`. Then, for each stored query from step 8, read `parseFilterExpression(grammar, query)` and check that it holds the filters the saved view meant. `checkFilterQuery` alone cannot show this: a term that became a group, and a qualifier that became a quoted search term, both report nothing.
+Run the type checker: a call to `matches` on the union names each missing narrow, and a `switch` on `token.kind` names a missing kind only when it has an exhaustive check. For each code path from step 1 that accepts `NOT`, compile `NOT key:value` and check that it excludes as `-key:value` does. With two facets from your grammar, compile `NOT (is:new is:shared)` and check that it is refused or reads as `NOT is:new OR NOT is:shared`. A code path that refuses `NOT` needs only a check that it is refused. Then, for each stored query from step 8, read `parseFilterExpression(grammar, query)` and check that it holds the filters the saved view meant. `checkFilterQuery` alone cannot show this: a term that became a group, and a qualifier that became a quoted search term, both report nothing.
