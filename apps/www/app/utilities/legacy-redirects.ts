@@ -93,3 +93,24 @@ export function legacyRedirectFor(pathname: string): string | null {
 	}
 	return `/${target}${suffix}`;
 }
+
+/**
+ * Resolve a preview frame key, `<page path>/<example name>`, whose page moved
+ * to its new key, or `null` when the page did not move. A docs page links its
+ * frames in a new tab, so a saved frame link outlives the move.
+ *
+ * @example
+ * legacyPreviewRedirectFor("components/preview/panel/overview"); // "/preview/components/structure/panel/overview"
+ * legacyPreviewRedirectFor("components/structure/panel/overview"); // null
+ */
+export function legacyPreviewRedirectFor(key: string): string | null {
+	const slash = key.lastIndexOf("/");
+	if (slash === -1) {
+		return null;
+	}
+	const target = legacySlugMap.get(key.slice(0, slash));
+	if (target == null) {
+		return null;
+	}
+	return `/preview/${target}${key.slice(slash)}`;
+}

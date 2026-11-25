@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { prodReadyComponentRouteLookup } from "~/components/navigation-data";
-import { legacyRedirectFor } from "./legacy-redirects";
+import { legacyPreviewRedirectFor, legacyRedirectFor } from "./legacy-redirects";
 
 describe("legacyRedirectFor", () => {
 	it("redirects legacy component paths to their categorized homes", () => {
@@ -90,5 +90,21 @@ describe("legacyRedirectFor", () => {
 		expect(legacyRedirectFor("/components/does-not-exist")).toBeNull();
 		expect(legacyRedirectFor("/definitely/not/a/page")).toBeNull();
 		expect(legacyRedirectFor("/")).toBeNull();
+	});
+});
+
+describe("legacyPreviewRedirectFor", () => {
+	it("moves a frame key whose page moved, and keeps the example name", () => {
+		expect(legacyPreviewRedirectFor("components/preview/panel/overview")).toBe(
+			"/preview/components/structure/panel/overview",
+		);
+		expect(legacyPreviewRedirectFor("components/preview/chip/removable")).toBe(
+			"/preview/components/forms/chip/removable",
+		);
+	});
+
+	it("leaves a current frame key and a shell demo name alone", () => {
+		expect(legacyPreviewRedirectFor("components/structure/panel/overview")).toBeNull();
+		expect(legacyPreviewRedirectFor("chat-panel")).toBeNull();
 	});
 });
