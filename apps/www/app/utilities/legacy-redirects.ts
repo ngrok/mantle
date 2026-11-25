@@ -42,6 +42,8 @@ function buildLegacySlugMap(): Map<string, string> {
 	]) {
 		map.set(`components/preview/${slug}`, `components/ai/${slug}`);
 	}
+	// Chip left the preview namespace for the Forms category.
+	map.set("components/preview/chip", "components/forms/chip");
 	map.set("blocks", "recipes");
 	map.set("blocks/sheet-async", "recipes/overlay-async");
 	map.set("recipes/sheet-async", "recipes/overlay-async");

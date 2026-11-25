@@ -169,7 +169,7 @@ type RemovableChipProps = ChipLabelBaseProps & {
  * Props for a compact label, removable value, or selectable choice.
  * A plain chip renders a span. `onRemove` adds a remove button; `selectable` renders a toggle button.
  *
- * @see https://mantle.ngrok.com/components/preview/chip
+ * @see https://mantle.ngrok.com/components/forms/chip
  *
  * @example
  * ```tsx
@@ -438,7 +438,7 @@ function TagChip(props: RemovableChipProps) {
  * - `MultiSelect`: the user must search a long list of choices.
  * - `Button`: a press runs an action without a selected state.
  *
- * @see https://mantle.ngrok.com/components/preview/chip
+ * @see https://mantle.ngrok.com/components/forms/chip
  *
  * @example
  * ```tsx

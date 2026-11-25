@@ -26,6 +26,11 @@ describe("legacyRedirectFor", () => {
 		}
 	});
 
+	it("redirects Chip's preview URL to the Forms category", () => {
+		expect(legacyRedirectFor("/components/preview/chip")).toBe("/components/forms/chip");
+		expect(legacyRedirectFor("/components/preview/chip.md")).toBe("/components/forms/chip.md");
+	});
+
 	it("redirects the AI chat parts' preview URLs to the AI category", () => {
 		expect(legacyRedirectFor("/components/preview/prompt-input")).toBe(
 			"/components/ai/prompt-input",

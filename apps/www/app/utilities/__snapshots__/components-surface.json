@@ -542,10 +542,10 @@
   },
   {
     "name": "Chip",
-    "slug": "components/preview/chip",
+    "slug": "components/forms/chip",
     "kind": "component",
     "category": "Forms",
-    "status": "preview",
+    "status": "stable",
     "importPath": "@ngrok/mantle/chip",
     "summary": "A compact label for a value or a selectable choice.",
     "jsdoc": "A compact label for a value or a selectable choice.",
