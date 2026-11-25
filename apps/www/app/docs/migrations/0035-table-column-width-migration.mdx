@@ -40,7 +40,7 @@ The codemod skips a part that already sets `width`, so it is safe to run twice. 
 
 1. Find each `Table.Cell`, `Table.Header`, `DataTable.Cell`, and `DataTable.Header` from `@ngrok/mantle/table` and `@ngrok/mantle/data-table`, with a renamed import too.
 2. Add `width="wrap"` to each one whose `className` has a class from the `## Codemod` list. In a `DataTable`, you can instead set `meta: { width: "wrap" }` on the column and pass `column` to its header and to each cell.
-3. Find a column that holds prose the reader must see in full, such as a message, a note, or an error, and give it `width="wrap"` the same way. Leave a name, a description, a URL, an email, or an ID on the default: it truncates on one line.
+3. Find a column that holds prose the reader must see in full, such as a message, a note, or an error, and give it `width="wrap"` the same way. Leave a name, a description, a URL, an email, or an ID on the default: it truncates on one line. The table cells of a Markdown renderer, such as a `td` and a `th` override for react-markdown or Streamdown, hold prose too: give both `width="wrap"`. Where the `td` override spreads its props into `Table.Cell`, take `width` out of the spread first. The props carry the HTML `width` (`string | number`), which no longer type checks against the prop.
 4. Remove width classes from each cell and header: a fixed width such as `w-60`, a percentage width such as `w-1/3` or `w-[41%]`, `w-full`, `w-0`, `max-w-*`, and `truncate` or `whitespace-nowrap`. They do nothing now: a table with a header row is a CSS grid that sizes each column. Where a column needs a least width, put `min-w-*` on its cells.
 5. Replace a `vertical-align` class on a cell or header with its grid form: `align-top` becomes `content-start`, and `align-bottom` becomes `content-end`. Cells center their content by default.
 6. Find a short value of one shape, such as a date, a status, a count, or a duration. Give its column `width="fit"` (`meta: { width: "fit" }` in a `DataTable`), so it never truncates and never holds a 6rem floor.
@@ -84,6 +84,19 @@ columnHelper.accessor("message", {
 });
 ```
 
+### A Markdown renderer's table cells
+
+```tsx
+// BEFORE
+td: ({ node, className, ...props }) => <Table.Cell className={cx("text-sm", className)} {...props} />,
+
+// AFTER: the HTML width leaves the spread, and the prose wraps
+td: ({ node, className, width: _width, ...props }) => (
+	<Table.Cell width="wrap" className={cx("text-sm", className)} {...props} />
+),
+th: ({ node, className, ...props }) => <Table.Header width="wrap" className={className} {...props} />,
+```
+
 ### A hand-set width
 
 ```tsx
@@ -106,7 +119,7 @@ const descriptionColumnClassName = "w-[41%] max-w-0";
 - A table with no `<thead>`, with more than 24 columns, or with a spanning cell in its last header row keeps the table layout. There, the spare width is shared in proportion to content, as before.
 - In the grid, every cell in a row is as tall as the row, so a cell's border and background fill it.
 - mantle's `Markdown` tables pass `width="wrap"`, so their prose still wraps.
-- The `width` HTML attribute of `<td>` and `<th>` is obsolete; the prop replaces it.
+- The `width` HTML attribute of `<td>` and `<th>` is obsolete; the prop replaces it. A spread of `<td>` props into `Table.Cell` fails with TS2322 on `width` until you take it out, as in step 3.
 
 ## How to verify
 
