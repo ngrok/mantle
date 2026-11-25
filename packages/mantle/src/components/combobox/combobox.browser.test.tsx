@@ -900,6 +900,29 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		expect(input).toHaveAttribute("aria-expanded", "false");
 	});
 
+	test("an option rendered as a link is no Tab stop, also when the field is the last control", async () => {
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Links" />
+				<Combobox.Content>
+					<Combobox.Item value="Dashboard" asChild>
+						<a href="#dashboard">Dashboard</a>
+					</Combobox.Item>
+					<Combobox.Item value="Settings" asChild>
+						<a href="#settings">Settings</a>
+					</Combobox.Item>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Links" });
+		await userEvent.click(input);
+		expect(input).toHaveAttribute("aria-expanded", "true");
+
+		await userEvent.keyboard("{Tab}");
+		expect(document.activeElement?.closest('[role="option"]')).toBeNull();
+		expect(input).toHaveAttribute("aria-expanded", "false");
+	});
+
 	test("Shift+Tab from the footer back to the input keeps the list open", async () => {
 		render(
 			<Combobox.Root>

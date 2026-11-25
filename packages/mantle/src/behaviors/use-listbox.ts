@@ -382,6 +382,8 @@ const useOption = (
 		optionProps: {
 			id,
 			role: "option",
+			// Why: focus stays on the owner, so an `asChild` link or button is no Tab stop.
+			tabIndex: -1,
 			"aria-selected": selected,
 			"aria-disabled": disabled || undefined,
 			"data-value": value,
