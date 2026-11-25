@@ -15,27 +15,32 @@ files. `/scaffold-migration` lays the files down in order; this file holds the r
 
 ## The deliverable
 
-| Artifact                                                            | Required                                                                                   |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `apps/www/app/docs/migrations/<NNNN>-<slug>-migration.mdx`          | Always. The sections below, in order.                                                      |
-| `packages/mantle/migrations/<NNNN>-<slug>/rules.yml`                | Always, unless every step is semantic (see [What stays manual](#what-stays-manual)).       |
-| `packages/mantle/migrations/<NNNN>-<slug>/before.tsx`               | With the rules. One case per rule, plus one negative case per guard.                       |
-| `packages/mantle/migrations/<NNNN>-<slug>/after.tsx`                | With the rules. The real output of the rules on `before.tsx`, then formatted with oxfmt.   |
-| `packages/mantle/migrations/<NNNN>-<slug>/before.ts` and `after.ts` | With a `language: typescript` rule. The same pair for a `.ts` module.                      |
-| `migrations` entry in `apps/www/app/components/navigation-data.ts`  | Always. Number, slug, title, description, route.                                           |
-| `migrationsPages` entry in `apps/www/app/routes.ts`                 | Always.                                                                                    |
-| A `minor` changeset that links the guide                            | Always. The changeset names `https://mantle.ngrok.com/migrations/<NNNN>-<slug>-migration`. |
+| Artifact                                                     | Required                                                                                 |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `apps/www/app/docs/migrations/<slug>-migration.mdx`          | Always. The sections below, in order.                                                    |
+| `packages/mantle/migrations/<slug>/rules.yml`                | Always, unless every step is semantic (see [What stays manual](#what-stays-manual)).     |
+| `packages/mantle/migrations/<slug>/before.tsx`               | With the rules. One case per rule, plus one negative case per guard.                     |
+| `packages/mantle/migrations/<slug>/after.tsx`                | With the rules. The real output of the rules on `before.tsx`, then formatted with oxfmt. |
+| `packages/mantle/migrations/<slug>/before.ts` and `after.ts` | With a `language: typescript` rule. The same pair for a `.ts` module.                    |
+| A `minor` changeset that links the guide                     | Always. The changeset names `https://mantle.ngrok.com/migrations/<slug>-migration`.      |
 
 `pnpm -w run test:scripts` pins the pair: every guide carries a `## Codemod` section that names
-`pnpm -w run migrate <NNNN>` and the consumer command with the `@ast-grep/cli` version the root `package.json`
+`pnpm -w run migrate <slug>` and the consumer command with the `@ast-grep/cli` version the root `package.json`
 pins, or says `manual:` with a reason, every rules directory has a guide and both
-fixtures, every codemod rewrites `before.tsx` into `after.tsx`, and every guide a changeset links exists.
+fixtures, every codemod rewrites `before.tsx` into `after.tsx`, and every guide a changeset links exists. It also
+fails a guide that carries a number in its file name after 0035, or a `number`, `introducedIn`, or
+`codemodIn` that the release did not write.
 
-## Numbering
+## Naming and numbering
 
-A guide keeps its number forever, and no later guide takes it. The next number is one more than the last entry
-in `migrations` in `navigation-data.ts`, zero-padded to four digits. The doc slug ends in `-migration`
-(`0008-tabs-separator-migration`); the rules directory drops that suffix (`0008-tabs-separator`).
+Name a guide by its slug only: `tabs-overflow-migration.mdx`, and the rules directory without the suffix,
+`tabs-overflow`. The routes, the sidebar, and the index read the guide files, so do not edit `routes.ts` or
+`navigation-data.ts`. The index lists the guide as Unreleased until it ships.
+
+Do not pick a number or a version. The release runs `scripts/stamp-migrations.ts` after `changeset version`.
+It writes `number`, `introducedIn`, and `codemodIn` into the frontmatter of each guide that has no
+`introducedIn`. Guides in one release take numbers in slug order. A guide keeps its number forever, and the
+URL never changes. Guides 0001 to 0035 keep the number prefix in their file names and URLs.
 
 ## The guide, section by section
 
@@ -43,11 +48,12 @@ The reader is an agent in a consumer repo with the diff out of reach. Write for 
 file on [0008](../../../apps/www/app/docs/migrations/0008-tabs-separator-migration.mdx).
 
 1. **Frontmatter.** `title: <Title> Migration` and a one-line `description` that states the change and the
-   fix. The description also goes on the `migrations` entry.
+   fix. The index and the sidebar show the title without ` Migration`, and the index shows the description.
+   Add `codemodIdempotent: false` for a run-once codemod. Leave out `number`, `introducedIn`, and `codemodIn`.
 2. **`# Mantle <Title> Migration Guide`**, then one paragraph: what changed, what is gone, and what replaces it.
 3. **`**TL;DR:**`** One paragraph an agent can act on without reading further.
-4. **`## Codemod`.** With rules: the two invocations (from a mantle checkout, `pnpm -w run migrate <NNNN> <path>`;
-   in a consumer, `npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/<NNNN>-<slug>.yml --update-all <path>`),
+4. **`## Codemod`.** With rules: the two invocations (from a mantle checkout, `pnpm -w run migrate <slug> <path>`;
+   in a consumer, `npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/<slug>.yml --update-all <path>`),
    which numbered steps the rules apply, which steps stay manual and why, whether the codemod runs once, and
    a reminder to pass `--dry-run` first and run the formatter after. Without rules: one line,
    `Codemod: manual: <reason>.`
@@ -127,7 +133,7 @@ https://ast-grep.github.io/guide/rule-config.html. Model a file on
 - **Guard with `not:` so a rule never matches its own output.** The fixture test runs every codemod twice and
   expects the second run to change nothing. When idempotence is impossible (0003 swaps two children, 0008
   cannot tell a migrated list from an unmigrated one), say "run once" in the `## Codemod` section and add the
-  number to `oneShotMigrations` in `scripts/migrate.test.ts`, with the reason in that comment.
+  rules directory name to `oneShotMigrations` in `scripts/migrate.test.ts`, with the reason in that comment.
 - **Never match an unrelated library's identifier.** A bare `decorative` or `getState()` without the part
   scope rewrites someone else's code. An object key such as `sortingFn` needs the shape that owns it (a
   column helper call, a `columns` array, a sibling column key), or row data with that field changes too.
@@ -138,10 +144,10 @@ https://ast-grep.github.io/guide/rule-config.html. Model a file on
 - **Cover the negative cases in `before.tsx`:** the aliased import, another library's part under the same
   name, a literal in a second spelling, and every shape a guard rejects. `.prettierignore` exempts
   `before.ts*`, so a single-quoted or spaced attribute survives `pnpm -w run fmt`.
-- **Iterate on the fixture.** `pnpm -w run migrate <NNNN> --dry-run packages/mantle/migrations/<NNNN>-<slug>/before.tsx`
+- **Iterate on the fixture.** `pnpm -w run migrate <slug> --dry-run packages/mantle/migrations/<slug>/before.tsx`
   prints the rewrites; `pnpm -w run test:scripts` runs the pair. `after.tsx` is what the rules emit, then
   `pnpm -w run fmt`; the test compares whitespace-normalized tokens, so the formatter's layout does not matter.
-- **Check real code before you ship.** `pnpm -w run migrate <NNNN> --dry-run local/frontend/apps` writes
+- **Check real code before you ship.** `pnpm -w run migrate <slug> --dry-run local/frontend/apps` writes
   nothing and shows every match in the frontend clone. Report the count in the PR, and read a handful of the
   matches for a false positive.
 
@@ -160,7 +166,8 @@ the rest.
 
 ## Self-check
 
-- The guide has every section above, in order, and the `## Codemod` section names the number the file carries.
+- The guide has every section above, in order, and the `## Codemod` section names the slug the file carries.
+- The file name, the rules directory, and the changeset link use the slug, with no number.
 - `before.tsx` has a negative case for every guard, and `after.tsx` is the rules' real output.
 - The codemod is idempotent, or the guide says "run once" and the test exempts it with a reason.
 - A dry run over `local/frontend/apps` found the expected shapes and nothing else.

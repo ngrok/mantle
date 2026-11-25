@@ -840,11 +840,18 @@ it("keeps the aliases of a component's docs page", async () => {
 });
 
 describe("loadMigrationGuides", () => {
-	it("reads introducedIn from every migration guide", async () => {
+	it("reads every released guide and skips a guide the release has not stamped", async () => {
 		const guides = await loadMigrationGuides();
 		const slugs = Array.from(urlToFileMap.keys()).filter((slug) => slug.startsWith("migrations/"));
 
-		expect(guides.map((guide) => guide.slug).toSorted()).toEqual(slugs.toSorted());
+		const released = slugs.filter((slug) =>
+			/^introducedIn:/m.test(
+				readFileSync(new URL(`../../docs/${slug}.mdx`, import.meta.url), "utf8"),
+			),
+		);
+
+		expect(released.length).toBeGreaterThan(30);
+		expect(guides.map((guide) => guide.slug).toSorted()).toEqual(released.toSorted());
 		expect(guides.find((guide) => guide.slug.includes("0003"))?.codemodIdempotent).toBe(false);
 	});
 });

@@ -4,19 +4,27 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { defaultPaths, findMigration, listMigrationDocs, parseCliOptions } from "./migrate.ts";
+import {
+	defaultPaths,
+	findMigration,
+	frontmatterValue,
+	listMigrationDocs,
+	parseCliOptions,
+	rulesDirName,
+} from "./migrate.ts";
 
 const scriptPath = path.join(import.meta.dirname, "migrate.ts");
 const codemodDirs = fs
-	.readdirSync(defaultPaths.rulesDir)
-	.filter((entry) => /^\d{4}-/.test(entry))
+	.readdirSync(defaultPaths.rulesDir, { withFileTypes: true })
+	.filter((entry) => entry.isDirectory())
+	.map((entry) => entry.name)
 	.toSorted();
 
 // Why two are excluded: a swapped footer is still a two-child footer, and a
 // migrated list that had `hideBorder` reads the same as one the codemod never
 // saw. A second run undoes 0003 and adds a separator in 0008. Both docs say to
 // run once, and the negative cases in each before.tsx pin the guards.
-const oneShotMigrations = new Set(["0003", "0008"]);
+const oneShotMigrations = new Set(["0003-dialog-footer-dom-order", "0008-tabs-separator"]);
 
 /** One `before` and `after` pair, such as `before.tsx` or `before.radix.tsx`. */
 type Fixture = { dir: string; name: string };
@@ -31,7 +39,7 @@ const fixtures: Fixture[] = codemodDirs.flatMap((dir) =>
 		.filter((entry) => /^before(\.[\w-]+)?\.tsx?$/.test(entry))
 		.map((entry) => ({ dir, name: entry.slice("before".length) })),
 );
-const idempotentFixtures = fixtures.filter(({ dir }) => !oneShotMigrations.has(dir.slice(0, 4)));
+const idempotentFixtures = fixtures.filter(({ dir }) => !oneShotMigrations.has(dir));
 
 /**
  * Collapse the whitespace and the quote style a codemod leaves behind, so the
@@ -66,7 +74,7 @@ describe("codemod fixtures", () => {
 	// guard that lets a negative case through.
 	it.each(fixtures)("$dir rewrites before$name into after$name", (fixture) => {
 		const { file, before, after } = copyFixture(fixture);
-		const result = runMigrate([fixture.dir.slice(0, 4), file]);
+		const result = runMigrate([fixture.dir, file]);
 
 		expect(result.status).toBe(0);
 		const rewritten = fs.readFileSync(file, "utf8");
@@ -79,7 +87,7 @@ describe("codemod fixtures", () => {
 	it.each(idempotentFixtures)("$dir leaves after$name unchanged on a second run", (fixture) => {
 		const { file, after } = copyFixture(fixture);
 		fs.writeFileSync(file, after);
-		const result = runMigrate([fixture.dir.slice(0, 4), file]);
+		const result = runMigrate([fixture.dir, file]);
 
 		expect(result.status).toBe(0);
 		expect(fs.readFileSync(file, "utf8")).toBe(after);
@@ -87,9 +95,9 @@ describe("codemod fixtures", () => {
 });
 
 describe("migrate command line", () => {
-	it("ignores a lone -- and reads the first bare argument as the number", () => {
+	it("ignores a lone -- and reads the first bare argument as the id", () => {
 		expect(parseCliOptions(["--", "0008", "--dry-run", "apps", "packages"])).toEqual({
-			number: "0008",
+			id: "0008",
 			dryRun: true,
 			help: false,
 			targets: ["apps", "packages"],
@@ -109,12 +117,39 @@ describe("migrate command line", () => {
 		);
 	});
 
+	// Catches: a slug lookup that needs the number prefix or the -migration suffix,
+	// and a number lookup that reads the file name and so misses a slug-named guide.
+	it("resolves a slug, with or without its number and suffix, to the same migration", () => {
+		const byNumber = findMigration("0008", defaultPaths);
+
+		for (const id of ["tabs-separator", "tabs-separator-migration", "0008-tabs-separator"]) {
+			expect(findMigration(id, defaultPaths)).toEqual(byNumber);
+		}
+		expect(findMigration("separator", defaultPaths)).toBeNull();
+	});
+
+	// Catches: a lookup that takes the first of two guides an id names, and so
+	// applies the wrong codemod.
+	it("refuses an id that two guides answer to", () => {
+		const docsDir = fs.mkdtempSync(path.join(os.tmpdir(), "mantle-migrate-docs-"));
+		const frontmatter = (number: string) => `---\ntitle: A Migration\n${number}---\n`;
+		fs.writeFileSync(
+			path.join(docsDir, "0008-tabs-separator-migration.mdx"),
+			frontmatter("number: 8\n"),
+		);
+		fs.writeFileSync(path.join(docsDir, "tabs-separator-migration-migration.mdx"), frontmatter(""));
+		const paths = { docsDir, rulesDir: defaultPaths.rulesDir };
+
+		expect(findMigration("tabs-separator-migration", paths)).toBeNull();
+		expect(findMigration("8", paths)?.name).toBe("0008-tabs-separator-migration");
+	});
+
 	it("names the doc page and exits 1 when a migration has no codemod", () => {
 		const result = runMigrate(["0001", os.tmpdir()]);
 
 		expect(result.status).toBe(1);
 		expect(result.stderr).toContain(
-			"Migration 0001 has no codemod. Read https://mantle.ngrok.com/migrations/0001-code-block-migration",
+			"Migration 0001-code-block-migration has no codemod. Read https://mantle.ngrok.com/migrations/0001-code-block-migration",
 		);
 	});
 
@@ -122,7 +157,7 @@ describe("migrate command line", () => {
 		const result = runMigrate(["9999"]);
 
 		expect(result.status).toBe(1);
-		expect(result.stderr).toContain('Unknown migration "9999"');
+		expect(result.stderr).toContain('No single migration matches "9999"');
 		expect(result.stderr).toContain("0008-tabs-separator-migration");
 	});
 
@@ -136,31 +171,42 @@ describe("migrate command line", () => {
 	});
 });
 
-describe("migration docs", () => {
-	const docSlugs = listMigrationDocs(defaultPaths.docsDir);
+// Why a fixed last number: guides after it are named by slug only, so two open
+// pull requests never pick the same number. The release numbers them.
+const lastNumberedFileName = 35;
 
-	function codemodSection(slug: string): string | undefined {
-		const source = fs.readFileSync(path.join(defaultPaths.docsDir, `${slug}.mdx`), "utf8");
-		return source.split(/^## /m).find((section) => section.startsWith("Codemod"));
+describe("migration docs", () => {
+	const docNames = listMigrationDocs(defaultPaths.docsDir);
+	const guides = docNames.map((name) => {
+		const source = fs.readFileSync(path.join(defaultPaths.docsDir, `${name}.mdx`), "utf8");
+		return {
+			name,
+			source,
+			fileNumber: name.match(/^(\d{4})-/)?.[1] ?? null,
+			number: frontmatterValue(source, "number"),
+			introducedIn: frontmatterValue(source, "introducedIn"),
+			codemodIn: frontmatterValue(source, "codemodIn"),
+		};
+	});
+
+	function codemodSection(source: string): string {
+		return source.split(/^## /m).find((section) => section.startsWith("Codemod")) ?? "";
 	}
 
 	// Catches: a migration doc without the section, and a doc that names the
-	// wrong number in its invocation.
-	it.each(docSlugs)("%s names its codemod or says why there is none", (slug) => {
-		const number = slug.slice(0, 4);
-		const section = codemodSection(slug) ?? "";
-		const hasRules = codemodDirs.some((dir) => dir.startsWith(`${number}-`));
-		const expected = hasRules ? `pnpm -w run migrate ${number}` : /manual: \S/;
+	// wrong id in its invocation.
+	it.each(guides)("$name names its codemod or says why there is none", (guide) => {
+		const hasRules = codemodDirs.includes(rulesDirName(guide.name));
+		const id = guide.fileNumber ?? rulesDirName(guide.name);
+		const expected = hasRules ? `pnpm -w run migrate ${id}` : /manual: \S/;
 
-		expect(section).toMatch(expected);
+		expect(codemodSection(guide.source)).toMatch(expected);
 	});
 
 	// Catches: a rules directory renamed away from its doc, or left behind
 	// after a doc is deleted.
 	it.each(codemodDirs)("%s has a doc page and both fixtures", (dir) => {
-		const number = dir.slice(0, 4);
-
-		expect(docSlugs.some((slug) => slug.startsWith(`${number}-`))).toBe(true);
+		expect(docNames).toContain(`${dir}-migration`);
 		expect(fs.existsSync(path.join(defaultPaths.rulesDir, dir, "before.tsx"))).toBe(true);
 		expect(fs.existsSync(path.join(defaultPaths.rulesDir, dir, "after.tsx"))).toBe(true);
 	});
@@ -169,14 +215,104 @@ describe("migration docs", () => {
 	// version the root package.json pins, and the bare `ast-grep` npm name is
 	// an unrelated package, so the consumer command must name this one.
 	it.each(codemodDirs)("%s names the tested ast-grep version in its consumer command", (dir) => {
-		const slug = docSlugs.find((candidate) => candidate.startsWith(dir.slice(0, 4)));
-		const section = slug == null ? "" : (codemodSection(slug) ?? "");
+		const guide = guides.find(({ name }) => name === `${dir}-migration`);
 
-		expect(section).toContain(
+		expect(codemodSection(guide?.source ?? "")).toContain(
 			`npx --yes --package=@ast-grep/cli@${astGrepVersion()} ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/${dir}.yml`,
 		);
 	});
+
+	const numberedGuides = guides.filter(({ fileNumber }) => fileNumber != null);
+	const slugGuides = guides.filter(({ fileNumber }) => fileNumber == null);
+
+	// Catches: a new guide that picks the next number in its file name, and a
+	// numbered file whose frontmatter names another number.
+	it.each(numberedGuides)("$name carries a number in its file name only up to 0035", (guide) => {
+		expect(Number(guide.fileNumber)).toBeLessThanOrEqual(lastNumberedFileName);
+		expect(guide.number).toBe(String(Number(guide.fileNumber)));
+		// Why: the release stamps a guide with no `introducedIn` with its own version.
+		expect(guide.introducedIn).not.toBeNull();
+	});
+
+	// Catches: a slug-named guide that takes an old unnumbered URL. That URL
+	// redirects to its numbered guide, and published changelogs link it.
+	it("keeps the slugs of guides 0001 to 0035 for their redirects", () => {
+		const legacySlugs = new Set(numberedGuides.map(({ name }) => name.slice("0000-".length)));
+
+		expect(slugGuides.filter(({ name }) => legacySlugs.has(name)).map(({ name }) => name)).toEqual(
+			[],
+		);
+	});
+
+	// Catches: a pull request that writes the number or the release version by
+	// hand. `scripts/stamp-migrations.ts` writes them in the release pull request.
+	it.each(slugGuides)("$name has a number and versions only from a release", (guide) => {
+		const mantleVersion = packageVersion("../packages/mantle/package.json");
+		const versions = [guide.introducedIn, guide.codemodIn].filter((version) => version != null);
+
+		expect(guide.number == null).toBe(guide.introducedIn == null);
+		expect(guide.codemodIn == null || guide.introducedIn != null).toBe(true);
+		expect(versions.filter((version) => !/^\d+\.\d+\.\d+$/.test(version))).toEqual([]);
+		expect(versions.filter((version) => compareVersions(version, mantleVersion) > 0)).toEqual([]);
+	});
+
+	// Catches: a hand-written `introducedIn` that is not newer than the current
+	// version. `changeset version` moves the guide's link into the CHANGELOG in
+	// the same release pull request that stamps the guide, and no other pull request does.
+	it("links each released slug-named guide in the CHANGELOG section of its release", () => {
+		const changelog = fs.readFileSync(
+			path.join(import.meta.dirname, "../packages/mantle/CHANGELOG.md"),
+			"utf8",
+		);
+		const unlinked = slugGuides.filter(({ name, introducedIn }) => {
+			if (introducedIn == null) {
+				return false;
+			}
+			const start = changelog.indexOf(`\n## ${introducedIn}\n`);
+			const end = changelog.indexOf("\n## ", start + 1);
+			const section = start === -1 ? "" : changelog.slice(start, end === -1 ? undefined : end);
+			const links = Array.from(
+				section.matchAll(/mantle\.ngrok\.com\/migrations\/([a-z0-9-]+)/g),
+				([, slug]) => slug,
+			);
+			return !links.includes(name);
+		});
+
+		expect(unlinked.map(({ name }) => name)).toEqual([]);
+	});
+
+	it("numbers the guides from 1 with no gaps or repeats", () => {
+		const numbers = guides.flatMap(({ number }) => (number == null ? [] : [Number(number)]));
+
+		expect(numbers.toSorted((a, b) => a - b)).toEqual(numbers.map((_, index) => index + 1));
+	});
 });
+
+function compareVersions(left: string, right: string): number {
+	const [a, b] = [left, right].map((version) => version.split(".").map(Number));
+	for (let index = 0; index < 3; index++) {
+		const difference = (a?.[index] ?? 0) - (b?.[index] ?? 0);
+		if (difference !== 0) {
+			return difference;
+		}
+	}
+	return 0;
+}
+
+function packageVersion(relativePath: string): string {
+	const packageJson: unknown = JSON.parse(
+		fs.readFileSync(path.join(import.meta.dirname, relativePath), "utf8"),
+	);
+	if (
+		typeof packageJson !== "object" ||
+		packageJson == null ||
+		!("version" in packageJson) ||
+		typeof packageJson.version !== "string"
+	) {
+		throw new Error(`${relativePath} has no version`);
+	}
+	return packageJson.version;
+}
 
 function astGrepVersion(): string {
 	const packageJson: unknown = JSON.parse(

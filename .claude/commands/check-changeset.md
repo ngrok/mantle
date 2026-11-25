@@ -55,8 +55,8 @@ short description
 
 When a candidate changeset bumps `@ngrok/mantle` `minor` and its body describes a removed or renamed export, a renamed or newly required prop, a dropped peer, or a behavior change that breaks existing use:
 
-- The diff must add `apps/www/app/docs/migrations/<NNNN>-<slug>-migration.mdx` and, unless that guide says `Codemod: manual:`, `packages/mantle/migrations/<NNNN>-<slug>/rules.yml` with `before.tsx` and `after.tsx`.
-- The changeset body must link `https://mantle.ngrok.com/migrations/<NNNN>-<slug>-migration`.
+- The diff must add `apps/www/app/docs/migrations/<slug>-migration.mdx` and, unless that guide says `Codemod: manual:`, `packages/mantle/migrations/<slug>/rules.yml` with `before.tsx` and `after.tsx`. A new guide has no number in its file name: the release numbers it.
+- The changeset body must link `https://mantle.ngrok.com/migrations/<slug>-migration`.
 
 If either is missing: **FAIL**, and point at `/scaffold-migration` and the `write-migration` skill. A `minor` for a new component or a preview promotion needs no guide.
 

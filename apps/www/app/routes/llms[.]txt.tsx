@@ -1,6 +1,7 @@
 import {
 	componentCategories,
 	componentCategorySlugs,
+	migrations,
 	welcomeRoutes,
 } from "~/components/navigation-data";
 import { canonicalHref } from "~/utilities/canonical-origin";
@@ -24,6 +25,15 @@ type Section = {
 const welcomeSlugs = new Set(
 	Object.values(welcomeRoutes).map((route) => (route === "/" ? "index" : route.slice(1))),
 );
+
+// Why the number: it is the order the guides shipped, and the agent applies them in that
+// order. A guide that has not shipped comes last.
+const migrationSteps = new Map(
+	migrations.map((migration) => [migration.route.slice(1), migration.number]),
+);
+function migrationStep(slug: string): number {
+	return migrationSteps.get(slug) ?? Number.MAX_SAFE_INTEGER;
+}
 
 const SECTION_ORDER: readonly Section[] = [
 	{
@@ -103,9 +113,10 @@ async function buildBody(): Promise<string> {
 		...section,
 		entries: entries
 			.filter((entry) => section.match(entry.slug))
-			// Why slug order: a migration slug starts with its step number.
 			.toSorted((a, b) =>
-				section.id === "migrations" ? a.slug.localeCompare(b.slug) : a.title.localeCompare(b.title),
+				section.id === "migrations"
+					? migrationStep(a.slug) - migrationStep(b.slug) || a.slug.localeCompare(b.slug)
+					: a.title.localeCompare(b.title),
 			),
 	})).filter((section) => section.entries.length > 0);
 

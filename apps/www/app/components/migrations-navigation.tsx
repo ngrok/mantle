@@ -11,7 +11,7 @@ export function MigrationsNavigation({ className, style }: WithStyleProps) {
 			<p className="mb-2 text-xs font-medium uppercase tracking-wider font-mono">Migrations</p>
 			<ul className="mt-2 flex flex-col">
 				{migrationsNewestFirst.map((migration) => (
-					<li key={migration.number}>
+					<li key={migration.route}>
 						<NavLink to={migration.route} prefetch="intent" className="flex items-baseline gap-2">
 							<Badge
 								appearance="muted"

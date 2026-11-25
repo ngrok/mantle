@@ -21,6 +21,7 @@ import { mantleChangelogMdx } from "./vite-plugins/mantle-changelog-mdx.ts";
 import { exampleHeights } from "./vite-plugins/example-heights.ts";
 import { mdxDocComponentImports } from "./vite-plugins/mdx-doc-component-imports.ts";
 import { mdxGeneratedCode } from "./vite-plugins/mdx-generated-code.ts";
+import { migrationGuides } from "./vite-plugins/migration-guides.ts";
 import { opaqueOriginModuleCors } from "./vite-plugins/opaque-origin-module-cors.ts";
 import { rawMdxDocs } from "./vite-plugins/raw-mdx-docs.ts";
 import { rehypeMdxDocHandle } from "./vite-plugins/rehype-mdx-doc-handle.ts";
@@ -71,6 +72,7 @@ export default defineConfig(({ command }) => ({
 		...codeBlockPlugins.vitePlugins,
 		mdxGeneratedCode(path.resolve(import.meta.dirname, "app/docs")),
 		rawMdxDocs(path.resolve(import.meta.dirname, "app/docs")),
+		migrationGuides(path.resolve(import.meta.dirname, "app/docs/migrations")),
 		mdxDocComponentImports(path.resolve(import.meta.dirname, "app/docs")),
 		mantleChangelogMdx(path.resolve(import.meta.dirname, "../../packages/mantle/CHANGELOG.md")),
 		devtoolsJson(),
