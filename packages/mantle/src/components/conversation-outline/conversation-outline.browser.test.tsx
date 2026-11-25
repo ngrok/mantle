@@ -41,8 +41,8 @@ function Chat({ turns }: { turns: Turn[] }) {
 			</ConversationOutline.Root>
 			<Conversation.Root>
 				{/* The tests load no Tailwind, so the viewport scrolls through inline styles. */}
-				<Conversation.Viewport aria-label="Conversation" style={{ height: 200, overflowY: "auto" }}>
-					<Conversation.Content>
+				<Conversation.Viewport style={{ height: 200, overflowY: "auto" }}>
+					<Conversation.Content aria-label="Conversation">
 						{turns.map((turn) => (
 							<Message.Root
 								key={turn.id}
@@ -69,7 +69,13 @@ function nextFrame(): Promise<void> {
 }
 
 function viewport(): HTMLElement {
-	return screen.getByRole("region", { name: "Conversation" });
+	const element = screen
+		.getByRole("feed", { name: "Conversation" })
+		.closest<HTMLElement>('[data-slot~="conversation-viewport"]');
+	if (element == null) {
+		throw new Error("Conversation.Viewport did not render.");
+	}
+	return element;
 }
 
 /** The message's top, from the viewport's top, in pixels. */

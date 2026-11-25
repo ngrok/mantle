@@ -33,8 +33,11 @@ import * as ConversationParts from "./conversation-parts.js";
  * @example
  * ```tsx
  * <Conversation.Root streaming={isAnswering} className="flex-1">
- *   <Conversation.Viewport aria-label="Conversation with the assistant">
- *     <Conversation.Content className="mx-auto max-w-3xl p-4">
+ *   <Conversation.Viewport>
+ *     <Conversation.Content
+ *       aria-label="Conversation with the assistant"
+ *       className="mx-auto max-w-3xl p-4"
+ *     >
  *       {messages.map((message) => (
  *         <Message.Root key={message.id} from={message.role}>
  *           <Message.Content>{message.text}</Message.Content>

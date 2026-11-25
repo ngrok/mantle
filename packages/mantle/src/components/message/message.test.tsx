@@ -4,19 +4,21 @@ import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as Message from "./message-parts.js";
 
 describe("Message", () => {
-	test("renders list items that say who wrote each message", () => {
+	test("renders articles that say who wrote each message", () => {
 		render(
-			<ol aria-label="Messages">
+			<div role="feed" aria-label="Messages">
 				<Message.Root from="user">
 					<Message.Content>{"What's live?"}</Message.Content>
 				</Message.Root>
 				<Message.Root from="assistant">
 					<Message.Content>Three endpoints.</Message.Content>
 				</Message.Root>
-			</ol>,
+			</div>,
 		);
 
-		const [question, answer] = screen.getAllByRole("listitem");
+		// Why the names: the feed pattern names each article, here by its speaker label.
+		const question = screen.getByRole("article", { name: "You said:" });
+		const answer = screen.getByRole("article", { name: "The assistant said:" });
 		expect(question).toHaveAttribute("data-from", "user");
 		expect(question).toHaveTextContent("You said: What's live?");
 		expect(answer).toHaveAttribute("data-from", "assistant");
@@ -24,18 +26,18 @@ describe("Message", () => {
 	});
 
 	test("each part forwards className, ref, and data attributes, and joins data-slot", () => {
-		const ref = vi.fn<(node: HTMLLIElement | null) => void>();
+		const ref = vi.fn<(node: HTMLElement | null) => void>();
 		const { container } = render(
-			<ol>
+			<div role="feed">
 				<Message.Root ref={ref} from="assistant" className="root-class" data-slot="outer">
 					<Message.Content className="content-class">Done.</Message.Content>
 					<Message.Pending className="pending-class">Thinking…</Message.Pending>
 					<Message.Actions className="actions-class" data-testid="actions" />
 				</Message.Root>
-			</ol>,
+			</div>,
 		);
 
-		const item = screen.getByRole("listitem");
+		const item = screen.getByRole("article");
 		expect(ref).toHaveBeenLastCalledWith(item);
 		expect(item).toHaveClass("root-class");
 		expect(item).toHaveAttribute("data-slot", "outer message");
@@ -45,18 +47,18 @@ describe("Message", () => {
 	});
 
 	test("Root with asChild renders the child and merges props", () => {
-		const ref = vi.fn<(node: HTMLLIElement | null) => void>();
+		const ref = vi.fn<(node: HTMLElement | null) => void>();
 		render(
-			<ol>
+			<div role="feed">
 				<Message.Root asChild ref={ref} from="user" className="root-class">
-					<li className="child-class">
+					<article className="child-class">
 						<Message.Content>Hi</Message.Content>
-					</li>
+					</article>
 				</Message.Root>
-			</ol>,
+			</div>,
 		);
 
-		const item = screen.getByRole("listitem");
+		const item = screen.getByRole("article");
 		expect(item).toHaveClass("root-class", "child-class");
 		expect(item).toHaveAttribute("data-slot", "message");
 		expect(item).toHaveAttribute("data-from", "user");
@@ -65,28 +67,28 @@ describe("Message", () => {
 
 	test("Content and Pending survive a translated page when their text changes", () => {
 		const { container, rerender } = render(
-			<ol>
+			<div role="feed">
 				<Message.Root from="assistant">
 					<Message.Content>Checking endpoints</Message.Content>
 					<Message.Pending>Thinking…</Message.Pending>
 				</Message.Root>
-			</ol>,
+			</div>,
 		);
 		translateTextNodes(container);
 
 		rerender(
-			<ol>
+			<div role="feed">
 				<Message.Root from="assistant">
 					<Message.Content>
 						<strong>Three</strong> endpoints
 					</Message.Content>
 					<Message.Pending>Calling a tool…</Message.Pending>
 				</Message.Root>
-			</ol>,
+			</div>,
 		);
 
-		expect(screen.getByRole("listitem")).toHaveTextContent("Three endpoints");
-		expect(screen.getByRole("listitem")).toHaveTextContent("Calling a tool…");
+		expect(screen.getByRole("article")).toHaveTextContent("Three endpoints");
+		expect(screen.getByRole("article")).toHaveTextContent("Calling a tool…");
 	});
 
 	test("a part outside Root throws", () => {

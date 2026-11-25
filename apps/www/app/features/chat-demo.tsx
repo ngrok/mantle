@@ -192,8 +192,11 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 							</Empty.Actions>
 						</Empty.Root>
 					) : (
-						<Conversation.Viewport aria-label="Conversation with the assistant">
-							<Conversation.Content className="mx-auto w-full max-w-3xl px-[calc(var(--gutter)+(--spacing(2)))] py-6">
+						<Conversation.Viewport>
+							<Conversation.Content
+								aria-label="Conversation with the assistant"
+								className="mx-auto w-full max-w-3xl px-[calc(var(--gutter)+(--spacing(2)))] py-6"
+							>
 								{chat.messages.map((message) =>
 									message.from === "user" ? (
 										<Message.Root

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps } from "react";
-import { createContext, use } from "react";
+import { createContext, use, useId, useMemo } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -25,18 +25,24 @@ const contentClassNames = {
 	assistant: "text-body w-full min-w-0 leading-relaxed",
 } as const satisfies Record<MessageFrom, string>;
 
-const MessageContext = createContext<MessageFrom | null>(null);
+type MessageContextValue = {
+	from: MessageFrom;
+	/** The `id` of the speaker label, which names the article. */
+	labelId: string;
+};
 
-function useMessageFrom(part: string): MessageFrom {
-	const from = use(MessageContext);
-	invariant(from != null, `Message.${part} must be rendered inside Message.Root.`);
-	return from;
+const MessageContext = createContext<MessageContextValue | null>(null);
+
+function useMessageContext(part: string): MessageContextValue {
+	const context = use(MessageContext);
+	invariant(context != null, `Message.${part} must be rendered inside Message.Root.`);
+	return context;
 }
 
 /**
  * The props for `Message.Root`.
  */
-type MessageRootProps = ComponentProps<"li"> &
+type MessageRootProps = ComponentProps<"article"> &
 	WithAsChild &
 	WithDataSlot & {
 		/**
@@ -48,8 +54,12 @@ type MessageRootProps = ComponentProps<"li"> &
 	};
 
 /**
- * One message in a `Conversation.Content` list: an `<li>` that lays out the
- * message's content, its actions, and any pending marker.
+ * One message in a `Conversation.Content` feed: an `<article>` that lays out
+ * the message's content, its actions, and any pending marker.
+ *
+ * It takes keyboard focus, and the focus ring goes around it.
+ * `Conversation.Viewport` keeps one message in the tab order and sets
+ * `tabIndex`, `aria-posinset`, and `aria-setsize`, so do not set them.
  *
  * A new person's message makes `Conversation.Viewport` follow the end again,
  * because the answer lands there.
@@ -90,14 +100,24 @@ function Root({
 	from,
 	...props
 }: MessageRootProps) {
-	const Component = asChild ? Slot : "li";
+	const Component = asChild ? Slot : "article";
+	const labelId = useId();
+	const context = useMemo(() => ({ from, labelId }), [from, labelId]);
 
 	return (
-		<MessageContext value={from}>
+		<MessageContext value={context}>
 			<Component
+				// Why: the feed pattern names each article; the speaker label in `Message.Content` says who wrote it.
+				// Why `aria-label` wins: a caller's own name for the message beats the speaker label.
+				aria-labelledby={props["aria-label"] == null ? labelId : undefined}
 				data-slot={joinDataSlot(dataSlot, "message")}
 				data-from={from}
-				className={cx("flex min-w-0 flex-col gap-2", rootClassNames[from], className)}
+				className={cx(
+					// Why the scroll margin: a message that Up or Down scrolls to the top keeps room for its ring.
+					"flex min-w-0 scroll-my-2 flex-col gap-2 rounded-lg focus-visible:focus-ring",
+					rootClassNames[from],
+					className,
+				)}
 				{...props}
 			/>
 		</MessageContext>
@@ -152,7 +172,7 @@ const speakerLabels = {
  */
 // Why no asChild: the part renders its speaker label beside the children, and `Slot` takes one child.
 function Content({ "data-slot": dataSlot, children, className, ...props }: MessageContentProps) {
-	const from = useMessageFrom("Content");
+	const { from, labelId } = useMessageContext("Content");
 
 	return (
 		<div
@@ -160,7 +180,7 @@ function Content({ "data-slot": dataSlot, children, className, ...props }: Messa
 			className={cx("text-sm wrap-break-word", contentClassNames[from], className)}
 			{...props}
 		>
-			<VisuallyHidden>{speakerLabels[from]}</VisuallyHidden>
+			<VisuallyHidden id={labelId}>{speakerLabels[from]}</VisuallyHidden>
 			<div data-slot="message-content-label" className="contents">
 				{children}
 			</div>

@@ -16,8 +16,8 @@ test("in plain jsdom, an item press closes the outline and focuses its message",
 				</ConversationOutline.Content>
 			</ConversationOutline.Root>
 			<Conversation.Root>
-				<Conversation.Viewport aria-label="Conversation">
-					<Conversation.Content>
+				<Conversation.Viewport>
+					<Conversation.Content aria-label="Conversation">
 						<Message.Root id="q1" from="user">
 							<Message.Content>What is live?</Message.Content>
 						</Message.Root>

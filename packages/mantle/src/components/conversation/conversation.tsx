@@ -2,7 +2,7 @@
 
 import { ArrowDownIcon } from "@phosphor-icons/react/ArrowDown";
 import type { ComponentProps, RefObject } from "react";
-import { createContext, use, useCallback, useLayoutEffect, useRef, useState } from "react";
+import { createContext, use, useCallback, useId, useLayoutEffect, useRef, useState } from "react";
 import invariant from "tiny-invariant";
 import { hasScrollAnchor } from "../../hooks/use-scroll-anchor.js";
 import { useScrollBehavior } from "../../hooks/use-scroll-behavior.js";
@@ -11,9 +11,11 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { findTabbableNeighbors } from "../alert/tabbable-neighbors.js";
 import { IconButton } from "../button/icon-button.js";
 import { LiveRegion } from "../live-region/live-region.js";
 import { Slot } from "../slot/index.js";
+import { VisuallyHidden } from "../visually-hidden/visually-hidden.js";
 
 /** How close to the end, in pixels, a scroll position counts as the end. */
 const END_THRESHOLD = 8;
@@ -24,11 +26,16 @@ const SCROLLED_UP_ATTRIBUTE = "data-scrolled-up";
 /** A new person's message re-pins the view to the end: they sent it, and the answer lands there. */
 const USER_MESSAGE_SELECTOR = '[data-from="user"]';
 
+/** Each `Message.Root`: one article of the feed. */
+const MESSAGE_SELECTOR = '[data-slot~="message"]';
+
 type ConversationContextValue = {
 	/** Scrolls the viewport to its end and follows it again. Set while a viewport is mounted. */
 	scrollToEndRef: RefObject<((behavior: ScrollBehavior) => void) | null>;
 	viewportRef: RefObject<HTMLDivElement | null>;
 	scrollButtonRef: RefObject<HTMLButtonElement | null>;
+	/** The `id` of the keyboard hint that describes the feed. */
+	hintId: string;
 };
 
 const ConversationContext = createContext<ConversationContextValue | null>(null);
@@ -52,6 +59,12 @@ type ConversationRootProps = ComponentProps<"div"> &
 		 * @default false
 		 */
 		streaming?: boolean;
+		/**
+		 * The visually hidden hint that describes the feed. Set it to translate the hint.
+		 *
+		 * @default "Use the up and down arrow keys to move between messages."
+		 */
+		keyboardHint?: string;
 	};
 
 /**
@@ -64,8 +77,9 @@ type ConversationRootProps = ComponentProps<"div"> &
  * when it ends. A live region that read each streamed word would interrupt
  * the reader.
  *
- * It draws the focus ring while `Conversation.Viewport` has keyboard focus.
- * The ring sits on Root, so the viewport's fade does not cover it.
+ * It also holds the feed's visually hidden keyboard hint, "Use the up and
+ * down arrow keys to move between messages.", which `Conversation.Content`
+ * names with `aria-describedby`.
  *
  * The children sit in a `display: contents` wrapper, `data-slot="conversation-label"`,
  * so a translated loading message can change to a transcript.
@@ -80,8 +94,11 @@ type ConversationRootProps = ComponentProps<"div"> &
  * @example
  * ```tsx
  * <Conversation.Root streaming={isAnswering} className="flex-1">
- *   <Conversation.Viewport aria-label="Conversation with the assistant">
- *     <Conversation.Content className="mx-auto max-w-3xl p-4">
+ *   <Conversation.Viewport>
+ *     <Conversation.Content
+ *       aria-label="Conversation with the assistant"
+ *       className="mx-auto max-w-3xl p-4"
+ *     >
  *       {messages.map((message) => (
  *         <Message.Root key={message.id} from={message.role}>
  *           <Message.Content>{message.text}</Message.Content>
@@ -98,6 +115,7 @@ function Root({
 	"data-slot": dataSlot,
 	children,
 	className,
+	keyboardHint = "Use the up and down arrow keys to move between messages.",
 	ref,
 	streaming = false,
 	...props
@@ -105,10 +123,12 @@ function Root({
 	const scrollToEndRef = useRef<((behavior: ScrollBehavior) => void) | null>(null);
 	const viewportRef = useRef<HTMLDivElement>(null);
 	const scrollButtonRef = useRef<HTMLButtonElement>(null);
+	const hintId = useId();
 	const [context] = useState<ConversationContextValue>(() => ({
 		scrollToEndRef,
 		viewportRef,
 		scrollButtonRef,
+		hintId,
 	}));
 	const announcement = useStreamAnnouncement(streaming);
 
@@ -118,19 +138,16 @@ function Root({
 				ref={ref}
 				data-slot={joinDataSlot(dataSlot, "conversation")}
 				data-streaming={streaming ? "" : undefined}
-				className={cx(
-					"group/conversation relative flex min-h-0 flex-col",
-					// Why on Root: the viewport's fade mask would fade a ring drawn on the viewport.
-					// Inset, so an ancestor card does not clip the ring.
-					"has-[[data-slot~=conversation-viewport]:focus-visible]:focus-ring has-[[data-slot~=conversation-viewport]:focus-visible]:ring-inset",
-					className,
-				)}
+				className={cx("group/conversation relative flex min-h-0 flex-col", className)}
 				{...props}
 			>
 				<div data-slot="conversation-label" className="contents">
 					{children}
 				</div>
 				<LiveRegion data-slot="conversation-status">{announcement}</LiveRegion>
+				<VisuallyHidden id={hintId} data-slot="conversation-hint">
+					{keyboardHint}
+				</VisuallyHidden>
 			</div>
 		</ConversationContext>
 	);
@@ -169,10 +186,9 @@ type ConversationViewportProps = ComponentProps<"div"> & WithAsChild & WithDataS
  * The region reserves the scrollbar's space on both sides, so centered
  * content lines up with a centered composer.
  *
- * The region is focusable, so a keyboard can scroll a transcript with no
- * focusable content. Its keyboard focus ring sits on `Conversation.Root`,
- * because the fade mask would fade a ring on the viewport. Name it with
- * `aria-label`.
+ * The viewport takes no focus itself: one message at a time does, as in
+ * Claude's chat. Focus in a message scrolls the viewport by keyboard, and
+ * Up and Down move between messages. See `Conversation.Content`.
  *
  * On mount it starts at the end, unless something already moved it, such as
  * `useScrollAnchor` restoring the reader's place.
@@ -182,8 +198,11 @@ type ConversationViewportProps = ComponentProps<"div"> & WithAsChild & WithDataS
  * @example
  * ```tsx
  * <Conversation.Root streaming={isAnswering} className="flex-1">
- *   <Conversation.Viewport aria-label="Conversation with the assistant">
- *     <Conversation.Content className="mx-auto max-w-3xl p-4">
+ *   <Conversation.Viewport>
+ *     <Conversation.Content
+ *       aria-label="Conversation with the assistant"
+ *       className="mx-auto max-w-3xl p-4"
+ *     >
  *       {messages.map((message) => (
  *         <Message.Root key={message.id} from={message.role}>
  *           <Message.Content>{message.text}</Message.Content>
@@ -220,6 +239,17 @@ function Viewport({
 	const composedRef = useComposedRefs(viewportRef, attachViewport, ref);
 
 	// Why the element dependency: a consumer ref can change without replacing the viewport or its follow state.
+	// Why apart from following: the tab stop needs no layout, so a consumer's jsdom test can Tab to a message.
+	useLayoutEffect(() => {
+		if (element == null) {
+			return;
+		}
+		return rovingMessages(element, {
+			release: () => releaseFollow(element),
+			resume: () => follows.get(element)?.scrollToEnd("instant"),
+		});
+	}, [element]);
+
 	useLayoutEffect(() => {
 		// Why both: jsdom has neither, and a test setup often stubs only ResizeObserver; with no layout there is no end to follow.
 		if (
@@ -235,14 +265,15 @@ function Viewport({
 			const button = scrollButtonRef.current;
 			if (button != null) {
 				if (!scrolledUp && button.contains(document.activeElement)) {
-					element.focus({ preventScroll: true });
+					// Why the viewport: an empty transcript has no message to take focus.
+					(newestMessage(element) ?? element).focus({ preventScroll: true });
 				}
 				button.inert = !scrolledUp;
 			}
 		};
 		const stop = followEnd(element, { onScrolledUpChange });
-		scrollToEndRef.current = stop.scrollToEnd;
 		follows.set(element, stop);
+		scrollToEndRef.current = stop.scrollToEnd;
 		return () => {
 			follows.delete(element);
 			stop.disconnect();
@@ -255,16 +286,12 @@ function Viewport({
 	return (
 		<Component
 			ref={composedRef}
-			role="region"
-			// Why: Safari does not focus a scroll region with no focusable content, so a keyboard could not scroll it.
-			// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Why: a scroll region must take focus to scroll by keyboard.
-			tabIndex={0}
+			// Why: Firefox puts a scroller in the tab order, and a message is the transcript's one tab stop.
+			tabIndex={-1}
 			data-slot={joinDataSlot(dataSlot, "conversation-viewport")}
 			className={cx(
 				// Why both gutters: centered content lines up with a centered composer below the viewport.
-				// Why no ring here: Root draws it, because the fade mask would fade a ring on the viewport.
-				// Why the negative offset: forced colors paint the hidden outline, and the fade mask clips one outside the box.
-				"scrollbar scrollbar-gutter-both scroll-fade-b min-h-0 flex-1 overflow-y-auto focus-visible:-outline-offset-4 focus-visible:outline-hidden",
+				"scrollbar scrollbar-gutter-both scroll-fade-b min-h-0 flex-1 overflow-y-auto",
 				className,
 			)}
 			{...props}
@@ -483,6 +510,23 @@ function isEditable(target: EventTarget | null): boolean {
 	);
 }
 
+/** Whether `target` sits in a scroll container below `viewport`, such as a code pane, which takes Control+End. */
+function insideScroller(target: Element, viewport: HTMLElement): boolean {
+	for (
+		let node: Element | null = target;
+		node != null && node !== viewport;
+		node = node.parentElement
+	) {
+		if (node.scrollHeight > node.clientHeight) {
+			const { overflowY } = getComputedStyle(node);
+			if (overflowY === "auto" || overflowY === "scroll") {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 /** Whether an element between `target` and `viewport` can scroll up, so it takes an upward wheel. */
 function nestedScrollerTakes(target: EventTarget | null, viewport: HTMLElement): boolean {
 	for (
@@ -517,22 +561,312 @@ function addsUserMessage(record: MutationRecord): boolean {
 	return false;
 }
 
+/** The newest message in `viewport`, the one that takes focus when the view returns to the end. */
+function newestMessage(viewport: HTMLElement | null): HTMLElement | null {
+	const messages = viewport?.querySelectorAll<HTMLElement>(MESSAGE_SELECTOR);
+	return messages?.[messages.length - 1] ?? null;
+}
+
+/** Whether a mutation adds or removes a message, or an element that holds one. */
+function changesMessages(record: MutationRecord): boolean {
+	for (const node of [...record.addedNodes, ...record.removedNodes]) {
+		if (
+			node instanceof Element &&
+			(node.matches(MESSAGE_SELECTOR) || node.querySelector(MESSAGE_SELECTOR))
+		) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Scrolls `message` to the top of `viewport`, less its `scroll-margin-top`,
+ * unless it and its scroll margins are already in full view. The margins
+ * leave room for the focus ring. Release following first for an earlier
+ * message, so a streamed answer cannot pull the view back down.
+ */
+function scrollToMessage(viewport: HTMLElement, message: HTMLElement) {
+	const view = viewport.getBoundingClientRect();
+	const box = message.getBoundingClientRect();
+	const style = getComputedStyle(message);
+	const marginTop = Number.parseFloat(style.scrollMarginTop) || 0;
+	const marginBottom = Number.parseFloat(style.scrollMarginBottom) || 0;
+	if (box.top - marginTop >= view.top && box.bottom + marginBottom <= view.bottom) {
+		return;
+	}
+	// Why `instant`: a held arrow key repeats faster than a smooth scroll ends.
+	viewport.scrollTo?.({
+		top: viewport.scrollTop + box.top - view.top - marginTop,
+		behavior: "instant",
+	});
+}
+
+/**
+ * Makes the messages in `viewport` an ARIA feed with one tab stop, as Claude's
+ * chat does.
+ *
+ * - Exactly one message has `tabIndex` 0: the one the reader last focused,
+ *   or the newest. Focus on the newest, or a new person's message, makes the
+ *   tab stop follow the newest again.
+ * - Each message has `aria-posinset` and `aria-setsize`.
+ * - Up and Down on a focused message move focus to the previous or next
+ *   message. At the first or newest message, the key scrolls as usual.
+ * - Control+End and Control+Home move focus to the nearest tabbable element
+ *   after or before the conversation, such as the composer.
+ * - A focused message that leaves the DOM hands focus to the new tab stop.
+ *
+ * Why apart from `followEnd`: it acts only when a message is added, removed,
+ * or focused, never on each streamed token.
+ */
+function rovingMessages(
+	viewport: HTMLElement,
+	{ release, resume }: { release: () => void; resume: () => void },
+): () => void {
+	const document = viewport.ownerDocument;
+	/** The message the reader focused, while it is not the newest. */
+	let pinned: HTMLElement | null = null;
+	/** The message that holds focus, or holds the focused element. */
+	let focused: HTMLElement | null = null;
+	/** The element that holds focus in the viewport, a message or a link or button in one. */
+	let focusTarget: Element | null = null;
+	const messages = () => Array.from(viewport.querySelectorAll<HTMLElement>(MESSAGE_SELECTOR));
+
+	const update = () => {
+		const list = messages();
+		if (pinned != null && !pinned.isConnected) {
+			pinned = null;
+		}
+		const stop = pinned ?? list.at(-1);
+		const size = String(list.length);
+		for (const [index, message] of list.entries()) {
+			setAttribute(message, "aria-setsize", size);
+			setAttribute(message, "aria-posinset", String(index + 1));
+			// Why the attribute: an article with no `tabindex` already reads `tabIndex` -1, yet takes no focus.
+			setAttribute(message, "tabindex", message === stop ? "0" : "-1");
+		}
+		restoreFocus(stop);
+	};
+
+	/** Hands lost focus to its message, or to the tab stop when the message left too. */
+	const restoreFocus = (stop: HTMLElement | undefined) => {
+		if (focusTarget == null || focusTarget.isConnected) {
+			return;
+		}
+		const message = focused?.isConnected ? focused : stop;
+		focusTarget = null;
+		focused = null;
+		const active = document.activeElement;
+		if (active != null && active !== document.body) {
+			return;
+		}
+		if (message == null) {
+			// Why the viewport: an empty transcript has no message to take focus.
+			viewport.focus({ preventScroll: true });
+			return;
+		}
+		message.focus({ preventScroll: true });
+		const view = viewport.getBoundingClientRect();
+		const box = message.getBoundingClientRect();
+		// Why only when out of view: the newest message at the end must stay where following keeps it.
+		if (box.bottom <= view.top || box.top >= view.bottom) {
+			if (message !== newestMessage(viewport)) {
+				release();
+			}
+			scrollToMessage(viewport, message);
+		}
+	};
+
+	const mutations = new MutationObserver((records) => {
+		if (records.some(addsUserMessage)) {
+			pinned = null;
+			// Why: lost focus goes to the new tab stop, which follows the end, not to an earlier answer.
+			focused = null;
+		}
+		if (records.some(changesMessages)) {
+			update();
+		} else if (focusTarget != null && !focusTarget.isConnected) {
+			// Why: a removed link or button in a message that stays must hand focus to that message.
+			restoreFocus(pinned ?? newestMessage(viewport) ?? undefined);
+		}
+	});
+	const track = (target: EventTarget | null) => {
+		if (!(target instanceof Element)) {
+			return;
+		}
+		const message = target.closest<HTMLElement>(MESSAGE_SELECTOR);
+		if (message == null || !viewport.contains(message)) {
+			// Why: focus on a control outside the messages must not let an old message pull focus back.
+			if (viewport.contains(target)) {
+				focusTarget = null;
+				focused = null;
+			}
+			return;
+		}
+		focusTarget = target;
+		focused = message;
+		pinned = message === newestMessage(viewport) ? null : message;
+		update();
+	};
+	const onFocusIn = (event: FocusEvent) => {
+		track(event.target);
+	};
+	const onFocusOut = (event: FocusEvent) => {
+		const { relatedTarget } = event;
+		if (relatedTarget instanceof Node && viewport.contains(relatedTarget)) {
+			return;
+		}
+		// Why a microtask: Chromium fires focusout on a removed element before it leaves the DOM.
+		// A removed message's focus must be restored; a click outside must not pull focus back.
+		const blurred = event.target;
+		queueMicrotask(() => {
+			// Why the match: a restore can move focus before this runs, and that focus must stay tracked.
+			// Why the active check: React refocuses a keyed message it moves, and that focus stays tracked.
+			if (
+				blurred instanceof Node &&
+				focusTarget === blurred &&
+				blurred.isConnected &&
+				document.activeElement !== blurred
+			) {
+				focusTarget = null;
+				focused = null;
+			}
+		});
+	};
+	// Why on the document: it runs after React's handlers, so their preventDefault is visible.
+	const onKeyDown = (event: KeyboardEvent) => {
+		// Why the composed path: a document listener sees a shadow host, not the element in its shadow tree.
+		const path = event.composedPath();
+		const target = path[0];
+		if (
+			event.defaultPrevented ||
+			event.altKey ||
+			event.metaKey ||
+			event.shiftKey ||
+			!(target instanceof HTMLElement) ||
+			!path.includes(viewport)
+		) {
+			return;
+		}
+		if (event.ctrlKey) {
+			// Why the scroller skip: a focused code pane takes Control+End to reach its own end.
+			if (
+				(event.key === "End" || event.key === "Home") &&
+				!isEditable(target) &&
+				!insideScroller(target, viewport)
+			) {
+				const conversation = viewport.closest('[data-slot~="conversation"]') ?? viewport;
+				const after = event.key === "End";
+				// The neighbors come nearest first: those after, then those before.
+				const neighbor = findTabbableNeighbors(conversation).find(
+					(element) =>
+						((conversation.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING) !==
+							0) ===
+						after,
+				);
+				if (neighbor != null) {
+					event.preventDefault();
+					neighbor.focus();
+				}
+			}
+			return;
+		}
+		if (
+			(event.key === "ArrowDown" || event.key === "ArrowUp") &&
+			target.matches(MESSAGE_SELECTOR) &&
+			!isEditable(target)
+		) {
+			// Why the filter: a hidden message cannot take focus, so the keys skip it. jsdom has no `checkVisibility`.
+			const list = messages().filter(
+				(message) =>
+					message.closest("[inert]") == null &&
+					(typeof message.checkVisibility !== "function" ||
+						message.checkVisibility({ visibilityProperty: true })),
+			);
+			const next = list[list.indexOf(target) + (event.key === "ArrowDown" ? 1 : -1)];
+			if (next == null) {
+				return;
+			}
+			event.preventDefault();
+			if (next === list.at(-1)) {
+				scrollToMessage(viewport, next);
+				// Why: back at the end, the newest message follows the stream again.
+				if (viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= END_THRESHOLD) {
+					resume();
+				}
+			} else {
+				// Why: a streamed update would otherwise scroll an earlier message out from under focus.
+				release();
+				// Why the instant scroll: it stops a smooth scroll that the scroll button started.
+				viewport.scrollTo?.({ top: viewport.scrollTop, behavior: "instant" });
+				scrollToMessage(viewport, next);
+			}
+			next.focus({ preventScroll: true });
+		}
+	};
+
+	mutations.observe(viewport, { childList: true, subtree: true });
+	viewport.addEventListener("focusin", onFocusIn);
+	viewport.addEventListener("focusout", onFocusOut);
+	document.addEventListener("keydown", onKeyDown);
+	// Why: a child can hold focus before this runs, such as one with `autoFocus`.
+	update();
+	if (viewport.contains(document.activeElement)) {
+		track(document.activeElement);
+	}
+
+	return () => {
+		mutations.disconnect();
+		viewport.removeEventListener("focusin", onFocusIn);
+		viewport.removeEventListener("focusout", onFocusOut);
+		document.removeEventListener("keydown", onKeyDown);
+	};
+}
+
+/** Sets an attribute only when its value changes, so a mutation observer sees no write that changes nothing. */
+function setAttribute(element: Element, name: string, value: string) {
+	if (element.getAttribute(name) !== value) {
+		element.setAttribute(name, value);
+	}
+}
+
 /**
  * The props for `Conversation.Content`.
  */
-type ConversationContentProps = ComponentProps<"ol"> & WithAsChild & WithDataSlot;
+type ConversationContentProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
- * The ordered list of messages. Each child is a `Message.Root`, which renders
- * an `<li>`. Set the measure and padding here, such as `mx-auto max-w-3xl p-4`.
+ * The messages, as an ARIA feed: `role="feed"`, with each `Message.Root` an
+ * `<article>`. Name it with `aria-label`. Set the measure and padding here,
+ * such as `mx-auto max-w-3xl p-4`: the padding leaves room for the focus ring.
+ *
+ * One message at a time is in the tab order, so Tab enters the transcript at
+ * one message and the ring goes around that message, as in Claude's chat.
+ * It is the newest message until the reader focuses another one, and the
+ * newest again when they send a message or press `Conversation.ScrollButton`.
+ *
+ * | Key                | Action                                                          |
+ * | ------------------ | --------------------------------------------------------------- |
+ * | `Tab`              | Moves focus to the message that is the tab stop, then into it. |
+ * | `ArrowDown`        | On a focused message, moves focus to the next message.          |
+ * | `ArrowUp`          | On a focused message, moves focus to the previous message.      |
+ * | `Control` + `End`  | Moves focus to the first tabbable element after the conversation, such as the composer. |
+ * | `Control` + `Home` | Moves focus to the last tabbable element before the conversation. |
+ *
+ * Page Up, Page Down, Space, Home, and End scroll the viewport, as do Up and
+ * Down at the first and newest message. The feed's `aria-describedby` names
+ * the hint in `Conversation.Root`.
  *
  * @see https://mantle.ngrok.com/components/ai/conversation#conversationcontent
  *
  * @example
  * ```tsx
  * <Conversation.Root streaming={isAnswering} className="flex-1">
- *   <Conversation.Viewport aria-label="Conversation with the assistant">
- *     <Conversation.Content className="mx-auto max-w-3xl p-4">
+ *   <Conversation.Viewport>
+ *     <Conversation.Content
+ *       aria-label="Conversation with the assistant"
+ *       className="mx-auto max-w-3xl p-4"
+ *     >
  *       {messages.map((message) => (
  *         <Message.Root key={message.id} from={message.role}>
  *           <Message.Content>{message.text}</Message.Content>
@@ -545,15 +879,21 @@ type ConversationContentProps = ComponentProps<"ol"> & WithAsChild & WithDataSlo
  * ```
  */
 function Content({
+	"aria-describedby": describedBy,
 	"data-slot": dataSlot,
 	asChild = false,
 	className,
 	...props
 }: ConversationContentProps) {
-	const Component = asChild ? Slot : "ol";
+	const Component = asChild ? Slot : "div";
+	// Why no invariant: a feed outside Root still works, with no keyboard hint.
+	const hintId = use(ConversationContext)?.hintId;
 
 	return (
 		<Component
+			role="feed"
+			// Why not `cx`: it merges Tailwind classes and can drop an id that looks like one.
+			aria-describedby={[hintId, describedBy].filter(Boolean).join(" ") || undefined}
 			data-slot={joinDataSlot(dataSlot, "conversation-content")}
 			className={cx("flex flex-col gap-6", className)}
 			{...props}
@@ -581,15 +921,18 @@ type ConversationScrollButtonProps = Omit<
  * newest message, as Amp's does. It shows only while the end is out of view,
  * grows in and out as it shows and hides, and leaves the tab order while
  * hidden. A press scrolls to the end, follows the end again, and moves focus
- * to the viewport, because the button hides.
+ * to the newest message, because the button hides.
  *
  * @see https://mantle.ngrok.com/components/ai/conversation#conversationscrollbutton
  *
  * @example
  * ```tsx
  * <Conversation.Root streaming={isAnswering} className="flex-1">
- *   <Conversation.Viewport aria-label="Conversation with the assistant">
- *     <Conversation.Content className="mx-auto max-w-3xl p-4">
+ *   <Conversation.Viewport>
+ *     <Conversation.Content
+ *       aria-label="Conversation with the assistant"
+ *       className="mx-auto max-w-3xl p-4"
+ *     >
  *       {messages.map((message) => (
  *         <Message.Root key={message.id} from={message.role}>
  *           <Message.Content>{message.text}</Message.Content>
@@ -647,7 +990,7 @@ function ScrollButton({
 					return;
 				}
 				scrollToEndRef.current?.(scrollBehavior);
-				viewportRef.current?.focus({ preventScroll: true });
+				(newestMessage(viewportRef.current) ?? viewportRef.current)?.focus({ preventScroll: true });
 			}}
 			{...props}
 		/>

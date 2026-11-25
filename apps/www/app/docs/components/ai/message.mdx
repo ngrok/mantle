@@ -10,7 +10,7 @@ import { Example } from "~/components/example";
 
 <PageHeader id="message">Message</PageHeader>
 
-One message of a chat, a person's message in a bubble or the assistant's answer as full-width prose. Each `Message.Root` renders an `<li>`, so put it in [Conversation](/components/ai/conversation)'s `Conversation.Content`.
+One message of a chat, a person's message in a bubble or the assistant's answer as full-width prose. Each `Message.Root` renders an `<article>`, so put it in [Conversation](/components/ai/conversation)'s `Conversation.Content` feed. It takes keyboard focus, and the focus ring goes around it.
 
 <Example name="components/ai/message/overview" title="Message example">
 
@@ -30,8 +30,8 @@ function AssistantAnswer() {
 	return (
 		<>
 			<Conversation.Root className="w-full max-w-2xl">
-				<Conversation.Viewport aria-label="Conversation with the assistant">
-					<Conversation.Content className="p-4">
+				<Conversation.Viewport>
+					<Conversation.Content aria-label="Conversation with the assistant" className="p-4">
 						<Message.Root from="user">
 							<Message.Content>What&apos;s live right now?</Message.Content>
 						</Message.Root>
@@ -81,8 +81,8 @@ function AnswerOnItsWay() {
 	return (
 		<>
 			<Conversation.Root streaming className="w-full max-w-2xl">
-				<Conversation.Viewport aria-label="Conversation with the assistant">
-					<Conversation.Content className="p-4">
+				<Conversation.Viewport>
+					<Conversation.Content aria-label="Conversation with the assistant" className="p-4">
 						<Message.Root from="user">
 							<Message.Content>Which endpoints have no traffic policy?</Message.Content>
 						</Message.Root>
@@ -125,9 +125,9 @@ Message.Root
 
 ### Message.Root
 
-One message: an `<li>` that lays out the content, the actions, and any pending marker.
+One message: an `<article>` that lays out the content, the actions, and any pending marker. `Conversation.Viewport` keeps one message in the tab order and sets `tabindex`, `aria-posinset`, and `aria-setsize`, so do not set them.
 
-All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes), plus:
+All props from [article](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/article#attributes), plus:
 
 | Prop       | Type                    | Default | Description                                                                                 |
 | ---------- | ----------------------- | ------- | ------------------------------------------------------------------------------------------- |
