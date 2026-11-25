@@ -621,12 +621,18 @@ const ItemValue = ({
 	const end = start + userValue.length;
 	// Why the last match: when the text stops matching, the match span keeps its text, so its line can
 	// transition out (`combobox-match-line` in mantle.css). Set during render, so the exit starts on this commit.
-	const [lastMatch, setLastMatch] = useState<readonly [number, number] | null>(null);
-	if (start !== -1 && (lastMatch?.[0] !== start || lastMatch[1] !== end)) {
-		setLastMatch([start, end]);
+	// Why the item value in it: a new label must not inherit the old label's line.
+	const [lastMatch, setLastMatch] = useState<readonly [string, number, number] | null>(null);
+	if (
+		start !== -1 &&
+		(lastMatch?.[0] !== itemValue || lastMatch[1] !== start || lastMatch[2] !== end)
+	) {
+		setLastMatch([itemValue, start, end]);
 	}
-	const [from, to] = start === -1 ? (lastMatch ?? [0, itemValue.length]) : [start, end];
 	const matched = start !== -1;
+	const exiting = !matched && lastMatch?.[0] === itemValue ? lastMatch : null;
+	const from = matched ? start : (exiting?.[1] ?? 0);
+	const to = matched ? end : (exiting?.[2] ?? itemValue.length);
 	return (
 		<span
 			data-slot={joinDataSlot(dataSlot, "combobox-item-value")}
@@ -640,7 +646,8 @@ const ItemValue = ({
 			{...props}
 		>
 			{/* Why a span for each slice: docs/browser-translation.md
-			    Why keys in an array: React keeps the match span across keystrokes, so its line can transition. */}
+			    Why the start in the key: React keeps the match span while its start stays, so its line can
+			    transition. A match at a new start gets a new span, and its line grows in. */}
 			{[
 				from > 0 && (
 					<span key="before" data-autocomplete-value="">
@@ -648,9 +655,20 @@ const ItemValue = ({
 					</span>
 				),
 				<span
-					key="match"
+					key={`match-${from}`}
 					data-user-value={matched ? "" : undefined}
 					data-autocomplete-value={matched ? undefined : ""}
+					// Why: after the exit, one text run again keeps the kerning across the old cut. A hidden tab
+					// fires no event, and the label then stays split, which only costs that kerning.
+					onTransitionEnd={
+						exiting
+							? (event) => {
+									if (event.propertyName === "background-size") {
+										setLastMatch(null);
+									}
+								}
+							: undefined
+					}
 				>
 					{itemValue.slice(from, to)}
 				</span>,

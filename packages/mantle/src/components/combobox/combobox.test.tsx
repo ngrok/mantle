@@ -211,6 +211,18 @@ describe("Combobox", () => {
 			expect(textOf("[data-user-value]")).toBe("Ba");
 			expect(textOf("[data-autocomplete-value]")).toBe("nana");
 		});
+		test("Combobox.ItemValue drops the last match when the item value changes", () => {
+			// Catches offsets kept from the old label: the new label would split at the old match.
+			const value = (itemValue: string, userValue: string) => (
+				<Combobox.Root>
+					<Combobox.ItemValue value={itemValue} userValue={userValue} />
+				</Combobox.Root>
+			);
+			const { container, rerender } = render(value("Apple", "Ap"));
+			rerender(value("Kiwi", "Ap"));
+			const slices = container.querySelectorAll('[data-slot="combobox-item-value"] > span');
+			expect(Array.from(slices, (span) => span.textContent)).toEqual(["Kiwi"]);
+		});
 	});
 
 	describe("Combobox.ContentFooter", () => {
