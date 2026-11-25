@@ -138,7 +138,8 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		expect(popupOf(listbox).getBoundingClientRect().top).toBeGreaterThanOrEqual(8);
 	});
 	test("the typed match keeps the option text width and the option name, and shows a line", async () => {
-		// Why the theme: without it, `decoration-accent-600` and a type-scale weight compile to nothing.
+		// Why the theme: without it, `--color-accent-600` is unset and the line draws nothing,
+		// and a type-scale weight compiles to nothing.
 		await injectComboboxCss({ theme: true });
 		render(
 			<Combobox.Root>
@@ -176,14 +177,32 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		const plainGlyphs = glyphs("[data-autocomplete-value]");
 
 		await userEvent.type(input, "https://");
-		expect(slice("[data-user-value]")).toHaveTextContent("https://");
+		const textOf = (selector: string) =>
+			Array.from(option.querySelectorAll(selector), (span) => span.textContent).join("");
+		expect(textOf("[data-user-value]")).toBe("https://");
 		// Why close and not equal: the cut between slices can drop a kerning pair, under 0.05px.
 		expect(textWidth()).toBeCloseTo(plainWidth, 1);
 		expect(glyphs("[data-user-value]")).toEqual(plainGlyphs);
 		expect(glyphs("[data-autocomplete-value]")).toEqual(plainGlyphs);
-		const line = getComputedStyle(slice("[data-user-value]"));
-		expect(line.textDecorationLine).toBe("underline");
-		expect(line.textDecorationColor).not.toBe(line.color);
+		// Why a poll: the line transitions in. Why each character: each one draws its own part of the line,
+		// and the character after the match parks a line with no width.
+		const drawsLine = (char: Element) => {
+			const style = getComputedStyle(char);
+			return (
+				style.backgroundImage.startsWith("linear-gradient") &&
+				Number.parseFloat(style.backgroundSize) > 0 &&
+				style.backgroundPositionY === "100%"
+			);
+		};
+		const chars = Array.from(slice('[data-slot="combobox-item-value"]').children);
+		await expect
+			.poll(() =>
+				chars
+					.filter(drawsLine)
+					.map((char) => char.textContent)
+					.join(""),
+			)
+			.toBe("https://");
 		expect(option).toHaveAccessibleName("https://acme.ngrok.app");
 	});
 

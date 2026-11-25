@@ -187,12 +187,13 @@ describe("Combobox", () => {
 		test("Combobox.ItemValue splits the item value around the typed text", async () => {
 			// `ItemValue` reads the item value from the item's context.
 			// Catches dropping `value` from the item, which leaves it nothing to split.
+			// Why the emoji: it is two UTF-16 units, so a split that counts characters and not units marks "an".
 			const user = userEvent.setup();
 			render(
 				<Combobox.Root>
 					<Combobox.Input aria-label="Fruit" />
 					<Combobox.Content>
-						<Combobox.Item value="Banana">
+						<Combobox.Item value="🍌 Banana">
 							<Combobox.ItemValue />
 						</Combobox.Item>
 					</Combobox.Content>
@@ -205,11 +206,11 @@ describe("Combobox", () => {
 			// the name algorithm inserts a space and reads "Ba nana". A browser reads
 			// "Banana". This list has one option.
 			const option = await screen.findByRole("option");
-			expect(option).toHaveTextContent("Banana");
+			expect(option).toHaveTextContent("🍌 Banana");
 			const textOf = (selector: string) =>
 				Array.from(option.querySelectorAll(selector), (span) => span.textContent).join("");
 			expect(textOf("[data-user-value]")).toBe("Ba");
-			expect(textOf("[data-autocomplete-value]")).toBe("nana");
+			expect(textOf("[data-autocomplete-value]")).toBe("🍌 nana");
 		});
 	});
 

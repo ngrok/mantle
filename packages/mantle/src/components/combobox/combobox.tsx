@@ -618,30 +618,37 @@ const ItemValue = ({
 	const itemValue = valueProp ?? contextItemValue ?? "";
 	const userValue = userValueProp ?? inputValue;
 	const start = userValue === "" ? -1 : itemValue.toLowerCase().indexOf(userValue.toLowerCase());
-	const end = start + userValue.length;
+	const end = start === -1 ? -1 : start + userValue.length;
+	// Why a span for each character: the span keeps its part of the line across keystrokes, so the line
+	// can transition (`combobox-match-line` in mantle.css). Why a span at all: docs/browser-translation.md
+	const chars: ReactNode[] = [];
+	let offset = 0;
+	for (const char of itemValue) {
+		const matched = offset >= start && offset < end;
+		chars.push(
+			<span
+				key={offset}
+				data-user-value={matched ? "" : undefined}
+				data-autocomplete-value={matched ? undefined : ""}
+			>
+				{char}
+			</span>,
+		);
+		offset += char.length;
+	}
 	return (
 		<span
 			data-slot={joinDataSlot(dataSlot, "combobox-item-value")}
 			className={cx(
 				"flex-1 shrink-0 text-strong font-normal",
-				// Why an underline and not a weight: a heavier glyph is wider, so the row text moves as the user types.
-				// The accent line has at least 3:1 contrast on each row background, and forced colors keeps it.
-				"[&>[data-user-value]]:underline [&>[data-user-value]]:decoration-accent-600 [&>[data-user-value]]:decoration-2 [&>[data-user-value]]:underline-offset-4",
+				// Why a line and not a weight: a heavier glyph is wider, so the row text moves as the user types.
+				"combobox-match-line",
 				className,
 			)}
 			ref={ref}
 			{...props}
 		>
-			{start === -1 ? (
-				<span data-autocomplete-value="">{itemValue}</span>
-			) : (
-				<>
-					{/* Why a span for each slice: docs/browser-translation.md */}
-					{start > 0 && <span data-autocomplete-value="">{itemValue.slice(0, start)}</span>}
-					<span data-user-value="">{itemValue.slice(start, end)}</span>
-					{end < itemValue.length && <span data-autocomplete-value="">{itemValue.slice(end)}</span>}
-				</>
-			)}
+			{chars}
 		</span>
 	);
 };
