@@ -136,6 +136,21 @@ export function SizeExample() {
 							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
 							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
 						</SegmentedControl.Root>
+						<SegmentedControl.Root
+							aria-label="Layout, size xs"
+							defaultValue="list"
+							size="xs"
+							className="w-fit"
+						>
+							<SegmentedControl.Item value="list">
+								<ListIcon aria-hidden className="size-4" />
+								<span className="sr-only">List</span>
+							</SegmentedControl.Item>
+							<SegmentedControl.Item value="grid">
+								<SquaresFourIcon aria-hidden className="size-4" />
+								<span className="sr-only">Grid</span>
+							</SegmentedControl.Item>
+						</SegmentedControl.Root>
 						<IconButton
 							appearance="ghost"
 							intent="neutral"
@@ -156,6 +171,21 @@ export function SizeExample() {
 							<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
 							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
 							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<SegmentedControl.Root
+							aria-label="Layout, size sm"
+							defaultValue="list"
+							size="sm"
+							className="w-fit"
+						>
+							<SegmentedControl.Item value="list">
+								<ListIcon aria-hidden className="size-4" />
+								<span className="sr-only">List</span>
+							</SegmentedControl.Item>
+							<SegmentedControl.Item value="grid">
+								<SquaresFourIcon aria-hidden className="size-4" />
+								<span className="sr-only">Grid</span>
+							</SegmentedControl.Item>
 						</SegmentedControl.Root>
 						<IconButton
 							appearance="ghost"
@@ -178,6 +208,21 @@ export function SizeExample() {
 							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
 							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
 						</SegmentedControl.Root>
+						<SegmentedControl.Root
+							aria-label="Layout, size md"
+							defaultValue="list"
+							size="md"
+							className="w-fit"
+						>
+							<SegmentedControl.Item value="list">
+								<ListIcon aria-hidden className="size-5" />
+								<span className="sr-only">List</span>
+							</SegmentedControl.Item>
+							<SegmentedControl.Item value="grid">
+								<SquaresFourIcon aria-hidden className="size-5" />
+								<span className="sr-only">Grid</span>
+							</SegmentedControl.Item>
+						</SegmentedControl.Root>
 						<IconButton
 							appearance="ghost"
 							intent="neutral"
@@ -199,6 +244,21 @@ export function SizeExample() {
 							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
 							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
 						</SegmentedControl.Root>
+						<SegmentedControl.Root
+							aria-label="Layout, size lg"
+							defaultValue="list"
+							size="lg"
+							className="w-fit"
+						>
+							<SegmentedControl.Item value="list">
+								<ListIcon aria-hidden className="size-5" />
+								<span className="sr-only">List</span>
+							</SegmentedControl.Item>
+							<SegmentedControl.Item value="grid">
+								<SquaresFourIcon aria-hidden className="size-5" />
+								<span className="sr-only">Grid</span>
+							</SegmentedControl.Item>
+						</SegmentedControl.Root>
 						<IconButton
 							appearance="ghost"
 							intent="neutral"
@@ -219,6 +279,21 @@ export function SizeExample() {
 							<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
 							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
 							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<SegmentedControl.Root
+							aria-label="Layout, size xl"
+							defaultValue="list"
+							size="xl"
+							className="w-fit"
+						>
+							<SegmentedControl.Item value="list">
+								<ListIcon aria-hidden className="size-5" />
+								<span className="sr-only">List</span>
+							</SegmentedControl.Item>
+							<SegmentedControl.Item value="grid">
+								<SquaresFourIcon aria-hidden className="size-5" />
+								<span className="sr-only">Grid</span>
+							</SegmentedControl.Item>
 						</SegmentedControl.Root>
 						<IconButton
 							appearance="ghost"

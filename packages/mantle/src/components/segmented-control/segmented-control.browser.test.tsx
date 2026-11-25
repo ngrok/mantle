@@ -86,6 +86,29 @@ describe("SegmentedControl size", () => {
 		);
 	});
 
+	test("an icon-only item is square, and an item with a visible label keeps the button padding", () => {
+		render(
+			<div style={{ display: "flex", alignItems: "center" }}>
+				<SegmentedControl.Root aria-label="Layout" defaultValue="list" className="w-fit">
+					<SegmentedControl.Item value="list">
+						<svg aria-hidden width={20} height={20} />
+						<span className="sr-only">List</span>
+					</SegmentedControl.Item>
+					<SegmentedControl.Item value="grid">
+						<svg aria-hidden width={20} height={20} />
+						<span>Grid</span>
+					</SegmentedControl.Item>
+				</SegmentedControl.Root>
+				<IconButton appearance="ghost" intent="neutral" size="sm" label="Copy" icon={<svg />} />
+			</div>,
+		);
+
+		const list = item("List").getBoundingClientRect();
+		const button = screen.getByRole("button", { name: "Copy" }).getBoundingClientRect();
+		expect([list.width, list.height]).toEqual([button.width, button.height]);
+		expect(getComputedStyle(item("Grid")).paddingInlineStart).toBe("12px");
+	});
+
 	test.each(["xs", "sm", "md", "lg", "xl"] as const)(
 		"a %s control matches the height of an IconButton and the padding of a Button, and its labels have room",
 		(size) => {
@@ -122,6 +145,10 @@ describe("SegmentedControl size", () => {
 			expect(control.getBoundingClientRect().height).toBe(buttonHeight);
 			const iconControl = screen.getByRole("radiogroup", { name: "Layout" });
 			expect(iconControl.getBoundingClientRect().height).toBe(buttonHeight);
+			for (const name of ["List", "Grid"]) {
+				const { width, height } = item(name).getBoundingClientRect();
+				expect(width).toBe(height);
+			}
 			const buttonPadding = getComputedStyle(
 				screen.getByRole("button", { name: "Save" }),
 			).paddingInlineStart;
