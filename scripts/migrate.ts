@@ -140,8 +140,8 @@ function matchesId({ docName, source, id }: { docName: string; source: string; i
 
 /**
  * Resolve a migration number or slug to its guide and its codemod. Returns
- * `null` when no guide answers to the id, and a `rulesPath` of `null` when
- * the migration is manual.
+ * `null` unless exactly one guide answers to the id, and a `rulesPath` of
+ * `null` when the migration is manual.
  *
  * @example
  * findMigration("8", defaultPaths);
@@ -149,14 +149,15 @@ function matchesId({ docName, source, id }: { docName: string; source: string; i
  * findMigration("tabs-separator", defaultPaths); // the same migration
  */
 export function findMigration(id: string, paths: MigrationPaths): Migration | null {
-	const name = listMigrationDocs(paths.docsDir).find((docName) =>
+	const [name, ...others] = listMigrationDocs(paths.docsDir).filter((docName) =>
 		matchesId({
 			docName,
 			source: fs.readFileSync(path.join(paths.docsDir, `${docName}.mdx`), "utf8"),
 			id,
 		}),
 	);
-	if (name == null) {
+	// Why refuse two matches: the wrong guide applies the wrong codemod.
+	if (name == null || others.length > 0) {
 		return null;
 	}
 	const rulesPath = path.join(paths.rulesDir, rulesDirName(name), "rules.yml");
@@ -188,7 +189,7 @@ export function main(argv: readonly string[], paths: MigrationPaths = defaultPat
 		const known = listMigrationDocs(paths.docsDir)
 			.map((name) => `  ${name}`)
 			.join("\n");
-		console.error(`Unknown migration "${options.id}". Known migrations:\n${known}`);
+		console.error(`No single migration matches "${options.id}". Known migrations:\n${known}`);
 		return 1;
 	}
 	if (migration.rulesPath == null) {

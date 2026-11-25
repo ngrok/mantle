@@ -128,6 +128,22 @@ describe("migrate command line", () => {
 		expect(findMigration("separator", defaultPaths)).toBeNull();
 	});
 
+	// Catches: a lookup that takes the first of two guides an id names, and so
+	// applies the wrong codemod.
+	it("refuses an id that two guides answer to", () => {
+		const docsDir = fs.mkdtempSync(path.join(os.tmpdir(), "mantle-migrate-docs-"));
+		const frontmatter = (number: string) => `---\ntitle: A Migration\n${number}---\n`;
+		fs.writeFileSync(
+			path.join(docsDir, "0008-tabs-separator-migration.mdx"),
+			frontmatter("number: 8\n"),
+		);
+		fs.writeFileSync(path.join(docsDir, "tabs-separator-migration-migration.mdx"), frontmatter(""));
+		const paths = { docsDir, rulesDir: defaultPaths.rulesDir };
+
+		expect(findMigration("tabs-separator-migration", paths)).toBeNull();
+		expect(findMigration("8", paths)?.name).toBe("0008-tabs-separator-migration");
+	});
+
 	it("names the doc page and exits 1 when a migration has no codemod", () => {
 		const result = runMigrate(["0001", os.tmpdir()]);
 
@@ -141,7 +157,7 @@ describe("migrate command line", () => {
 		const result = runMigrate(["9999"]);
 
 		expect(result.status).toBe(1);
-		expect(result.stderr).toContain('Unknown migration "9999"');
+		expect(result.stderr).toContain('No single migration matches "9999"');
 		expect(result.stderr).toContain("0008-tabs-separator-migration");
 	});
 
@@ -214,6 +230,8 @@ describe("migration docs", () => {
 	it.each(numberedGuides)("$name carries a number in its file name only up to 0035", (guide) => {
 		expect(Number(guide.fileNumber)).toBeLessThanOrEqual(lastNumberedFileName);
 		expect(guide.number).toBe(String(Number(guide.fileNumber)));
+		// Why: the release stamps a guide with no `introducedIn` with its own version.
+		expect(guide.introducedIn).not.toBeNull();
 	});
 
 	// Catches: a slug-named guide that takes an old unnumbered URL. That URL
@@ -253,7 +271,11 @@ describe("migration docs", () => {
 			const start = changelog.indexOf(`\n## ${introducedIn}\n`);
 			const end = changelog.indexOf("\n## ", start + 1);
 			const section = start === -1 ? "" : changelog.slice(start, end === -1 ? undefined : end);
-			return !section.includes(`mantle.ngrok.com/migrations/${name}`);
+			const links = Array.from(
+				section.matchAll(/mantle\.ngrok\.com\/migrations\/([a-z0-9-]+)/g),
+				([, slug]) => slug,
+			);
+			return !links.includes(name);
 		});
 
 		expect(unlinked.map(({ name }) => name)).toEqual([]);

@@ -489,10 +489,8 @@ export const migrations: readonly Migration[] = migrationGuides.map((guide) => (
 
 /**
  * Migration guides, newest first: the order the index page and the sidebar
- * show. Unreleased guides come first, by slug.
+ * show. Unreleased guides come first, in file-name order.
  */
 export const migrationsNewestFirst: readonly Migration[] = migrations.toSorted(
-	(a, b) =>
-		(b.number ?? Number.POSITIVE_INFINITY) - (a.number ?? Number.POSITIVE_INFINITY) ||
-		a.slug.localeCompare(b.slug),
+	(a, b) => (b.number ?? Number.MAX_SAFE_INTEGER) - (a.number ?? Number.MAX_SAFE_INTEGER),
 );

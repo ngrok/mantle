@@ -22,12 +22,20 @@ function mantleBump(source: string): string | null {
 	return match?.[3] ?? null;
 }
 
-/** The migration guide slugs a changeset may link. */
+/** The migration guide file names, without `.mdx`. */
 function migrationSlugs(): string[] {
 	return fs
 		.readdirSync(migrationDocsDir)
 		.filter((entry) => entry.endsWith(".mdx"))
 		.map((entry) => entry.replace(/\.mdx$/, ""));
+}
+
+/** The guide slugs in each `mantle.ngrok.com/migrations/<slug>` link. */
+function linkedMigrationSlugs(source: string): string[] {
+	return Array.from(
+		source.matchAll(/mantle\.ngrok\.com\/migrations\/([a-z0-9-]+)/g),
+		([, slug]) => slug ?? "",
+	);
 }
 
 describe("pending changesets", () => {
@@ -42,23 +50,29 @@ describe("pending changesets", () => {
 				return;
 			}
 			const source = fs.readFileSync(path.join(changesetDir, name), "utf8");
-			const links = source.matchAll(/mantle\.ngrok\.com\/migrations\/([a-z0-9-]+)/g);
+			// Why the unnumbered slugs: guides 0001 to 0035 redirect from them.
+			const targets = new Set(
+				migrationSlugs().flatMap((slug) => [slug, slug.replace(/^\d{4}-/, "")]),
+			);
 
-			for (const [, slug] of links) {
-				expect(migrationSlugs()).toContain(slug);
-			}
+			expect(linkedMigrationSlugs(source).filter((slug) => !targets.has(slug))).toEqual([]);
 		},
 	);
 
-	// Why: the release moves each pending changeset into the CHANGELOG, and the
-	// migration tests then need the guide's link in its release's section.
-	it("links each unreleased migration guide from a pending changeset", () => {
-		const pending = names.map((name) => fs.readFileSync(path.join(changesetDir, name), "utf8"));
+	// Why a changeset that bumps @ngrok/mantle: the release moves its note into
+	// the mantle CHANGELOG, and the migration tests then need the guide's link there.
+	it("links each unreleased migration guide from a pending @ngrok/mantle changeset", () => {
+		const linked = new Set(
+			names
+				.map((name) => fs.readFileSync(path.join(changesetDir, name), "utf8"))
+				.filter((source) => (mantleBump(source) ?? "none") !== "none")
+				.flatMap(linkedMigrationSlugs),
+		);
 		const unlinked = migrationSlugs().filter(
 			(slug) =>
 				!/^introducedIn:/m.test(
 					fs.readFileSync(path.join(migrationDocsDir, `${slug}.mdx`), "utf8"),
-				) && !pending.some((source) => source.includes(`mantle.ngrok.com/migrations/${slug}`)),
+				) && !linked.has(slug),
 		);
 
 		expect(unlinked).toEqual([]);
