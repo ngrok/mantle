@@ -41,8 +41,8 @@ const questions = turns.filter((turn) => turn.from === "user");
 export function OverviewExample() {
 	return (
 		<PreviewCanvas className="min-h-160">
-			<Card.Root className="flex h-96 w-full max-w-md flex-col overflow-hidden p-0">
-				<div className="flex items-center justify-between border-b px-4 py-2">
+			<Card.Root className="flex h-96 w-full max-w-2xl flex-col overflow-hidden p-0">
+				<div className="flex items-center justify-between border-b border-card-muted px-4 py-2">
 					<h2 className="text-strong text-sm font-medium">Assistant</h2>
 					{/* Why three: with one or two messages, a scroll is faster than the outline. */}
 					{questions.length >= 3 && (
