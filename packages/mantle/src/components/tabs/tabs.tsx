@@ -2,12 +2,16 @@
 
 import { cva } from "class-variance-authority";
 import type { ComponentProps, ReactNode } from "react";
-import { cloneElement, createContext, isValidElement, useContext } from "react";
+import { cloneElement, createContext, isValidElement, useContext, useRef } from "react";
+import { activateTab } from "../../behaviors/use-tabs.js";
 import type { Orientation } from "../../behaviors/use-tabs.js";
 import type { SelfClosingWithAsChild } from "../../types/as-child.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { cx } from "../../utils/cx/cx.js";
+import { useSlidingThumb } from "../../utils/sliding-thumb.js";
+import type { SlidingThumbOptions } from "../../utils/sliding-thumb.js";
 import { Separator } from "../separator/separator.js";
 import * as HeadlessTabs from "./headless-tabs.js";
 
@@ -21,11 +25,42 @@ const TabsAppearanceContext = createContext<Appearance>("classic");
  * the part's name when the part renders outside `Tabs.Root`.
  */
 function useTabsStyle(partName: string) {
-	const { orientation } = HeadlessTabs.useTabsBehavior(
-		`${partName} must be rendered inside Tabs.Root.`,
-	);
-	return { orientation, appearance: useContext(TabsAppearanceContext) };
+	const tabs = HeadlessTabs.useTabsBehavior(`${partName} must be rendered inside Tabs.Root.`);
+	return { tabs, orientation: tabs.orientation, appearance: useContext(TabsAppearanceContext) };
 }
+
+/** Where the active-tab indicator is drawn, and which tabs a drag skips. */
+const thumbOptions: Omit<SlidingThumbOptions, "commit"> = {
+	items: '[role="tab"]',
+	checked: '[aria-selected="true"]',
+	disabled: ':is(:disabled, [aria-disabled="true"])',
+	pseudo: "::after",
+	offset: "--_tabs-thumb-offset",
+};
+
+let overflowObserver: ResizeObserver | undefined;
+
+/**
+ * A ref callback for a list and each of its triggers. While a horizontal list
+ * scrolls, it carries `data-overflowing`, and a touch swipe on its active tab
+ * scrolls the list instead of dragging the indicator. One `ResizeObserver`
+ * serves every list: a trigger that resizes, such as a badge that grows, can
+ * make its list scroll.
+ */
+const observeOverflow = (element: HTMLElement | null) => {
+	// Why the check: jsdom has no `ResizeObserver`. The active tab then drags on touch.
+	if (element == null || typeof ResizeObserver === "undefined") {
+		return undefined;
+	}
+	overflowObserver ??= new ResizeObserver((entries) => {
+		for (const { target } of entries) {
+			const list = target.closest('[role="tablist"]');
+			list?.toggleAttribute("data-overflowing", list.scrollWidth > list.clientWidth);
+		}
+	});
+	overflowObserver.observe(element);
+	return () => overflowObserver?.unobserve(element);
+};
 
 /**
  * Layered sections of content, called tab panels, that show one at a time.
@@ -35,6 +70,9 @@ function useTabsStyle(partName: string) {
  * It follows the WAI-ARIA tabs pattern: the arrow keys move focus between
  * the enabled triggers, Home and End move to the ends, and only the active
  * trigger is a Tab stop. `onValueChange` fires once per activation.
+ *
+ * The active indicator, the underline or the pill, slides from the tab that
+ * was active to the new one. A mouse or a finger can drag it: see `Tabs.List`.
  *
  * **Data attributes:**
  *
@@ -136,12 +174,22 @@ const listVariants = cva("flex", {
  * The list draws no border of its own: compose `Tabs.Separator` after it for
  * the hairline between the triggers and the content.
  *
+ * **Drag.** A press on the active tab that moves along the list drags its
+ * indicator with the pointer. On release, the indicator slides to the nearest
+ * enabled tab, carried ahead by a flick, and that tab activates as a press
+ * would: its panel shows and `onValueChange` fires once. A drag that passes
+ * over a tab does not activate it. A touch swipe on the active tab of a list
+ * that scrolls scrolls the list instead. With reduced motion, the indicator
+ * follows the pointer and moves at once on release.
+ *
  * **Data attributes:**
  *
  * | Data Attribute     | Value                          | Description                           |
  * | ------------------ | ------------------------------ | ------------------------------------- |
  * | `data-slot`        | `"tabs-list"`                  | On the tablist element.               |
  * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.               |
+ * | `data-dragging`    | present during a drag          | The indicator follows the pointer. Presence-only. |
+ * | `data-overflowing` | present while the list scrolls | A horizontal list is wider than its box. Presence-only. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
@@ -159,12 +207,22 @@ const listVariants = cva("flex", {
  * </Tabs.Root>
  * ```
  */
-const List = ({ className, ...props }: HeadlessTabs.ListProps) => {
-	const { orientation, appearance } = useTabsStyle("Tabs.List");
+const List = ({ className, ref, ...props }: HeadlessTabs.ListProps) => {
+	const { tabs, orientation, appearance } = useTabsStyle("Tabs.List");
+	const listRef = useRef<HTMLDivElement>(null);
+	useSlidingThumb(listRef, tabs.value, {
+		...thumbOptions,
+		commit: (tab) => activateTab(tabs, tab),
+	});
 	return (
 		<HeadlessTabs.List
-			className={cx(listVariants({ orientation, appearance }), className)}
+			className={cx(
+				listVariants({ orientation, appearance }),
+				"data-dragging:cursor-grabbing",
+				className,
+			)}
 			{...props}
+			ref={useComposedRefs(ref, listRef, observeOverflow)}
 		/>
 	);
 };
@@ -259,31 +317,57 @@ const triggerVariants = cva(
 		// inside `Tabs.Badge`.
 		"[&>[data-slot=tabs-trigger-label]>svg]:shrink-0 [&>[data-slot=tabs-trigger-label]>svg]:size-5",
 		"not-aria-disabled:hover:text-gray-900",
+		// Why a pseudo-element of each trigger: the active trigger draws the indicator,
+		// so it costs no element and no render, and the server HTML shows it.
+		// `useSlidingThumb` slides it from the trigger that was active.
+		"after:absolute",
+		"aria-selected:not-in-data-dragging:text-strong not-aria-disabled:hover:aria-selected:text-strong",
+		// Why: during a drag, the label under the indicator is strong, and the active tab can be away from it.
+		"data-thumb-over:text-strong",
+		// Why: forced colors paint each background in the canvas color.
+		"forced-colors:after:forced-color-adjust-none",
 	),
 	{
 		variants: {
 			orientation: {
-				horizontal: "rounded-tl-md rounded-tr-md after:inset-x-0 after:bottom-0 after:h-0.75",
-				vertical: "rounded-bl-md rounded-tl-md pr-3 after:inset-y-0 after:-right-px after:w-0.75",
+				// Why `in-data-overflowing`: a touch swipe on the active tab of a list that scrolls
+				// scrolls the list. In a list that fits, a sideways swipe drags the indicator.
+				horizontal: cx(
+					"rounded-tl-md rounded-tr-md",
+					"after:translate-x-(--_tabs-thumb-offset,0px)",
+					"aria-selected:not-in-data-overflowing:touch-pan-y",
+				),
+				vertical: cx(
+					"rounded-bl-md rounded-tl-md pr-3",
+					"after:translate-y-(--_tabs-thumb-offset,0px)",
+					"aria-selected:touch-pan-x",
+				),
 			} as const satisfies Record<Orientation, string>,
 			appearance: {
-				// Why a pseudo-element: the active-tab bar costs no element and no render.
 				classic: cx(
-					"after:absolute after:z-0 aria-selected:after:bg-neutral-950",
-					"not-aria-disabled:hover:aria-selected:text-strong",
-					"aria-selected:text-strong",
+					"after:z-0 aria-selected:after:bg-neutral-950",
+					"forced-colors:aria-selected:after:bg-[Highlight]",
 				),
 				pill: cx(
-					"not-aria-disabled:hover:aria-selected:text-strong",
-					"not-aria-disabled:hover:aria-selected:bg-neutral-500/15",
-					"aria-selected:text-strong",
-					"aria-selected:bg-neutral-500/15",
-					"rounded-full py-2 px-3",
-					// Why: the orientation's bar geometry would make an empty flex item.
-					"after:content-none",
+					// Why isolate: the pill sits under the label and over the list.
+					"isolate rounded-full py-2 px-3",
+					"after:top-0 after:left-0 after:-z-1 after:size-full after:rounded-full aria-selected:after:bg-neutral-500/15",
+					"forced-colors:aria-selected:after:border-2 forced-colors:aria-selected:after:border-[Highlight]",
 				),
 			} as const satisfies Record<Appearance, string>,
 		},
+		compoundVariants: [
+			{
+				orientation: "horizontal",
+				appearance: "classic",
+				className: "after:bottom-0 after:left-0 after:h-0.75 after:w-full",
+			},
+			{
+				orientation: "vertical",
+				appearance: "classic",
+				className: "after:top-0 after:-right-px after:h-full after:w-0.75",
+			},
+		],
 	},
 );
 
@@ -308,8 +392,8 @@ const labelChild = (child: ReactNode) =>
  *
  * **Structure.** `children` render inside a
  * `<span data-slot="tabs-trigger-label">`, on the plain path and the `asChild`
- * path alike. The active-tab bar of the classic appearance is the trigger's
- * `::after`. The span is `display: contents`,
+ * path alike. The active indicator, the bar of the classic appearance or the
+ * pill, is the trigger's `::after`. The span is `display: contents`,
  * so the icon, the label, and `Tabs.Badge` stay flex items of the trigger and
  * keep its `gap`. A `[&>svg]` class of your own no longer reaches an icon you
  * pass as a child, because that icon is now a grandchild. Match the part's own
@@ -328,6 +412,7 @@ const labelChild = (child: ReactNode) =>
  * | `data-slot`    | `"tabs-trigger"`         | On the trigger element.              |
  * | `data-slot`    | `"tabs-trigger-label"`   | On the `<span>` wrapping `children`. |
  * | `aria-selected` | `"true"` \| `"false"`   | Whether the trigger's panel is shown. Style it with `aria-selected:`. |
+ * | `data-thumb-over` | present during a drag | The dragged indicator is over this trigger. Presence-only. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabstrigger
  *
@@ -345,13 +430,20 @@ const labelChild = (child: ReactNode) =>
  * </Tabs.Root>
  * ```
  */
-const Trigger = ({ asChild = false, children, className, ...props }: HeadlessTabs.TriggerProps) => {
+const Trigger = ({
+	asChild = false,
+	children,
+	className,
+	ref,
+	...props
+}: HeadlessTabs.TriggerProps) => {
 	const { orientation, appearance } = useTabsStyle("Tabs.Trigger");
 	return (
 		<HeadlessTabs.Trigger
 			asChild={asChild}
 			className={cx(triggerVariants({ orientation, appearance }), className)}
 			{...props}
+			ref={useComposedRefs(ref, observeOverflow)}
 		>
 			{asChild ? labelChild(children) : label(children)}
 		</HeadlessTabs.Trigger>

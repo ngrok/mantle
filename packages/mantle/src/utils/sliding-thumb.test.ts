@@ -1,23 +1,23 @@
 import { describe, expect, test } from "vitest";
-import { nearestSegment, thumbOffset } from "./use-segmented-thumb.js";
+import { nearestItem, thumbOffset } from "./sliding-thumb.js";
 
-describe("nearestSegment", () => {
-	const segments = [
-		{ left: 0, right: 100, disabled: false },
-		{ left: 100, right: 200, disabled: true },
-		{ left: 200, right: 300, disabled: false },
+describe("nearestItem", () => {
+	const items = [
+		{ start: 0, end: 100, disabled: false },
+		{ start: 100, end: 200, disabled: true },
+		{ start: 200, end: 300, disabled: false },
 	];
 
-	test("picks the segment whose center is nearest", () => {
-		expect(nearestSegment(segments, 90)).toBe(0);
+	test("picks the item whose center is nearest", () => {
+		expect(nearestItem(items, 90)).toBe(0);
 	});
 
-	test("skips a disabled segment, even under the point", () => {
-		expect(nearestSegment(segments, 160)).toBe(2);
+	test("skips a disabled item, even under the point", () => {
+		expect(nearestItem(items, 160)).toBe(2);
 	});
 
-	test("returns -1 when every segment is disabled", () => {
-		expect(nearestSegment([{ left: 0, right: 100, disabled: true }], 50)).toBe(-1);
+	test("returns -1 when every item is disabled", () => {
+		expect(nearestItem([{ start: 0, end: 100, disabled: true }], 50)).toBe(-1);
 	});
 });
 

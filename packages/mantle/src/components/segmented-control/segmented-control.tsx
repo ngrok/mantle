@@ -1,15 +1,15 @@
 "use client";
 
-import { createContext, useContext, useId, useRef } from "react";
+import { createContext, useContext, useRef } from "react";
 import type { RefObject } from "react";
 import invariant from "tiny-invariant";
-import { $cssProperties } from "../../types/index.js";
 import { useComposedRefs } from "../../utils/compose-refs/index.js";
 import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { useSlidingThumb } from "../../utils/sliding-thumb.js";
+import type { SlidingThumbOptions } from "../../utils/sliding-thumb.js";
 import type { ButtonSize } from "../button/sizes.js";
 import * as RadioPrimitive from "../radio-group/primitive.js";
-import { useSegmentedThumb } from "./use-segmented-thumb.js";
 
 /**
  * The size of a `SegmentedControl`: the button family's scale. A size renders
@@ -99,12 +99,8 @@ const Root = ({
 	className,
 	ref,
 	size = "md",
-	style,
 	...props
 }: SegmentedControlRootProps) => {
-	// Why a name for each control: anchor names are global, so two controls on one
-	// page would otherwise share one checked item.
-	const thumbAnchor = `--segmented-control-thumb${useId().replaceAll(/[^\w-]/g, "")}`;
 	const groupRef = useRef<HTMLElement>(null);
 	const composedRef = useComposedRefs(ref, groupRef);
 	return (
@@ -116,18 +112,9 @@ const Root = ({
 					// Why: the same panel as `ButtonGroup`, so a md control matches one around `sm` ghost `IconButton`s.
 					"border-form bg-form relative flex flex-row flex-nowrap gap-0.5 rounded-md border p-0.75",
 					rootSizeClasses[size],
-					// Why a pseudo-element: one thumb slides to the checked item, and no
-					// element sits beside the consumer's children. Why 2px: it is the track
-					// radius less the border and the padding, so the thumb follows the track corner.
-					"before:absolute before:rounded-xs before:bg-neutral-500/15",
-					"before:[position-anchor:var(--_segmented-control-thumb)] before:top-[anchor(top)] before:left-[anchor(left)] before:w-[anchor-size(width)] before:h-[anchor-size(height)]",
-					// Why only width: `useSegmentedThumb` slides the thumb, because a jump of the anchor animates in no browser but Chromium.
-					"motion-safe:before:transition-[width] motion-safe:before:duration-200 motion-safe:before:ease-out-strong",
-					// Why a private variable: during a drag, the thumb follows the pointer off its anchor.
-					"before:translate-x-(--_segmented-control-thumb-offset,0px) data-dragging:cursor-grabbing",
+					"data-dragging:cursor-grabbing",
 					className,
 				)}
-				style={{ ...$cssProperties({ "--_segmented-control-thumb": thumbAnchor }), ...style }}
 				{...props}
 				ref={composedRef}
 			>
@@ -138,9 +125,19 @@ const Root = ({
 	);
 };
 
+/** Where the thumb of a `SegmentedControl.Root` is drawn, and how a drag checks an item. */
+const thumbOptions: SlidingThumbOptions = {
+	items: ":scope > :has(> input[type=radio])",
+	checked: ":has(> input:checked)",
+	disabled: ":has(> input:disabled)",
+	pseudo: "::before",
+	offset: "--_segmented-control-thumb-offset",
+	commit: (item) => item.querySelector<HTMLInputElement>(":scope > input")?.click(),
+};
+
 /** Slides the thumb of the group around it to the checked value. Renders nothing. */
 const Thumb = ({ groupRef }: { groupRef: RefObject<HTMLElement | null> }) => {
-	useSegmentedThumb(groupRef, RadioPrimitive.useRadioGroupValue());
+	useSlidingThumb(groupRef, RadioPrimitive.useRadioGroupValue(), thumbOptions);
 	return null;
 };
 
@@ -191,14 +188,18 @@ const Item = ({ className, ...props }: SegmentedControlItemProps) => {
 				"has-[>input:focus-visible]:focus-ring has-[>input:focus-visible]:z-1",
 				"cursor-pointer has-[>input:disabled]:cursor-default has-[>input:disabled]:opacity-50",
 				"not-has-[>input:disabled]:hover:text-strong",
-				// Why an anchor: the thumb slides under the checked item.
-				"has-[>input:checked]:not-in-data-dragging:text-strong has-[>input:checked]:[anchor-name:var(--_segmented-control-thumb)]",
+				// Why a pseudo-element of each item: the checked item draws the thumb, so the
+				// server HTML shows it. `useSlidingThumb` slides it from the item checked before.
+				"before:absolute before:top-0 before:left-0 before:-z-1 before:size-full before:rounded-xs has-[>input:checked]:before:bg-neutral-500/15",
+				// Why a private variable: during a drag, the thumb follows the pointer off its item.
+				"before:translate-x-(--_segmented-control-thumb-offset,0px)",
+				// Why: forced colors paint each background in the canvas color, so the thumb draws an outline there.
+				"forced-colors:has-[>input:checked]:before:outline-2",
+				"has-[>input:checked]:not-in-data-dragging:text-strong",
 				// Why: during a drag, the label under the thumb is strong, and the checked item can be away from it.
 				"data-thumb-over:text-strong",
 				// Why pan-y: a sideways swipe on the checked item drags the thumb, and the page still scrolls.
 				"has-[>input:checked]:touch-pan-y",
-				// Why: a browser with no anchor positioning draws no thumb, so the item fills itself.
-				"not-supports-[anchor-name:--a]:has-[>input:checked]:bg-neutral-500/15",
 				className,
 			)}
 			{...props}

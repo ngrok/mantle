@@ -1,10 +1,10 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import axe from "axe-core";
 import { useState } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+import { commands, userEvent } from "vitest/browser";
 import * as Tabs from "./tabs-parts.js";
 
 /**
@@ -1316,5 +1316,270 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		expect(screen.getByRole("tabpanel", { name: "B" })).toBe(panelB);
 		container.remove();
 		history.replaceState(null, "", window.location.pathname);
+	});
+});
+
+describe("Tabs indicator", () => {
+	let indicatorStyle: HTMLStyleElement;
+
+	// Why the compiled CSS: the indicator's geometry, its offset variable, and its
+	// touch action are the trigger's own utilities.
+	beforeAll(async () => {
+		indicatorStyle = document.createElement("style");
+		indicatorStyle.textContent = [
+			// Why: preflight, which the browser project does not load, takes the UA border off a button.
+			"button { border: 0; }",
+			await commands.tailwindCss("./tabs.tsx"),
+			await commands.tailwindCss("./headless-tabs.tsx"),
+		].join("\n");
+		document.head.appendChild(indicatorStyle);
+	});
+
+	afterAll(() => {
+		indicatorStyle.remove();
+	});
+
+	afterEach(async () => {
+		await commands.emulateMedia({ reducedMotion: "no-preference" });
+	});
+
+	/**
+	 * Renders three tabs of different widths, "Overview", "Logs", and
+	 * "Settings", with "Settings" active. `drag` moves a synthetic pointer from
+	 * the center of "Settings" through each stop along the list's axis, one
+	 * frame (16ms) apart, and rests before the release, so it is not a flick.
+	 */
+	function renderSections({
+		appearance,
+		orientation = "horizontal",
+		dir,
+		width = 480,
+	}: {
+		appearance?: "classic" | "pill";
+		orientation?: "horizontal" | "vertical";
+		dir?: "rtl";
+		width?: number;
+	} = {}) {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<div dir={dir} style={{ width }}>
+				<Tabs.Root
+					defaultValue="settings"
+					appearance={appearance}
+					orientation={orientation}
+					onValueChange={onValueChange}
+				>
+					<Tabs.List aria-label="Sections">
+						<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+						<Tabs.Trigger value="logs">Logs</Tabs.Trigger>
+						<Tabs.Trigger value="settings">Settings and access</Tabs.Trigger>
+					</Tabs.List>
+					<Tabs.Content value="overview">Overview panel</Tabs.Content>
+					<Tabs.Content value="logs">Logs panel</Tabs.Content>
+					<Tabs.Content value="settings">Settings panel</Tabs.Content>
+				</Tabs.Root>
+			</div>,
+		);
+		const vertical = orientation === "vertical";
+		const active = screen.getByRole("tab", { name: "Settings and access" });
+		const rect = active.getBoundingClientRect();
+		const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+		const send = (type: string, travel: number, timeStamp: number) => {
+			const event = new PointerEvent(type, {
+				pointerId: 1,
+				isPrimary: true,
+				button: 0,
+				buttons: type === "pointerup" ? 0 : 1,
+				bubbles: true,
+				clientX: center.x + (vertical ? 0 : travel),
+				clientY: center.y + (vertical ? travel : 0),
+			});
+			Object.defineProperty(event, "timeStamp", { value: timeStamp });
+			active.dispatchEvent(event);
+		};
+		const move = (stops: readonly number[]) => {
+			send("pointerdown", 0, 0);
+			for (const [index, stop] of stops.entries()) {
+				send("pointermove", stop, (index + 1) * 16);
+			}
+		};
+		const release = (travel: number, timeStamp: number) => send("pointerup", travel, timeStamp);
+		return { onValueChange, move, release, list: screen.getByRole("tablist") };
+	}
+
+	/** The box that `tab`'s indicator shows when its one slide starts, relative to `tab`. */
+	function slideStart(tab: HTMLElement) {
+		// Why subtree: an element's own list leaves out its pseudo-elements.
+		const slides = tab
+			.getAnimations({ subtree: true })
+			.filter(
+				({ effect }) => effect instanceof KeyframeEffect && effect.pseudoElement === "::after",
+			);
+		expect(slides).toHaveLength(1);
+		for (const slide of slides) {
+			slide.pause();
+			slide.currentTime = 0;
+		}
+		const style = getComputedStyle(tab, "::after");
+		const [x = "0", y = "0"] = style.translate.split(" ");
+		return {
+			x: Number.parseFloat(style.left) + Number.parseFloat(x),
+			y: Number.parseFloat(style.top) + Number.parseFloat(y),
+			width: Number.parseFloat(style.width),
+			height: Number.parseFloat(style.height),
+		};
+	}
+
+	test.each(["classic", "pill"] as const)(
+		"a click slides and resizes the %s indicator from the tab that was active",
+		async (appearance) => {
+			renderSections({ appearance });
+			const from = screen.getByRole("tab", { name: "Settings and access" }).getBoundingClientRect();
+			const overview = screen.getByRole("tab", { name: "Overview" });
+			const to = overview.getBoundingClientRect();
+
+			await userEvent.click(overview);
+
+			const slide = slideStart(overview);
+			expect(slide.x).toBeCloseTo(from.left - to.left, 0);
+			expect(slide.width).toBeCloseTo(from.width, 0);
+		},
+	);
+
+	test("a vertical indicator slides and resizes along the y axis", async () => {
+		renderSections({ orientation: "vertical" });
+		const from = screen.getByRole("tab", { name: "Settings and access" }).getBoundingClientRect();
+		const overview = screen.getByRole("tab", { name: "Overview" });
+		const to = overview.getBoundingClientRect();
+
+		await userEvent.click(overview);
+
+		const slide = slideStart(overview);
+		expect(slide.y).toBeCloseTo(from.top - to.top, 0);
+		expect(slide.height).toBeCloseTo(from.height, 0);
+	});
+
+	test("with reduced motion, the indicator moves at once", async () => {
+		await commands.emulateMedia({ reducedMotion: "reduce" });
+		renderSections();
+
+		await userEvent.click(screen.getByRole("tab", { name: "Overview" }));
+
+		expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
+		expect(screen.getByRole("tablist").getAnimations({ subtree: true })).toHaveLength(0);
+	});
+
+	test.each([
+		{ appearance: "classic", orientation: "horizontal", dir: undefined, travel: -1 },
+		{ appearance: "pill", orientation: "horizontal", dir: undefined, travel: -1 },
+		{ appearance: "classic", orientation: "vertical", dir: undefined, travel: -1 },
+		// Why right: in RTL, "Settings" is on the left and "Overview" is on the right.
+		{ appearance: "classic", orientation: "horizontal", dir: "rtl", travel: 1 },
+	] as const)(
+		"a $orientation $appearance drag ($dir) activates the tab it lands on at the release",
+		async ({ appearance, orientation, dir, travel }) => {
+			const { onValueChange, move, release, list } = renderSections({
+				appearance,
+				orientation,
+				dir,
+			});
+			const overview = screen.getByRole("tab", { name: "Overview" });
+			const settings = screen.getByRole("tab", { name: "Settings and access" });
+			const distance = Math.abs(
+				orientation === "vertical"
+					? overview.getBoundingClientRect().top - settings.getBoundingClientRect().top
+					: overview.getBoundingClientRect().left - settings.getBoundingClientRect().left,
+			);
+
+			move([travel * 20, travel * distance]);
+
+			// Why: the panel switches when the drag lands, not while it passes a tab.
+			expect(list).toHaveAttribute("data-dragging");
+			expect(overview).toHaveAttribute("data-thumb-over");
+			expect(onValueChange).not.toHaveBeenCalled();
+			expect(screen.getByRole("tabpanel")).toHaveTextContent("Settings panel");
+
+			release(travel * distance, 200);
+
+			expect(list).not.toHaveAttribute("data-dragging");
+			expect(onValueChange).toHaveBeenCalledTimes(1);
+			expect(onValueChange).toHaveBeenLastCalledWith("overview");
+			await vi.waitFor(() => {
+				expect(screen.getByRole("tabpanel")).toHaveTextContent("Overview panel");
+			});
+			expect(overview).toHaveFocus();
+			expect(overview.matches(":focus-visible")).toBe(false);
+			expect(overview).toHaveAttribute("tabindex", "0");
+		},
+	);
+
+	test("a press on an inactive tab that moves starts no drag", () => {
+		renderSections();
+		const overview = screen.getByRole("tab", { name: "Overview" });
+		const { x, y } = overview.getBoundingClientRect();
+		for (const [type, clientX] of [
+			["pointerdown", x + 5],
+			["pointermove", x + 200],
+		] as const) {
+			overview.dispatchEvent(
+				new PointerEvent(type, {
+					pointerId: 1,
+					isPrimary: true,
+					buttons: 1,
+					bubbles: true,
+					clientX,
+					clientY: y + 5,
+				}),
+			);
+		}
+
+		expect(screen.getByRole("tablist")).not.toHaveAttribute("data-dragging");
+	});
+
+	test("a touch swipe on the active tab drags in a list that fits and scrolls a list that overflows", async () => {
+		renderSections({ width: 480 });
+		const fits = screen.getByRole("tab", { name: "Settings and access" });
+		expect(getComputedStyle(fits).touchAction).toBe("pan-y");
+		cleanup();
+
+		renderSections({ width: 160 });
+		const list = screen.getByRole("tablist");
+		await vi.waitFor(() => {
+			expect(list).toHaveAttribute("data-overflowing");
+		});
+		const overflows = screen.getByRole("tab", { name: "Settings and access" });
+		expect(getComputedStyle(overflows).touchAction).toBe("auto");
+	});
+
+	test("a drag onto a link tab follows the link", async () => {
+		render(<LinkTabs />);
+		const tabA = screen.getByRole("tab", { name: "Tab A" });
+		const tabB = screen.getByRole("tab", { name: "Tab B" });
+		const a = tabA.getBoundingClientRect();
+		const b = tabB.getBoundingClientRect();
+		const send = (type: string, clientX: number) =>
+			tabA.dispatchEvent(
+				new PointerEvent(type, {
+					pointerId: 1,
+					isPrimary: true,
+					button: 0,
+					buttons: type === "pointerup" ? 0 : 1,
+					bubbles: true,
+					clientX,
+					clientY: a.top + a.height / 2,
+				}),
+			);
+		const start = a.left + a.width / 2;
+
+		send("pointerdown", start);
+		send("pointermove", start + 20);
+		send("pointermove", start + (b.left - a.left));
+		send("pointerup", start + (b.left - a.left));
+
+		// Why a wait: Firefox moves to a fragment that a script's click follows a task later.
+		await vi.waitFor(() => {
+			expect(window.location.hash).toBe("#b");
+			expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel B");
+		});
 	});
 });
