@@ -83,6 +83,20 @@ export function AppearanceExample() {
 	);
 }
 
+/** The "Height" example on the Text Area docs page. */
+export function HeightExample() {
+	return (
+		<PreviewCanvas>
+			<Field.Item name="textarea-height">
+				<Field.Label>Prompt</Field.Label>
+				<Field.Control>
+					<TextArea rows={2} placeholder="Ask a question…" />
+				</Field.Control>
+			</Field.Item>
+		</PreviewCanvas>
+	);
+}
+
 /** The "Validation" example on the Text Area docs page. */
 export function ValidationExample() {
 	return (

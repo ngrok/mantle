@@ -51,6 +51,28 @@ import { TextArea } from "@ngrok/mantle/text-area";
 
 </Example>
 
+## Height
+
+The field grows with its text up to `15rem`, then scrolls. Set `rows` to set its minimum height in lines, such as `rows={2}` for a short prompt. Without `rows`, the minimum height is `6rem`. The person can drag the resize handle to make the field taller, but not shorter than the minimum.
+
+<Example name="components/forms/text-area/height" title="Text Area height example">
+
+```tsx
+import { Field } from "@ngrok/mantle/field";
+import { TextArea } from "@ngrok/mantle/text-area";
+
+<Field.Item name="prompt">
+	<Field.Label>Prompt</Field.Label>
+	<Field.Control>
+		<TextArea rows={2} placeholder="Ask a question…" />
+	</Field.Control>
+</Field.Item>;
+```
+
+</Example>
+
+Set a `max-h-*` class to change the height where the field stops growing. A `rows` minimum taller than that cap wins. After a drag on the resize handle, the field keeps the height the person chose and does not grow. Browsers without `field-sizing` keep the `rows` height and scroll.
+
 ## Validation
 
 Set `validation` to show the validation status of the text area.
@@ -175,4 +197,5 @@ All props from [textarea](https://developer.mozilla.org/en-US/docs/Web/HTML/Elem
 | Prop          | Type                                                                                                       | Default | Description                                                                                                                                                                                                                                                                                                                   |
 | ------------- | ---------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `appearance?` | `"monospaced"`                                                                                             |         | Defines the visual style of the `TextArea`.                                                                                                                                                                                                                                                                                   |
+| `rows?`       | `number`                                                                                                   |         | The minimum height of the field in lines. Without `rows`, the minimum height is `6rem`.                                                                                                                                                                                                                                       |
 | `validation?` | `"error"` \| `"success"` \| `"warning"` \| `false` \| `(() => "error" \| "success" \| "warning" \| false)` |         | Use the `validation` prop to show if the textarea has a specific validation status. This will change the border and outline of the textarea. The `false` type is useful when using short-circuiting logic so that you don't need to use a ternary with `undefined`. Setting `validation` to `error` also sets `aria-invalid`. |
