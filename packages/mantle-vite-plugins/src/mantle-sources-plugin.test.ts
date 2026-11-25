@@ -735,6 +735,9 @@ describe("mantleSourcesPlugin build", () => {
 	});
 
 	test("prunes the theme stops the stylesheet does not read, unless themePrune is false", async () => {
+		// Why `[0].name` with no guard: the return type puts the sources plugin first.
+		expect(mantleSourcesPlugin()[0].name).toBe("vite-plugin-mantle-sources");
+		expect(mantleSourcesPlugin({ themePrune: false })).toHaveLength(1);
 		const unpruned = await buildFixture(root, [mantleSourcesPlugin({ themePrune: false })]);
 		const stops = (css: string) => css.match(/--color-[a-z]+-\d+:/g)?.length ?? 0;
 

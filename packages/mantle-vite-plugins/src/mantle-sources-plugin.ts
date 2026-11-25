@@ -776,7 +776,9 @@ function findMissing(input: {
  * });
  * ```
  */
-function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin[] {
+function mantleSourcesPlugin(
+	options: MantleSourcesPluginOptions = {},
+): [sources: Plugin, ...prune: Plugin[]] {
 	const {
 		onMiss = "error",
 		include = [],
