@@ -103,6 +103,21 @@ describe("Conversation", () => {
 		expect(ref).toHaveBeenLastCalledWith(list);
 	});
 
+	test("Content keeps a consumer's description ids beside the hint, even ones that look like classes", () => {
+		render(
+			<Conversation.Root>
+				<Conversation.Viewport>
+					<Conversation.Content aria-label="Messages" aria-describedby="hidden block" />
+				</Conversation.Viewport>
+			</Conversation.Root>,
+		);
+		const ids = screen
+			.getByRole("feed", { name: "Messages" })
+			.getAttribute("aria-describedby")
+			?.split(" ");
+		expect(ids?.slice(1)).toEqual(["hidden", "block"]);
+	});
+
 	test("a part outside Root throws", () => {
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() => render(<Conversation.ScrollButton />)).toThrow(

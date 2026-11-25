@@ -262,7 +262,8 @@ function Viewport({
 			const button = scrollButtonRef.current;
 			if (button != null) {
 				if (!scrolledUp && button.contains(document.activeElement)) {
-					newestMessage(element)?.focus({ preventScroll: true });
+					// Why the viewport: an empty transcript has no message to take focus.
+					(newestMessage(element) ?? element).focus({ preventScroll: true });
 				}
 				button.inert = !scrolledUp;
 			}
@@ -506,6 +507,15 @@ function isEditable(target: EventTarget | null): boolean {
 	);
 }
 
+/** Whether `element` is a scroll container with more to show, such as a code pane. */
+function canScroll(element: Element): boolean {
+	if (element.scrollHeight <= element.clientHeight) {
+		return false;
+	}
+	const { overflowY } = getComputedStyle(element);
+	return overflowY === "auto" || overflowY === "scroll";
+}
+
 /** Whether an element between `target` and `viewport` can scroll up, so it takes an upward wheel. */
 function nestedScrollerTakes(target: EventTarget | null, viewport: HTMLElement): boolean {
 	for (
@@ -562,10 +572,10 @@ function changesMessages(record: MutationRecord): boolean {
 /**
  * Scrolls `message` to the top of `viewport`, less its `scroll-margin-top`,
  * unless it and its scroll margins are already in full view. The margins
- * leave room for the focus ring. The viewport stops following the end
- * first, so a streamed answer cannot pull the view back down.
+ * leave room for the focus ring. Release following first for an earlier
+ * message, so a streamed answer cannot pull the view back down.
  */
-function scrollToMessage(viewport: HTMLElement, message: HTMLElement, release: () => void) {
+function scrollToMessage(viewport: HTMLElement, message: HTMLElement) {
 	const view = viewport.getBoundingClientRect();
 	const box = message.getBoundingClientRect();
 	const style = getComputedStyle(message);
@@ -574,7 +584,6 @@ function scrollToMessage(viewport: HTMLElement, message: HTMLElement, release: (
 	if (box.top - marginTop >= view.top && box.bottom + marginBottom <= view.bottom) {
 		return;
 	}
-	release();
 	// Why `instant`: a held arrow key repeats faster than a smooth scroll ends.
 	viewport.scrollTo?.({
 		top: viewport.scrollTop + box.top - view.top - marginTop,
@@ -605,6 +614,8 @@ function rovingMessages(viewport: HTMLElement, { release }: { release: () => voi
 	let pinned: HTMLElement | null = null;
 	/** The message that holds focus, or holds the focused element. */
 	let focused: HTMLElement | null = null;
+	/** The element that holds focus in the viewport, a message or a link or button in one. */
+	let focusTarget: Element | null = null;
 	const messages = () => Array.from(viewport.querySelectorAll<HTMLElement>(MESSAGE_SELECTOR));
 
 	const update = () => {
@@ -620,12 +631,30 @@ function rovingMessages(viewport: HTMLElement, { release }: { release: () => voi
 			// Why the attribute: an article with no `tabindex` already reads `tabIndex` -1, yet takes no focus.
 			setAttribute(message, "tabindex", message === stop ? "0" : "-1");
 		}
-		if (focused != null && !focused.isConnected) {
-			focused = null;
-			const active = document.activeElement;
-			if (active == null || active === document.body) {
-				stop?.focus({ preventScroll: true });
+		restoreFocus(stop);
+	};
+
+	/** Hands lost focus to its message, or to the tab stop when the message left too. */
+	const restoreFocus = (stop: HTMLElement | undefined) => {
+		if (focusTarget == null || focusTarget.isConnected) {
+			return;
+		}
+		const message = focused?.isConnected ? focused : stop;
+		focusTarget = null;
+		focused = null;
+		const active = document.activeElement;
+		if (message == null || (active != null && active !== document.body)) {
+			return;
+		}
+		message.focus({ preventScroll: true });
+		const view = viewport.getBoundingClientRect();
+		const box = message.getBoundingClientRect();
+		// Why only when out of view: the newest message at the end must stay where following keeps it.
+		if (box.bottom <= view.top || box.top >= view.bottom) {
+			if (message !== newestMessage(viewport)) {
+				release();
 			}
+			scrollToMessage(viewport, message);
 		}
 	};
 
@@ -635,39 +664,63 @@ function rovingMessages(viewport: HTMLElement, { release }: { release: () => voi
 		}
 		if (records.some(changesMessages)) {
 			update();
+		} else {
+			// Why: a removed link or button in a message that stays must hand focus to that message.
+			restoreFocus(pinned ?? newestMessage(viewport) ?? undefined);
 		}
 	});
-	const onFocusIn = (event: FocusEvent) => {
-		const message =
-			event.target instanceof Element ? event.target.closest<HTMLElement>(MESSAGE_SELECTOR) : null;
+	const track = (target: EventTarget | null) => {
+		if (!(target instanceof Element)) {
+			return;
+		}
+		const message = target.closest<HTMLElement>(MESSAGE_SELECTOR);
 		if (message == null || !viewport.contains(message)) {
 			return;
 		}
+		focusTarget = target;
 		focused = message;
 		pinned = message === newestMessage(viewport) ? null : message;
 		update();
 	};
+	const onFocusIn = (event: FocusEvent) => {
+		track(event.target);
+	};
 	const onFocusOut = (event: FocusEvent) => {
-		// Why only a known target: a removed element's focusout has none, and that focus must be restored.
-		if (event.relatedTarget instanceof Node && !viewport.contains(event.relatedTarget)) {
-			focused = null;
+		const { relatedTarget } = event;
+		if (relatedTarget instanceof Node && viewport.contains(relatedTarget)) {
+			return;
 		}
+		// Why a microtask: Chromium fires focusout on a removed element before it leaves the DOM.
+		// A removed message's focus must be restored; a click outside must not pull focus back.
+		queueMicrotask(() => {
+			if (focusTarget?.isConnected) {
+				focusTarget = null;
+				focused = null;
+			}
+		});
 	};
 	// Why on the document: it runs after React's handlers, so their preventDefault is visible.
 	const onKeyDown = (event: KeyboardEvent) => {
-		const { target } = event;
+		// Why the composed path: a document listener sees a shadow host, not the element in its shadow tree.
+		const path = event.composedPath();
+		const target = path[0];
 		if (
 			event.defaultPrevented ||
 			event.altKey ||
 			event.metaKey ||
 			event.shiftKey ||
 			!(target instanceof HTMLElement) ||
-			!viewport.contains(target)
+			!path.includes(viewport)
 		) {
 			return;
 		}
 		if (event.ctrlKey) {
-			if ((event.key === "End" || event.key === "Home") && !isEditable(target)) {
+			// Why the scroller skip: a focused code pane takes Control+End to reach its own end.
+			if (
+				(event.key === "End" || event.key === "Home") &&
+				!isEditable(target) &&
+				(target.matches(MESSAGE_SELECTOR) || !canScroll(target))
+			) {
 				const conversation = viewport.closest('[data-slot~="conversation"]') ?? viewport;
 				const after = event.key === "End";
 				// The neighbors come nearest first: those after, then those before.
@@ -694,7 +747,12 @@ function rovingMessages(viewport: HTMLElement, { release }: { release: () => voi
 				return;
 			}
 			event.preventDefault();
-			scrollToMessage(viewport, next, release);
+			// Why: a streamed update would otherwise scroll an earlier message out from under focus.
+			// The newest message keeps following, so a stream keeps it in view.
+			if (next !== list.at(-1)) {
+				release();
+			}
+			scrollToMessage(viewport, next);
 			next.focus({ preventScroll: true });
 		}
 	};
@@ -703,7 +761,12 @@ function rovingMessages(viewport: HTMLElement, { release }: { release: () => voi
 	viewport.addEventListener("focusin", onFocusIn);
 	viewport.addEventListener("focusout", onFocusOut);
 	document.addEventListener("keydown", onKeyDown);
-	update();
+	// Why: a child can hold focus before this runs, such as one with `autoFocus`.
+	if (viewport.contains(document.activeElement)) {
+		track(document.activeElement);
+	} else {
+		update();
+	}
 
 	return () => {
 		mutations.disconnect();
@@ -776,12 +839,14 @@ function Content({
 	...props
 }: ConversationContentProps) {
 	const Component = asChild ? Slot : "div";
-	const { hintId } = useConversationContext("Content");
+	// Why no invariant: a feed outside Root still works, with no keyboard hint.
+	const hintId = use(ConversationContext)?.hintId;
 
 	return (
 		<Component
 			role="feed"
-			aria-describedby={cx(hintId, describedBy)}
+			// Why not `cx`: it merges Tailwind classes and can drop an id that looks like one.
+			aria-describedby={[hintId, describedBy].filter(Boolean).join(" ") || undefined}
 			data-slot={joinDataSlot(dataSlot, "conversation-content")}
 			className={cx("flex flex-col gap-6", className)}
 			{...props}
@@ -878,7 +943,7 @@ function ScrollButton({
 					return;
 				}
 				scrollToEndRef.current?.(scrollBehavior);
-				newestMessage(viewportRef.current)?.focus({ preventScroll: true });
+				(newestMessage(viewportRef.current) ?? viewportRef.current)?.focus({ preventScroll: true });
 			}}
 			{...props}
 		/>

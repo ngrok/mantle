@@ -16,7 +16,9 @@ describe("Message", () => {
 			</div>,
 		);
 
-		const [question, answer] = screen.getAllByRole("article");
+		// Why the names: the feed pattern names each article, here by its speaker label.
+		const question = screen.getByRole("article", { name: "You said:" });
+		const answer = screen.getByRole("article", { name: "The assistant said:" });
 		expect(question).toHaveAttribute("data-from", "user");
 		expect(question).toHaveTextContent("You said: What's live?");
 		expect(answer).toHaveAttribute("data-from", "assistant");

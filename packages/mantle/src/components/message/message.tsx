@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps } from "react";
-import { createContext, use } from "react";
+import { createContext, use, useId, useMemo } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -25,12 +25,18 @@ const contentClassNames = {
 	assistant: "text-body w-full min-w-0 leading-relaxed",
 } as const satisfies Record<MessageFrom, string>;
 
-const MessageContext = createContext<MessageFrom | null>(null);
+type MessageContextValue = {
+	from: MessageFrom;
+	/** The `id` of the speaker label, which names the article. */
+	labelId: string;
+};
 
-function useMessageFrom(part: string): MessageFrom {
-	const from = use(MessageContext);
-	invariant(from != null, `Message.${part} must be rendered inside Message.Root.`);
-	return from;
+const MessageContext = createContext<MessageContextValue | null>(null);
+
+function useMessageContext(part: string): MessageContextValue {
+	const context = use(MessageContext);
+	invariant(context != null, `Message.${part} must be rendered inside Message.Root.`);
+	return context;
 }
 
 /**
@@ -95,10 +101,14 @@ function Root({
 	...props
 }: MessageRootProps) {
 	const Component = asChild ? Slot : "article";
+	const labelId = useId();
+	const context = useMemo(() => ({ from, labelId }), [from, labelId]);
 
 	return (
-		<MessageContext value={from}>
+		<MessageContext value={context}>
 			<Component
+				// Why: the feed pattern names each article; the speaker label in `Message.Content` says who wrote it.
+				aria-labelledby={labelId}
 				data-slot={joinDataSlot(dataSlot, "message")}
 				data-from={from}
 				className={cx(
@@ -161,7 +171,7 @@ const speakerLabels = {
  */
 // Why no asChild: the part renders its speaker label beside the children, and `Slot` takes one child.
 function Content({ "data-slot": dataSlot, children, className, ...props }: MessageContentProps) {
-	const from = useMessageFrom("Content");
+	const { from, labelId } = useMessageContext("Content");
 
 	return (
 		<div
@@ -169,7 +179,7 @@ function Content({ "data-slot": dataSlot, children, className, ...props }: Messa
 			className={cx("text-sm wrap-break-word", contentClassNames[from], className)}
 			{...props}
 		>
-			<VisuallyHidden>{speakerLabels[from]}</VisuallyHidden>
+			<VisuallyHidden id={labelId}>{speakerLabels[from]}</VisuallyHidden>
 			<div data-slot="message-content-label" className="contents">
 				{children}
 			</div>

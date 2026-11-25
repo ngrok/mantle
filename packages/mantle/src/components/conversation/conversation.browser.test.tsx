@@ -408,6 +408,92 @@ describe("Conversation", () => {
 		expect(messages().at(-1)).toHaveFocus();
 	});
 
+	test("Up to a message in view stops following, so the stream does not scroll it away", async () => {
+		const { rerender } = render(
+			<Transcript turns={[question, { id: "a1", from: "assistant", text: "Line 1" }]} />,
+		);
+		await nextFrame();
+		message(-1).focus();
+		await browserUser.keyboard("{ArrowUp}");
+		expect(message(0)).toHaveFocus();
+		rerender(<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />);
+		await nextFrame();
+		await nextFrame();
+		expect(message(0).getBoundingClientRect().bottom).toBeGreaterThan(
+			viewport().getBoundingClientRect().top,
+		);
+		expect(root()).toHaveAttribute("data-scrolled-up");
+	});
+
+	test("after the reader leaves for the page, a removed message does not pull focus back", async () => {
+		const answer: Turn = { id: "a1", from: "assistant", text: "Two have none." };
+		const { rerender } = render(
+			<>
+				<p>Outside</p>
+				<Transcript turns={[question, answer]} />
+			</>,
+		);
+		await nextFrame();
+		await browserUser.click(message(-1));
+		await browserUser.click(screen.getByText("Outside"));
+		expect(document.activeElement).toBe(document.body);
+		rerender(
+			<>
+				<p>Outside</p>
+				<Transcript turns={[question, { ...answer, id: "a1-retry" }]} />
+			</>,
+		);
+		await nextFrame();
+		expect(document.activeElement).toBe(document.body);
+	});
+
+	test("a removed button hands focus to its message", async () => {
+		const turns: Turn[] = [question, { id: "a1", from: "assistant", text: "Two have none." }];
+		const { rerender } = render(
+			<Transcript turns={turns} actions={<button type="button">Copy</button>} />,
+		);
+		await nextFrame();
+		screen.getByRole("button", { name: "Copy" }).focus();
+		rerender(<Transcript turns={turns} />);
+		await waitFor(() => expect(message(-1)).toHaveFocus());
+	});
+
+	test("Control+End in a scrolling code pane stays in the pane", async () => {
+		render(
+			<>
+				<Transcript
+					turns={[question, { id: "a1", from: "assistant", text: "Here is the policy." }]}
+					actions={
+						// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Why: a focusable scroller, as a code block is.
+						<pre tabIndex={0} style={{ height: 40, overflowY: "auto" }}>
+							{longAnswer}
+						</pre>
+					}
+				/>
+				<textarea aria-label="Message the assistant" />
+			</>,
+		);
+		await nextFrame();
+		const pane = message(-1).querySelector("pre");
+		pane?.focus();
+		await browserUser.keyboard("{Control>}{End}{/Control}");
+		expect(pane).toHaveFocus();
+	});
+
+	test("the scroll button hands focus to the viewport when the transcript empties", async () => {
+		const { rerender } = render(
+			<Transcript turns={[{ id: "a1", from: "assistant", text: longAnswer }]} />,
+		);
+		await nextFrame();
+		viewport().scrollTo({ top: 0, behavior: "instant" });
+		await waitFor(() => expect(root()).toHaveAttribute("data-scrolled-up"));
+		const button = screen.getByRole("button", { name: "Scroll to the latest message" });
+		button.focus();
+		rerender(<Transcript turns={[]} />);
+		await waitFor(() => expect(button).toHaveAttribute("inert"));
+		expect(viewport()).toHaveFocus();
+	});
+
 	test("a removed focused message hands focus to the new tab stop", async () => {
 		const answer: Turn = { id: "a1", from: "assistant", text: "Two have none." };
 		const { rerender } = render(<Transcript turns={[question, answer]} />);
