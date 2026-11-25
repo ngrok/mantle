@@ -345,8 +345,8 @@ describe("CodeBlock (browser)", () => {
 				throw new Error("expected the <code>");
 			}
 			getSelection()?.selectAllChildren(code);
-			expect(getSelection()?.toString()).toBe("alpha\n\nomega");
-			expect(code.textContent).toBe("alpha\n\nomega");
+			// Why the space: it is the only empty-line content that each engine copies as one blank line.
+			expect(getSelection()?.toString()).toBe("alpha\n \nomega");
 		});
 	});
 

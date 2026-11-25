@@ -428,10 +428,10 @@ const CodeLineView = memo(function CodeLineView({
 	line: CodeLine | string;
 	lineNumber: number;
 }) {
-	// Why `<br>`: an empty line keeps its height and a copied blank line, and `textContent` holds no character for it.
+	// Why a space: an empty line keeps its height, and each browser copies it as a blank line (see `decorateHighlightedHtml`).
 	let content: ReactNode;
 	if (line.length === 0) {
-		content = <br />;
+		content = " ";
 	} else if (typeof line === "string") {
 		content = line;
 	} else {

@@ -33,13 +33,13 @@ describe("decorateHighlightedHtml", () => {
 		expect(result).toContain("const y = 2;");
 	});
 
-	test("keeps an empty line empty, so the text is the code", () => {
+	test("gives an empty line one space, so it keeps its height and copies as a blank line", () => {
 		const html = shikiHtml(["line1", "", "line3"]);
 		const result = decorateHighlightedHtml({ html });
 		const container = document.createElement("div");
 		container.innerHTML = result;
 
-		expect(container.textContent).toBe("line1\n\nline3");
+		expect(container.textContent).toBe("line1\n \nline3");
 	});
 
 	test("carries line numbers in data-line-number, out of the text", () => {
