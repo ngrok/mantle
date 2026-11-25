@@ -618,24 +618,15 @@ const ItemValue = ({
 	const itemValue = valueProp ?? contextItemValue ?? "";
 	const userValue = userValueProp ?? inputValue;
 	const start = userValue === "" ? -1 : itemValue.toLowerCase().indexOf(userValue.toLowerCase());
-	const end = start === -1 ? -1 : start + userValue.length;
-	// Why a span for each character: the span keeps its part of the line across keystrokes, so the line
-	// can transition (`combobox-match-line` in mantle.css). Why a span at all: docs/browser-translation.md
-	const chars: ReactNode[] = [];
-	let offset = 0;
-	for (const char of itemValue) {
-		const matched = offset >= start && offset < end;
-		chars.push(
-			<span
-				key={offset}
-				data-user-value={matched ? "" : undefined}
-				data-autocomplete-value={matched ? undefined : ""}
-			>
-				{char}
-			</span>,
-		);
-		offset += char.length;
+	const end = start + userValue.length;
+	// Why the last match: when the text stops matching, the match span keeps its text, so its line can
+	// transition out (`combobox-match-line` in mantle.css). Set during render, so the exit starts on this commit.
+	const [lastMatch, setLastMatch] = useState<readonly [number, number] | null>(null);
+	if (start !== -1 && (lastMatch?.[0] !== start || lastMatch[1] !== end)) {
+		setLastMatch([start, end]);
 	}
+	const [from, to] = start === -1 ? (lastMatch ?? [0, itemValue.length]) : [start, end];
+	const matched = start !== -1;
 	return (
 		<span
 			data-slot={joinDataSlot(dataSlot, "combobox-item-value")}
@@ -648,7 +639,27 @@ const ItemValue = ({
 			ref={ref}
 			{...props}
 		>
-			{chars}
+			{/* Why a span for each slice: docs/browser-translation.md
+			    Why keys in an array: React keeps the match span across keystrokes, so its line can transition. */}
+			{[
+				from > 0 && (
+					<span key="before" data-autocomplete-value="">
+						{itemValue.slice(0, from)}
+					</span>
+				),
+				<span
+					key="match"
+					data-user-value={matched ? "" : undefined}
+					data-autocomplete-value={matched ? undefined : ""}
+				>
+					{itemValue.slice(from, to)}
+				</span>,
+				to < itemValue.length && (
+					<span key="after" data-autocomplete-value="">
+						{itemValue.slice(to)}
+					</span>
+				),
+			]}
 		</span>
 	);
 };

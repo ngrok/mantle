@@ -1574,41 +1574,35 @@ MARK: UTILITIES
 }
 
 /*
- * The line under the typed match of `Combobox.ItemValue`, which puts each
- * character in its own span. Each span draws its own part of the line with a
- * background, because a background's size and position can transition, and a
+ * The line under the typed match of `Combobox.ItemValue`. A background draws
+ * it, because a background's size and position can transition, and a
  * keystroke retargets a running transition. The line has at least 3:1
  * contrast on each row background.
- * - A span that is not next to the match parks its line below its box. A run
- *   of spans that starts or stops matching at once rises or sinks as one line.
- *   Its width resets out of view.
- * - The span after the match parks a line with no width. The next keystroke
- *   grows it from its left edge, and a Backspace shrinks it back.
+ * - When a match appears, its line grows from the left and rises 2px.
+ * - When the match goes away, its span keeps its text, and the line sinks 2px
+ *   below the box at its full width. The width resets out of view.
+ * - As the match grows or shrinks, the line follows its text with no motion.
  * `ease-out-strong` is cubic-bezier(0.23, 1, 0.32, 1).
  */
 @utility combobox-match-line {
 	& > span {
 		padding-bottom: 2px;
 		background: linear-gradient(var(--color-accent-600), var(--color-accent-600)) 0
-			calc(100% + 2px) / 100% 2px no-repeat;
+			calc(100% + 2px) / 0 2px no-repeat;
 		transition-property: background-size, background-position;
 		transition-duration: 0s, 150ms;
 		transition-delay: 150ms, 0s;
 		transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
 	}
 
-	& > [data-user-value] + [data-autocomplete-value] {
-		background-size: 0 2px;
-		transition-duration: 150ms;
-		transition-delay: 0s;
-	}
-
 	& > [data-user-value] {
+		background-size: 100% 2px;
 		background-position: 0 100%;
 		transition-duration: 200ms;
 		transition-delay: 0s;
 
 		@starting-style {
+			background-size: 0 2px;
 			background-position: 0 calc(100% + 2px);
 		}
 	}

@@ -177,33 +177,30 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		const plainGlyphs = glyphs("[data-autocomplete-value]");
 
 		await userEvent.type(input, "https://");
-		const textOf = (selector: string) =>
-			Array.from(option.querySelectorAll(selector), (span) => span.textContent).join("");
-		expect(textOf("[data-user-value]")).toBe("https://");
+		expect(slice("[data-user-value]")).toHaveTextContent("https://");
 		// Why close and not equal: the cut between slices can drop a kerning pair, under 0.05px.
 		expect(textWidth()).toBeCloseTo(plainWidth, 1);
 		expect(glyphs("[data-user-value]")).toEqual(plainGlyphs);
 		expect(glyphs("[data-autocomplete-value]")).toEqual(plainGlyphs);
-		// Why a poll: the line transitions in. Why each character: each one draws its own part of the line,
-		// and the character after the match parks a line with no width.
-		const drawsLine = (char: Element) => {
-			const style = getComputedStyle(char);
+		// Why a poll: the line transitions in.
+		const drawsLine = (selector: string) => {
+			const style = getComputedStyle(slice(selector));
 			return (
 				style.backgroundImage.startsWith("linear-gradient") &&
-				Number.parseFloat(style.backgroundSize) > 0 &&
+				style.backgroundSize === "100% 2px" &&
 				style.backgroundPositionY === "100%"
 			);
 		};
-		const chars = Array.from(slice('[data-slot="combobox-item-value"]').children);
-		await expect
-			.poll(() =>
-				chars
-					.filter(drawsLine)
-					.map((char) => char.textContent)
-					.join(""),
-			)
-			.toBe("https://");
+		await expect.poll(() => drawsLine("[data-user-value]")).toBe(true);
 		expect(option).toHaveAccessibleName("https://acme.ngrok.app");
+
+		// Why the old match keeps its own span: its line must stay on the same text while it transitions out.
+		const match = slice("[data-user-value]");
+		await userEvent.type(input, "x");
+		expect(match.textContent).toBe("https://");
+		expect(match).not.toHaveAttribute("data-user-value");
+		await expect.poll(() => getComputedStyle(match).backgroundSize).toBe("0px 2px");
+		expect(textWidth()).toBeCloseTo(plainWidth, 1);
 	});
 
 	test("typing filters and highlights the first match; arrows move; Enter fills the input", async () => {
