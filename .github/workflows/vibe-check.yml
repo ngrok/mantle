@@ -170,15 +170,14 @@ jobs:
       - name: Bundle Size 📦
         run: pnpm run report:bundle-size --json "$RUNNER_TEMP/head.json"
 
-      # Why the base: the report compares each size with the pull request's base commit.
+      # Why the merge commit's first parent: CI builds the pull request merged into the
+      # current `main`, and `pull_request.base.sha` can be an older `main`.
       - name: Bundle Size of the Base 📦
         if: github.event_name == 'pull_request'
         continue-on-error: true
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          git fetch --depth=1 origin "$BASE_SHA"
-          git worktree add "$RUNNER_TEMP/base" FETCH_HEAD
+          git fetch --depth=2 origin "$GITHUB_SHA"
+          git worktree add "$RUNNER_TEMP/base" "$GITHUB_SHA^1"
           (cd "$RUNNER_TEMP/base" && pnpm install --frozen-lockfile && pnpm -F @ngrok/mantle run build)
           pnpm run report:bundle-size --dist "$RUNNER_TEMP/base/packages/mantle/dist" --json "$RUNNER_TEMP/base.json"
 
