@@ -64,6 +64,9 @@ type ConversationRootProps = ComponentProps<"div"> &
  * when it ends. A live region that read each streamed word would interrupt
  * the reader.
  *
+ * It draws the focus ring while `Conversation.Viewport` has keyboard focus.
+ * The ring sits on Root, so the viewport's fade does not cover it.
+ *
  * The children sit in a `display: contents` wrapper, `data-slot="conversation-label"`,
  * so a translated loading message can change to a transcript.
  *
@@ -115,7 +118,13 @@ function Root({
 				ref={ref}
 				data-slot={joinDataSlot(dataSlot, "conversation")}
 				data-streaming={streaming ? "" : undefined}
-				className={cx("group/conversation relative flex min-h-0 flex-col", className)}
+				className={cx(
+					"group/conversation relative flex min-h-0 flex-col",
+					// Why on Root: the viewport's fade mask would fade a ring drawn on the viewport.
+					// Inset, so an ancestor card does not clip the ring.
+					"has-[[data-slot~=conversation-viewport]:focus-visible]:focus-ring has-[[data-slot~=conversation-viewport]:focus-visible]:ring-inset",
+					className,
+				)}
 				{...props}
 			>
 				<div data-slot="conversation-label" className="contents">
@@ -161,9 +170,9 @@ type ConversationViewportProps = ComponentProps<"div"> & WithAsChild & WithDataS
  * content lines up with a centered composer.
  *
  * The region is focusable, so a keyboard can scroll a transcript with no
- * focusable content. It draws no focus ring, because a ring around the whole
- * transcript fights the fade. A screen reader names the region on focus, and
- * the view moves with each key. Name it with `aria-label`.
+ * focusable content. Its keyboard focus ring sits on `Conversation.Root`,
+ * because the fade mask would fade a ring on the viewport. Name it with
+ * `aria-label`.
  *
  * On mount it starts at the end, unless something already moved it, such as
  * `useScrollAnchor` restoring the reader's place.
@@ -251,7 +260,7 @@ function Viewport({
 			data-slot={joinDataSlot(dataSlot, "conversation-viewport")}
 			className={cx(
 				// Why both gutters: centered content lines up with a centered composer below the viewport.
-				// Why no focus ring: a ring around the whole transcript fights the edge fade, as in Amp.
+				// Why no ring here: Root draws it, because the fade mask would fade a ring on the viewport.
 				// Why the negative offset: forced colors paint the hidden outline, and the fade mask clips one outside the box.
 				"scrollbar scrollbar-gutter-both scroll-fade-b min-h-0 flex-1 overflow-y-auto focus-visible:-outline-offset-4 focus-visible:outline-hidden",
 				className,

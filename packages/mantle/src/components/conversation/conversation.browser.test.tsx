@@ -241,6 +241,32 @@ describe("Conversation", () => {
 		},
 	);
 
+	test("Root draws the focus ring only while the viewport has keyboard focus", async () => {
+		// Why compiled CSS: the browser project loads no Tailwind stylesheet.
+		const css = await commands.tailwindCss("./conversation.tsx");
+		render(
+			<>
+				<style>{css}</style>
+				<button type="button">Before</button>
+				<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />
+			</>,
+		);
+		await nextFrame();
+		const ring = () => getComputedStyle(root()).boxShadow;
+		expect(ring()).toBe("none");
+
+		await browserUser.click(screen.getByRole("button", { name: "Before" }));
+		await browserUser.keyboard("{Tab}");
+		expect(viewport()).toHaveFocus();
+		expect(ring()).not.toBe("none");
+
+		// Why: a pointer press focuses the viewport without :focus-visible, so no ring shows.
+		await browserUser.click(screen.getByRole("button", { name: "Before" }));
+		await browserUser.click(viewport());
+		expect(viewport()).toHaveFocus();
+		expect(ring()).toBe("none");
+	});
+
 	test("a new viewport ref preserves following and a reader's place", async () => {
 		const answer: Turn = { id: "a1", from: "assistant", text: longAnswer };
 		const { rerender } = render(<Transcript viewportRef={() => {}} turns={[question, answer]} />);
