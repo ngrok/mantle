@@ -229,6 +229,33 @@ describe("Chip", () => {
 		expect(onClick).not.toHaveBeenCalled();
 	});
 
+	test("a selectable asChild chip keeps a disabled child disabled", () => {
+		render(
+			<Chip selectable asChild>
+				<button type="button" disabled>
+					Read
+				</button>
+			</Chip>,
+		);
+		expect(screen.getByRole("button", { name: "Read" })).toBeDisabled();
+	});
+
+	test("a conditional icon that is false renders no icon", () => {
+		const showIcon = false;
+		render(
+			<>
+				<Chip selectable icon={showIcon && <StarIcon />}>
+					Read
+				</Chip>
+				<Chip data-testid="plain" icon={showIcon && <StarIcon />}>
+					Write
+				</Chip>
+			</>,
+		);
+		expect(screen.getByTestId("plain").querySelector('[data-slot~="chip-icon"]')).toBeNull();
+		expect(screen.getByRole("button", { name: "Read" }).querySelector("svg")).not.toBeNull();
+	});
+
 	test("a selectable asChild chip does not submit its form", async () => {
 		const onSubmit = vi.fn<() => void>();
 		render(

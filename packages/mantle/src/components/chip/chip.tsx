@@ -41,8 +41,8 @@ const chipClassName = {
 		sm: "h-7 w-fit shrink-0 gap-0.5 whitespace-nowrap rounded-full px-2.5 font-sans text-sm font-medium",
 	},
 	square: {
-		xs: "gap-0.5 rounded-xs px-1.5 py-0.5 text-xs font-normal",
-		sm: "gap-0.5 rounded-xs px-1.5 py-0.5 text-sm font-normal",
+		xs: "gap-0.5 rounded-xs py-0.5 pr-0.5 pl-1.5 text-xs font-normal",
+		sm: "gap-0.5 rounded-xs py-0.5 pr-0.5 pl-1.5 text-sm font-normal",
 	},
 } as const satisfies Record<ChipAppearance, Record<ChipSize, string>>;
 
@@ -62,8 +62,8 @@ const removeClassName = {
 		sm: { button: "-me-0.5 rounded-full", icon: "size-3" },
 	},
 	square: {
-		xs: { button: "-me-1 rounded-xs", icon: "size-3" },
-		sm: { button: "-me-1 rounded-xs", icon: "size-4" },
+		xs: { button: "rounded-xs", icon: "size-3" },
+		sm: { button: "rounded-xs", icon: "size-4" },
 	},
 } as const satisfies Record<ChipAppearance, Record<ChipSize, { button: string; icon: string }>>;
 
@@ -104,6 +104,8 @@ type SelectableChipProps = Omit<ComponentProps<"button">, "type" | "aria-pressed
 	ChipPressedState & {
 		/** Renders a toggle button with `aria-pressed`. */
 		selectable: true;
+		/** Chip owns the pressed state; pass `pressed` or `defaultPressed` instead. */
+		"aria-pressed"?: never;
 		onRemove?: never;
 		removeLabel?: never;
 		locked?: never;
@@ -214,12 +216,11 @@ function SelectableChip({
 			className,
 		),
 	};
-	const icon =
-		customIcon != null ? (
-			<Icon data-slot="chip-icon" svg={customIcon} className="size-3" />
-		) : (
-			<StateIcon aria-hidden weight="bold" className="size-3 shrink-0" />
-		);
+	const icon = isValidElement(customIcon) ? (
+		<Icon data-slot="chip-icon" svg={customIcon} className="size-3" />
+	) : (
+		<StateIcon aria-hidden weight="bold" className="size-3 shrink-0" />
+	);
 	if (asChild) {
 		invariant(
 			isValidElement<{
@@ -239,7 +240,7 @@ function SelectableChip({
 				{/* Why these overrides: a child prop wins in Slot, but the chip owns the toggle semantics. */}
 				{cloneElement(
 					children,
-					{ type: "button", "aria-pressed": isPressed, disabled },
+					{ type: "button", "aria-pressed": isPressed, ...(disabled != null && { disabled }) },
 					<>
 						{icon}
 						<span data-slot="chip-label" className="contents">
@@ -355,7 +356,7 @@ function LabelChip({
 	);
 	const contentFor = (label: ReactNode) => (
 		<>
-			{icon != null && <Icon data-slot="chip-icon" svg={icon} className="size-3" />}
+			{isValidElement(icon) && <Icon data-slot="chip-icon" svg={icon} className="size-3" />}
 			<span data-slot="chip-label" className="contents">
 				<span className="px-0.5">{label}</span>
 			</span>
