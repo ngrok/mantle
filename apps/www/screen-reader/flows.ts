@@ -43,8 +43,12 @@ const TAB = "\\btab\\b";
 const CHECKED = "(?<!not |un)checked|(?<!not )selected|(?:^|\\| )on\\b";
 const UNCHECKED = "not checked|unchecked|\\boff\\b|not selected";
 const INVALID = "invalid|error";
-const TABLE = "\\btable\\b";
-const COLUMN_HEADER = "column ?header|columnheader";
+/**
+ * Speech that only a table gives: the role, a column header, or a column
+ * position. NVDA and VoiceOver start inside the table and say "column 2", not
+ * "table".
+ */
+const TABLE_CELL = "\\btable\\b|column ?header|\\bcolumn \\d";
 /** Speech that says "Toggle Sidebar" twice, as a name and again as the description. */
 const NAME_TWICE = "(toggle sidebar).*\\1";
 
@@ -403,11 +407,11 @@ export const flows: Flow[] = [
 		component: "Table",
 		path: "components/data-display/table/overview",
 		steps: [
-			{ next: true, expect: [TABLE] },
+			{ next: true, expect: [TABLE_CELL] },
 			{ next: true },
 			{ next: true },
 			{ next: true },
-			{ next: true, expect: [COLUMN_HEADER] },
+			{ next: true, expect: [TABLE_CELL] },
 		],
 	},
 	{
@@ -415,10 +419,10 @@ export const flows: Flow[] = [
 		component: "DataTable",
 		path: "components/data-display/data-table/action-column-with-a-dropdown-menu",
 		steps: [
-			{ next: true, expect: [TABLE] },
+			{ next: true, expect: [TABLE_CELL] },
 			{ next: true },
 			{ next: true },
-			{ next: true, expect: [COLUMN_HEADER] },
+			{ next: true, expect: [TABLE_CELL] },
 			{ next: true },
 		],
 	},
