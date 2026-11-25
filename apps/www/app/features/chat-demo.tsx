@@ -285,11 +285,11 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 								</Conversation.Content>
 							</Conversation.Viewport>
 						)}
-						{/* Why the column: the button sits just outside the transcript's right edge, not at the window's. */}
+						{/* Why the column: the button's right edge sits 4px inside the composer's, as in Amp, not at the window's. */}
 						{/* Why the gutters: the band reserves the scrollbar's space as the viewport does, so the column matches. */}
 						<div className="scrollbar-gutter-both pointer-events-none absolute inset-x-0 bottom-0 h-14 overflow-y-hidden">
 							<div className="relative mx-auto h-full max-w-3xl">
-								<Conversation.ScrollButton className="pointer-events-auto right-[calc(var(--gutter)+(--spacing(3.5)))] bottom-3" />
+								<Conversation.ScrollButton className="pointer-events-auto right-[calc(var(--gutter)+(--spacing(1)))] bottom-3" />
 							</div>
 						</div>
 					</Conversation.Root>
