@@ -185,6 +185,11 @@ Vite 8.3.8, mantle 0.94.1, Tailwind 4.3.5, and `mantleSourcesPlugin`.
   a dependency Tailwind doesn't scan, a separate stylesheet, or CSS another app serves. The build
   warns when another file of the build reads such a stop. Name the stop in a file the stylesheet
   scans to keep it, such as with `@source inline("bg-pink-300")`.
+- The build can't warn about CSS outside the build, such as CSS another app or a CDN serves, or
+  about a stop name that code builds at runtime, such as `` `var(--color-${hue}-300)` ``. Name
+  each such stop with `@source inline(…)`, or pass `themePrune: false` to `mantleSourcesPlugin`.
+- The `blue` stops and the `gray` aliases that mantle's light theme declares follow the same rule.
+  If the stylesheet doesn't read one of them, it loses its light value too.
 - Why only the same stylesheet: Vite fixes the stylesheet's hashed file name before the plugin
   runs. A result that depended on other files could change under the same cached URL.
 - The warning is conservative. In a build with several mantle stylesheets, it warns about a stop
