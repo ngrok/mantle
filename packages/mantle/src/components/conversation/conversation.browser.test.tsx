@@ -326,7 +326,7 @@ describe("Conversation", () => {
 
 	test("Tab lands on the newest message, which alone draws the ring, and only from the keyboard", async () => {
 		// Why compiled CSS: the browser project loads no Tailwind stylesheet.
-		const css = await commands.tailwindCss("../message/message.tsx");
+		const css = await commands.tailwindCss(["./conversation.tsx", "../message/message.tsx"]);
 		render(
 			<>
 				<style>{css}</style>
@@ -348,6 +348,11 @@ describe("Conversation", () => {
 		expect(ring(root())).toBe("none");
 		await browserUser.keyboard("{Tab}");
 		expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+
+		// Why: a click in the blank space focuses the viewport, and a key press after it must not ring the whole transcript.
+		viewport().focus();
+		expect(viewport().matches(":focus-visible")).toBe(true);
+		expect(getComputedStyle(viewport()).outlineStyle).toBe("none");
 
 		// Why: a pointer press focuses the message without :focus-visible, so no ring shows.
 		await browserUser.click(first);

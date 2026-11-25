@@ -186,9 +186,9 @@ type ConversationViewportProps = ComponentProps<"div"> & WithAsChild & WithDataS
  * The region reserves the scrollbar's space on both sides, so centered
  * content lines up with a centered composer.
  *
- * The viewport takes no focus itself: one message at a time does, as in
- * Claude's chat. Focus in a message scrolls the viewport by keyboard, and
- * Up and Down move between messages. See `Conversation.Content`.
+ * The viewport is no tab stop and draws no focus ring: one message at a time
+ * does, as in Claude's chat. Focus in a message scrolls the viewport by
+ * keyboard, and Up and Down move between messages. See `Conversation.Content`.
  *
  * On mount it starts at the end, unless something already moved it, such as
  * `useScrollAnchor` restoring the reader's place.
@@ -291,7 +291,9 @@ function Viewport({
 			data-slot={joinDataSlot(dataSlot, "conversation-viewport")}
 			className={cx(
 				// Why both gutters: centered content lines up with a centered composer below the viewport.
-				"scrollbar scrollbar-gutter-both scroll-fade-b min-h-0 flex-1 overflow-y-auto",
+				// Why no outline: a click in the blank space focuses the viewport, and the next key press
+				// would ring the whole transcript. The focused message draws the ring.
+				"scrollbar scrollbar-gutter-both scroll-fade-b min-h-0 flex-1 overflow-y-auto outline-none",
 				className,
 			)}
 			{...props}
