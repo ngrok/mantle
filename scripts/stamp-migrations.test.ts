@@ -66,12 +66,11 @@ describe("stampMigrations", () => {
 	});
 
 	// Catches: a codemod added after its guide shipped that never gets
-	// `codemodIn`, a restamped `introducedIn`, and a claim on a 0001-0035 codemod.
-	it("stamps codemodIn alone on a released slug-named guide that gains a codemod", () => {
-		const legacy = guide(["number: 14", 'introducedIn: "0.94.0"']);
+	// `codemodIn`, also in a numbered guide, and a restamped `introducedIn`.
+	it("stamps codemodIn alone on a released guide that gains a codemod", () => {
 		const { paths, read } = setup(
 			{
-				"0014-old-migration": legacy,
+				"0014-old-migration": guide(["number: 14", 'introducedIn: "0.94.0"']),
 				"late-migration": guide(["number: 36 # kept", 'introducedIn: "0.95.0"']),
 				"next-migration": guide([]),
 			},
@@ -79,10 +78,13 @@ describe("stampMigrations", () => {
 		);
 
 		expect(stampMigrations({ paths, version: "0.96.0" })).toEqual([
+			"0014-old-migration",
 			"late-migration",
 			"next-migration",
 		]);
-		expect(read("0014-old-migration")).toBe(legacy);
+		expect(read("0014-old-migration")).toBe(
+			guide(["number: 14", 'introducedIn: "0.94.0"', 'codemodIn: "0.96.0"']),
+		);
 		expect(read("late-migration")).toBe(
 			guide(["number: 36 # kept", 'introducedIn: "0.95.0"', 'codemodIn: "0.96.0"']),
 		);
