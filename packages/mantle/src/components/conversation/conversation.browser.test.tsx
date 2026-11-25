@@ -326,7 +326,7 @@ describe("Conversation", () => {
 
 	test("Tab lands on the newest message, which alone draws the ring, and only from the keyboard", async () => {
 		// Why compiled CSS: the browser project loads no Tailwind stylesheet.
-		const css = await commands.tailwindCss("../message/message.tsx");
+		const css = await commands.tailwindCss(["./conversation.tsx", "../message/message.tsx"]);
 		render(
 			<>
 				<style>{css}</style>
@@ -348,6 +348,12 @@ describe("Conversation", () => {
 		expect(ring(root())).toBe("none");
 		await browserUser.keyboard("{Tab}");
 		expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+
+		// Why: a click in the blank space focuses the viewport, and a key press after it must not ring the whole transcript.
+		viewport().focus();
+		expect(viewport().matches(":focus-visible")).toBe(true);
+		expect(getComputedStyle(viewport()).outlineStyle).toBe("none");
+		expect(getComputedStyle(viewport()).boxShadow).toBe("none");
 
 		// Why: a pointer press focuses the message without :focus-visible, so no ring shows.
 		await browserUser.click(first);
@@ -584,12 +590,25 @@ describe("Conversation", () => {
 		expect(message(1)).toHaveAttribute("tabindex", "-1");
 	});
 
-	test("removing the only focused message hands focus to the viewport", async () => {
-		const { rerender } = render(<Transcript turns={[question]} />);
+	test("removing the only focused message hands focus to the viewport, which then draws the ring", async () => {
+		const css = await commands.tailwindCss("./conversation.tsx");
+		const page = (turns: Turn[]) => (
+			<>
+				<style>{css}</style>
+				<button type="button">Before</button>
+				<Transcript turns={turns} />
+			</>
+		);
+		const { rerender } = render(page([question]));
 		await nextFrame();
-		message(0).focus();
-		rerender(<Transcript turns={[]} />);
+		await browserUser.click(screen.getByRole("button", { name: "Before" }));
+		await browserUser.keyboard("{Tab}");
+		expect(message(0)).toHaveFocus();
+		rerender(page([]));
 		await waitFor(() => expect(viewport()).toHaveFocus());
+		// Why: with no message left, the viewport is the only sign of where keyboard focus is.
+		expect(viewport().matches(":focus-visible")).toBe(true);
+		expect(getComputedStyle(viewport()).boxShadow).not.toBe("none");
 	});
 
 	test("Control+End from a link in a scrolling pane stays in the pane", async () => {

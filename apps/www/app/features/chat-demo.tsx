@@ -179,9 +179,10 @@ function ChatOutline({ messages }: { messages: ChatMessage[] }) {
  * no network. Ask anything with "fail" in it to see a failed answer.
  *
  * One gutter sets the layout at each width, as Amp does. The composer sits one
- * gutter in from the edge. The transcript sits 0.5rem further in, so its edges
- * line up with the composer's buttons and the composer is always the wider of
- * the two. The gutter is 0.75rem, and 1rem when the chat is wider than 32rem.
+ * gutter in from the edge. The transcript sits 1rem further in, the composer's
+ * corner radius, so the edge of a code block or a table meets the composer
+ * where its corner ends. The gutter is 0.75rem, and 1rem when the chat is
+ * wider than 32rem.
  */
 function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 	const [draft, setDraft] = useState("");
@@ -240,7 +241,7 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 							<Conversation.Viewport>
 								<Conversation.Content
 									aria-label="Conversation with the assistant"
-									className="mx-auto w-full max-w-3xl px-[calc(var(--gutter)+(--spacing(2)))] py-6"
+									className="mx-auto w-full max-w-3xl px-[calc(var(--gutter)+(--spacing(4)))] py-6"
 								>
 									{chat.messages.map((message) =>
 										message.from === "user" ? (
@@ -285,13 +286,19 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 							</Conversation.Viewport>
 						)}
 						{/* Why the column: the button sits just outside the transcript's right edge, not at the window's. */}
-						<div className="absolute inset-x-0 bottom-3 mx-auto max-w-3xl">
-							<Conversation.ScrollButton className="right-[calc(var(--gutter)+(--spacing(1.5)))] bottom-0" />
+						{/* Why the gutters: the band reserves the scrollbar's space as the viewport does, so the column matches. */}
+						<div className="scrollbar-gutter-both pointer-events-none absolute inset-x-0 bottom-0 h-14 overflow-y-hidden">
+							<div className="relative mx-auto h-full max-w-3xl">
+								<Conversation.ScrollButton className="pointer-events-auto right-[calc(var(--gutter)+(--spacing(3.5)))] bottom-3" />
+							</div>
 						</div>
 					</Conversation.Root>
 				</Panel.Body>
-				<Panel.Footer className="mx-auto w-full max-w-3xl px-(--gutter) pb-(--gutter)">
+				{/* Why the gutters: the footer reserves the scrollbar's space as the viewport does, so the composer's edges line up with the transcript's. */}
+				{/* Why the negative margin: a hidden overflow would clip the composer's focus ring. */}
+				<Panel.Footer className="scrollbar-gutter-both -mt-1 overflow-y-hidden px-(--gutter) pt-1 pb-(--gutter)">
 					<PromptInput.Root
+						className="mx-auto w-full max-w-[calc(var(--container-3xl)-2*var(--gutter))]"
 						streaming={chat.streaming}
 						onStop={chat.stop}
 						onFilesAdd={(added) => {
