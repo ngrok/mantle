@@ -103,6 +103,16 @@ Radix's `textValue` (collides semantically with `value`) and over cmdk-style
 `keywords: string[]` (a semantics change, kept open as a possible _additive_
 alias prop later).
 
+**Amended 2026-11-24 for `Combobox`.** `Combobox.Item` derives the text a pick
+writes into the input from its children, with no string prop, as Radix
+`Select.Value` shows the selected item's children. A pick reads the option's
+rendered text, so it costs one DOM read. A preset value walks the element tree
+that the caller wrote, as `Select`'s `findItemLabel` does: it runs once and on
+the server. Both skip `aria-hidden` subtrees, such as icons and avatars. A
+function child, or an item that a component of the app's own renders, shows its
+`value`; an app whose text still reads wrong controls `inputValue`. The rule above
+still holds for `SelectableList`, whose filter must match text it never renders.
+
 ## Consequences
 
 - Adding a third list flavor later means either a new prop/part on an existing

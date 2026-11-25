@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { ChangeEvent, FocusEvent, KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
 import { findTabbableDescendants } from "../components/alert/tabbable-neighbors.js";
@@ -27,6 +27,30 @@ type UseComboboxProps = {
 	defaultOpen?: boolean;
 	/** Called when the open state changes. */
 	onOpenChange?: (open: boolean) => void;
+	/**
+	 * Returns the text that the option with `value` shows, or `undefined` when
+	 * no option has it. A preset `value` or `defaultValue`, and a reset, write it
+	 * into the input when no input text is set.
+	 */
+	textFor?: (value: string) => string | undefined;
+};
+
+/** The text a node shows, without its `hidden` and `aria-hidden` parts, on one line. */
+const shownText = (node: Node): string => {
+	const read = (each: Node): string => {
+		if (each.nodeType === Node.TEXT_NODE) {
+			return each.textContent ?? "";
+		}
+		if (
+			!(each instanceof Element) ||
+			each.hasAttribute("hidden") ||
+			each.getAttribute("aria-hidden") === "true"
+		) {
+			return "";
+		}
+		return Array.from(each.childNodes, read).join("");
+	};
+	return read(node).replace(/\s+/g, " ").trim();
 };
 
 /**
@@ -63,7 +87,7 @@ type ComboboxBehavior = {
  */
 const useCombobox = ({
 	inputValue: inputValueProp,
-	defaultInputValue = "",
+	defaultInputValue,
 	onInputValueChange,
 	value: valueProp,
 	defaultValue,
@@ -71,6 +95,7 @@ const useCombobox = ({
 	open: openProp,
 	defaultOpen = false,
 	onOpenChange,
+	textFor,
 }: UseComboboxProps): ComboboxBehavior & {
 	/** The value of the picked option. */
 	value: string | undefined;
@@ -78,11 +103,34 @@ const useCombobox = ({
 	/** Returns the value and the text to their defaults, such as on a form reset. */
 	reset: () => void;
 } => {
-	const [inputValue, setInputValue] = useControllableState({
-		value: inputValueProp,
-		defaultValue: defaultInputValue,
-		onChange: onInputValueChange,
-	});
+	// Why the value as a fallback: an item that is not loaded, or that a component of
+	// your own renders, has no text to read.
+	const textOf = (option: string | undefined) =>
+		option == null || option === "" ? "" : (textFor?.(option) ?? option);
+	// Why lazy states: the walks for the preset texts run once, on the first render.
+	// The default's text outlives a filter that later hides its item, for a reset.
+	const [defaultText] = useState(() => defaultInputValue ?? textOf(defaultValue));
+	const [text, setText] = useState(() =>
+		valueProp === undefined || defaultInputValue !== undefined ? defaultText : textOf(valueProp),
+	);
+	/** The value whose text the input shows, to see a controlled `value` change. */
+	const [shownFor, setShownFor] = useState(valueProp ?? defaultValue);
+	// Why during render: a controlled `value` that the app changes, such as on its own
+	// form reset, shows its item's text in the same render, with no effect.
+	if (inputValueProp === undefined && valueProp !== undefined && valueProp !== shownFor) {
+		setShownFor(valueProp);
+		setText(textOf(valueProp));
+	}
+	const inputValue = inputValueProp ?? text;
+	const setInputValue = (next: string) => {
+		if (Object.is(next, inputValue)) {
+			return;
+		}
+		if (inputValueProp === undefined) {
+			setText(next);
+		}
+		onInputValueChange?.(next);
+	};
 	const [value, setValue] = useControllableState({
 		value: valueProp,
 		defaultValue,
@@ -108,8 +156,16 @@ const useCombobox = ({
 			if (popup != null && popup.contains(popup.ownerDocument.activeElement)) {
 				inputRef.current?.focus();
 			}
+			// Why the option's text: the input shows what the user picked, not an ID.
+			// Why before `setValue`: an `onValueChange` that closes the list removes the option.
+			const option = Array.from(popup?.querySelectorAll('[role="option"]') ?? []).find(
+				(each) => each.getAttribute("data-value") === next,
+			);
+			const picked =
+				(option instanceof HTMLElement && (option.dataset.textValue ?? shownText(option))) || next;
 			setValue(next);
-			setInputValue(next);
+			setShownFor(next);
+			setInputValue(picked);
 			setOpen(false);
 		},
 		ownerRef: inputRef,
@@ -117,7 +173,8 @@ const useCombobox = ({
 	});
 	const reset = () => {
 		setValue(defaultValue ?? "");
-		setInputValue(defaultInputValue);
+		setShownFor(defaultValue);
+		setInputValue(defaultText);
 	};
 	return {
 		value,

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps, ReactNode } from "react";
-import { createContext, use, useId, useMemo, useState } from "react";
+import { createContext, isValidElement, use, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { composeHandlers, disabledItemGuard } from "../../behaviors/compose-handlers.js";
 import { useCombobox, useComboboxInput, useComboboxPopup } from "../../behaviors/use-combobox.js";
@@ -45,7 +45,7 @@ const GroupLabelContext = createContext<string | undefined>(undefined);
 /** The element after the listbox in the open popup, where `Combobox.ContentFooter` renders. */
 const FooterHostContext = createContext<HTMLElement | null>(null);
 
-type ComboboxProps = UseComboboxProps & {
+type ComboboxProps = Omit<UseComboboxProps, "textFor"> & {
 	children?: ReactNode;
 	/**
 	 * The name the picked value submits under with its form. The text in
@@ -58,6 +58,54 @@ type ComboboxProps = UseComboboxProps & {
 	required?: boolean;
 	/** Whether the combobox is disabled. Its input takes no input, and the pick does not submit. */
 	disabled?: boolean;
+};
+
+const isNodeList = (node: ReactNode): node is readonly ReactNode[] => Array.isArray(node);
+
+/** The text that the elements in `node` show, without their `hidden` and `aria-hidden` parts. */
+const nodeText = (node: ReactNode): string => {
+	if (typeof node === "string" || typeof node === "number") {
+		return String(node);
+	}
+	if (isNodeList(node)) {
+		return node.map(nodeText).join("");
+	}
+	if (
+		!isValidElement<{ children?: ReactNode; hidden?: unknown; "aria-hidden"?: unknown }>(node) ||
+		Boolean(node.props.hidden) ||
+		String(node.props["aria-hidden"]) === "true"
+	) {
+		return "";
+	}
+	return nodeText(node.props.children);
+};
+
+/**
+ * Walks an element tree for the `Combobox.Item` with `value` and returns the
+ * text its children show, on one line, else `value`. It reads the elements
+ * that the caller wrote, so it works on the server. It misses an item that a
+ * component of your own renders, and a component with no `children` prop,
+ * such as `Combobox.ItemValue` or an icon, shows no text.
+ */
+const findItemText = (node: ReactNode, value: string): string | undefined => {
+	if (isNodeList(node)) {
+		for (const child of node) {
+			const found = findItemText(child, value);
+			if (found != null) {
+				return found;
+			}
+		}
+		return undefined;
+	}
+	if (!isValidElement<{ children?: ReactNode | OptionRender; value?: string }>(node)) {
+		return undefined;
+	}
+	const { children } = node.props;
+	if (node.type === Item && node.props.value === value) {
+		const text = typeof children === "function" ? "" : nodeText(children);
+		return text.replace(/\s+/g, " ").trim() || value;
+	}
+	return typeof children === "function" ? undefined : findItemText(children, value);
 };
 
 /**
@@ -91,7 +139,7 @@ type ComboboxProps = UseComboboxProps & {
  * ```
  */
 const Root = ({ children, name, form, required, disabled, ...props }: ComboboxProps) => {
-	const combobox = useCombobox(props);
+	const combobox = useCombobox({ ...props, textFor: (value) => findItemText(children, value) });
 	const contextValue = useMemo(
 		() => ({ ...combobox, name, form, disabled }),
 		[combobox, name, form, disabled],
@@ -225,7 +273,7 @@ const Input = ({
 			data-slot={joinDataSlot(dataSlot, "combobox-input")}
 			className={cx(
 				"pointer-coarse:text-base h-9 text-sm",
-				"bg-form relative block w-full rounded-md border px-3 py-2 border-form text-strong font-sans",
+				"bg-form relative block w-full rounded-md border px-3 py-2 border-form text-strong font-sans text-ellipsis",
 				"placeholder:text-placeholder",
 				"aria-disabled:opacity-50 disabled:opacity-50",
 				"hover:border-neutral-400",
@@ -381,6 +429,11 @@ type ComboboxItemProps = Omit<ComponentProps<"div">, "children" | "value"> &
 		 * The item's content, which defaults to its `value`. A function renders the
 		 * item as the element it returns, with the item's props and `{ highlighted }`:
 		 * spread `props` on that element.
+		 *
+		 * The input is a plain text input, so a pick puts only text in it, never
+		 * the content's elements. It writes the text the content shows, without its
+		 * `hidden` and `aria-hidden` parts, so filter on that text. A preset `value`
+		 * writes it too.
 		 */
 		children?: ReactNode | OptionRender;
 		/**
@@ -389,8 +442,8 @@ type ComboboxItemProps = Omit<ComponentProps<"div">, "children" | "value"> &
 		 */
 		disabled?: boolean;
 		/**
-		 * The value that picking the item writes into the input. An item with no
-		 * value is static text that the keyboard skips.
+		 * The value that picking the item sets on `Combobox.Root`, such as an ID. An
+		 * item with no value is static text that the keyboard skips.
 		 */
 		value?: string;
 	};
@@ -432,6 +485,9 @@ const Item = ({
 		value: value ?? "",
 		disabled: disabled || value == null,
 		id: childId({ asChild, children, id: props.id }),
+		// Why: a function child can render text only while highlighted, so a pick
+		// writes `value`, as a preset value does.
+		textValue: typeof children === "function" ? value : undefined,
 	});
 	const elementProps = {
 		...props,

@@ -93,6 +93,148 @@ describe("Combobox", () => {
 		expect(input).toHaveAttribute("data-validation", "error");
 	});
 
+	describe("the text a pick writes", () => {
+		const Owners = (props: { defaultValue?: string }) => (
+			<form aria-label="owner form">
+				<Combobox.Root name="owner" {...props}>
+					<Combobox.Input aria-label="Owner" />
+					<Combobox.Content>
+						<Combobox.Item value="usr_2a">Ada Lovelace</Combobox.Item>
+						<Combobox.Item value="usr_7f">
+							<span aria-hidden="true">GH</span>
+							<span>Grace Hopper</span> <span>(admin)</span>
+						</Combobox.Item>
+					</Combobox.Content>
+				</Combobox.Root>
+				<button type="reset">Reset</button>
+			</form>
+		);
+
+		// Red if a pick writes the ID, or the avatar initials, into the input.
+		test("a pick writes the children's text without aria-hidden parts, and the form submits the value", async () => {
+			const user = userEvent.setup();
+			render(<Owners />);
+			const input = screen.getByRole("combobox", { name: "Owner" });
+
+			await user.type(input, "Gr");
+			await user.click(screen.getByRole("option", { name: "Grace Hopper (admin)" }));
+
+			expect(input).toHaveValue("Grace Hopper (admin)");
+			const form = screen.getByRole<HTMLFormElement>("form", { name: "owner form" });
+			expect(new FormData(form).get("owner")).toBe("usr_7f");
+
+			// Why: a second pick of the same item changes no value, and the text must still come back.
+			await user.type(input, "x");
+			await user.keyboard("{ArrowDown}{Enter}");
+			expect(input).toHaveValue("Grace Hopper (admin)");
+		});
+
+		// Red if a preset value shows an empty input, on the server or after a reset.
+		test("a preset value shows its item's text on the server and after a form reset", async () => {
+			const user = userEvent.setup();
+			expect(renderToString(<Owners defaultValue="usr_7f" />)).toContain(
+				'value="Grace Hopper (admin)"',
+			);
+			render(<Owners defaultValue="usr_7f" />);
+			const input = screen.getByRole("combobox", { name: "Owner" });
+			expect(input).toHaveValue("Grace Hopper (admin)");
+
+			await user.clear(input);
+			await user.type(input, "Ad");
+			await user.keyboard("{Enter}");
+			expect(input).toHaveValue("Ada Lovelace");
+			await user.click(screen.getByRole("button", { name: "Reset" }));
+			expect(input).toHaveValue("Grace Hopper (admin)");
+		});
+	});
+
+	describe("the text a preset or changed value shows", () => {
+		// Red if a controlled value that the app changes leaves the old item's text in the input.
+		test("a controlled value that changes shows its item's text", () => {
+			const owners = (value: string) => (
+				<Combobox.Root value={value}>
+					<Combobox.Input aria-label="Owner" />
+					<Combobox.Content>
+						<Combobox.Item value="a">Ada</Combobox.Item>
+						<Combobox.Item value="g">Grace</Combobox.Item>
+					</Combobox.Content>
+				</Combobox.Root>
+			);
+			const { rerender } = render(owners("a"));
+			const input = screen.getByRole("combobox", { name: "Owner" });
+			expect(input).toHaveValue("Ada");
+			rerender(owners("g"));
+			expect(input).toHaveValue("Grace");
+			rerender(owners(""));
+			expect(input).toHaveValue("");
+		});
+
+		// Red if a reset reads the default's text from a list that the filter changed.
+		test("a reset restores the default's text after a filter hid its item", async () => {
+			const user = userEvent.setup();
+			const people = [
+				{ id: "a", name: "Ada Lovelace" },
+				{ id: "g", name: "Grace Hopper" },
+			];
+			const Filtered = () => {
+				const [query, setQuery] = useState("");
+				return (
+					<form>
+						<Combobox.Root name="owner" defaultValue="a" onInputValueChange={setQuery}>
+							<Combobox.Input aria-label="Owner" />
+							<Combobox.Content>
+								{people
+									.filter((person) => person.name.includes(query))
+									.map((person) => (
+										<Combobox.Item key={person.id} value={person.id}>
+											{person.name}
+										</Combobox.Item>
+									))}
+							</Combobox.Content>
+						</Combobox.Root>
+						<button type="reset">Reset</button>
+					</form>
+				);
+			};
+			render(<Filtered />);
+			const input = screen.getByRole("combobox", { name: "Owner" });
+			await user.clear(input);
+			await user.type(input, "Grace");
+			await user.keyboard("{Enter}");
+			expect(input).toHaveValue("Grace Hopper");
+			await user.click(screen.getByRole("button", { name: "Reset" }));
+			expect(input).toHaveValue("Ada Lovelace");
+		});
+
+		// Red if a value with no item to read, or an item with no text, shows an empty input.
+		test("a value with no text to read shows the value, preset and on a pick", async () => {
+			const user = userEvent.setup();
+			expect(
+				renderToString(
+					<Combobox.Root defaultValue="usr_7f">
+						<Combobox.Input aria-label="Owner" />
+						<Combobox.Content />
+					</Combobox.Root>,
+				),
+			).toContain('value="usr_7f"');
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Owner" />
+					<Combobox.Content>
+						<Combobox.Item value="usr_7f">
+							<span aria-hidden="true">GH</span>
+							<span hidden>hidden note</span>
+						</Combobox.Item>
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Owner" });
+			await user.click(input);
+			await user.click(screen.getByRole("option"));
+			expect(input).toHaveValue("usr_7f");
+		});
+	});
+
 	describe("Combobox.Item", () => {
 		// Red if a disabled item runs a click handler or follows its link: a disabled "create" row
 		// then acts. `Slot` runs the child's handler first, so only a capture guard stops it.
@@ -431,7 +573,7 @@ describe("Combobox", () => {
 			await user.click(input);
 			await user.click(screen.getByRole("option", { name: "Banana" }));
 			await user.click(screen.getByRole("button", { name: "Reset" }));
-			expect(input).toHaveValue("");
+			expect(input).toHaveValue("Apple");
 			expect(new FormData(fruitForm()).get("fruit")).toBe("Apple");
 		});
 
