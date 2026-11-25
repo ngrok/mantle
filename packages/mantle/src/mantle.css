@@ -1511,37 +1511,6 @@ MARK: UTILITIES
 	--tw-ring-color: --value(--ring-color-focus-*);
 }
 
-/**
- * The base of every native float, such as a `Popover` or a `Tooltip`. The
- * float is a `popover` in the top layer: these classes undo the browser's
- * centered `[popover]` box. It scales out when `data-open` goes away; it fades
- * in from the `starting:` classes that `floatClassName` adds. Chromium keeps
- * the float in the top layer for the exit (`overlay`). Firefox and Safari hide
- * it at once, because they do not transition `overlay`.
- *
- * Why `data-open` and `fixed`, with the `z-50` that `floatClassName` adds,
- * not `:popover-open`: a browser with no popover API (Safari before 17, Chrome
- * before 114, Firefox before 125) does not know `:popover-open` and has no top
- * layer. There the float is a plain
- * fixed box at the float tier, as before mantle used the popover API. The top
- * layer ignores `z-index`.
- *
- * Why `pointer-events-auto`: a modal from another library, such as a Radix
- * menu, sets `pointer-events: none` on `<body>`, and a float that portals
- * there would inherit it.
- *
- * Why `overscroll-none`: a float whose content scrolls, such as a tall
- * popover, does not bounce or scroll the page at its ends. It changes nothing
- * on a float that does not scroll.
- *
- * Tailwind sorts this utility before each plain utility that sets one of its
- * properties, so a class that a part or a consumer adds, such as
- * `overflow-auto`, wins, as a later class wins in a `cx` merge.
- */
-@utility floating-surface {
-	@apply pointer-events-auto fixed m-0 inset-auto overflow-visible overscroll-none not-data-open:opacity-0 not-data-open:scale-95 transition-[opacity,scale,display,overlay] transition-discrete duration-200 ease-out-strong not-data-open:duration-150;
-}
-
 @utility scrollbar {
 	scrollbar-color: --alpha(var(--color-neutral-800) / 50%) transparent;
 

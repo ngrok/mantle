@@ -12,24 +12,33 @@ import type { Align, Side } from "./position.js";
 
 /**
  * How long a closed float stays mounted for its exit transition, in
- * milliseconds. It matches `not-data-open:duration-150` in the `floating-surface`
- * utility in `mantle.css`.
+ * milliseconds. It matches `not-data-open:duration-150` in `floatClassName`.
  */
 const EXIT_DURATION = 150;
 
 /**
- * The classes every native float shares. `floating-surface` in `mantle.css`
- * holds most of them; that file says why each one is there.
+ * The classes every native float shares. The float is a `popover` in the top
+ * layer: these classes undo the browser's centered `[popover]` box. It fades
+ * and scales in from `@starting-style` and out when `data-open` goes away.
+ * Chromium keeps the float in the top layer for the exit (`overlay`). Firefox
+ * and Safari hide it at once, because they do not transition `overlay`.
  *
- * Why a utility: the class list then appears once in the stylesheet, not in
- * the script and the DOM of each float. Why `starting:` and `motion-reduce:`
- * stay here: a variant class sorts after each plain utility, so a consumer's
- * `opacity-*` or `transition-*` class cannot cancel the entry fade or the
- * reduced motion. Inside the utility, those rules would sort first. Why `z-50`
- * stays here: it is the float tier that `layer-container` documents.
+ * Why `data-open`, `fixed`, and `z-50`, not `:popover-open`: a browser with no
+ * popover API (Safari before 17, Chrome before 114, Firefox before 125) does
+ * not know `:popover-open` and has no top layer. There the float is a plain
+ * fixed box at the float tier, as before mantle used the popover API. The top
+ * layer ignores `z-index`.
+ *
+ * Why `pointer-events-auto`: a modal from another library, such as a Radix
+ * menu, sets `pointer-events: none` on `<body>`, and a float that portals
+ * there would inherit it.
+ *
+ * Why `overscroll-none`: a float whose content scrolls, such as a tall
+ * popover, does not bounce or scroll the page at its ends. It changes nothing
+ * on a float that does not scroll.
  */
 const floatClassName =
-	"floating-surface z-50 starting:opacity-0 starting:scale-95 motion-reduce:transition-none";
+	"pointer-events-auto fixed z-50 m-0 inset-auto overflow-visible overscroll-none starting:opacity-0 starting:scale-95 not-data-open:opacity-0 not-data-open:scale-95 transition-[opacity,scale,display,overlay] transition-discrete duration-200 ease-out-strong not-data-open:duration-150 motion-reduce:transition-none";
 
 /**
  * Whether the browser has the popover API. Without it, `useFloat` shows the

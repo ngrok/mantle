@@ -11,5 +11,5 @@ import type { DeepNonNullable } from "./deep-non-nullable.js";
  * ```
  */
 export type VariantProps<Variants extends (props: never) => string> = Partial<
-	DeepNonNullable<Omit<NonNullable<Parameters<Variants>[0]>, "class" | "className">>
+	DeepNonNullable<Omit<Exclude<Parameters<Variants>[0], undefined>, "class" | "className">>
 >;
