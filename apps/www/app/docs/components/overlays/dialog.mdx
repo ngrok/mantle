@@ -64,7 +64,7 @@ import { Button } from "@ngrok/mantle/button";
 
 ## Tab at the end of a dialog
 
-Tab from the last control in an open modal dialog moves focus to the browser UI, such as the address bar. More Tab presses bring focus back into the dialog. Shift+Tab from the first control does the same in reverse. The page behind the dialog never takes focus. This is what Tab does at the end of any page. It differs from mantle 0.94.1 on purpose: the Radix dialog wrapped Tab from the last control to the first.
+Tab from the last control in an open modal dialog moves focus to the browser UI, such as the address bar. More Tab presses bring focus back into the dialog. Shift+Tab from the first control does the same in reverse. The page behind the dialog never takes focus. This is what Tab does at the end of any page. It differs from mantle 0.94.1 on purpose: that dialog wrapped Tab from the last control to the first.
 
 mantle keeps the browser behavior because the HTML standard defines it and W3C's Accessible Platform Architectures (APA) Working Group endorsed it:
 
@@ -77,7 +77,7 @@ Do not add a focus trap on top of the dialog. The page behind stays out of reach
 
 ## UI above an open dialog
 
-An open dialog makes the rest of the page inert: no click, focus, or screen reader reaches it. mantle's `Toaster` and `Sandbar` move into the open dialog, so they paint above it and take clicks. Put any other control that a user must reach while the dialog is open inside the dialog content.
+An open dialog makes the rest of the page inert: no click, focus, or screen reader reaches it. To keep a banner or a bar usable above it, wrap the element in [`OverlayPrompt`](/components/primitives/overlay-prompt): it moves into the open dialog, so it paints above it, takes clicks and focus, and a press in it does not close the dialog. mantle's `Toaster` and `Sandbar` use it.
 
 ## Third-party popups
 
@@ -470,7 +470,7 @@ import { Field, toErrorMessages } from "@ngrok/mantle/field";
 import { Input } from "@ngrok/mantle/input";
 import { Select } from "@ngrok/mantle/select";
 import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { z } from "zod";
 
 const formSchema = z.object({
@@ -480,6 +480,7 @@ const formSchema = z.object({
 
 function Example() {
 	const [open, setOpen] = useState(false);
+	const formRef = useRef<HTMLFormElement>(null);
 	const form = useForm({
 		defaultValues: {
 			email: "",
@@ -487,6 +488,13 @@ function Example() {
 		},
 		validators: {
 			onSubmit: formSchema,
+		},
+		// Why: a failed submit moves focus to the first invalid field, so a screen
+		// reader says what to fix. The frame lets the fields render their errors first.
+		onSubmitInvalid: () => {
+			requestAnimationFrame(() => {
+				formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+			});
 		},
 		onSubmit: ({ value }) => {
 			// Handle the invite with `value`, then close the dialog
@@ -514,6 +522,7 @@ function Example() {
 					<Dialog.CloseIconButton />
 				</Dialog.Header>
 				<form
+					ref={formRef}
 					className="contents"
 					noValidate
 					onSubmit={(event) => {
@@ -640,10 +649,11 @@ The panel of the dialog, centered in the viewport. `ref`, `className`, and other
 | `onInteractOutside?`    | `(event: PointerDownOutsideEvent) => void`      |              | Event handler called on the same presses as `onPointerDownOutside`, after it. It can be prevented by calling `event.preventDefault`.                                                                                            |
 | `onPointerDownOutside?` | `(event: PointerDownOutsideEvent) => void`      |              | Event handler called when a press starts on the backdrop, or anywhere outside a dialog that is not modal. It can be prevented by calling `event.preventDefault`. See [Handling autofill overlays](#handling-autofill-overlays). |
 
-| Data Attribute    | Value                                           | Description                                                                                           |
-| ----------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `data-appearance` | `"centered"` \| `"full-page"` \| `"full-bleed"` | Reflects the resolved `appearance`.                                                                   |
-| `data-state`      | `"open"` \| `"closed"`                          | Drives the open and close animation. `"closed"` holds through the exit, before the `<dialog>` closes. |
+| Data Attribute    | Value                                           | Description                                                    |
+| ----------------- | ----------------------------------------------- | -------------------------------------------------------------- |
+| `data-appearance` | `"centered"` \| `"full-page"` \| `"full-bleed"` | Reflects the resolved `appearance`.                            |
+| `data-open`       | present while open                              | Presence-only. The `[open]` mirror the open animation keys on. |
+| `data-closing`    | present while the exit plays                    | Presence-only. Drives the close animation.                     |
 
 ### Dialog.Header
 

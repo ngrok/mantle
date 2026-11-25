@@ -21,8 +21,8 @@ export default function MigrationsPage() {
 				guide&rsquo;s URL to fetch its raw markdown.
 			</p>
 			<p className="mb-4 leading-relaxed text-pretty text-body">
-				Each guide has a number in the order it shipped, and the list shows the newest guide first.
-				The number is the prefix of the guide&rsquo;s URL.
+				Each guide gets a number when it ships, and the list shows the newest guide first. A guide
+				that has not shipped yet shows Unreleased.
 			</p>
 			<MigrationsList />
 		</div>

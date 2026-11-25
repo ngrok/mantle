@@ -37,8 +37,8 @@ const scope = createScope();
  * nearest `Sheet.Root` and never to a `Dialog.Root`. The reverse holds too: a
  * `Dialog.Trigger` or `Command.SearchTrigger` inside `Sheet.Content` reaches
  * the `Dialog.Root` or `Command.DialogRoot` above the sheet, not the sheet. A
- * `Dialog.Close` inside a sheet with no `Dialog.Root` above it throws Radix's
- * "must be used within `Dialog`"; use `Sheet.Close` to close a sheet.
+ * `Dialog.Close` inside a sheet with no `Dialog.Root` above it throws, because
+ * it must render inside its `Root`; use `Sheet.Close` to close a sheet.
  *
  * `Sheet` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier,
  * above every float (`z-50`). Floats composed inside the content portal into
@@ -260,11 +260,13 @@ type SheetContentProps = Omit<
  * the content. When multiple overlays are open, the most recently mounted
  * overlay renders on top.
  *
- * A modal sheet makes the rest of the page inert, so UI outside it takes no
- * input while it is open. mantle's `Toaster` and `Sandbar` move into the open
- * sheet, so they stay usable. With `modal={false}`, UI with the
- * `overlay-prompt` class takes clicks above the sheet: a click inside it does
- * not count as an outside click.
+ * A modal sheet makes the rest of the page inert. To keep app UI usable
+ * above it, such as a consent banner, wrap the UI in `OverlayPrompt`: while
+ * the sheet is open, it moves into the sheet, so it takes clicks and focus,
+ * and a press in it does not close the sheet. mantle's `Toaster` and
+ * `Sandbar` use it. With `modal={false}`, UI with the `overlay-prompt`
+ * class takes clicks above the sheet: a click inside it does not count as
+ * an outside click.
  *
  * A script can show its own popup in a frame on `<body>`, such as the 3-D
  * Secure challenge of a payment script. Set `modal={false}` on a sheet that
@@ -336,7 +338,7 @@ const Content = ({
 		data-slot={joinDataSlot(dataSlot, "sheet-content")}
 		className={cx(
 			contentSurfaceClassName({ side, preferredWidth }),
-			"data-state-closed:animate-out data-state-open:animate-in duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
+			"data-closing:animate-out data-open:animate-in duration-200 ease-out-strong data-closing:duration-150 motion-reduce:animate-none!",
 			slideClassName[side],
 			className,
 		)}

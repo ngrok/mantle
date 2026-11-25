@@ -174,16 +174,15 @@ test("a CopyButton consumer onClick that prevents default cancels the copy", asy
 	const onClick = vi.fn<(event: MouseEvent<HTMLButtonElement>) => void>((event) => {
 		event.preventDefault();
 	});
-	const { container } = render(
+	render(
 		<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
 			<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			<BarChart.CopyButton onClick={onClick} onCopy={onCopy} />
 		</BarChart.Root>,
 	);
 	const button = screen.getByRole("button", { name: "Copy data as Markdown" });
-	// Why the slot: the keyboard announcer is a second `role="status"` span. The
-	// copy button's region is the chart's only `LiveRegion`.
-	const status = container.querySelector('[data-slot="live-region"]');
+	// Why the slot: the keyboard announcer is a second `role="status"` span.
+	const status = document.body.querySelector(':scope > [data-slot="shared-status"]');
 	expect(status).toHaveAttribute("role", "status");
 	await user.click(button);
 	expect(onClick).toHaveBeenCalledTimes(1);
@@ -329,7 +328,7 @@ describe("server render", () => {
 
 	test("the server markup is dormant, with a plain count and no table or formatted date", () => {
 		const html = renderToString(chart);
-		expect(html).toContain('data-state="dormant"');
+		expect(html).not.toContain("data-engaged");
 		// Parts register in layout effects, so the server lists no series: the
 		// series span between the sentence and the instructions is empty.
 		expect(html).toContain(
@@ -681,7 +680,7 @@ describe("static mode", () => {
 		);
 		expect(screen.queryByRole("application")).toBeNull();
 		expect(container.querySelector("[tabindex]")).toBeNull();
-		expect(container.querySelector('[data-slot="bar-chart"]')).not.toHaveAttribute("data-state");
+		expect(container.querySelector('[data-slot="bar-chart"]')).not.toHaveAttribute("data-engaged");
 		// The plot holds the surface alone: without an overlay the hover layers are dead DOM.
 		expect(container.querySelector(SURFACE)).toBeInTheDocument();
 		for (const slot of ["crosshair", "hover-band", "markers"]) {

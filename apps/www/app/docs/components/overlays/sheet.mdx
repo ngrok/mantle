@@ -93,7 +93,7 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 
 ## UI above an open sheet
 
-An open sheet makes the rest of the page inert: no click, focus, or screen reader reaches it. mantle's `Toaster` and `Sandbar` move into the open sheet, so they paint above it and take clicks. Put any other control that a user must reach while the sheet is open inside the sheet content.
+An open sheet makes the rest of the page inert: no click, focus, or screen reader reaches it. To keep a banner or a bar usable above it, wrap the element in [`OverlayPrompt`](/components/primitives/overlay-prompt): it moves into the open sheet, so it paints above it, takes clicks and focus, and a press in it does not close the sheet. mantle's `Toaster` and `Sandbar` use it.
 
 ## Third-party popups
 
@@ -456,7 +456,7 @@ import { Input } from "@ngrok/mantle/input";
 import { Sheet } from "@ngrok/mantle/sheet";
 import { TextArea } from "@ngrok/mantle/text-area";
 import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { z } from "zod";
 
 const formSchema = z.object({
@@ -466,6 +466,7 @@ const formSchema = z.object({
 
 function Example() {
 	const [open, setOpen] = useState(false);
+	const formRef = useRef<HTMLFormElement>(null);
 	const form = useForm({
 		defaultValues: {
 			name: "",
@@ -473,6 +474,13 @@ function Example() {
 		},
 		validators: {
 			onSubmit: formSchema,
+		},
+		// Why: a failed submit moves focus to the first invalid field, so a screen
+		// reader says what to fix. The frame lets the fields render their errors first.
+		onSubmitInvalid: () => {
+			requestAnimationFrame(() => {
+				formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+			});
 		},
 		onSubmit: ({ value }) => {
 			// Handle the create with `value`, then close the sheet
@@ -507,6 +515,7 @@ function Example() {
 					</Sheet.Description>
 				</Sheet.Header>
 				<form
+					ref={formRef}
 					className="contents"
 					onSubmit={(event) => {
 						event.preventDefault();

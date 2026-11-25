@@ -2,7 +2,7 @@
   {
     "name": "Assistant Across Routes",
     "slug": "recipes/assistant-across-routes",
-    "summary": "Render an assistant in main on its own route and in the AppLayout side panel on every other route, with one conversation above both and a 300ms View Transition that morphs the page into the panel.",
+    "summary": "Render an assistant in main on its own route and in the AppLayout side panel on every other route, with one conversation above both, a 300ms View Transition that morphs the page into the panel, and the reader's place kept across the switch.",
     "useWhen": "Show an assistant as its own page on one route and in the side panel on every other route, with one conversation for both.",
     "aliases": [
       "assistant side panel",
@@ -45,6 +45,40 @@
       "Field",
       "Button",
       "Sandbar"
+    ]
+  },
+  {
+    "name": "Chat",
+    "slug": "recipes/chat",
+    "summary": "Compose the AI chat parts into a full assistant, with a composer that takes files, a model, and dictation, a transcript that follows a streaming Markdown answer, and stop, retry, an empty state, and a failure notice.",
+    "useWhen": "Build an AI assistant or a model playground from the mantle chat parts, with streaming answers, stop, and retry.",
+    "aliases": [
+      "ai chat",
+      "assistant",
+      "chatbot",
+      "chat ui",
+      "llm chat",
+      "model playground",
+      "ai assistant"
+    ],
+    "parts": [
+      "AppLayout",
+      "Panel",
+      "PromptInput",
+      "Attachment",
+      "DropdownMenu",
+      "Badge",
+      "Conversation",
+      "ConversationOutline",
+      "Message",
+      "Work",
+      "Reasoning",
+      "ToolCall",
+      "Markdown",
+      "CodeBlock",
+      "Empty",
+      "Alert",
+      "Toast"
     ]
   },
   {
@@ -103,7 +137,8 @@
     "aliases": [
       "ai search",
       "natural language filter",
-      "plain language search"
+      "plain language search",
+      "type a question to filter"
     ],
     "parts": [
       "Query",

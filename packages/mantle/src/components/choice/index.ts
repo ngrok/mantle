@@ -34,7 +34,8 @@ import * as ChoiceParts from "./choice-parts.js";
  * accessible name is the title alone and the description is its
  * `aria-describedby`.
  *
- * @useWhen Put a checkbox, a radio, or a switch beside a title and an optional description.
+ * @useWhen Put a checkbox, a radio, or a toggle switch beside a title and an optional description,
+ * such as an explanation of one or more lines.
  *
  * @siblings
  * - `Label`: the control needs only a one-line caption.

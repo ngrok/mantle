@@ -117,8 +117,9 @@ const paymentColumns = paymentColumnHelper.columns([
 	}),
 	paymentColumnHelper.accessor("amount", {
 		id: "amount",
+		meta: { width: "fit" },
 		header: (props) => (
-			<DataTable.Header className="w-50" column={props.column}>
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton
 					className="justify-end"
 					column={props.column}
@@ -129,10 +130,15 @@ const paymentColumns = paymentColumnHelper.columns([
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
+		cell: (props) => (
+			<DataTable.Cell column={props.column} className="text-right">
+				{props.getValue()}
+			</DataTable.Cell>
+		),
 	}),
 	paymentColumnHelper.accessor("status", {
 		id: "status",
+		meta: { width: "fit" },
 		header: (props) => (
 			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
@@ -140,7 +146,7 @@ const paymentColumns = paymentColumnHelper.columns([
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 	paymentColumnHelper.accessor("email", {
 		id: "email",
@@ -340,71 +346,74 @@ const endpointColumnHelper = createColumnHelper<typeof sortableFeatures, Endpoin
 const endpointColumns = endpointColumnHelper.columns([
 	endpointColumnHelper.accessor("region", {
 		id: "region",
+		meta: { width: "fit" },
 		header: (props) => (
-			<DataTable.Header column={props.column} className="min-w-28">
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					Region
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 	endpointColumnHelper.accessor("url", {
 		id: "url",
 		header: (props) => (
-			<DataTable.Header column={props.column} className="min-w-100">
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					URL
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => (
-			<DataTable.Cell className="truncate max-w-100">{props.getValue()}</DataTable.Cell>
-		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
 	endpointColumnHelper.accessor("type", {
 		id: "type",
+		meta: { width: "fit" },
 		header: (props) => (
-			<DataTable.Header column={props.column} className="min-w-20">
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					Type
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 	endpointColumnHelper.accessor("binding", {
 		id: "binding",
+		meta: { width: "fit" },
 		header: (props) => (
-			<DataTable.Header column={props.column} className="min-w-24">
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					Binding
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 	endpointColumnHelper.accessor("created", {
 		id: "created",
+		meta: { width: "fit" },
 		header: (props) => (
-			<DataTable.Header column={props.column} className="min-w-28">
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					Created
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 	endpointColumnHelper.accessor("updated", {
 		id: "updated",
+		meta: { width: "fit" },
 		header: (props) => (
-			<DataTable.Header column={props.column} className="min-w-28">
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					Updated
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 	endpointColumnHelper.display({
 		id: "actions",
@@ -520,8 +529,9 @@ const filterableColumns = filterableColumnHelper.columns([
 	}),
 	filterableColumnHelper.accessor("amount", {
 		id: "amount",
+		meta: { width: "fit" },
 		header: (props) => (
-			<DataTable.Header className="w-50" column={props.column}>
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton
 					className="justify-end"
 					column={props.column}
@@ -532,10 +542,15 @@ const filterableColumns = filterableColumnHelper.columns([
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
+		cell: (props) => (
+			<DataTable.Cell column={props.column} className="text-right">
+				{props.getValue()}
+			</DataTable.Cell>
+		),
 	}),
 	filterableColumnHelper.accessor("status", {
 		id: "status",
+		meta: { width: "fit" },
 		header: (props) => (
 			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
@@ -543,7 +558,7 @@ const filterableColumns = filterableColumnHelper.columns([
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 	filterableColumnHelper.accessor("email", {
 		id: "email",
@@ -687,8 +702,9 @@ const paginatedColumns = paginatedColumnHelper.columns([
 	}),
 	paginatedColumnHelper.accessor("amount", {
 		id: "amount",
+		meta: { width: "fit" },
 		header: (props) => (
-			<DataTable.Header className="w-50" column={props.column}>
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton
 					className="justify-end"
 					column={props.column}
@@ -699,10 +715,15 @@ const paginatedColumns = paginatedColumnHelper.columns([
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
+		cell: (props) => (
+			<DataTable.Cell column={props.column} className="text-right">
+				{props.getValue()}
+			</DataTable.Cell>
+		),
 	}),
 	paginatedColumnHelper.accessor("status", {
 		id: "status",
+		meta: { width: "fit" },
 		header: (props) => (
 			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
@@ -710,7 +731,7 @@ const paginatedColumns = paginatedColumnHelper.columns([
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 	paginatedColumnHelper.accessor("email", {
 		id: "email",
@@ -852,8 +873,9 @@ const selectableColumns = selectableColumnHelper.columns([
 	}),
 	selectableColumnHelper.accessor("amount", {
 		id: "amount",
+		meta: { width: "fit" },
 		header: (props) => (
-			<DataTable.Header className="w-50" column={props.column}>
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton
 					className="justify-end"
 					column={props.column}
@@ -864,10 +886,15 @@ const selectableColumns = selectableColumnHelper.columns([
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
+		cell: (props) => (
+			<DataTable.Cell column={props.column} className="text-right">
+				{props.getValue()}
+			</DataTable.Cell>
+		),
 	}),
 	selectableColumnHelper.accessor("status", {
 		id: "status",
+		meta: { width: "fit" },
 		header: (props) => (
 			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
@@ -875,7 +902,7 @@ const selectableColumns = selectableColumnHelper.columns([
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 	selectableColumnHelper.accessor("email", {
 		id: "email",
@@ -974,8 +1001,9 @@ const expandableColumns = expandableColumnHelper.columns([
 	}),
 	expandableColumnHelper.accessor("amount", {
 		id: "amount",
+		meta: { width: "fit" },
 		header: (props) => (
-			<DataTable.Header className="w-50" column={props.column}>
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton
 					className="justify-end"
 					column={props.column}
@@ -986,10 +1014,15 @@ const expandableColumns = expandableColumnHelper.columns([
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
+		cell: (props) => (
+			<DataTable.Cell column={props.column} className="text-right">
+				{props.getValue()}
+			</DataTable.Cell>
+		),
 	}),
 	expandableColumnHelper.accessor("status", {
 		id: "status",
+		meta: { width: "fit" },
 		header: (props) => (
 			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
@@ -997,7 +1030,7 @@ const expandableColumns = expandableColumnHelper.columns([
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 	expandableColumnHelper.accessor("email", {
 		id: "email",
@@ -1182,9 +1215,10 @@ const subRowColumns = subRowColumnHelper.columns([
 	}),
 	subRowColumnHelper.accessor("status", {
 		id: "status",
-		header: () => <DataTable.Header>Status</DataTable.Header>,
+		meta: { width: "fit" },
+		header: (props) => <DataTable.Header column={props.column}>Status</DataTable.Header>,
 		cell: (props) => (
-			<DataTable.Cell className="align-top">
+			<DataTable.Cell column={props.column} className="align-top">
 				<Badge color="green" appearance="muted">
 					{props.getValue()}
 				</Badge>
@@ -1193,9 +1227,16 @@ const subRowColumns = subRowColumnHelper.columns([
 	}),
 	subRowColumnHelper.accessor("age", {
 		id: "age",
-		header: () => <DataTable.Header className="text-right">Age</DataTable.Header>,
+		meta: { width: "fit" },
+		header: (props) => (
+			<DataTable.Header column={props.column} className="text-right">
+				Age
+			</DataTable.Header>
+		),
 		cell: (props) => (
-			<DataTable.Cell className="align-top text-right">{props.getValue()}</DataTable.Cell>
+			<DataTable.Cell column={props.column} className="align-top text-right">
+				{props.getValue()}
+			</DataTable.Cell>
 		),
 	}),
 ]);
@@ -1245,13 +1286,34 @@ type Connection = {
 	id: string;
 	timestamp: string;
 	clientIp: string;
+	userAgent: string;
 	duration: string;
 };
 
 const exampleConnections: Connection[] = [
-	{ id: "c1", timestamp: "Oct 22, 2026 14:03:11.482", clientIp: "203.0.113.24", duration: "1.2s" },
-	{ id: "c2", timestamp: "Oct 22, 2026 14:02:57.109", clientIp: "198.51.100.7", duration: "48ms" },
-	{ id: "c3", timestamp: "Oct 22, 2026 14:02:40.936", clientIp: "192.0.2.180", duration: "3.9s" },
+	{
+		id: "c1",
+		timestamp: "Oct 22, 2026 14:03:11.482",
+		clientIp: "203.0.113.24",
+		userAgent:
+			"Mozilla/5.0 (Macintosh; Intel Mac OS X 15_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/19.0 Safari/605.1.15",
+		duration: "1.2s",
+	},
+	{
+		id: "c2",
+		timestamp: "Oct 22, 2026 14:02:57.109",
+		clientIp: "198.51.100.7",
+		userAgent: "curl/8.11.1",
+		duration: "48ms",
+	},
+	{
+		id: "c3",
+		timestamp: "Oct 22, 2026 14:02:40.936",
+		clientIp: "192.0.2.180",
+		userAgent:
+			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+		duration: "3.9s",
+	},
 ];
 
 const fitColumnFeatures = tableFeatures({});
@@ -1267,19 +1329,26 @@ const fitColumns = fitColumnHelper.columns([
 	}),
 	fitColumnHelper.accessor("clientIp", {
 		id: "clientIp",
-		header: () => <DataTable.Header>Client IP</DataTable.Header>,
+		meta: { width: "fit" },
+		header: (props) => <DataTable.Header column={props.column}>Client IP</DataTable.Header>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
+	}),
+	fitColumnHelper.accessor("userAgent", {
+		id: "userAgent",
+		header: () => <DataTable.Header>User agent</DataTable.Header>,
 		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
 	fitColumnHelper.accessor("duration", {
 		id: "duration",
-		header: () => <DataTable.Header>Duration</DataTable.Header>,
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		meta: { width: "fit" },
+		header: (props) => <DataTable.Header column={props.column}>Duration</DataTable.Header>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 ]);
 
 /**
- * Demo of a column sized to its content: the timestamp column sets
- * `meta.width` to `"fit"`, so the spare width goes to the other columns.
+ * Demo of column sizing: the timestamp column sets `meta.width` to `"fit"`,
+ * so it never truncates, and the long user agent truncates.
  */
 export function FitColumnDemo() {
 	const table = useTable({

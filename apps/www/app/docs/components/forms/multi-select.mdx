@@ -768,7 +768,9 @@ MultiSelect.Root
 
 `MultiSelect.Item`, `MultiSelect.Content`, `MultiSelect.Group`, `MultiSelect.GroupLabel`, and `MultiSelect.Separator` accept `asChild`, rendering your single child in place of the part's default element while keeping its selection and keyboard behavior.
 
-`MultiSelect.GroupLabel asChild` is the useful one: reach for it when a group heading must be a specific element for the page's outline. `MultiSelect.Content asChild` lets you own the popover panel element.
+`MultiSelect.GroupLabel asChild` is the useful one: reach for it when a group heading must be a specific element for the page's outline. `MultiSelect.Content asChild` lets you own the listbox element.
+
+`MultiSelect.Item` also takes a function child, `(props, { highlighted }) => element`, for a row that renders different content while highlighted. Write the label inside your element: the label wrapper and the check move inside it, as with `asChild`. Only a row that uses one re-renders when the highlight moves. To only restyle the highlighted row, use the `data-highlighted:` variant, or `in-data-highlighted:` from a child. Anything you write after `{...props}` wins, so join a class with `cx(props.className, "…")`, and set `id` on the item, not on your element.
 
 The trigger-side parts (`MultiSelect.Root`, `Trigger`, `Input`, `Tag`, `TagValues`) own input and tag behavior that depends on the elements they render, so they do not accept `asChild`.
 
@@ -777,6 +779,8 @@ The trigger-side parts (`MultiSelect.Root`, `Trigger`, `Input`, `Tag`, `TagValue
 ## Accessibility
 
 `MultiSelect` follows the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) with a multi-selectable listbox. DOM focus stays on the input or a tag, and `aria-activedescendant` on the input names the highlighted item. As with a native select, the page stays live while the list is open: it scrolls, and assistive technology can reach it. Tab from the input moves to a control in the list, and Shift+Tab moves back. Focus that leaves the list closes it. A press outside the trigger and the list closes the list, and its click does not reach the page.
+
+A removed tag leaves no focus or option to describe the change, so a polite status says which value went, such as "Removed apple". This holds for Backspace, Delete, and the remove button.
 
 Inside a field, `Field.Control` puts the generated `id`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` on the focusable `MultiSelect.Input` through `FieldControlContext`. The field `name` goes through too, but it lands on one hidden input for each selected value, not on the combobox input. The value of the combobox input is the typeahead filter text, so a native form submit sends the selected values and not the text the user typed.
 
@@ -795,7 +799,7 @@ Root component for a multi-select combobox. Owns the selected values and the typ
 | `value?`              | `string[]`                     |         | The controlled selected values. Pair with `onValueChange`.                                                    |
 | `defaultValue?`       | `string[]`                     | `[]`    | The selected values on first render.                                                                          |
 | `onValueChange?`      | `(value: string[]) => void`    |         | Called when the user picks or removes a value.                                                                |
-| `inputValue?`         | `string`                       |         | The controlled filter text. Pair with `onInputValueChange`.                                                   |
+| `inputValue?`         | `string`                       |         | The controlled filter text. Pair with `onInputValueChange`. A pick or a close clears it.                      |
 | `defaultInputValue?`  | `string`                       | `""`    | The filter text on first render.                                                                              |
 | `onInputValueChange?` | `(inputValue: string) => void` |         | Called with the whole filter text on each change. Use it to filter the items, for example with `matchSorter`. |
 
@@ -843,13 +847,13 @@ All props of an `<input>` except `value`, `defaultValue`, and `autoComplete`. Ke
 
 ### MultiSelect.Tag
 
-The default tag component rendered inside `MultiSelect.TagValues` for each selected value. Displays the value label with a remove button. Renders a `role="listitem"` inside the `role="list"` that `MultiSelect.TagValues` renders, and marks itself `data-active` while it has focus.
+The default tag component rendered inside `MultiSelect.TagValues` for each selected value. Displays the value label with a remove button. Renders a `role="listitem"` inside the `role="list"` that `MultiSelect.TagValues` renders. The tag that keyboard navigation is on has DOM focus; style it with `focus-visible:`.
 
-Arrow-key navigation and Backspace/Delete removal come from the `MultiSelect.TagValues` render props; spread them onto the tag to get them. On its own, `Tag` only blocks Backspace and Delete on a locked tag.
+Arrow-key navigation and Backspace/Delete removal come from the `MultiSelect.TagValues` render props; spread them onto the tag to get them. On its own, `Tag` only blocks Backspace and Delete on a locked or `aria-disabled` tag.
 
-Use this when building a custom `TagValues`-like component and you want the default tag chrome with consistent styling.
+Use this when building a custom `TagValues`-like component and you want the default tag chrome with consistent styling. The tag is a `square` [`Chip`](/components/forms/chip) at the `sm` size.
 
-Also accepts all standard `span` element props (except `children`). The `onKeyDown` prop is supported and is called after the internal locked-key handling.
+Also accepts all standard `span` element props (except `children`). The `onKeyDown` prop is supported and is called after the internal handling that blocks removal keys on a locked or `aria-disabled` tag.
 
 | Prop        | Type         | Default | Description                                                                                                                                      |
 | :---------- | :----------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -857,10 +861,11 @@ Also accepts all standard `span` element props (except `children`). The `onKeyDo
 | `onRemove?` | `() => void` |         | Called when the remove button is clicked. `MultiSelect.TagValues` passes one through its render props that removes the value from the selection. |
 | `locked?`   | `boolean`    | `false` | When true, shows a lock icon, disables the remove button, and shakes on Delete/Backspace key presses.                                            |
 
-| Data Attribute | Value                 | Description                             |
-| :------------- | :-------------------- | :-------------------------------------- |
-| `data-active`  | present while focused | The tag that keyboard navigation is on. |
-| `data-locked`  | present when `locked` | The tag cannot be removed.              |
+| Data Attribute    | Value                 | Description                       |
+| :---------------- | :-------------------- | :-------------------------------- |
+| `data-locked`     | present when `locked` | The tag cannot be removed.        |
+| `data-appearance` | `"square"`            | The `Chip` appearance of the tag. |
+| `data-size`       | `"sm"`                | The `Chip` size of the tag.       |
 
 ### MultiSelect.Content
 
@@ -868,7 +873,7 @@ Renders a popover that contains multi-select content.
 
 `MultiSelect.Content` is a `popover="manual"` element in the top layer, so it paints above the page and every overlay. It portals into the overlay or float that holds it, such as an open `Dialog` or `Popover.Content`, else into `document.body`. In a browser with no popover API, it is a fixed box at Tailwind `z-50`.
 
-All props of a `<div>`, plus:
+`MultiSelect.Content` is the `role="listbox"` element, and it scrolls. It sits in a popover that also holds the `MultiSelect.ContentFooter`, after the listbox. All props of a `<div>`, plus:
 
 | Prop         | Type      | Default | Description                                                           |
 | :----------- | :-------- | :------ | :-------------------------------------------------------------------- |
@@ -883,9 +888,10 @@ Renders a selectable item with a checkbox indicator inside a `MultiSelect.Conten
 
 All props of a `<div>`, plus `value`, `disabled`, and:
 
-| Prop       | Type      | Default | Description                                                           |
-| :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+| Prop        | Type                                                      | Default | Description                                                                                                                                                                                 |
+| :---------- | :-------------------------------------------------------- | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `asChild?`  | `boolean`                                                 | `false` | Compose onto an alternative element type or your own React component.                                                                                                                       |
+| `children?` | `ReactNode` \| `(props, { highlighted }) => ReactElement` |         | The item's label. A function renders the item as the element it returns, with the item's props and whether it is highlighted. Spread `props` on that element and write the label inside it. |
 
 | Data Attribute | Value                       | Description                         |
 | :------------- | :-------------------------- | :---------------------------------- |
@@ -932,6 +938,13 @@ Standard `div` element props.
 
 ### MultiSelect.ContentFooter
 
-Renders a sticky footer inside `MultiSelect.Content` that stays pinned to the bottom edge of the content area. Place it as the last child of `MultiSelect.Content`.
+Renders a footer at the bottom of the open `MultiSelect.Content`, after the listbox and not in it, because a listbox holds only options and groups. Tab from the input moves to its first control, and the list stays open. Shift+Tab from that control returns to the input, and Escape closes the list.
 
 Standard `div` element props.
+
+**Data attributes:**
+
+| Data Attribute | Value                           | Description                                                                            |
+| -------------- | ------------------------------- | -------------------------------------------------------------------------------------- |
+| `data-slot`    | `"multi-select-content-footer"` | On the footer.                                                                         |
+| `data-slot`    | `"multi-select-popup"`          | On the popover box that holds the listbox and the footer. It also carries `data-side`. |

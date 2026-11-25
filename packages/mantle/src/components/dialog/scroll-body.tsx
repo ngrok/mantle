@@ -5,6 +5,14 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { findTabbableDescendants } from "../alert/tabbable-neighbors.js";
 
 /**
+ * Whether a node is an element.
+ *
+ * Why `nodeType`: an element in another window's document, such as a frame
+ * that React renders into, is no instance of this window's `Element`.
+ */
+const isElement = (node: Node): node is Element => node.nodeType === Node.ELEMENT_NODE;
+
+/**
  * Puts `body` in the Tab order while it scrolls and holds nothing tabbable,
  * so a keyboard user can scroll it with the arrow keys. Chromium does this for
  * each scroll container; Safari does it for none. Returns the cleanup.
@@ -15,7 +23,8 @@ import { findTabbableDescendants } from "../alert/tabbable-neighbors.js";
  * focus to the page. It checks again when focus leaves.
  */
 const observeKeyboardScroll = (body: HTMLDivElement | null): (() => void) | undefined => {
-	if (body == null) {
+	// Why the `ResizeObserver` check: jsdom has none and no layout, so nothing scrolls there.
+	if (body == null || typeof ResizeObserver === "undefined") {
 		return undefined;
 	}
 	const update = () => {
@@ -29,15 +38,31 @@ const observeKeyboardScroll = (body: HTMLDivElement | null): (() => void) | unde
 		}
 	};
 	const resize = new ResizeObserver(update);
-	const watch = () => {
-		resize.disconnect();
-		resize.observe(body);
-		for (const child of body.children) {
-			resize.observe(child);
+	resize.observe(body);
+	for (const child of body.children) {
+		resize.observe(child);
+	}
+	// Why no `observe` for an attribute change: `update` writes `tabindex` inside
+	// the resize callback, and a new observation of `body` there fires a loop error.
+	const mutation = new MutationObserver((records) => {
+		for (const record of records) {
+			if (record.target !== body) {
+				continue;
+			}
+			// Why removed first: `replaceChildren` can list a kept child in both.
+			for (const node of record.removedNodes) {
+				if (isElement(node)) {
+					resize.unobserve(node);
+				}
+			}
+			for (const node of record.addedNodes) {
+				if (isElement(node)) {
+					resize.observe(node);
+				}
+			}
 		}
 		update();
-	};
-	const mutation = new MutationObserver(watch);
+	});
 	mutation.observe(body, {
 		characterData: true,
 		childList: true,
@@ -45,7 +70,7 @@ const observeKeyboardScroll = (body: HTMLDivElement | null): (() => void) | unde
 		attributeFilter: ["disabled", "hidden", "href", "inert", "tabindex"],
 	});
 	body.addEventListener("focusout", update);
-	watch();
+	update();
 	return () => {
 		body.removeEventListener("focusout", update);
 		mutation.disconnect();

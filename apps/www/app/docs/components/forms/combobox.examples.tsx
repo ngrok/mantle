@@ -1,6 +1,8 @@
 import { Button } from "@ngrok/mantle/button";
 import { Combobox } from "@ngrok/mantle/combobox";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { Switch } from "@ngrok/mantle/switch";
+import { useState } from "react";
 import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
@@ -39,8 +41,8 @@ export function TanStackFormExample() {
 					<Field.Item name={field.name}>
 						<Field.Label>Region</Field.Label>
 						<Combobox.Root
-							inputValue={field.state.value}
-							onInputValueChange={(value) => {
+							value={field.state.value}
+							onValueChange={(value) => {
 								field.handleChange(value);
 							}}
 						>
@@ -193,6 +195,47 @@ export function PolymorphismExample() {
 					</Combobox.Item>
 				</Combobox.Content>
 			</Combobox.Root>
+		</PreviewCanvas>
+	);
+}
+
+const releases = ["v1.4.0", "v1.3.2", "v1.3.1", "v1.3.0", "v1.2.0", "v1.1.0"];
+
+/** The "With a footer" example on the Combobox docs page. */
+export function WithAFooterExample() {
+	const [showAll, setShowAll] = useState(false);
+	const [count, setCount] = useState(3);
+	const shown = releases.slice(0, showAll ? releases.length : count);
+	return (
+		<PreviewCanvas className="min-h-160">
+			<Field.Item name="release" className="max-w-96">
+				<Field.Label>Release</Field.Label>
+				<Combobox.Root>
+					<Field.Control>
+						<Combobox.Input placeholder="Search releases..." />
+					</Field.Control>
+					<Combobox.Content>
+						{shown.map((release) => (
+							<Combobox.Item key={release} value={release} />
+						))}
+						<Combobox.ContentFooter className="flex items-center justify-between gap-2 p-2">
+							<div className="flex items-center gap-2 text-sm">
+								<Switch id="show-all-releases" checked={showAll} onCheckedChange={setShowAll} />
+								<label htmlFor="show-all-releases">Show all releases</label>
+							</div>
+							<Button
+								type="button"
+								appearance="ghost"
+								intent="accent"
+								disabled={showAll || count >= releases.length}
+								onClick={() => setCount((current) => current + 3)}
+							>
+								Load more
+							</Button>
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>
+			</Field.Item>
 		</PreviewCanvas>
 	);
 }

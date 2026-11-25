@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef } from "react";
-import type { ChangeEvent, KeyboardEvent } from "react";
+import { useCallback, useRef, useState } from "react";
+import type { ChangeEvent, FocusEvent, KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
+import { findTabbableDescendants } from "../components/alert/tabbable-neighbors.js";
 import { useControllableState } from "./use-controllable-state.js";
 import { useListbox } from "./use-listbox.js";
 import type { Listbox } from "./use-listbox.js";
@@ -26,6 +27,30 @@ type UseComboboxProps = {
 	defaultOpen?: boolean;
 	/** Called when the open state changes. */
 	onOpenChange?: (open: boolean) => void;
+	/**
+	 * Returns the text that the option with `value` shows, or `undefined` when
+	 * no option has it. A preset `value` or `defaultValue`, and a reset, write it
+	 * into the input when no input text is set.
+	 */
+	textFor?: (value: string) => string | undefined;
+};
+
+/** The text a node shows, without its `hidden` and `aria-hidden` parts, on one line. */
+const shownText = (node: Node): string => {
+	const read = (each: Node): string => {
+		if (each.nodeType === Node.TEXT_NODE) {
+			return each.textContent ?? "";
+		}
+		if (
+			!(each instanceof Element) ||
+			each.hasAttribute("hidden") ||
+			each.getAttribute("aria-hidden") === "true"
+		) {
+			return "";
+		}
+		return Array.from(each.childNodes, read).join("");
+	};
+	return read(node).replace(/\s+/g, " ").trim();
 };
 
 /**
@@ -38,6 +63,10 @@ type ComboboxBehavior = {
 	setInputValue: (value: string) => void;
 	listbox: Listbox;
 	inputRef: { current: HTMLInputElement | null };
+	/** The open popup box, which holds the listbox and an optional footer outside it. */
+	popupRef: { current: HTMLElement | null };
+	/** The element in the popup box that holds the footer, after the listbox. */
+	footerRef: { current: HTMLElement | null };
 };
 
 /**
@@ -58,7 +87,7 @@ type ComboboxBehavior = {
  */
 const useCombobox = ({
 	inputValue: inputValueProp,
-	defaultInputValue = "",
+	defaultInputValue,
 	onInputValueChange,
 	value: valueProp,
 	defaultValue,
@@ -66,6 +95,7 @@ const useCombobox = ({
 	open: openProp,
 	defaultOpen = false,
 	onOpenChange,
+	textFor,
 }: UseComboboxProps): ComboboxBehavior & {
 	/** The value of the picked option. */
 	value: string | undefined;
@@ -73,11 +103,34 @@ const useCombobox = ({
 	/** Returns the value and the text to their defaults, such as on a form reset. */
 	reset: () => void;
 } => {
-	const [inputValue, setInputValue] = useControllableState({
-		value: inputValueProp,
-		defaultValue: defaultInputValue,
-		onChange: onInputValueChange,
-	});
+	// Why the value as a fallback: an item that is not loaded, or that a component of
+	// your own renders, has no text to read.
+	const textOf = (option: string | undefined) =>
+		option == null || option === "" ? "" : (textFor?.(option) ?? option);
+	// Why lazy states: the walks for the preset texts run once, on the first render.
+	// The default's text outlives a filter that later hides its item, for a reset.
+	const [defaultText] = useState(() => defaultInputValue ?? textOf(defaultValue));
+	const [text, setText] = useState(() =>
+		valueProp === undefined || defaultInputValue !== undefined ? defaultText : textOf(valueProp),
+	);
+	/** The value whose text the input shows, to see a controlled `value` change. */
+	const [shownFor, setShownFor] = useState(valueProp ?? defaultValue);
+	// Why during render: a controlled `value` that the app changes, such as on its own
+	// form reset, shows its item's text in the same render, with no effect.
+	if (inputValueProp === undefined && valueProp !== undefined && valueProp !== shownFor) {
+		setShownFor(valueProp);
+		setText(textOf(valueProp));
+	}
+	const inputValue = inputValueProp ?? text;
+	const setInputValue = (next: string) => {
+		if (Object.is(next, inputValue)) {
+			return;
+		}
+		if (inputValueProp === undefined) {
+			setText(next);
+		}
+		onInputValueChange?.(next);
+	};
 	const [value, setValue] = useControllableState({
 		value: valueProp,
 		defaultValue,
@@ -93,11 +146,26 @@ const useCombobox = ({
 		onChange: onOpenChange,
 	});
 	const inputRef = useRef<HTMLInputElement | null>(null);
+	const popupRef = useRef<HTMLElement | null>(null);
+	const footerRef = useRef<HTMLElement | null>(null);
 	const listbox = useListbox({
 		selected: value == null ? [] : [value],
 		onSelect: (next) => {
+			// Why: a pick unmounts the popup, so focus in its footer would fall to the page.
+			const popup = popupRef.current;
+			if (popup != null && popup.contains(popup.ownerDocument.activeElement)) {
+				inputRef.current?.focus();
+			}
+			// Why the option's text: the input shows what the user picked, not an ID.
+			// Why before `setValue`: an `onValueChange` that closes the list removes the option.
+			const option = Array.from(popup?.querySelectorAll('[role="option"]') ?? []).find(
+				(each) => each.getAttribute("data-value") === next,
+			);
+			const picked =
+				(option instanceof HTMLElement && (option.dataset.textValue ?? shownText(option))) || next;
 			setValue(next);
-			setInputValue(next);
+			setShownFor(next);
+			setInputValue(picked);
 			setOpen(false);
 		},
 		ownerRef: inputRef,
@@ -105,9 +173,22 @@ const useCombobox = ({
 	});
 	const reset = () => {
 		setValue(defaultValue ?? "");
-		setInputValue(defaultInputValue);
+		setShownFor(defaultValue);
+		setInputValue(defaultText);
 	};
-	return { value, setValue, reset, open, setOpen, inputValue, setInputValue, listbox, inputRef };
+	return {
+		value,
+		setValue,
+		reset,
+		open,
+		setOpen,
+		inputValue,
+		setInputValue,
+		listbox,
+		inputRef,
+		popupRef,
+		footerRef,
+	};
 };
 
 /**
@@ -118,6 +199,8 @@ const useCombobox = ({
  *
  * `autoSelect` gives the first option the highlight as the text changes, so
  * Enter picks it. `"always"` also highlights it when the list opens.
+ *
+ * A click or a Tab into the input opens the list. Focus from script does not.
  *
  * @example
  * ```tsx
@@ -130,6 +213,8 @@ const useComboboxInput = (
 	{ autoSelect = "always" }: { autoSelect?: boolean | "always" } = {},
 ) => {
 	const { open, setOpen, listbox, inputValue, setInputValue } = combobox;
+	/** Whether focus entered the input since its last key press, so a Tab's keyup there is an entry. */
+	const entered = useRef(false);
 
 	// Why no flushSync: the list moves to `target` when it mounts, in the
 	// commit that opens it.
@@ -173,8 +258,32 @@ const useComboboxInput = (
 				openTo(autoSelect === "always" ? "first" : null);
 			}
 		},
-		onBlur: () => {
-			setOpen(false);
+		onFocus: () => {
+			entered.current = true;
+		},
+		// Why the capture phase: a consumer's `onKeyDown` that cancels Tab keeps focus
+		// here, and its keyup must not count as an entry.
+		onKeyDownCapture: () => {
+			entered.current = false;
+		},
+		onKeyUp: (event: KeyboardEvent<HTMLInputElement>) => {
+			// Why the keyup: Tab's keyup lands on the control that Tab focused, so a Tab
+			// into the field opens the list as a click does. Focus from script, such as a
+			// dialog's autofocus or the return from the footer, opens nothing.
+			// Why Alt counts: Safari moves between fields and links with Option+Tab.
+			const entry = event.key === "Tab" && !event.ctrlKey && !event.metaKey && entered.current;
+			entered.current = false;
+			if (entry && !open) {
+				openTo(autoSelect === "always" ? "first" : null);
+			}
+		},
+		onBlur: (event: FocusEvent<HTMLInputElement>) => {
+			// Why the footer only: focus that moves to a footer control stays in the combobox.
+			// Focus on an option, such as a link whose own `tabIndex` wins, leaves it.
+			const { relatedTarget } = event;
+			if (!(relatedTarget instanceof Node && combobox.footerRef.current?.contains(relatedTarget))) {
+				setOpen(false);
+			}
 		},
 		onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => {
 			// Why: an input method uses the arrows, Enter, and Escape for its own candidates.
@@ -187,6 +296,18 @@ const useComboboxInput = (
 				return;
 			}
 			switch (event.key) {
+				case "Tab": {
+					// Why: Tab moves into the popup's footer, and the list stays open. With
+					// no control there, Tab leaves the field and the blur closes the list.
+					// Why the footer only: options are no Tab stops; the arrows reach them.
+					const footer = open ? combobox.footerRef.current : null;
+					const first = footer == null ? undefined : findTabbableDescendants(footer)[0];
+					if (!event.shiftKey && first != null) {
+						event.preventDefault();
+						first.focus();
+					}
+					return;
+				}
 				case "ArrowDown": {
 					event.preventDefault();
 					if (!open) {
@@ -236,10 +357,152 @@ const useComboboxInput = (
 	};
 };
 
+/** The controls that take focus from a press in the popup's footer. */
+const TEXT_ENTRY =
+	'textarea, select, [contenteditable]:not([contenteditable="false"]), input:not([type="button"], [type="checkbox"], [type="radio"], [type="submit"], [type="reset"], [type="image"])';
+
+/**
+ * The first element after `anchor` in document order, outside `popup`, that
+ * takes focus. Returns `false` when none does, so the browser's own Tab runs.
+ */
+const focusAfter = (anchor: HTMLElement, popup: HTMLElement): boolean => {
+	const candidates = findTabbableDescendants(anchor.ownerDocument.body).filter(
+		(element) =>
+			!popup.contains(element) &&
+			(anchor.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0 &&
+			!anchor.contains(element),
+	);
+	for (const candidate of candidates) {
+		candidate.focus();
+		if (candidate.ownerDocument.activeElement === candidate) {
+			return true;
+		}
+	}
+	return false;
+};
+
+/**
+ * Wires the open popup box of a combobox. The box holds the listbox and an
+ * optional footer, which sits outside the listbox because a listbox holds only
+ * options and groups. Focus in the footer keeps the list open:
+ *
+ * - Escape closes the list, and focus returns to the input.
+ * - Shift+Tab from the first footer control returns to the input.
+ * - Tab from the last one moves to the control after `anchorRef`, and the list closes.
+ * - Focus that leaves the box and `anchorRef` closes the list.
+ * - A footer control that turns disabled or unmounts while it has focus returns focus to the input.
+ * - A press on a footer control keeps focus on the input, unless the control is a text field.
+ *
+ * Put `footerRef` on the element that holds the footer.
+ *
+ * @example
+ * ```tsx
+ * const popupProps = useComboboxPopup(combobox, { anchorRef: combobox.inputRef });
+ * return <div {...popupProps}>{listbox}{footer}</div>;
+ * ```
+ */
+const useComboboxPopup = (
+	combobox: ComboboxBehavior,
+	{ anchorRef }: { anchorRef: { current: HTMLElement | null } },
+) => {
+	const { inputRef, setOpen, footerRef: footerElementRef } = combobox;
+	// Why a stable callback: a new ref callback on each render would rebuild the observer.
+	const footerRef = useCallback(
+		(host: HTMLElement | null) => {
+			footerElementRef.current = host;
+			if (host == null) {
+				return;
+			}
+			const observer = new MutationObserver(() => {
+				const { activeElement, body } = host.ownerDocument;
+				if (activeElement == null || activeElement === body) {
+					inputRef.current?.focus();
+				}
+			});
+			observer.observe(host, { childList: true, subtree: true });
+			return () => {
+				observer.disconnect();
+				footerElementRef.current = null;
+			};
+		},
+		[inputRef, footerElementRef],
+	);
+	const inAnchor = (node: unknown) =>
+		node instanceof Node && anchorRef.current?.contains(node) === true;
+	return {
+		onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+			// Why: `Content`'s own `onKeyDown` runs first and can cancel the key, and an
+			// input method in a footer text field uses Escape for its own candidates.
+			if (event.defaultPrevented || event.nativeEvent.isComposing) {
+				return;
+			}
+			const box = event.currentTarget;
+			if (event.key === "Escape") {
+				// Why: a modal dialog closes on an Escape that nothing prevented.
+				event.preventDefault();
+				setOpen(false);
+				inputRef.current?.focus();
+				return;
+			}
+			if (event.key !== "Tab") {
+				return;
+			}
+			const footer = footerElementRef.current;
+			const tabbables = footer == null ? [] : findTabbableDescendants(footer);
+			if (event.shiftKey && event.target === tabbables[0]) {
+				event.preventDefault();
+				inputRef.current?.focus();
+				return;
+			}
+			const anchor = anchorRef.current;
+			// Why: the box is in a portal, so the browser's next stop is not the control after the field.
+			if (!event.shiftKey && event.target === tabbables.at(-1) && anchor != null) {
+				// Why no setOpen: the footer control's blur closes the list, unless `Content.onBlur` cancels it.
+				if (focusAfter(anchor, box)) {
+					event.preventDefault();
+				}
+			}
+		},
+		onBlur: (event: FocusEvent<HTMLElement>) => {
+			// Why: `Content`'s own `onBlur` runs first and can keep the list open.
+			if (event.defaultPrevented) {
+				return;
+			}
+			const { relatedTarget } = event;
+			const inside =
+				relatedTarget instanceof Node &&
+				(event.currentTarget.contains(relatedTarget) || inAnchor(relatedTarget));
+			if (inside) {
+				return;
+			}
+			// Why: a footer control that turns disabled, such as "Load more" while it
+			// loads, drops focus to the page. Focus returns to the input, and the list stays open.
+			if (relatedTarget == null && event.target.matches(":disabled")) {
+				inputRef.current?.focus();
+				return;
+			}
+			setOpen(false);
+		},
+		// Why an observer: a focused control that unmounts sends no blur that React sees,
+		// and focus falls to the page.
+		footerRef,
+		onMouseDown: (event: { target: EventTarget; preventDefault: () => void }) => {
+			// Why: only a text field takes focus from a press. A press on a button, a switch,
+			// or a link keeps focus on the input, and its click still runs. Safari never
+			// focuses a button on a press, so the input's blur would close the list first.
+			const target = event.target instanceof Element ? event.target : null;
+			if (target?.closest(TEXT_ENTRY) == null) {
+				event.preventDefault();
+			}
+		},
+	};
+};
+
 export {
 	//,
 	useCombobox,
 	useComboboxInput,
+	useComboboxPopup,
 };
 export type {
 	//,

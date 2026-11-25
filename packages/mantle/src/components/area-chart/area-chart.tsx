@@ -187,8 +187,8 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"area-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`. |
- * | `data-slot` | `"area-chart-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Interactive charts only. |
- * | `data-state` | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only. |
+ * | `data-slot` | `"area-chart-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-engaged` appears) and stays. Interactive charts only. |
+ * | `data-engaged` | present once engaged | On the Root. Appears once focus lands inside the chart, and never goes away. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only. |
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartroot
  *
@@ -436,7 +436,7 @@ const CopyButton = (props: AreaChartCopyButtonProps) => (
 /**
  * Groups a list of charts, such as one chart per card, so they share one
  * `role="status"` live region. A page of 100 charts mounts one region instead
- * of one per chart, plus one for each `AreaChart.CopyButton`. Each chart keeps
+ * of one per chart. Copy buttons announce in one shared region. Each chart keeps
  * its own tooltip, description, and data table.
  *
  * Renders a `div` (`area-chart-list`) that holds the charts in a `display: contents`

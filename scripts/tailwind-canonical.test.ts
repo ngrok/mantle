@@ -200,6 +200,17 @@ describe("canonicalForms", () => {
 		]);
 	});
 
+	// Why: Tailwind wraps `*` and `**` in `:is()`, so Chromium tries the rule on each element of the page.
+	it("keeps a child or descendant variant whose canonical form is `*` or `**`", () => {
+		expect(
+			canonicalForms(designSystem, ["[&_[data-slot=icon]]:p-1", "[&>*]:p-1", "*:p-1"]),
+		).toEqual([
+			["[&_[data-slot=icon]]:p-1", "[&_[data-slot=icon]]:p-1"],
+			["[&>*]:p-1", "[&>*]:p-1"],
+			["*:p-1", "*:p-1"],
+		]);
+	});
+
 	// Why: Tailwind compiles `100%-var(--_x)` to `var(-- x)`, so the canonical form drops `--_x`.
 	it("keeps a calc whose canonical form drops a variable", () => {
 		expect(canonicalForms(designSystem, ["max-w-[calc(100%_-_var(--_x))]"])).toEqual([
@@ -215,7 +226,6 @@ describe("canonicalForms", () => {
 				"[color:var(--color-red-500)]",
 				"bg-gradient-to-r",
 				"bg-red-500/[50%]",
-				"[&_[data-slot=icon]]:p-1",
 				"data-[active]:opacity-100",
 			]),
 		).toEqual([
@@ -224,7 +234,6 @@ describe("canonicalForms", () => {
 			["[color:var(--color-red-500)]", "text-red-500"],
 			["bg-gradient-to-r", "bg-linear-to-r"],
 			["bg-red-500/[50%]", "bg-red-500/50"],
-			["[&_[data-slot=icon]]:p-1", "**:data-[slot=icon]:p-1"],
 			["data-[active]:opacity-100", "data-active:opacity-100"],
 		]);
 	});

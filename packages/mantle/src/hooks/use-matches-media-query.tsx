@@ -22,7 +22,7 @@ import { useCallback, useRef, useSyncExternalStore } from "react";
  * // Detect if the user prefers a dark color scheme
  * const prefersDark = useMatchesMediaQuery("(prefers-color-scheme: dark)");
  *
- * return <div className={prefersDark ? "dark" : "light"}>Hello</div>;
+ * return <div className={cx(prefersDark ? "dark" : "light")}>Hello</div>;
  *
  * @example
  * // Show a different layout on portrait orientation
@@ -36,11 +36,13 @@ export function useMatchesMediaQuery(query: string) {
 	// allocates a list. A module-level cache keyed on `query` grows with every
 	// distinct string a consumer passes, and it pins a stale list when a test
 	// swaps `window.matchMedia` between cases, so the cache lives on the instance.
-	const cache = useRef<{ query: string; list: MediaQueryList } | null>(null);
+	const cache = useRef<{ query: string; list: MediaQueryList | undefined } | null>(null);
 
 	const getMediaQueryList = useCallback(() => {
 		if (cache.current == null || cache.current.query !== query) {
-			cache.current = { query, list: window.matchMedia(query) };
+			// Why optional: jsdom has no `matchMedia`, and a consumer test must still render.
+			// The query then answers `false`, as on the server.
+			cache.current = { query, list: window.matchMedia?.(query) };
 		}
 		return cache.current.list;
 	}, [query]);
@@ -50,15 +52,15 @@ export function useMatchesMediaQuery(query: string) {
 			// Why capture the list: the cleanup must remove from the list it added to,
 			// and the cache moves on when `query` changes.
 			const list = getMediaQueryList();
-			list.addEventListener("change", callback);
+			list?.addEventListener("change", callback);
 			return () => {
-				list.removeEventListener("change", callback);
+				list?.removeEventListener("change", callback);
 			};
 		},
 		[getMediaQueryList],
 	);
 
-	const getSnapshot = useCallback(() => getMediaQueryList().matches, [getMediaQueryList]);
+	const getSnapshot = useCallback(() => getMediaQueryList()?.matches ?? false, [getMediaQueryList]);
 
 	return useSyncExternalStore(subscribe, getSnapshot, () => false);
 }

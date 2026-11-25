@@ -133,7 +133,7 @@ describe("Choice", () => {
 		);
 		expect(screen.getByRole("checkbox")).toBeDisabled();
 		// Why `data-disabled`: only the mantle `Label` stamps it, so this also pins that `Choice.Label` is that `Label`.
-		expect(screen.getByText("Email")).toHaveAttribute("data-disabled", "true");
+		expect(screen.getByText("Email")).toHaveAttribute("data-disabled", "");
 	});
 
 	test("name lands on the control", () => {
@@ -529,7 +529,7 @@ describe("Choice + Switch interop", () => {
 				</Choice.Content>
 			</Choice.Root>,
 		);
-		// Radix Switch renders a role="switch" button that receives the injected id.
+		// `Switch` renders a role="switch" button that receives the injected id.
 		const control = screen.getByRole("switch");
 		expect(control).toHaveAttribute("id", expect.stringMatching(/.+/));
 		expect(screen.getByText("Airplane mode")).toHaveAttribute("for", control.id);

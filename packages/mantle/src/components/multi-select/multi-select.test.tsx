@@ -101,6 +101,9 @@ describe("MultiSelect", () => {
 		);
 		expect(screen.getByText("apple")).toBeInTheDocument();
 		expect(screen.getByText("banana")).toBeInTheDocument();
+		expect(getTagOption("apple")).toHaveAttribute("data-slot", "multi-select-tag");
+		expect(getTagOption("apple")).toHaveAttribute("data-appearance", "square");
+		expect(getTagOption("apple")).toHaveAttribute("data-size", "sm");
 	});
 
 	test("hides placeholder when values are selected", () => {
@@ -266,36 +269,36 @@ describe("MultiSelect", () => {
 			expect(onChange.mock.lastCall?.[0].target).toBe(screen.getByRole("combobox"));
 		});
 
+		/**
+		 * The documented filtering shape: the consumer owns the query and the
+		 * rendered items, driven entirely by `onInputValueChange`.
+		 */
+		const FilteringSubject = () => {
+			const [query, setQuery] = useState("");
+			const matches = ["Apple", "Banana", "Cherry"].filter((fruit) =>
+				fruit.toLowerCase().includes(query.trim().toLowerCase()),
+			);
+
+			return (
+				<MultiSelect.Root onInputValueChange={setQuery}>
+					<MultiSelect.Trigger>
+						<MultiSelect.TagValues />
+						<MultiSelect.Input placeholder="Select items..." />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						{matches.length === 0 && <MultiSelect.Empty>No results found</MultiSelect.Empty>}
+						{matches.map((fruit) => (
+							<MultiSelect.Item key={fruit} value={fruit.toLowerCase()}>
+								{fruit}
+							</MultiSelect.Item>
+						))}
+					</MultiSelect.Content>
+				</MultiSelect.Root>
+			);
+		};
+
 		test("filtering the items from onInputValueChange narrows the listbox and reveals Empty", async () => {
 			const user = userEvent.setup();
-			/**
-			 * The documented filtering shape: the consumer owns the query and the
-			 * rendered items, driven entirely by `onInputValueChange`.
-			 */
-			const FilteringSubject = () => {
-				const [query, setQuery] = useState("");
-				const matches = ["Apple", "Banana", "Cherry"].filter((fruit) =>
-					fruit.toLowerCase().includes(query.trim().toLowerCase()),
-				);
-
-				return (
-					<MultiSelect.Root onInputValueChange={setQuery}>
-						<MultiSelect.Trigger>
-							<MultiSelect.TagValues />
-							<MultiSelect.Input placeholder="Select items..." />
-						</MultiSelect.Trigger>
-						<MultiSelect.Content>
-							{matches.length === 0 && <MultiSelect.Empty>No results found</MultiSelect.Empty>}
-							{matches.map((fruit) => (
-								<MultiSelect.Item key={fruit} value={fruit.toLowerCase()}>
-									{fruit}
-								</MultiSelect.Item>
-							))}
-						</MultiSelect.Content>
-					</MultiSelect.Root>
-				);
-			};
-
 			render(<FilteringSubject />);
 
 			const input = screen.getByRole("combobox");
@@ -312,6 +315,45 @@ describe("MultiSelect", () => {
 			await user.type(input, "zzz");
 			expect(within(listbox).queryAllByRole("option")).toHaveLength(0);
 			expect(screen.getByText("No results found")).toBeInTheDocument();
+		});
+
+		test("closing the list clears the filter text, so the field and the list agree", async () => {
+			const user = userEvent.setup();
+			render(<FilteringSubject />);
+			const input = screen.getByRole("combobox");
+
+			await user.type(input, "ban");
+			expect(screen.getAllByRole("option")).toHaveLength(1);
+			await user.keyboard("{Escape}");
+
+			expect(input).toHaveAttribute("aria-expanded", "false");
+			expect(input).toHaveValue("");
+			await user.click(input);
+			expect(screen.getAllByRole("option")).toHaveLength(3);
+		});
+
+		test("a blur while the list is closed keeps the text, because nothing closed", async () => {
+			const user = userEvent.setup();
+			render(
+				<>
+					<MultiSelect.Root defaultInputValue="ban">
+						<MultiSelect.Trigger>
+							<MultiSelect.Input aria-label="Fruit" />
+						</MultiSelect.Trigger>
+						<MultiSelect.Content>
+							<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+						</MultiSelect.Content>
+					</MultiSelect.Root>
+					<button type="button">Next</button>
+				</>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+
+			input.focus();
+			await user.tab();
+
+			expect(screen.getByRole("button", { name: "Next" })).toHaveFocus();
+			expect(input).toHaveValue("ban");
 		});
 	});
 
@@ -407,6 +449,8 @@ describe("MultiSelect", () => {
 			await user.keyboard("{Tab}");
 			const upgrade = screen.getByRole("button", { name: "Upgrade" });
 			expect(upgrade).toHaveFocus();
+			// Why: a listbox holds only options and groups, so the footer renders after it.
+			expect(screen.getByRole("listbox")).not.toContainElement(upgrade);
 			expect(input).toHaveAttribute("aria-expanded", "true");
 			await user.keyboard("{Shift>}{Tab}{/Shift}");
 			expect(input).toHaveFocus();
@@ -423,6 +467,36 @@ describe("MultiSelect", () => {
 			await user.keyboard("{Escape}");
 			expect(input).toHaveAttribute("aria-expanded", "false");
 			expect(input).toHaveFocus();
+		});
+
+		test("an Escape that Content's onKeyDown cancels keeps the list open", async () => {
+			const user = userEvent.setup();
+			render(
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.Input aria-label="Fruits" />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content
+						onKeyDown={(event) => {
+							if (event.key === "Escape") {
+								event.preventDefault();
+							}
+						}}
+					>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						<MultiSelect.ContentFooter>
+							<button type="button">Upgrade</button>
+						</MultiSelect.ContentFooter>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruits" });
+			await user.click(input);
+			await user.tab();
+			await user.keyboard("{Escape}");
+
+			expect(screen.getByRole("button", { name: "Upgrade" })).toHaveFocus();
+			expect(input).toHaveAttribute("aria-expanded", "true");
 		});
 
 		test("the submitted values follow the input's form and disabled", () => {
@@ -492,9 +566,6 @@ describe("MultiSelect", () => {
 			const user = userEvent.setup();
 			render(<Subject />);
 			await user.click(screen.getByRole("combobox"));
-			// Why Escape first: while the modal popover is open, Ariakit marks the tag list
-			// `inert`, so `focus()` cannot enter a tag.
-			await user.keyboard("{Escape}");
 			await user.keyboard("{ArrowLeft}");
 			expect(getTagOption("cherry")).toHaveFocus();
 		});
@@ -527,24 +598,22 @@ describe("MultiSelect", () => {
 			expect(await screen.findByRole("listbox")).toBeInTheDocument();
 		});
 
-		test("the focused tag is marked data-active, never aria-current, and drops it on blur", async () => {
+		test("a focused tag uses DOM focus as its state, never aria-current or data-active", async () => {
 			const user = userEvent.setup();
 			render(<Subject />);
 			const cherry = getTagOption("cherry");
-			expect(cherry).not.toHaveAttribute("data-active");
 
 			act(() => {
 				cherry.focus();
 			});
 			expect(cherry).toHaveFocus();
-			expect(cherry).toHaveAttribute("data-active");
+			expect(cherry).not.toHaveAttribute("data-active");
 			// Why: `aria-current` names the current item in a set, not keyboard focus.
 			expect(cherry).not.toHaveAttribute("aria-current");
-			expect(getTagOption("banana")).not.toHaveAttribute("data-active");
 
 			await user.keyboard("{ArrowRight}");
 			expect(screen.getByRole("combobox")).toHaveFocus();
-			expect(cherry).not.toHaveAttribute("data-active");
+			expect(cherry).not.toHaveFocus();
 		});
 
 		test("ArrowLeft on a non-first tag focuses the previous tag", async () => {
@@ -600,6 +669,27 @@ describe("MultiSelect", () => {
 			await user.click(screen.getByRole("combobox"));
 			await user.keyboard("{Backspace}");
 			expect(screen.queryByLabelText("Remove cherry")).not.toBeInTheDocument();
+			// Why: no focus or option changes, so only the status says which value went.
+			expect(screen.getByRole("status")).toHaveTextContent("Removed cherry");
+		});
+
+		test("a removal that a controlled value rejects says nothing", async () => {
+			const user = userEvent.setup();
+			render(
+				<MultiSelect.Root value={["apple"]}>
+					<MultiSelect.Trigger>
+						<MultiSelect.TagValues />
+						<MultiSelect.Input placeholder="Select items..." />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+			await user.click(screen.getByRole("combobox"));
+			await user.keyboard("{Backspace}");
+			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
+			expect(screen.getByRole("status")).toBeEmptyDOMElement();
 		});
 
 		test("Backspace on the first tag with remaining tags focuses the new first tag", async () => {
@@ -685,6 +775,62 @@ describe("MultiSelect", () => {
 
 		const getAppleOption = () =>
 			within(screen.getByRole("listbox")).getByRole("option", { name: "Apple" });
+
+		// Red if a disabled item runs its onClick, so an action row acts while it is disabled.
+		test("a disabled item ignores a click and does not run its onClick", async () => {
+			const user = userEvent.setup();
+			const onClick = vi.fn<() => void>();
+			render(
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.Input aria-label="Fruits" />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						<MultiSelect.Item value="banana" disabled onClick={onClick}>
+							Banana
+						</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+
+			await user.click(screen.getByRole("combobox", { name: "Fruits" }));
+			const banana = await screen.findByRole("option", { name: "Banana" });
+			await user.click(banana);
+
+			expect(onClick).toHaveBeenCalledTimes(0);
+			expect(banana).toHaveAttribute("aria-selected", "false");
+		});
+
+		test("a disabled asChild link runs no handler of its own and opens on neither a click nor a middle click", async () => {
+			const user = userEvent.setup();
+			const onLinkClick = vi.fn<() => void>();
+			render(
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.Input aria-label="Fruits" />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						<MultiSelect.Item value="docs" disabled asChild>
+							<a href="#docs" onClick={onLinkClick} onClickCapture={onLinkClick}>
+								Docs
+							</a>
+						</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+
+			await user.click(screen.getByRole("combobox", { name: "Fruits" }));
+			const docs = await screen.findByRole("option", { name: "Docs" });
+
+			expect(fireEvent.click(docs)).toBe(false);
+			expect(
+				fireEvent(docs, new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 })),
+			).toBe(false);
+			expect(onLinkClick).toHaveBeenCalledTimes(0);
+			expect(docs).toHaveAttribute("aria-selected", "false");
+		});
 
 		test("locking a value while the popover is open keeps its item selected on click", async () => {
 			const user = userEvent.setup();
@@ -834,10 +980,8 @@ describe("MultiSelect", () => {
 			// `locked` reaches the tag
 			expect(screen.getByLabelText("Remove apple")).toHaveAttribute("aria-disabled", "true");
 			expect(screen.getByLabelText("Remove cherry")).not.toHaveAttribute("aria-disabled");
-			// `ref` registers the tag, so ArrowLeft from the input can focus it. Escape closes
-			// the popover first, because Ariakit marks the tag list `inert` while it is open.
+			// `ref` registers the tag, so ArrowLeft from the input can focus it
 			await user.click(screen.getByRole("combobox"));
-			await user.keyboard("{Escape}");
 			await user.keyboard("{ArrowLeft}");
 			expect(getTagOption("cherry")).toHaveFocus();
 			// `onKeyDown` removes the focused tag
@@ -1152,5 +1296,38 @@ describe("MultiSelect.Item asChild", () => {
 		await expect(user.click(screen.getByRole("combobox"))).rejects.toThrow(
 			"When using `asChild`, MultiSelect.Item must be passed a single child as a JSX tag.",
 		);
+	});
+});
+
+describe("MultiSelect.Item function child", () => {
+	test("renders the returned element as the option, with the label and check inside, and reports the highlight", async () => {
+		const user = userEvent.setup();
+		render(
+			<MultiSelect.Root defaultValue={["apple"]}>
+				<MultiSelect.Trigger aria-label="Fruits">
+					<MultiSelect.TagValues />
+					<MultiSelect.Input aria-label="Search fruits" />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					{["apple", "banana"].map((fruit) => (
+						<MultiSelect.Item key={fruit} value={fruit}>
+							{(props, { highlighted }) => (
+								<div {...props} data-row-highlighted={String(highlighted)}>
+									{fruit}
+								</div>
+							)}
+						</MultiSelect.Item>
+					))}
+				</MultiSelect.Content>
+			</MultiSelect.Root>,
+		);
+
+		await user.click(screen.getByRole("combobox", { name: "Search fruits" }));
+		const banana = await screen.findByRole("option", { name: "banana" });
+		await user.hover(banana);
+
+		expect(banana).toHaveAttribute("data-row-highlighted", "true");
+		expect(banana.querySelector("[data-slot=multi-select-item-label]")).toHaveTextContent("banana");
+		expect(screen.getByRole("option", { name: "apple" }).querySelector("svg")).not.toBeNull();
 	});
 });

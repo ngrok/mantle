@@ -1,0 +1,149 @@
+# Adds `width="wrap"` to a `Table` or `DataTable` header or cell whose
+# className lets its text wrap. Cells now stay on one line and truncate by
+# default, so such a cell must opt back into wrapping. The rule binds $NS to the
+# local name of the `Table` or `DataTable` import, so an aliased import matches
+# and another library's part does not.
+id: table-cell-wrap-width
+language: tsx
+message: Table cells now stay on one line and truncate; pass `width="wrap"` to keep this cell's text wrapping
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  ns-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/(data-)?table["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^(Table|DataTable)$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $NS
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $NS
+  # The opening tag of a header or cell, in a file that imports the namespace,
+  # where no parameter or local shadows the import's name.
+  part-tag:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    all:
+      - has:
+          field: name
+          kind: member_expression
+          all:
+            - has:
+                field: object
+                pattern: $NS
+            - has:
+                field: property
+                regex: ^(Cell|Header)$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: ns-import
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $NS
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $NS
+  width-attribute:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^width$
+  # A class in the className that lets text wrap, with or without a variant.
+  wrap-class:
+    kind: string_fragment
+    regex: '(^|[\s:])(whitespace-(normal|pre|pre-wrap|pre-line|break-spaces)|break-(words|all)|wrap-(break-word|anywhere)|line-clamp-[^\s]+)(\s|$)'
+    # Why: a string compared with `===` chooses a class; it is not one.
+    not:
+      inside:
+        stopBy: end
+        any:
+          - pattern: $A === $B
+          - pattern: $A !== $B
+          - pattern: $A == $B
+          - pattern: $A != $B
+rule:
+  kind: jsx_attribute
+  pattern: $ATTR
+  all:
+    - has:
+        kind: property_identifier
+        regex: ^className$
+    - has:
+        stopBy: end
+        matches: wrap-class
+    - inside:
+        matches: part-tag
+    # Why: a cell that already sets `width` keeps its choice, and a second run
+    # changes nothing.
+    - not:
+        inside:
+          has:
+            matches: width-attribute
+fix: $ATTR width="wrap"

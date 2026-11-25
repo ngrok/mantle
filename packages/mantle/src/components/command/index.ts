@@ -24,11 +24,12 @@ export {
  * [Combobox](https://mantle.ngrok.com/components/forms/combobox).
  *
  * @useWhen Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K`
- * menu.
+ * menu. Cmd+K on Apple platforms and Ctrl+K elsewhere open its search field.
  *
  * @siblings
  * - `Combobox`: the text field filters options in place and sets a form value.
  * - `DropdownMenu`: a short list of actions opens from one button.
+ * - `Query`: a filter on the page that its `keyboardShortcut` prop binds to `/`.
  *
  * @see https://mantle.ngrok.com/components/navigation/command
  *

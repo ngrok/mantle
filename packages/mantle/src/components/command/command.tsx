@@ -13,7 +13,7 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
-import { composeHandlers } from "../../behaviors/compose-handlers.js";
+import { composeHandlers, disabledItemGuard } from "../../behaviors/compose-handlers.js";
 import { useListbox } from "../../behaviors/use-listbox.js";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -56,6 +56,18 @@ const NO_SELECTION: readonly string[] = [];
 const ignoreSelect = () => {};
 
 /**
+ * Names an input that has no other source of a name: no `aria-labelledby`, no
+ * `id` that a `<label>` could point at, no `title`, and no `placeholder`.
+ */
+const defaultName = (props: {
+	"aria-labelledby"?: string;
+	id?: string;
+	placeholder?: string;
+	title?: string;
+}) =>
+	(props["aria-labelledby"] ?? props.id ?? props.title ?? props.placeholder) ? undefined : "Search";
+
+/**
  * The props for `Command.Root`.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandroot
@@ -64,6 +76,8 @@ type CommandRootProps = Omit<ComponentProps<"div">, "defaultValue" | "onChange">
 	WithDataSlot & {
 		/**
 		 * The accessible name of `Command.Input`. Not shown.
+		 *
+		 * @default "Search", when the input has no other name: no `aria-label`, `aria-labelledby`, `<label>`, `title`, or `placeholder`
 		 */
 		label?: string;
 		/**
@@ -75,8 +89,8 @@ type CommandRootProps = Omit<ComponentProps<"div">, "defaultValue" | "onChange">
 		shouldFilter?: boolean;
 		/**
 		 * Scores an item for the query, from 0 (hide the item) to 1 (the best
-		 * match). The items sort by score, highest first. The default is the
-		 * `command-score` fuzzy match that cmdk uses.
+		 * match). The items sort by score, highest first. The default is a fuzzy
+		 * match.
 		 */
 		filter?: CommandFilter;
 		/**
@@ -260,8 +274,8 @@ const CommandRoot = ({
 
 /**
  * Reads the palette state with a selector, and re-renders when the selected
- * value changes. Its state has cmdk's shape: `search`, `value`,
- * `selectedItemId`, and `filtered` (`count`, `items`, `groups`).
+ * value changes. Its state holds `search`, `value`, `selectedItemId`, and
+ * `filtered` (`count`, `items`, `groups`).
  *
  * @see https://mantle.ngrok.com/components/navigation/command#usecommandstate
  *
@@ -570,16 +584,13 @@ const CommandDialogContent = ({
 			ref={contentRef}
 			className={cx("overflow-hidden p-0 relative", className)}
 			onOpenAutoFocus={(event) => {
-				// Radix's own open-autofocus focuses the first candidate *and selects
-				// its value*, which would make the first keystroke after a seeded open
-				// replace the seed instead of extending it. Take the focus over and
-				// collapse the caret to the end.
+				// Why: the first keystroke after a seeded open must extend the seed.
+				// Take the focus over and collapse the caret to the end.
 				// `~=`, not `=`: `Command.Input` joins a forwarded `data-slot` chain
 				// ahead of its own, so the attribute is a space-separated list.
 				const input = contentRef.current?.querySelector('[data-slot~="command-input"]');
-				// No input, or one that cannot take focus: Radix's default is the
-				// right answer, and preventing it would leave focus outside the
-				// dialog with no focus trap.
+				// No input, or one that cannot take focus: the dialog's default focus
+				// is the right answer.
 				if (!(input instanceof HTMLInputElement) || input.disabled) {
 					return;
 				}
@@ -594,7 +605,7 @@ const CommandDialogContent = ({
 				<Dialog.Description>{description}</Dialog.Description>
 			</Dialog.Header>
 			<CommandRoot
-				className="**:data-[slot=command-input-wrapper]:h-12 **:data-[slot~=command-input]:h-12 **:data-[slot=command-group]:px-2 **:data-[slot=command-list]:pb-1"
+				className="[&_[data-slot=command-input-wrapper]]:h-12 [&_[data-slot~=command-input]]:h-12 [&_[data-slot=command-group]]:px-2 [&_[data-slot=command-list]]:pb-1"
 				filter={filter}
 				shouldFilter={shouldFilter}
 			>
@@ -727,7 +738,7 @@ const CommandInput = ({
 				aria-autocomplete="list"
 				aria-expanded
 				aria-controls={listboxId}
-				aria-label={label ?? props["aria-label"]}
+				aria-label={label ?? props["aria-label"] ?? defaultName(props)}
 				// Why: the list writes this attribute, so no consumer value may render over it.
 				aria-activedescendant={undefined}
 				value={resolvedValue}
@@ -820,6 +831,7 @@ const CommandList = ({
 				"scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y",
 				className,
 			)}
+			{...disabledItemGuard(props)}
 			onMouseDown={composeHandlers(onMouseDown, (event) => {
 				// Why: a press inside the list must not move focus off `Command.Input`.
 				event.preventDefault();
@@ -965,7 +977,7 @@ const CommandGroup = ({
 			data-force-mount={forceMount ? "" : undefined}
 			data-slot={joinDataSlot(dataSlot, "command-group")}
 			className={cx(
-				"*:data-[slot=command-group-heading]:text-muted overflow-hidden p-1 *:data-[slot=command-group-heading]:px-2 *:data-[slot=command-group-heading]:py-1.5 *:data-[slot=command-group-heading]:text-xs *:data-[slot=command-group-heading]:font-medium",
+				"[&>[data-slot=command-group-heading]]:text-muted overflow-hidden p-1 [&>[data-slot=command-group-heading]]:px-2 [&>[data-slot=command-group-heading]]:py-1.5 [&>[data-slot=command-group-heading]]:text-xs [&>[data-slot=command-group-heading]]:font-medium",
 				className,
 			)}
 		>
@@ -1055,12 +1067,11 @@ const CommandSeparator = ({
  * One selectable row in the palette's list. A query that does not match it
  * writes `hidden` on it, and it stays mounted.
  *
- * | Data Attribute  | Value                  | Description                       |
- * | --------------- | ---------------------- | --------------------------------- |
- * | `data-slot`     | `"command-item"`       | The item.                         |
- * | `data-value`    | the resolved value     | The `value`, or the trimmed text. |
- * | `data-selected` | `"true"` when active   | The active item.                  |
- * | `data-disabled` | `"true"` when disabled | Set by `disabled`.                |
+ * | Data Attribute     | Value                    | Description                                       |
+ * | ------------------ | ------------------------ | ------------------------------------------------- |
+ * | `data-slot`        | `"command-item"`         | The item.                                         |
+ * | `data-highlighted` | present when highlighted | Presence-only. The item the keyboard or pointer is on. |
+ * | `aria-disabled`    | `"true"` when disabled   | Set by `disabled`. Style it with `aria-disabled:`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commanditem
  *
@@ -1116,7 +1127,8 @@ const CommandItem = ({
 		 */
 		onPointerMove?: PointerEventHandler<HTMLElement>;
 		/**
-		 * Whether the item can be activated and selected.
+		 * Whether the item can be activated and selected. A disabled item runs no
+		 * click handler, and an `asChild` link does not navigate.
 		 *
 		 * @default false
 		 */
@@ -1171,10 +1183,9 @@ const CommandItem = ({
 			// Why `false`: the list writes `true` on the active item when it moves.
 			aria-selected={false}
 			aria-disabled={disabled || undefined}
-			data-disabled={disabled ? "true" : undefined}
 			data-slot={joinDataSlot(dataSlot, "command-item")}
 			className={cx(
-				"data-[selected=true]:bg-active-menu-item [:where(&_svg)]:text-muted relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [:where(&_svg)]:size-5",
+				"data-highlighted:bg-active-menu-item [:where(&_svg)]:text-muted relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [:where(&_svg)]:size-5",
 				className,
 			)}
 			onPointerMove={(event) => {

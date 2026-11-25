@@ -11,6 +11,7 @@ import {
 	createServer,
 	type InlineConfig,
 	type Plugin,
+	type PluginOption,
 } from "vite";
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import {
@@ -111,7 +112,7 @@ function captureLogger(): { logger: ReturnType<typeof createLogger>; logs: Captu
 		logs.info.push(message);
 	};
 	logger.warn = (message) => {
-		// Why: rolldown 1.2.9+ warns once per bundled Radix module that opens with "use client".
+		// Why: rolldown 1.2.9+ warns once per bundled module that opens with "use client".
 		// The plugin under test does not own those files, so the fixture drops the noise.
 		if (message.includes("[MODULE_LEVEL_DIRECTIVE]")) {
 			return;
@@ -164,7 +165,7 @@ type BuildResult = {
 
 async function buildFixture(
 	root: string,
-	plugins: Plugin[],
+	plugins: PluginOption[],
 	config: Omit<InlineConfig, "root" | "plugins"> = {},
 ): Promise<BuildResult> {
 	const { logger, logs } = captureLogger();
@@ -731,6 +732,19 @@ describe("mantleSourcesPlugin build", () => {
 	test("keeps the app's own classes and shrinks the stylesheet", () => {
 		expect(trimmed.css).toMatch(/\.mt-4(?![\w-])/);
 		expect(trimmed.css.length).toBeLessThan(full.css.length);
+	});
+
+	test("prunes the theme stops the stylesheet does not read, unless themePrune is false", async () => {
+		// Why `[0].name` with no guard: the return type puts the sources plugin first.
+		expect(mantleSourcesPlugin()[0].name).toBe("vite-plugin-mantle-sources");
+		expect(mantleSourcesPlugin({ themePrune: false })).toHaveLength(1);
+		const unpruned = await buildFixture(root, [mantleSourcesPlugin({ themePrune: false })]);
+		const stops = (css: string) => css.match(/--color-[a-z]+-\d+:/g)?.length ?? 0;
+
+		// Why "pink-50": the dark theme rule declares it, and the Badge and Tooltip fixture reads it nowhere.
+		expect(unpruned.css).toContain("--color-pink-50:");
+		expect(trimmed.css).not.toContain("--color-pink-50:");
+		expect(stops(trimmed.css)).toBeLessThan(stops(unpruned.css));
 	});
 
 	test("logs one summary line with the listed count and the source-all total", () => {

@@ -76,10 +76,10 @@ describe("List (browser)", () => {
 		render(<Harness />);
 
 		const bravo = await screen.findByRole("button", { name: /Bravo/ });
-		expect(bravo.closest("[data-slot='list-item']")).toHaveAttribute("data-state", "unselected");
+		expect(bravo.closest("[data-slot='list-item']")).not.toHaveAttribute("data-selected");
 
 		await user.click(bravo);
-		expect(bravo.closest("[data-slot='list-item']")).toHaveAttribute("data-state", "selected");
+		expect(bravo.closest("[data-slot='list-item']")).toHaveAttribute("data-selected", "");
 	});
 
 	test("VirtualRoot windows the same Item children behind a labeled list", async () => {
@@ -105,7 +105,7 @@ describe("List (browser)", () => {
 		expect(screen.getByRole("list", { name: "Accounts" })).toBeInTheDocument();
 		const alpha = await screen.findByRole("button", { name: /Alpha/ });
 		await user.click(alpha);
-		expect(alpha.closest("[data-slot='list-item']")).toHaveAttribute("data-state", "selected");
+		expect(alpha.closest("[data-slot='list-item']")).toHaveAttribute("data-selected", "");
 	});
 
 	test("ArrowUp/ArrowDown/Home/End move focus between items, skipping disabled ones", async () => {
@@ -191,7 +191,7 @@ describe("List (browser)", () => {
 
 	test("a disabled asChild link cannot navigate or act, even on a programmatic click", async () => {
 		// Regression: the disabled swallow ran in the bubble phase, after the
-		// slotted child's own onClick (Radix Slot composes it first), so a
+		// slotted child's own onClick (`Slot` composes it first), so a
 		// screen-reader / programmatic click still fired the child handler.
 		let activated = 0;
 		render(

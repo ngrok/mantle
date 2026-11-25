@@ -238,7 +238,8 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 		}
 		window.addEventListener("storage", onStorage);
 
-		const prefersDarkMql = window.matchMedia(prefersDarkModeMediaQuery);
+		// Why optional: jsdom has no `matchMedia`, and a consumer test must still render.
+		const prefersDarkMql = window.matchMedia?.(prefersDarkModeMediaQuery);
 
 		function onChange() {
 			syncThemeFromCookie();
@@ -250,7 +251,7 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 			}
 		}
 
-		prefersDarkMql.addEventListener("change", onChange);
+		prefersDarkMql?.addEventListener("change", onChange);
 
 		// pageshow fires on bfcache restore (event.persisted === true) and some restore-from-freeze cases.
 		window.addEventListener("pageshow", onChange);
@@ -259,7 +260,7 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 
 		return () => {
 			window.removeEventListener("storage", onStorage);
-			prefersDarkMql.removeEventListener("change", onChange);
+			prefersDarkMql?.removeEventListener("change", onChange);
 			window.removeEventListener("pageshow", onChange);
 			document.removeEventListener("visibilitychange", onVisibilityChange);
 
@@ -291,7 +292,7 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 						pingKey: `${THEME_STORAGE_KEY}__ping`,
 					});
 				};
-				const prefersDarkMode = window.matchMedia(prefersDarkModeMediaQuery).matches;
+				const prefersDarkMode = window.matchMedia?.(prefersDarkModeMediaQuery).matches ?? false;
 				const nextAppliedTheme = forceTheme ?? resolveTheme(resolveNext(), { prefersDarkMode });
 				// Why compare: a change the page does not show needs no reveal.
 				if (nextAppliedTheme === document.documentElement.dataset.appliedTheme) {
@@ -323,7 +324,12 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
  * @example
  * ```tsx
  * const [theme, setTheme] = useTheme();
- * <Button type="button" onClick={(event) => setTheme("dark", { origin: event.currentTarget })}>
+ * <Button
+ *   type="button"
+ *   appearance="outlined"
+ *   intent="neutral"
+ *   onClick={(event) => setTheme("dark", { origin: event.currentTarget })}
+ * >
  *   Dark
  * </Button>;
  * ```
@@ -377,7 +383,7 @@ function applyThemeToHtml(theme: Theme, { forceTheme }: { forceTheme?: ResolvedT
 
 	const html = window.document.documentElement;
 
-	const prefersDarkMode = window.matchMedia(prefersDarkModeMediaQuery).matches;
+	const prefersDarkMode = window.matchMedia?.(prefersDarkModeMediaQuery).matches ?? false;
 	const resolvedTheme = forceTheme ?? resolveTheme(theme, { prefersDarkMode });
 
 	const htmlTheme = html.dataset.theme;
@@ -566,7 +572,7 @@ function useInitialHtmlThemeProps(props: UseInitialHtmlThemePropsOptions = {}): 
 			// corrects a "system" page before paint.
 			resolvedTheme = resolveTheme(initialTheme, { prefersDarkMode: false });
 		} else {
-			const prefersDarkMode = window.matchMedia(prefersDarkModeMediaQuery).matches;
+			const prefersDarkMode = window.matchMedia?.(prefersDarkModeMediaQuery).matches ?? false;
 			initialTheme = getStoredTheme({ cookie: readDocumentCookie() ?? ssrCookie });
 			resolvedTheme = resolveTheme(initialTheme, { prefersDarkMode });
 		}

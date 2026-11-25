@@ -12,7 +12,7 @@
 
 1. **A new top-level component, `SegmentedControl`, with `Root` and `Item`.** Its intent is to switch a view or a mode in one row, where the change usually takes effect at once. `RadioGroup` stays the form field whose options can carry a description or stack in a column. `Tabs` stays the control whose options each show a panel. "Trigger" is not a part name: in mantle and Radix it names a control that opens something.
 2. **One radio primitive under both.** `radio-group/primitive.tsx` holds the Headless UI root, the item, the item state context, and the ARIA wiring for `Field.Control` and `Choice`, like `dialog/primitive.tsx` under `Dialog` and `Sheet`. The two components keep the same roles, keyboard, and form contract, and a fix to the wiring reaches both.
-3. **The thumb moves in JavaScript.** `useSegmentedThumb` slides the thumb with the Web Animations API on every change, because only Chromium animates a jump of `left: anchor(left)`. It also drags the thumb with a mouse or a finger, with no dependency.
+3. **The thumb moves in JavaScript.** `useSlidingThumb` (`utils/sliding-thumb.ts`) slides the thumb with the Web Animations API on every change. It also drags the thumb with a mouse or a finger, with no dependency. The checked item draws the thumb as its own pseudo-element, so no CSS anchor positioning is needed. `Tabs` shares the hook for its active indicator.
 4. **The bump is `minor`.** `RadioGroup.ButtonGroup` and `RadioGroup.Button` are gone. The guide at `/migrations/0015-segmented-control-migration` and its codemod carry the rename.
 
 ## Consequences

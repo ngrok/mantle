@@ -60,6 +60,25 @@ function supportsBeforeMatch(): boolean {
 	return canUseDOM() && document.body != null && "onbeforematch" in document.body;
 }
 
+/**
+ * Applies a style change with the transition off, forces a style and layout flush so the box
+ * settles at its end values, then restores the consumer's inline value. Overrides only the
+ * `transition-property` longhand: the `transition` shorthand reads as empty when only some
+ * longhands are set, so restoring it would delete them.
+ *
+ * @example
+ * ```ts
+ * settle(node, () => { node.style.height = "auto"; });
+ * ```
+ */
+function settle(node: HTMLElement, apply: () => void) {
+	const { transitionProperty } = node.style;
+	node.style.transitionProperty = "none";
+	apply();
+	node.getBoundingClientRect();
+	node.style.transitionProperty = transitionProperty;
+}
+
 type AccordionContextValue = {
 	type: AccordionType;
 	openValues: readonly string[];
@@ -179,10 +198,10 @@ type AccordionRootProps = (AccordionSingleProps | AccordionMultipleProps) &
  * the classic accordion where opening a section auto-closes the previously open
  * one.
  *
- * `divide-y` on the root draws a hairline divider between items. The shared
- * `separator` token colors it, so it matches `Separator` and every other divider
- * in the system. Disable the dividers with `divide-y-0` on the root (e.g. pair it
- * with `space-y-*` for a spaced-card layout).
+ * `between:border-b` on the root draws a hairline divider between items. The
+ * shared `separator` token colors it, so it matches `Separator` and every other
+ * divider in the system. Disable the dividers with `between:border-b-0` on the
+ * root (e.g. pair it with `between:mbe-*` for a spaced-card layout).
  *
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordionroot
  *
@@ -277,10 +296,10 @@ const Root = (props: AccordionRootProps) => {
 	const containerProps = {
 		...domProps,
 		"data-slot": joinDataSlot(dataSlot, "accordion"),
-		// Dividers live on the root via `divide-y` (one border between adjacent items,
+		// Dividers live on the root via `between:border-b` (one border between adjacent items,
 		// none trailing) rather than a per-item `border-b` + `last:border-b-0`. The color
 		// is the shared `separator` token so dividers match `Separator` across the system.
-		className: cx("w-full divide-y divide-separator", className),
+		className: cx("w-full between:border-b between:border-separator", className),
 	};
 
 	return (
@@ -356,7 +375,7 @@ const Item = ({
 				{...props}
 				role="group"
 				data-slot={joinDataSlot(dataSlot, "accordion-item")}
-				data-state={open ? "open" : "closed"}
+				data-open={open ? "" : undefined}
 			>
 				{children}
 			</div>
@@ -405,7 +424,6 @@ const Trigger = ({
 			type="button"
 			{...props}
 			data-slot={joinDataSlot(dataSlot, "accordion-trigger")}
-			data-state={open ? "open" : "closed"}
 			aria-expanded={open}
 			aria-controls={contentId}
 			className={cx(
@@ -496,7 +514,7 @@ const TriggerIcon = ({
 		// label is one line, the row is one line tall, so the trigger's `items-center`
 		// keeps the icon centered with shorter children, such as a `text-sm` label.
 		className={cx(
-			"h-lh w-4 shrink-0 self-start text-muted transition-transform duration-200 ease-out-strong group-data-state-open:rotate-180 motion-reduce:transition-none",
+			"h-lh w-4 shrink-0 self-start text-muted transition-transform duration-200 ease-out-strong group-aria-expanded:rotate-180 motion-reduce:transition-none",
 			className,
 		)}
 	/>
@@ -545,6 +563,11 @@ const Content = ({
 	// still forwarding it to any ref the consumer passes.
 	const nodeRef = useRef<ComponentRef<"div">>(null);
 	const composedRef = useComposedRefs(nodeRef, ref);
+	// Counts find-in-page reveals. Each one commits with the open it asks for.
+	const [reveals, setReveals] = useState(0);
+	// The pending frame of the check below. A new reveal cancels it in its event, so a check of
+	// a refused reveal cannot hide a later reveal before that one commits.
+	const checkFrameRef = useRef(0);
 
 	// When the browser is about to reveal a find-in-page match inside this
 	// (collapsed) region, open the item so our state agrees and it stays open.
@@ -555,7 +578,7 @@ const Content = ({
 		}
 		const handleBeforeMatch = () => {
 			// The browser reveals and highlights the match synchronously right after
-			// this event, but our React-driven height (`data-state-open:h-auto`) only
+			// this event, but our React-driven height (`data-open:h-auto`) only
 			// applies a tick later. Without expanding now, the box is still
 			// `h-0 overflow-hidden` when the browser paints its find highlight, so the
 			// match opens but its highlight is clipped to zero height and lost. Removing
@@ -563,21 +586,19 @@ const Content = ({
 			// text out at full height before the highlight paints. The closed state is
 			// also transparent, so show the content at full opacity for the same paint.
 			// The height transition would start the box at zero and slide it open, so
-			// the highlight would still be clipped when it paints: turn the transition
-			// off, force a style and layout flush so the box settles at its end values,
-			// then restore the consumer's inline value. Override only the
-			// `transition-property` longhand: the `transition` shorthand reads as empty
-			// when only some longhands are set, so restoring it would delete them. The
-			// close branch of the effect below clears the inline height and opacity so
-			// the slide and the fade resume.
-			const { transitionProperty } = node.style;
-			node.removeAttribute("hidden");
-			node.style.transitionProperty = "none";
-			node.style.height = "auto";
-			node.style.opacity = "1";
-			node.getBoundingClientRect();
-			node.style.transitionProperty = transitionProperty;
+			// the highlight would still be clipped when it paints. The close branch of
+			// the effect below clears the inline height and opacity so the slide and
+			// the fade resume.
+			settle(node, () => {
+				node.removeAttribute("hidden");
+				node.style.height = "auto";
+				node.style.opacity = "1";
+			});
+			cancelAnimationFrame(checkFrameRef.current);
+			// Why one batch: the reveal count commits with an open the root accepts at once, so
+			// the check below sees that open.
 			setOpen(true);
+			setReveals((count) => count + 1);
 		};
 
 		node.addEventListener("beforematch", handleBeforeMatch);
@@ -586,6 +607,33 @@ const Content = ({
 			node.removeEventListener("beforematch", handleBeforeMatch);
 		};
 	}, [setOpen]);
+
+	// Why an effect: a root can refuse the open, and only a commit shows the answer. Why after
+	// the commit: WebKit and Firefox can run two frames before React commits an open that the
+	// root accepts at once, and a check started in the event hid that content again. A root
+	// that accepts in a transition commits later, so wait two frames more. Content that is
+	// still closed then was refused, so hide it again. Why `settle`: the close slide keeps the
+	// refused content visible and interactive for its whole duration.
+	useEffect(() => {
+		const node = nodeRef.current;
+		if (reveals === 0 || !node || node.hasAttribute("data-open")) {
+			return;
+		}
+		checkFrameRef.current = requestAnimationFrame(() => {
+			checkFrameRef.current = requestAnimationFrame(() => {
+				if (!node.hasAttribute("data-open")) {
+					settle(node, () => {
+						node.setAttribute("hidden", "until-found");
+						node.style.height = "";
+						node.style.opacity = "";
+					});
+				}
+			});
+		});
+		return () => {
+			cancelAnimationFrame(checkFrameRef.current);
+		};
+	}, [reveals]);
 
 	// Toggle `hidden="until-found"` with the open state, imperatively: React types
 	// `hidden` as boolean-only (no `"until-found"`) and has no `onBeforeMatch`, so
@@ -631,7 +679,7 @@ const Content = ({
 			// above removes it where `hidden="until-found"` takes over.
 			inert={!open}
 			data-slot={joinDataSlot(dataSlot, "accordion-content")}
-			data-state={open ? "open" : "closed"}
+			data-open={open ? "" : undefined}
 			className={cx(
 				// Animate height 0 <-> auto via `interpolate-size` (Chromium only; other
 				// engines snap, which is fine: the slide is a progressive enhancement and
@@ -644,7 +692,7 @@ const Content = ({
 				// lives on `Accordion.Body`, never here: a padded `h-0` border-box can't
 				// collapse below its padding, so the closed section would stop short of
 				// zero height instead of fully collapsing.
-				"h-0 overflow-hidden opacity-0 transition-[height,opacity,content-visibility] duration-200 ease-out-strong [interpolate-size:allow-keywords] transition-discrete data-state-open:h-auto data-state-open:opacity-100 motion-reduce:transition-none",
+				"h-0 overflow-hidden opacity-0 transition-[height,opacity,content-visibility] duration-200 ease-out-strong [interpolate-size:allow-keywords] transition-discrete data-open:h-auto data-open:opacity-100 motion-reduce:transition-none",
 				className,
 			)}
 		>

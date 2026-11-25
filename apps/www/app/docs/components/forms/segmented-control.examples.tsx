@@ -1,6 +1,7 @@
-import { Button } from "@ngrok/mantle/button";
+import { Button, IconButton } from "@ngrok/mantle/button";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
 import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { ListIcon } from "@phosphor-icons/react/List";
 import { SquaresFourIcon } from "@phosphor-icons/react/SquaresFour";
 import { useForm } from "@tanstack/react-form";
@@ -114,6 +115,196 @@ export function IconSegmentsExample() {
 					<span className="sr-only">Grid</span>
 				</SegmentedControl.Item>
 			</SegmentedControl.Root>
+		</PreviewCanvas>
+	);
+}
+
+/** The "Size" example on the Segmented Control docs page. */
+export function SizeExample() {
+	return (
+		<PreviewCanvas>
+			<div className="flex flex-wrap items-start justify-center gap-6">
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size xs</Field.Legend>
+					<div className="flex items-center gap-2">
+						<SegmentedControl.Root
+							aria-label="Event view, size xs"
+							defaultValue="headers"
+							size="xs"
+						>
+							<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<SegmentedControl.Root
+							aria-label="Layout, size xs"
+							defaultValue="list"
+							size="xs"
+							className="w-fit"
+						>
+							<SegmentedControl.Item value="list">
+								<ListIcon aria-hidden className="size-4" />
+								<span className="sr-only">List</span>
+							</SegmentedControl.Item>
+							<SegmentedControl.Item value="grid">
+								<SquaresFourIcon aria-hidden className="size-4" />
+								<span className="sr-only">Grid</span>
+							</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<IconButton
+							appearance="ghost"
+							intent="neutral"
+							size="xs"
+							label="Copy event"
+							icon={<CopyIcon />}
+						/>
+					</div>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size sm</Field.Legend>
+					<div className="flex items-center gap-2">
+						<SegmentedControl.Root
+							aria-label="Event view, size sm"
+							defaultValue="headers"
+							size="sm"
+						>
+							<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<SegmentedControl.Root
+							aria-label="Layout, size sm"
+							defaultValue="list"
+							size="sm"
+							className="w-fit"
+						>
+							<SegmentedControl.Item value="list">
+								<ListIcon aria-hidden className="size-4" />
+								<span className="sr-only">List</span>
+							</SegmentedControl.Item>
+							<SegmentedControl.Item value="grid">
+								<SquaresFourIcon aria-hidden className="size-4" />
+								<span className="sr-only">Grid</span>
+							</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<IconButton
+							appearance="ghost"
+							intent="neutral"
+							size="sm"
+							label="Copy event"
+							icon={<CopyIcon />}
+						/>
+					</div>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size md (default)</Field.Legend>
+					<div className="flex items-center gap-2">
+						<SegmentedControl.Root
+							aria-label="Event view, size md"
+							defaultValue="headers"
+							size="md"
+						>
+							<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<SegmentedControl.Root
+							aria-label="Layout, size md"
+							defaultValue="list"
+							size="md"
+							className="w-fit"
+						>
+							<SegmentedControl.Item value="list">
+								<ListIcon aria-hidden className="size-5" />
+								<span className="sr-only">List</span>
+							</SegmentedControl.Item>
+							<SegmentedControl.Item value="grid">
+								<SquaresFourIcon aria-hidden className="size-5" />
+								<span className="sr-only">Grid</span>
+							</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<IconButton
+							appearance="ghost"
+							intent="neutral"
+							size="md"
+							label="Copy event"
+							icon={<CopyIcon />}
+						/>
+					</div>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size lg</Field.Legend>
+					<div className="flex items-center gap-2">
+						<SegmentedControl.Root
+							aria-label="Event view, size lg"
+							defaultValue="headers"
+							size="lg"
+						>
+							<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<SegmentedControl.Root
+							aria-label="Layout, size lg"
+							defaultValue="list"
+							size="lg"
+							className="w-fit"
+						>
+							<SegmentedControl.Item value="list">
+								<ListIcon aria-hidden className="size-5" />
+								<span className="sr-only">List</span>
+							</SegmentedControl.Item>
+							<SegmentedControl.Item value="grid">
+								<SquaresFourIcon aria-hidden className="size-5" />
+								<span className="sr-only">Grid</span>
+							</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<IconButton
+							appearance="ghost"
+							intent="neutral"
+							size="lg"
+							label="Copy event"
+							icon={<CopyIcon />}
+						/>
+					</div>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size xl</Field.Legend>
+					<div className="flex items-center gap-2">
+						<SegmentedControl.Root
+							aria-label="Event view, size xl"
+							defaultValue="headers"
+							size="xl"
+						>
+							<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<SegmentedControl.Root
+							aria-label="Layout, size xl"
+							defaultValue="list"
+							size="xl"
+							className="w-fit"
+						>
+							<SegmentedControl.Item value="list">
+								<ListIcon aria-hidden className="size-5" />
+								<span className="sr-only">List</span>
+							</SegmentedControl.Item>
+							<SegmentedControl.Item value="grid">
+								<SquaresFourIcon aria-hidden className="size-5" />
+								<span className="sr-only">Grid</span>
+							</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<IconButton
+							appearance="ghost"
+							intent="neutral"
+							size="xl"
+							label="Copy event"
+							icon={<CopyIcon />}
+						/>
+					</div>
+				</Field.Set>
+			</div>
 		</PreviewCanvas>
 	);
 }

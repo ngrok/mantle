@@ -17,7 +17,7 @@ export default function RecipesLayout() {
 	const fullWidth = isFullWidthDoc(useMatches());
 
 	return (
-		<PageLayout className={cx(fullWidth && ["max-w-full", fullWidthProseMeasure])}>
+		<PageLayout className={cx(fullWidth && ["[--page-max-width:100vw]", fullWidthProseMeasure])}>
 			<Outlet />
 		</PageLayout>
 	);

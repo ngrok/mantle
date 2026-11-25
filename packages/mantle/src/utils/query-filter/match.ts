@@ -1,8 +1,16 @@
+import { compileComparison } from "./comparison.js";
+import {
+	type FilterExpression,
+	type FilterFacetNode,
+	type FilterTextNode,
+	parseFilterExpression,
+	toFilterExpression,
+} from "./expression.js";
 import {
 	type FilterGrammar,
-	type FilterKeyDefinition,
 	type FilterMatchContext,
 	getFilterKeyDefinition,
+	getFilterValueType,
 } from "./grammar.js";
 import { type FilterToken, parseFilterQuery } from "./parse.js";
 
@@ -64,166 +72,137 @@ function getSearchTexts<Item extends object>(
 	return texts;
 }
 
-/**
- * One test of a compiled conjunction. Compiling resolves the keys, the value
- * aliases, and the search terms once per pass, so the per-item loop only runs
- * matchers and substring checks.
- */
-type CompiledTest<Item> =
-	| {
-			kind: "facet";
-			definition: FilterKeyDefinition<Item>;
-			/** The known canonical values. They OR together. */
-			values: string[];
-			negated: boolean;
-	  }
-	| {
-			kind: "text";
-			/** The normalized, lowercased term. */
-			term: string;
-			negated: boolean;
-	  };
+/** A compiled test of one item, with its index into the items array. */
+type ItemTest<Item> = (item: Item, index: number) => boolean;
 
 /**
- * Compiles one conjunction: every qualifier and every search term must hold,
- * negations inverted. Repeats of one key AND like everything else; the OR
- * forms are a comma list and the `OR` operator.
- *
- * @returns `null` when no item can match, as for an unknown value. A token
- * that every item passes compiles to no test.
+ * A compiled node: `true` when every item matches, `false` when none does,
+ * or the test of one item. Folding the constants at compile time keeps them
+ * out of the loop over the items.
  */
-function compileConjunction<Item>(
-	grammar: FilterGrammar<Item>,
-	tokens: readonly FilterToken[],
-): CompiledTest<Item>[] | null {
-	const tests: CompiledTest<Item>[] = [];
+type CompiledNode<Item> = boolean | ItemTest<Item>;
 
-	for (const token of tokens) {
-		if (token.kind === "facet") {
-			// A qualifier with no members yet (`is:`, `is:,`) is mid-token;
-			// filtering on nothing would empty the list under the user.
-			if (token.members.length === 0) {
-				continue;
-			}
-			const definition = getFilterKeyDefinition(grammar, token.key);
-			// A `-` on a key that cannot exclude paints invalid. Like an unknown
-			// value, it is a filter that nothing satisfies.
-			if (definition == null || (token.negated && definition.negatable === false)) {
-				return null;
-			}
-			// A member that survives no alias is a real filter that nothing
-			// satisfies, which is the standard filtered-empty state rather than a
-			// silent no-op. Its negation excludes nothing.
-			const values = token.members
-				.filter((member) => member.isKnownValue)
-				.map((member) => member.value);
-			if (values.length === 0) {
-				if (token.negated) {
-					continue;
-				}
-				return null;
-			}
-			tests.push({ kind: "facet", definition, values, negated: token.negated });
-			continue;
+/**
+ * Joins compiled children with `&&` or `||`. A constant child decides the
+ * whole node or drops out, so the loop over the items runs only real tests.
+ */
+function joinTests<Item>(
+	kind: "and" | "or",
+	children: readonly CompiledNode<Item>[],
+): CompiledNode<Item> {
+	const deciding = kind === "or";
+	const tests: ItemTest<Item>[] = [];
+	for (const child of children) {
+		if (child === deciding) {
+			return deciding;
 		}
-
-		if (token.kind !== "text") {
-			continue;
+		if (typeof child === "function") {
+			tests.push(child);
 		}
-		// A term that normalizes to nothing matches no item, so its negation
-		// matches every item.
-		const term = (grammar.normalizeSearchTerm?.(token.text) ?? token.text).toLowerCase();
-		if (term === "") {
-			if (token.negated) {
-				continue;
-			}
-			return null;
-		}
-		tests.push({ kind: "text", term, negated: token.negated });
 	}
+	const [first, second] = tests;
+	if (first == null) {
+		return !deciding;
+	}
+	if (second == null) {
+		return first;
+	}
+	if (tests.length === 2) {
+		return deciding
+			? (item, index) => first(item, index) || second(item, index)
+			: (item, index) => first(item, index) && second(item, index);
+	}
+	// Why plain loops: this runs once per item per pass, and the callbacks of
+	// `some` cost more than the checks inside them.
+	return (item, index) => {
+		for (const test of tests) {
+			if (test(item, index) === deciding) {
+				return deciding;
+			}
+		}
+		return !deciding;
+	};
+}
 
-	return tests;
+/** Compiles one qualifier member into the test its key runs. */
+function compileFacet<Item>(
+	grammar: FilterGrammar<Item>,
+	node: FilterFacetNode,
+	context: FilterMatchContext,
+): CompiledNode<Item> {
+	const definition = getFilterKeyDefinition(grammar, node.key);
+	if (definition == null) {
+		return false;
+	}
+	const { comparison } = node;
+	// Why method calls: a grammar can define `matches` or `getValue` as a method
+	// that reads `this`, so the test must not detach it from its key.
+	if (definition.matches != null) {
+		// A key with no type only ever parses to text equality.
+		if (comparison.operator !== "equals" || comparison.operand.type !== "text") {
+			return false;
+		}
+		const value = comparison.operand.value;
+		return (item) => definition.matches(item, value, context);
+	}
+	const compare = compileComparison({
+		type: getFilterValueType(definition),
+		comparison,
+		now: context.now,
+	});
+	return (item) => compare(definition.getValue(item));
 }
 
 /**
- * Compiles the OR groups of a query into one item test.
+ * Compiles an expression tree into one item test. It resolves the keys, the
+ * operands, and the search terms once per pass, so the loop over the items
+ * only runs matchers, comparisons, and substring checks.
  *
  * @returns `true` when every item matches, `false` when none does, or the
- * per-item test.
+ * test of one item.
  */
 function compileQuery<Item extends object>({
 	grammar,
 	items,
-	groups,
+	expression,
 	context,
 }: {
 	grammar: FilterGrammar<Item>;
 	items: readonly Item[];
-	groups: readonly FilterToken[][];
+	expression: FilterExpression;
 	context: FilterMatchContext;
-}): boolean | ((item: Item, index: number) => boolean) {
-	const conjunctions = groups
-		.map((group) => compileConjunction(grammar, group))
-		.filter((tests) => tests != null);
-	if (conjunctions.length === 0) {
-		return false;
-	}
-	if (conjunctions.some((tests) => tests.length === 0)) {
-		return true;
-	}
+}): CompiledNode<Item> {
+	let searchTexts: readonly string[] | null = null;
 
-	const searchTexts = conjunctions.some((tests) => tests.some((test) => test.kind === "text"))
-		? getSearchTexts(grammar, items)
-		: [];
-
-	// Why plain loops: this runs once per item per pass, and the callbacks of
-	// `some` cost more than the checks inside them.
-	function passes(item: Item, index: number, tests: readonly CompiledTest<Item>[]) {
-		for (const test of tests) {
-			let found = false;
-			if (test.kind === "text") {
-				found = (searchTexts[index] ?? "").includes(test.term);
-			} else {
-				for (const value of test.values) {
-					if (test.definition.matches(item, value, context)) {
-						found = true;
-						break;
-					}
-				}
-			}
-			if (found === test.negated) {
-				return false;
-			}
+	function compileText(node: FilterTextNode): CompiledNode<Item> {
+		// A term that normalizes to nothing matches no item, so its negation
+		// matches every item.
+		const term = (grammar.normalizeSearchTerm?.(node.text) ?? node.text).toLowerCase();
+		if (term === "") {
+			return false;
 		}
-		return true;
+		searchTexts ??= getSearchTexts(grammar, items);
+		const texts = searchTexts;
+		return (_item, index) => (texts[index] ?? "").includes(term);
 	}
 
-	return (item, index) => {
-		for (const tests of conjunctions) {
-			if (passes(item, index, tests)) {
-				return true;
+	function compileNode(node: FilterExpression): CompiledNode<Item> {
+		switch (node.kind) {
+			case "and":
+			case "or":
+				return joinTests(node.kind, node.children.map(compileNode));
+			case "not": {
+				const child = compileNode(node.child);
+				return typeof child === "function" ? (item, index) => !child(item, index) : !child;
 			}
-		}
-		return false;
-	};
-}
-
-/**
- * Splits the token stream into OR groups. An `AND` is dropped: conjunction is
- * already implicit. Empty groups (a leading, trailing, or doubled `OR`) are
- * dropped too: the user is mid-token, and an empty group matching everything
- * would flood the list under them.
- */
-function splitOrGroups(tokens: readonly FilterToken[]) {
-	const groups: FilterToken[][] = [[]];
-	for (const token of tokens) {
-		if (token.kind === "or") {
-			groups.push([]);
-		} else if (token.kind !== "and") {
-			groups.at(-1)?.push(token);
+			case "facet":
+				return compileFacet(grammar, node, context);
+			default:
+				return compileText(node);
 		}
 	}
-	return groups.filter((group) => group.length > 0);
+
+	return compileNode(expression);
 }
 
 /**
@@ -248,16 +227,16 @@ function filterItemsByTokens<Item extends object>({
 	tokens: readonly FilterToken[];
 	context?: FilterMatchContext;
 }) {
-	const groups = splitOrGroups(tokens);
+	const expression = toFilterExpression(grammar, tokens);
 
 	// Hand back the same array when nothing was asked (an empty query, or
 	// bare operators mid-typing), so an unfiltered list keeps its identity
 	// through a memoized caller.
-	if (groups.length === 0) {
+	if (expression == null) {
 		return items;
 	}
 
-	const test = compileQuery({ grammar, items, groups, context });
+	const test = compileQuery({ grammar, items, expression, context });
 	if (test === true) {
 		return items.slice();
 	}
@@ -295,25 +274,26 @@ function filterItemsByQuery<Item extends object>({
 }
 
 /**
- * Counts the items the OR groups match, without building the filtered array.
+ * Counts the items a query matches, without building the filtered array.
  * With `indexes`, it counts only the items at those indexes.
  */
 function countMatches<Item extends object>({
 	grammar,
 	items,
-	groups,
+	query,
 	indexes,
 }: {
 	grammar: FilterGrammar<Item>;
 	items: readonly Item[];
-	groups: readonly FilterToken[][];
+	query: string;
 	indexes: Uint32Array | null;
 }) {
 	const total = indexes?.length ?? items.length;
-	if (groups.length === 0) {
+	const expression = parseFilterExpression(grammar, query);
+	if (expression == null) {
 		return total;
 	}
-	const test = compileQuery({ grammar, items, groups, context: { now: Date.now() } });
+	const test = compileQuery({ grammar, items, expression, context: { now: Date.now() } });
 	if (typeof test === "boolean") {
 		return test ? total : 0;
 	}
@@ -396,8 +376,7 @@ function countItemsByQuery<Item extends object>(
 		return cached;
 	}
 
-	const groups = splitOrGroups(parseFilterQuery(grammar, query));
-	const count = countMatches({ grammar, items, groups, indexes: null });
+	const count = countMatches({ grammar, items, query, indexes: null });
 	storeCount(counts, query, count);
 	return count;
 }
@@ -450,11 +429,11 @@ function getRestIndexes<Item extends object>(
 		return cached.indexes;
 	}
 
-	const groups = splitOrGroups(parseFilterQuery(grammar, restQuery));
+	const expression = parseFilterExpression(grammar, restQuery);
 	const test =
-		groups.length === 0
+		expression == null
 			? true
-			: compileQuery({ grammar, items, groups, context: { now: Date.now() } });
+			: compileQuery({ grammar, items, expression, context: { now: Date.now() } });
 	const indexes = test === true ? null : collectIndexes(items, test);
 	grammarCache.set(items, { restQuery, indexes });
 	return indexes;
@@ -487,8 +466,7 @@ function countItemsByRestAndToken<Item extends object>({
 	}
 
 	const indexes = getRestIndexes(grammar, items, restQuery);
-	const groups = splitOrGroups(parseFilterQuery(grammar, tokenQuery));
-	const count = countMatches({ grammar, items, groups, indexes });
+	const count = countMatches({ grammar, items, query: tokenQuery, indexes });
 	storeCount(counts, query, count);
 	return count;
 }

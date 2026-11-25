@@ -107,7 +107,7 @@ import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
 
 ### With TanStack Form
 
-Use `@tanstack/react-form` with `zod` to keep the combobox input controlled. Wrap `Combobox.Input` in `Field.Control` so label, name, and validation ARIA are applied to the focusable input.
+Use `@tanstack/react-form` with `zod` to keep the picked value controlled. Each item's `value` is the region ID the form stores, and the input shows the item's text. Wrap `Combobox.Input` in `Field.Control` so label, name, and validation ARIA are applied to the focusable input.
 
 <Example name="components/forms/combobox/with-tanstack-form" title="Combobox With TanStack Form example">
 
@@ -148,8 +148,8 @@ function Example() {
 					<Field.Item name={field.name}>
 						<Field.Label>Region</Field.Label>
 						<Combobox.Root
-							inputValue={field.state.value}
-							onInputValueChange={(value) => {
+							value={field.state.value}
+							onValueChange={(value) => {
 								field.handleChange(value);
 							}}
 						>
@@ -188,12 +188,69 @@ Combobox.Root
     │   ├── Combobox.GroupLabel
     │   └── Combobox.Item
     │       └── Combobox.ItemValue
-    └── Combobox.Separator
+    ├── Combobox.Separator
+    └── Combobox.ContentFooter
 ```
+
+## With a footer
+
+Put a switch, a "Load more" button, or a link in `Combobox.ContentFooter`. It renders at the bottom of the popover, after the listbox and not in it, because a listbox holds only options and groups. Tab from the input moves to the footer's first control and keeps the list open. Shift+Tab from that control returns to the input. Escape closes the list and returns focus to the input. Tab from the last control moves to the control after the field and closes the list.
+
+<Example name="components/forms/combobox/with-a-footer" title="Combobox with a footer example">
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Combobox } from "@ngrok/mantle/combobox";
+import { Field } from "@ngrok/mantle/field";
+import { Switch } from "@ngrok/mantle/switch";
+import { useState } from "react";
+
+const releases = ["v1.4.0", "v1.3.2", "v1.3.1", "v1.3.0", "v1.2.0", "v1.1.0"];
+
+function Example() {
+	const [showAll, setShowAll] = useState(false);
+	const [count, setCount] = useState(3);
+	const shown = releases.slice(0, showAll ? releases.length : count);
+	return (
+		<Field.Item name="release">
+			<Field.Label>Release</Field.Label>
+			<Combobox.Root>
+				<Field.Control>
+					<Combobox.Input placeholder="Search releases..." />
+				</Field.Control>
+				<Combobox.Content>
+					{shown.map((release) => (
+						<Combobox.Item key={release} value={release} />
+					))}
+					<Combobox.ContentFooter className="flex items-center justify-between gap-2 p-2">
+						<div className="flex items-center gap-2 text-sm">
+							<Switch id="show-all-releases" checked={showAll} onCheckedChange={setShowAll} />
+							<label htmlFor="show-all-releases">Show all releases</label>
+						</div>
+						<Button
+							type="button"
+							appearance="ghost"
+							intent="accent"
+							disabled={showAll || count >= releases.length}
+							onClick={() => setCount((current) => current + 3)}
+						>
+							Load more
+						</Button>
+					</Combobox.ContentFooter>
+				</Combobox.Content>
+			</Combobox.Root>
+		</Field.Item>
+	);
+}
+```
+
+</Example>
 
 ## Polymorphism
 
 `Combobox.Content`, `Combobox.Item`, `Combobox.Group`, and `Combobox.GroupLabel` support `asChild` to render as a different element or your own component while keeping the combobox behavior and styling.
+
+`Combobox.Item` also takes a function child, `(props, { highlighted }) => element`, for a row that renders different content while highlighted, such as a preview. Only a row that uses one re-renders when the highlight moves. To only restyle the highlighted row, use the `data-highlighted:` variant, or `in-data-highlighted:` from a child, which needs no JavaScript. Anything you write after `{...props}` wins, so join a class with `cx(props.className, "…")`, and set `id` on the item, not on your element.
 
 <Example name="components/forms/combobox/polymorphism" title="Combobox polymorphism example">
 
@@ -217,7 +274,7 @@ import { Combobox } from "@ngrok/mantle/combobox";
 
 ## Accessibility
 
-`Combobox` follows the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) with list autocomplete. DOM focus stays on the input, and `aria-activedescendant` names the highlighted option. Inside a field, `Field.Control` puts the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` on the focusable input.
+`Combobox` follows the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) with list autocomplete. DOM focus stays on the input, and `aria-activedescendant` names the highlighted option. `Combobox.ContentFooter` renders outside the listbox, so its controls are ordinary buttons and switches in the Tab order, and the listbox holds only options. Inside a field, `Field.Control` puts the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` on the focusable input.
 
 ## API Reference
 
@@ -262,7 +319,7 @@ Renders a popover that contains combobox content, e.g. items, groups, and separa
 
 `Combobox.Content` is a `popover="manual"` element in the top layer, so it paints above the page and every overlay. It portals into the overlay or float that holds it, such as an open `Dialog` or `Popover.Content`, else into `document.body`. In a browser with no popover API, it is a fixed box at Tailwind `z-50`. It opens below the input, or above it when the space below is too small.
 
-All props of a `<div>`, plus:
+`Combobox.Content` is the `role="listbox"` element, and it scrolls. It sits in a popover that also holds the `Combobox.ContentFooter`, after the listbox. All props of a `<div>`, plus:
 
 | Prop         | Type      | Default | Description                                                           |
 | :----------- | :-------- | :------ | :-------------------------------------------------------------------- |
@@ -275,11 +332,30 @@ Renders a combobox item inside a `Combobox.Content` component.
 
 All props of a `<div>`, plus:
 
-| Prop        | Type      | Default | Description                                                                                                          |
-| :---------- | :-------- | :------ | :------------------------------------------------------------------------------------------------------------------- |
-| `asChild?`  | `boolean` | `false` | Compose onto an alternative element type or your own React component.                                                |
-| `disabled?` | `boolean` |         | Whether the item is inert.                                                                                           |
-| `value?`    | `string`  |         | The value that picking the item writes into the input. An item with no value is static text that the keyboard skips. |
+| Prop        | Type                                                      | Default | Description                                                                                                                                                     |
+| :---------- | :-------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?`  | `boolean`                                                 | `false` | Compose onto an alternative element type or your own React component.                                                                                           |
+| `children?` | `ReactNode` \| `(props, { highlighted }) => ReactElement` | `value` | The item's content. A function renders the item as the element it returns, with the item's props and whether it is highlighted. Spread `props` on that element. |
+| `disabled?` | `boolean`                                                 |         | Whether the item is inert.                                                                                                                                      |
+| `value?`    | `string`                                                  |         | The value that picking the item sets on `Combobox.Root`, such as an ID. An item with no value is static text that the keyboard skips.                           |
+
+#### The text a pick writes
+
+`Combobox.Input` is a plain text input, so a pick puts only text in it, never the item's elements. An icon, an avatar, a badge, or other markup in the children stays in the list. A pick writes the text that the item's children show into the input, without their `hidden` and `aria-hidden` parts, such as a decorative icon or avatar. A preset `value` or `defaultValue`, and a form reset, write it too. `value` stays the picked value, so an item can pick an ID and show a name:
+
+```tsx
+<Combobox.Item value="usr_7f">
+	<Avatar aria-hidden="true" />
+	Grace Hopper
+</Combobox.Item>
+```
+
+- Filter on that text, because the input holds it after a pick.
+- A preset value reads the elements you wrote. A component with no `children` prop, such as `Combobox.ItemValue` or an icon, adds no text there. An item with no text, a function child, an item that a component of your own renders, and an item that is not loaded yet show `value`.
+- A controlled `value` that changes, such as on your form's own reset, shows its item's text too.
+- Submit the picked value with `name` on `Combobox.Root`. A `name` on `Combobox.Input` submits the text.
+- When the text still reads wrong, such as an email you show but do not want in the input, control `inputValue` and `onInputValueChange` and write the text yourself.
+- The input stays one line. Long text ends with an ellipsis.
 
 ### Combobox.ItemValue
 
@@ -317,3 +393,16 @@ All props of a `<div>`, plus:
 Renders a separator between `Combobox.Item`s or `Combobox.Group`s.
 
 All props from [Separator](/components/structure/separator).
+
+### Combobox.ContentFooter
+
+Renders a footer at the bottom of the open `Combobox.Content`, after the listbox and not in it, for controls such as a switch or a "Load more" button. Tab from the input moves to its first control, and the list stays open.
+
+All props of a `<div>`.
+
+**Data attributes:**
+
+| Data Attribute | Value                       | Description                                                                            |
+| -------------- | --------------------------- | -------------------------------------------------------------------------------------- |
+| `data-slot`    | `"combobox-content-footer"` | On the footer.                                                                         |
+| `data-slot`    | `"combobox-popup"`          | On the popover box that holds the listbox and the footer. It also carries `data-side`. |

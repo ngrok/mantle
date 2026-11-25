@@ -1,0 +1,88 @@
+---
+title: Between Variant Migration
+description: "Mantle's parts space and divide their children with the new between: variant, not space-* or divide-*. Write an override on those parts with between: too, such as between:border-b-0 on Accordion.Root."
+number: 30
+introducedIn: "0.95.0"
+codemodIn: "0.95.0"
+---
+
+# Mantle Between Variant Migration Guide
+
+`@ngrok/mantle` registers a `between:` Tailwind variant. It applies a class to each child of an element except the last, at zero specificity, as Tailwind's `space-*` and `divide-*` do. Mantle's parts now use it for their own spacing and dividers: `Accordion.Root` and `Strata.Root` draw dividers with `between:border-b`, and the menus, lists, and dialog parts space their children with `between:mbe-*` or `between:me-*`. A `space-*` or `divide-*` class that you pass to one of those parts no longer replaces the part's class through `cx`, so the part's spacing or divider stays.
+
+**TL;DR:** On the parts in step 1, rewrite `space-y-N` to `between:mbe-N`, `space-x-N` to `between:me-N`, `divide-y-0` to `between:border-b-0`, `divide-y` to `between:border-b`, and `divide-<color>` to `between:border-<color>`. Keep every variant prefix. Leave `space-*` and `divide-*` on other elements alone.
+
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0030 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0030-between-variant.yml --update-all <path>
+```
+
+The rules apply step 2. They rewrite the string literals inside the `className` of a part in step 1, also inside a `cx()` call, and inside the `className` of the element that an `asChild` part renders. Each rule finds a part through its import from its own `@ngrok/mantle/` subpath, so a renamed import matches, and a part from another library or a local name that shadows the import stays. These stay manual, and the rules leave the whole string unchanged:
+
+- Step 3, because a class in a variable or a prop of your own wrapper is not on the part in the JSX.
+- A string with `space-x-reverse`, `space-y-reverse`, `divide-x-reverse`, or `divide-y-reverse`. `between:` has no reverse form: put the margin or the border on the other side, such as `between:ms-4` for `space-x-4 space-x-reverse`.
+- A string where the class sits inside an arbitrary value, such as `[&[data-label='x:space-y-2']]:…`.
+- A string compared with `===`, `!==`, `==`, or `!=`, because it chooses a class and is not one.
+
+The codemod is safe to run twice. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find the parts whose own classes now use `between:`: `Accordion.Root`, `Strata.Root`, `AlertDialog.Body`, `AlertDialog.Header`, `AlertDialog.Footer`, `Empty.Description`, `Select.Group`, `Select.Content`, `DropdownMenu.Group`, `DropdownMenu.RadioGroup`, `DropdownMenu.Content`, `DropdownMenu.SubContent`, `MultiSelect.Content`, `Combobox.Content`, `Combobox.Group`, `Sidebar.Body`, `Sidebar.List`, and `SplitButton.MenuContent`. Search for each name and for a renamed import. With `asChild`, the override is on the one child element.
+2. In the `className` of each such part, rewrite each `space-*` and `divide-*` class. Keep its variant prefix and its value:
+   - `space-y-N` becomes `between:mbe-N`, so `space-y-0` becomes `between:mbe-0`, and `-space-y-2` becomes `between:-mbe-2`.
+   - `space-x-N` becomes `between:me-N`, so `sm:space-x-2` becomes `sm:between:me-2`.
+   - `divide-y-0` becomes `between:border-b-0`, and `divide-y` becomes `between:border-b`.
+   - `divide-<color>` or `divide-<style>` becomes `between:border-<color>` or `between:border-<style>`.
+3. Find a `space-*` or `divide-*` class that reaches one of those parts through a variable, a constant, or a wrapper component's prop, and rewrite it the same way.
+4. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why a variant?** Tailwind compiles `space-y-2` to `:where(.space-y-2 > :not(:last-child))`. The class sits inside `:where()`, so Chromium cannot skip the rule on its quick ancestor test, and it tries the rule on each element of the page on each style pass. A native modal restyles the whole page as it opens, so each such rule makes each `Dialog` open slower. `between:mbe-2` compiles to `:where(.between\:mbe-2) > :where(:not(:last-child))`: the same zero specificity, with the class outside, so Chromium skips it at once.
+
+---
+
+## Before → after
+
+### Accordion without dividers
+
+```tsx
+// BEFORE
+<Accordion.Root className="space-y-2.5 divide-y-0">…</Accordion.Root>
+```
+
+```tsx
+// AFTER
+<Accordion.Root className="between:mbe-2.5 between:border-b-0">…</Accordion.Root>
+```
+
+### A combobox list with no gap between options
+
+```tsx
+// BEFORE
+<Combobox.Content className={cx("flex flex-col space-y-0 p-0", spaced && "md:space-y-2")} />
+```
+
+```tsx
+// AFTER
+<Combobox.Content className={cx("flex flex-col between:mbe-0 p-0", spaced && "md:between:mbe-2")} />
+```
+
+## Edge cases & gotchas
+
+- `between:mbe-N` sets only the block-end margin of each child but the last. `space-y-N` also set the block-start margin to 0 at zero specificity. Preflight already sets it to 0, so this differs only when a rule in your own base layer gives those children a top margin.
+- A `space-*` or `divide-*` class on an element that is not a part in step 1 keeps working. Rewriting it to `between:` is optional, and it makes the page's style passes cheaper.
+
+## How to verify
+
+Search the parts in step 1 for `space-` and `divide-` in their `className`, and expect a match only for the manual cases under Codemod. Then run your formatter, linter, type checker, and tests, and look at each changed accordion, menu, and dialog in a browser.

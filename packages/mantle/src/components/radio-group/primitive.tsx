@@ -9,7 +9,7 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { isInteractiveTarget } from "../../utils/interactive-target.js";
+import { CONTENT_CONTROL_SELECTOR, isInteractiveTarget } from "../../utils/interactive-target.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { RadioItemContext } from "./radio-item-context.js";
 
@@ -209,13 +209,6 @@ function arrowTarget({
 	return radios.at((index + (forward ? 1 : -1)) % radios.length) ?? null;
 }
 
-/**
- * The controls in a radio item's content that sit over the radio and stay
- * visible to assistive technology. `mantle.css` lifts the same list.
- */
-const CONTENT_CONTROL_SELECTOR =
-	'a[href], button, details, input, select, textarea, label, [role="button"], [role="link"], [role="menuitem"], [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
-
 /** Joins element ids into one IDREF list, or `undefined` when there are none. */
 function joinIds(ids: readonly (string | undefined)[]): string | undefined {
 	const present = ids.filter((id): id is string => id != null && id !== "");
@@ -404,7 +397,7 @@ const Item = ({
 				{/* Why a wrapper: a lone text child beside the radio would lose React's repair after a browser translation. */}
 				{/* Why the radio's ref sets aria-hidden here: the radio reads this text as its name, so a screen reader in
 				browse mode does not stop on it again. Before hydration, a control in the text stays reachable. */}
-				<div id={contentId} data-slot={`${part}-label`} className="radio-item-content contents">
+				<div id={contentId} data-slot={`${part}-label`} className="covered-item-content contents">
 					{children}
 				</div>
 			</div>

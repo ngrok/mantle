@@ -17,6 +17,14 @@ Mantle registers these Tailwind variants with `@custom-variant` in `mantle.css`.
 | `light:` | Applies a class when the light theme is active.                                                                                                                                                     |
 | `dark:`  | Applies a class when the dark theme is active. Replaces Tailwind's built-in `dark:`: it matches the theme mantle applies (a `.dark` class or a `data-theme` attribute), not `prefers-color-scheme`. |
 
+## Between children
+
+| Variant    | Description                                                                                                                                                                                   |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `between:` | Applies a class to each child of the element except the last, at zero specificity, as `space-*` and `divide-*` do. Use `between:mbe-2` for `space-y-2` and `between:border-b` for `divide-y`. |
+
+Why mantle's parts use it: Tailwind's `space-*` and `divide-*` rules put the class inside `:where()`, so Chromium tries them on each element of the page on each style pass. Chromium skips a `between:` rule at once outside the element. To override a part's spacing or dividers, use `between:` too, such as `between:border-b-0` on `Accordion.Root`, so that `cx` replaces the part's class.
+
 ## Hover media queries
 
 |                                                                         | Variant        | Description                                                                                                                                            |
@@ -32,49 +40,44 @@ Mantle registers these Tailwind variants with `@custom-variant` in `mantle.css`.
 | `aria-invalid:`   | Matches elements with `aria-invalid="true"`.   |
 | `aria-unchecked:` | Matches elements with `aria-checked="false"`.  |
 
-## Data attribute: state
+## Data attributes
 
-| Variant                     | Description                                        |
-| --------------------------- | -------------------------------------------------- |
-| `data-state-active:`        | Matches elements with `data-state~=active`.        |
-| `data-state-checked:`       | Matches elements with `data-state~=checked`.       |
-| `data-state-closed:`        | Matches elements with `data-state~=closed`.        |
-| `data-state-idle:`          | Matches elements with `data-state~=idle`.          |
-| `data-state-inactive:`      | Matches elements with `data-state~=inactive`.      |
-| `data-state-indeterminate:` | Matches elements with `data-state~=indeterminate`. |
-| `data-state-open:`          | Matches elements with `data-state~=open`.          |
-| `data-state-pending:`       | Matches elements with `data-state~=pending`.       |
-| `data-state-selected:`      | Matches elements with `data-state~=selected`.      |
-| `data-state-submitting:`    | Matches elements with `data-state~=submitting`.    |
-| `data-state-unchecked:`     | Matches elements with `data-state~=unchecked`.     |
+Mantle registers no `data-*` variants. Its components emit plain attributes, so style them with the variants Tailwind ships:
 
-## Data attribute: orientation and side
+- Match a boolean state with its name, such as `data-open:`, and its absence with `not-data-open:`. A boolean attribute is presence-only: it's there (`""`) or it's gone, and it's never `"false"`.
+- Match an enum with the bracket form, such as `data-[side=top]:` for `data-side="top"`.
+- Match state that HTML or ARIA already carries with `aria-expanded:`, `aria-selected:`, `aria-checked:`, `aria-disabled:`, or `disabled:`.
+- Match a parent's state from a child with a `group-` form, such as `group-data-open:` or `group-aria-expanded:`.
 
-| Variant                        | Description                                            |
-| ------------------------------ | ------------------------------------------------------ |
-| `data-orientation-horizontal:` | Matches elements with `data-orientation="horizontal"`. |
-| `data-orientation-vertical:`   | Matches elements with `data-orientation="vertical"`.   |
-| `data-side-bottom:`            | Matches elements with `data-side="bottom"`.            |
-| `data-side-left:`              | Matches elements with `data-side="left"`.              |
-| `data-side-right:`             | Matches elements with `data-side="right"`.             |
-| `data-side-top:`               | Matches elements with `data-side="top"`.               |
+```tsx
+<Popover.Content className="data-open:animate-in not-data-open:animate-out" />
+<Tooltip.Content className="data-[side=top]:mb-2" />
+<button type="button" aria-expanded={open} className="group">
+	Details
+	<CaretDownIcon className="group-aria-expanded:rotate-180" />
+</button>
+```
 
-## Data attribute: validation
-
-| Variant                    | Description                                        |
-| -------------------------- | -------------------------------------------------- |
-| `data-validation-error:`   | Matches elements with `data-validation="error"`.   |
-| `data-validation-success:` | Matches elements with `data-validation="success"`. |
-| `data-validation-warning:` | Matches elements with `data-validation="warning"`. |
-
-## Data attribute: other
-
-| Variant             | Description                                             |
-| ------------------- | ------------------------------------------------------- |
-| `data-active-item:` | Matches elements with `data-active-item~="true"`.       |
-| `data-disabled:`    | Matches elements with the `data-disabled` attribute.    |
-| `data-drag-over:`   | Matches elements with `data-drag-over="true"`.          |
-| `data-highlighted:` | Matches elements with the `data-highlighted` attribute. |
+| Attribute            | Where mantle emits it                                                                     | Variant                                |
+| -------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------- |
+| `data-open`          | Open overlays and content: popovers, menus, dialogs, accordion items                      | `data-open:`, `not-data-open:`         |
+| `data-closing`       | `<dialog>` surfaces (Dialog, AlertDialog, Sheet, the mobile sidebar) while the exit plays | `data-closing:`                        |
+| `data-expanded`      | The `Sidebar.Nav` desktop panel                                                           | `data-expanded:`, `not-data-expanded:` |
+| `data-highlighted`   | The option or row that the keyboard or pointer is on                                      | `data-highlighted:`                    |
+| `data-selected`      | Selected `List` rows and the chosen `Combobox` row                                        | `data-selected:`                       |
+| `data-placeholder`   | A `Select` trigger with no value                                                          | `data-placeholder:`                    |
+| `data-loading`       | `Button`, `IconButton`, and `ThemeSwitcher` while loading                                 | `data-loading:`                        |
+| `data-indeterminate` | `ProgressBar` and `ProgressDonut` while indeterminate                                     | `data-indeterminate:`                  |
+| `data-engaged`       | Chart and `WorldMap` roots once focus lands inside                                        | `data-engaged:`                        |
+| `data-drag-over`     | `TextArea` while something is dragged over it                                             | `data-drag-over:`                      |
+| `data-x-overflow`    | `Table` when its content is wider than the container                                      | `data-x-overflow:`                     |
+| `data-disabled`      | `Label` and the `Input`, `PasswordInput`, and `Query` chrome                              | `data-disabled:`                       |
+| `data-side`          | Floating content, such as tooltips and popovers                                           | `data-[side=top]:`                     |
+| `data-validation`    | Form controls with a validation state                                                     | `data-[validation=error]:`             |
+| `data-orientation`   | Component roots that lay out in either direction                                          | `data-[orientation=vertical]:`         |
+| `aria-expanded`      | Triggers for dialogs, popovers, menus, selects, accordions, and the sidebar               | `aria-expanded:`, `aria-collapsed:`    |
+| `aria-selected`      | Tabs triggers and listbox options                                                         | `aria-selected:`                       |
+| `aria-checked`       | Checkable menu items                                                                      | `aria-checked:`, `aria-unchecked:`     |
 
 ## Utility
 

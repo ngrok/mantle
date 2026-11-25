@@ -96,18 +96,17 @@ import { NavLink } from "react-router";
 and it does not need to. `NavLink` calls it.
 
 Reach for this to add styling of your own. You do **not** need it for the active row treatment a mantle part
-already ships: `Sidebar.ItemButton` styles its current row from `aria-current="page"` as well as
-`data-current`, and `NavLink` sets that attribute itself, so
+already ships: `Sidebar.ItemButton` styles its current row from `aria-current="page"`, and `NavLink` sets
+that attribute itself, so
 [`<Sidebar.ItemButton asChild><NavLink to="…" /></Sidebar.ItemButton>`](/components/navigation/sidebar#with-react-router)
 highlights with no `className`, no `current`, and no `useMatch`.
 
 A function `children` is forwarded untouched, so `NavLink`'s `children={({ isActive }) => …}` works too.
 
 > [!NOTE]
-> This is `Slot`'s behavior, so it covers every part that composes through it. A part that forwards `asChild`
-> straight to a Radix primitive (`Tooltip.Trigger`, `DropdownMenu.Trigger`, `Dialog.Trigger`) uses Radix's
-> own slot, which joins a function `className` into the class string instead of composing it. Put the render
-> prop on a mantle-backed part: nesting works, so
+> This is `Slot`'s behavior, so a function `className` or `style` works on every mantle part that takes
+> `asChild`. A function `children` doesn't: a part that wraps the child's content in its own label, such as
+> `Button` or `Tabs.Trigger`, needs element children. Nesting works too:
 > `DropdownMenu.Trigger asChild > Sidebar.ItemButton asChild > NavLink` composes fine.
 
 ## API Reference

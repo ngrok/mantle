@@ -308,10 +308,16 @@ function isSettled(text: string): boolean {
 	return rowOf(text).getAnimations().length === 0;
 }
 
-/** Stop each slide where it is, so a read before and after a commit compares one instant. */
+/**
+ * Stop each slide where it is, so a read before and after a commit compares one instant.
+ * Why set `currentTime`: `pause()` on a running slide waits for the next frame. Until
+ * then, a read in a later task sees the slide further on. Setting the time holds it at once.
+ */
 function pauseSlides(): void {
 	for (const animation of document.getAnimations()) {
+		const time = animation.currentTime;
 		animation.pause();
+		animation.currentTime = time;
 	}
 }
 

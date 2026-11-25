@@ -197,10 +197,13 @@
         // Why: a source cycle can become a dist chunk cycle, which throws a
         // `ReferenceError` when Node loads the entry with no bundler.
         "import/no-cycle": "error",
+        "mantle/data-attribute-contract": "error",
         "mantle/no-default-export": "error",
         "mantle/no-display-name": "error",
         "mantle/no-namespace-object": "error",
         "mantle/no-structural-combinator": "error",
+        "mantle/no-unanchored-child-variant": "error",
+        "mantle/prop-vocabulary": "error",
         "no-restricted-imports": [
           "error",
           {
@@ -209,6 +212,18 @@
                 "name": "react",
                 "importNames": ["forwardRef", "FC", "FunctionComponent"],
                 "message": "React 19 passes `ref` as a regular prop, and a component takes an inline function type (CONVENTIONS.md § Readability & Maintainability)."
+              },
+              {
+                "name": "react",
+                "importNames": [
+                  "useEffectEvent",
+                  "Activity",
+                  "captureOwnerStack",
+                  "cacheSignal",
+                  "ViewTransition",
+                  "addTransitionType"
+                ],
+                "message": "The React peer range is ^19, so use only APIs that React 19.0 ships (COMPONENT_SPEC.md §3.1)."
               }
             ],
             "patterns": [
@@ -231,6 +246,13 @@
       }
     },
     {
+      // Why: `cx` and its tests read class names as data, and they emit no CSS.
+      "files": ["packages/mantle/src/utils/cx/**"],
+      "rules": {
+        "mantle/no-unanchored-child-variant": "off"
+      }
+    },
+    {
       "files": ["**/*.test.{ts,tsx}", "**/*.browser.test.{ts,tsx}"],
       "rules": {
         "react/no-object-type-as-default-prop": "off",
@@ -245,6 +267,7 @@
         "mantle/no-config-teardown": "error",
         "mantle/no-happy-dom-to-be-visible": "error",
         "mantle/no-only-to-be-defined": "error",
+        "mantle/require-force-reason": "error",
         "mantle/no-bare-to-have-been-called": "error",
         "mantle/no-presence-matcher-on-get-by": "error",
         "mantle/no-process-env-write": "error",

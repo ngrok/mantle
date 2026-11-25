@@ -54,6 +54,8 @@ After the bundle is final, the plugin compares the list with every chunk. If the
 
 The `source-all.css` import must sit in a CSS file Vite processes. An import chain that Tailwind resolves on its own is invisible to the plugin.
 
+The plugin also runs [`mantleThemePrunePlugin`](#mantlethemepruneplugin), so you do not add it yourself. Pass `themePrune: false` to turn it off.
+
 #### Options
 
 | Option          | Type                | Default   | Description                                                                                                                                                                                    |
@@ -62,18 +64,19 @@ The `source-all.css` import must sit in a CSS file Vite processes. An import cha
 | `include`       | `string[]`          | `[]`      | Package names whose reached files the plugin lists too. Use it for a component package that sets Tailwind classes on mantle parts.                                                             |
 | `verbose`       | `boolean`           | `false`   | Print every listed path.                                                                                                                                                                       |
 | `idleTimeoutMs` | `number`            | `15000`   | How long the CSS waits with no module event before it lists the files parsed so far. When one module, such as a `?worker` sub-build, takes longer, raise it; `Infinity` waits for events only. |
+| `themePrune`    | `boolean`           | `true`    | Whether the build also runs `mantleThemePrunePlugin`. Pass `false` when a file outside the stylesheet reads palette stops that the stylesheet does not, such as CSS another app serves.        |
 
 ### `mantleThemePrunePlugin()`
 
-Vite plugin that removes the mantle theme CSS a production build does not read.
+Vite plugin that removes the mantle theme CSS a production build does not read. `mantleSourcesPlugin` runs it for you. Add it on its own only when your build does not use `mantleSourcesPlugin`.
 
 ```ts
-import { mantleSourcesPlugin, mantleThemePrunePlugin } from "@ngrok/mantle-vite-plugins";
+import { mantleThemePrunePlugin } from "@ngrok/mantle-vite-plugins";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-	plugins: [tailwindcss(), mantleSourcesPlugin(), mantleThemePrunePlugin()],
+	plugins: [tailwindcss(), mantleThemePrunePlugin()],
 });
 ```
 

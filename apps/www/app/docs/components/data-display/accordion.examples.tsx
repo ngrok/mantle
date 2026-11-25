@@ -191,7 +191,7 @@ export function CustomHeaderWithAnInlineActionExample() {
 			<Accordion.Root
 				type="multiple"
 				defaultValue={["on_tcp_connect", "on_http_response"]}
-				className="space-y-2.5 divide-y-0"
+				className="between:mbe-2.5 between:border-b-0"
 			>
 				<Accordion.Item value="on_tcp_connect">
 					<div className="mx-4 flex items-center gap-2">
@@ -300,7 +300,7 @@ export function CustomIndicatorIconExample() {
 						Request logs
 						<Accordion.TriggerIcon
 							svg={<CaretRightIcon weight="bold" />}
-							className="group-data-[state=open]:rotate-90"
+							className="group-aria-expanded:rotate-90"
 						/>
 					</Accordion.Trigger>
 					<Accordion.Content>
@@ -312,7 +312,7 @@ export function CustomIndicatorIconExample() {
 						Metrics
 						<Accordion.TriggerIcon
 							svg={<CaretRightIcon weight="bold" />}
-							className="group-data-[state=open]:rotate-90"
+							className="group-aria-expanded:rotate-90"
 						/>
 					</Accordion.Trigger>
 					<Accordion.Content>

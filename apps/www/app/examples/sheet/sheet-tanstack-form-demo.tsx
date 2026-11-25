@@ -4,7 +4,7 @@ import { Input } from "@ngrok/mantle/input";
 import { Sheet } from "@ngrok/mantle/sheet";
 import { TextArea } from "@ngrok/mantle/text-area";
 import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { z } from "zod";
 
 const formSchema = z.object({
@@ -23,6 +23,7 @@ const formSchema = z.object({
  */
 export function TanStackFormDemo() {
 	const [open, setOpen] = useState(false);
+	const formRef = useRef<HTMLFormElement>(null);
 	const form = useForm({
 		defaultValues: {
 			name: "",
@@ -30,6 +31,13 @@ export function TanStackFormDemo() {
 		},
 		validators: {
 			onSubmit: formSchema,
+		},
+		// Why: a failed submit moves focus to the first invalid field, so a screen
+		// reader says what to fix. The frame lets the fields render their errors first.
+		onSubmitInvalid: () => {
+			requestAnimationFrame(() => {
+				formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+			});
 		},
 		onSubmit: ({ value }) => {
 			window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
@@ -64,6 +72,7 @@ export function TanStackFormDemo() {
 					</Sheet.Description>
 				</Sheet.Header>
 				<form
+					ref={formRef}
 					className="contents"
 					onSubmit={(event) => {
 						event.preventDefault();

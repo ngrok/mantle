@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -8,6 +8,31 @@ import * as Field from "../field/field-parts.js";
 import * as Combobox from "./combobox-parts.js";
 
 describe("Combobox", () => {
+	test("a Tab into the input opens the list; focus from script does not", async () => {
+		const user = userEvent.setup();
+		render(
+			<>
+				<button type="button">Before</button>
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content>
+						<Combobox.Item value="Apple" />
+					</Combobox.Content>
+				</Combobox.Root>
+			</>,
+		);
+		const input = screen.getByRole("combobox", { name: "Fruit" });
+		act(() => input.focus());
+		expect(input).toHaveAttribute("aria-expanded", "false");
+		act(() => screen.getByRole("button", { name: "Before" }).focus());
+
+		await user.tab();
+
+		expect(input).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		expect(screen.getByRole("option", { name: "Apple" })).toBeInTheDocument();
+	});
+
 	test('given validation="error", renders the input with aria-invalid="true" and data-validation="error"', () => {
 		render(
 			<Combobox.Root>
@@ -68,7 +93,229 @@ describe("Combobox", () => {
 		expect(input).toHaveAttribute("data-validation", "error");
 	});
 
+	describe("the text a pick writes", () => {
+		const Owners = (props: { defaultValue?: string }) => (
+			<form aria-label="owner form">
+				<Combobox.Root name="owner" {...props}>
+					<Combobox.Input aria-label="Owner" />
+					<Combobox.Content>
+						<Combobox.Item value="usr_2a">Ada Lovelace</Combobox.Item>
+						<Combobox.Item value="usr_7f">
+							<span aria-hidden="true">GH</span>
+							<span>Grace Hopper</span> <span>(admin)</span>
+						</Combobox.Item>
+					</Combobox.Content>
+				</Combobox.Root>
+				<button type="reset">Reset</button>
+			</form>
+		);
+
+		// Red if a pick writes the ID, or the avatar initials, into the input.
+		test("a pick writes the children's text without aria-hidden parts, and the form submits the value", async () => {
+			const user = userEvent.setup();
+			render(<Owners />);
+			const input = screen.getByRole("combobox", { name: "Owner" });
+
+			await user.type(input, "Gr");
+			await user.click(screen.getByRole("option", { name: "Grace Hopper (admin)" }));
+
+			expect(input).toHaveValue("Grace Hopper (admin)");
+			const form = screen.getByRole<HTMLFormElement>("form", { name: "owner form" });
+			expect(new FormData(form).get("owner")).toBe("usr_7f");
+
+			// Why: a second pick of the same item changes no value, and the text must still come back.
+			await user.type(input, "x");
+			await user.keyboard("{ArrowDown}{Enter}");
+			expect(input).toHaveValue("Grace Hopper (admin)");
+		});
+
+		// Red if a preset value shows an empty input, on the server or after a reset.
+		test("a preset value shows its item's text on the server and after a form reset", async () => {
+			const user = userEvent.setup();
+			expect(renderToString(<Owners defaultValue="usr_7f" />)).toContain(
+				'value="Grace Hopper (admin)"',
+			);
+			render(<Owners defaultValue="usr_7f" />);
+			const input = screen.getByRole("combobox", { name: "Owner" });
+			expect(input).toHaveValue("Grace Hopper (admin)");
+
+			await user.clear(input);
+			await user.type(input, "Ad");
+			await user.keyboard("{Enter}");
+			expect(input).toHaveValue("Ada Lovelace");
+			await user.click(screen.getByRole("button", { name: "Reset" }));
+			expect(input).toHaveValue("Grace Hopper (admin)");
+		});
+	});
+
+	describe("the text a preset or changed value shows", () => {
+		// Red if a controlled value that the app changes leaves the old item's text in the input.
+		test("a controlled value that changes shows its item's text", () => {
+			const owners = (value: string) => (
+				<Combobox.Root value={value}>
+					<Combobox.Input aria-label="Owner" />
+					<Combobox.Content>
+						<Combobox.Item value="a">Ada</Combobox.Item>
+						<Combobox.Item value="g">Grace</Combobox.Item>
+					</Combobox.Content>
+				</Combobox.Root>
+			);
+			const { rerender } = render(owners("a"));
+			const input = screen.getByRole("combobox", { name: "Owner" });
+			expect(input).toHaveValue("Ada");
+			rerender(owners("g"));
+			expect(input).toHaveValue("Grace");
+			rerender(owners(""));
+			expect(input).toHaveValue("");
+		});
+
+		// Red if a reset reads the default's text from a list that the filter changed.
+		test("a reset restores the default's text after a filter hid its item", async () => {
+			const user = userEvent.setup();
+			const people = [
+				{ id: "a", name: "Ada Lovelace" },
+				{ id: "g", name: "Grace Hopper" },
+			];
+			const Filtered = () => {
+				const [query, setQuery] = useState("");
+				return (
+					<form>
+						<Combobox.Root name="owner" defaultValue="a" onInputValueChange={setQuery}>
+							<Combobox.Input aria-label="Owner" />
+							<Combobox.Content>
+								{people
+									.filter((person) => person.name.includes(query))
+									.map((person) => (
+										<Combobox.Item key={person.id} value={person.id}>
+											{person.name}
+										</Combobox.Item>
+									))}
+							</Combobox.Content>
+						</Combobox.Root>
+						<button type="reset">Reset</button>
+					</form>
+				);
+			};
+			render(<Filtered />);
+			const input = screen.getByRole("combobox", { name: "Owner" });
+			await user.clear(input);
+			await user.type(input, "Grace");
+			await user.keyboard("{Enter}");
+			expect(input).toHaveValue("Grace Hopper");
+			await user.click(screen.getByRole("button", { name: "Reset" }));
+			expect(input).toHaveValue("Ada Lovelace");
+		});
+
+		// Red if a value with no item to read, or an item with no text, shows an empty input.
+		test("a value with no text to read shows the value, preset and on a pick", async () => {
+			const user = userEvent.setup();
+			expect(
+				renderToString(
+					<Combobox.Root defaultValue="usr_7f">
+						<Combobox.Input aria-label="Owner" />
+						<Combobox.Content />
+					</Combobox.Root>,
+				),
+			).toContain('value="usr_7f"');
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Owner" />
+					<Combobox.Content>
+						<Combobox.Item value="usr_7f">
+							<span aria-hidden="true">GH</span>
+							<span hidden>hidden note</span>
+						</Combobox.Item>
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Owner" });
+			await user.click(input);
+			await user.click(screen.getByRole("option"));
+			expect(input).toHaveValue("usr_7f");
+		});
+	});
+
 	describe("Combobox.Item", () => {
+		// Red if a disabled item runs a click handler or follows its link: a disabled "create" row
+		// then acts. `Slot` runs the child's handler first, so only a capture guard stops it.
+		test("a disabled asChild link runs no click handler and opens on neither a click nor a middle click", async () => {
+			const user = userEvent.setup();
+			const onItemClick = vi.fn<() => void>();
+			const onLinkClick = vi.fn<() => void>();
+			const onListCapture = vi.fn<() => void>();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content onClickCapture={onListCapture} onAuxClickCapture={onListCapture}>
+						<Combobox.Item value="Apple" />
+						<Combobox.Item value="Docs" disabled asChild onClick={onItemClick}>
+							<a href="#docs" onClick={onLinkClick} onClickCapture={onLinkClick}>
+								Docs
+							</a>
+						</Combobox.Item>
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+
+			await user.click(input);
+			const docs = await screen.findByRole("option", { name: "Docs" });
+
+			expect(fireEvent.click(docs)).toBe(false);
+			// Why: a middle click fires `auxclick`, which opens a link in a new tab.
+			expect(
+				fireEvent(docs, new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 })),
+			).toBe(false);
+			expect(onItemClick).toHaveBeenCalledTimes(0);
+			expect(onLinkClick).toHaveBeenCalledTimes(0);
+			expect(input).toHaveValue("");
+			expect(onListCapture).toHaveBeenCalledTimes(0);
+
+			// Why: the guard must still run the caller's capture handlers for an enabled item.
+			const apple = screen.getByRole("option", { name: "Apple" });
+			fireEvent(apple, new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 }));
+			fireEvent.click(apple);
+			expect(onListCapture).toHaveBeenCalledTimes(2);
+			expect(input).toHaveValue("Apple");
+		});
+
+		// Red if a Ctrl- or ⌘-click on a link item picks it: the link opens in another tab, and this
+		// tab loses the query the user typed.
+		test.each([["ctrlKey"], ["metaKey"], ["shiftKey"], ["altKey"]] as const)(
+			"a %s-modified click on a link item opens it elsewhere and keeps this list",
+			async (modifier) => {
+				const user = userEvent.setup();
+				const onValueChange = vi.fn<(value: string) => void>();
+				render(
+					<Combobox.Root onValueChange={onValueChange}>
+						<Combobox.Input aria-label="Page" />
+						<Combobox.Content>
+							<Combobox.Item value="Docs" asChild>
+								<a href="#docs">Docs</a>
+							</Combobox.Item>
+						</Combobox.Content>
+					</Combobox.Root>,
+				);
+				const input = screen.getByRole("combobox", { name: "Page" });
+				await user.type(input, "do");
+
+				// Why the return value: a prevented click would also stop the link from opening elsewhere.
+				expect(
+					fireEvent.click(await screen.findByRole("option", { name: "Docs" }), {
+						[modifier]: true,
+					}),
+				).toBe(true);
+
+				expect(onValueChange).not.toHaveBeenCalled();
+				expect(input).toHaveValue("do");
+				expect(screen.getByRole("listbox")).toBeInTheDocument();
+
+				fireEvent.click(screen.getByRole("option", { name: "Docs" }));
+				expect(onValueChange).toHaveBeenCalledWith("Docs");
+				expect(input).toHaveValue("Docs");
+			},
+		);
+
 		test("renders as an option, and a click writes its value into the input", async () => {
 			const user = userEvent.setup();
 			render(
@@ -143,6 +390,191 @@ describe("Combobox", () => {
 			expect(textOf("[data-user-value]")).toBe("Ba");
 			expect(textOf("[data-autocomplete-value]")).toBe("nana");
 		});
+		test("Combobox.ItemValue drops the last match when the item value changes", () => {
+			// Catches offsets kept from the old label: the new label would split at the old match.
+			const value = (itemValue: string, userValue: string) => (
+				<Combobox.Root>
+					<Combobox.ItemValue value={itemValue} userValue={userValue} />
+				</Combobox.Root>
+			);
+			const { container, rerender } = render(value("Apple", "Ap"));
+			rerender(value("Kiwi", "Ap"));
+			const slices = container.querySelectorAll('[data-slot="combobox-item-value"] > span');
+			expect(Array.from(slices, (span) => span.textContent)).toEqual(["Kiwi"]);
+		});
+	});
+
+	describe("Combobox.ContentFooter", () => {
+		const Releases = ({ onLoadMore }: { onLoadMore?: () => void }) => (
+			<>
+				<Combobox.Root>
+					<Combobox.Input aria-label="Release" />
+					<Combobox.Content>
+						<Combobox.Item value="v1.2.0" />
+						<Combobox.Item value="v1.1.0" />
+						<Combobox.ContentFooter>
+							<label>
+								<input type="checkbox" /> Show expired
+							</label>
+							<button type="button" onClick={onLoadMore}>
+								Load more
+							</button>
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>
+				<button type="button">Next field</button>
+			</>
+		);
+
+		test("renders its controls after the listbox, not in it", async () => {
+			const user = userEvent.setup();
+			render(<Releases />);
+			await user.click(screen.getByRole("combobox", { name: "Release" }));
+
+			const listbox = screen.getByRole("listbox");
+			const loadMore = screen.getByRole("button", { name: "Load more" });
+			expect(listbox).not.toContainElement(loadMore);
+			expect(loadMore.closest('[data-slot~="combobox-content-footer"]')).not.toBeNull();
+			expect(within(listbox).getAllByRole("option")).toHaveLength(2);
+		});
+
+		test("Content's props, such as aria-busy, stay on the listbox", async () => {
+			const user = userEvent.setup();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Release" />
+					<Combobox.Content aria-busy className="max-h-80">
+						<Combobox.Item value="v1.2.0" />
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			await user.click(screen.getByRole("combobox", { name: "Release" }));
+
+			const listbox = screen.getByRole("listbox");
+			expect(listbox).toHaveAttribute("aria-busy", "true");
+			expect(listbox).toHaveAttribute("data-slot", "combobox-content");
+		});
+
+		test("Tab moves into the footer and keeps the list open, Shift+Tab returns to the input", async () => {
+			const user = userEvent.setup();
+			const onLoadMore = vi.fn<() => void>();
+			render(<Releases onLoadMore={onLoadMore} />);
+			const input = screen.getByRole("combobox", { name: "Release" });
+
+			await user.click(input);
+			await user.tab();
+			expect(screen.getByRole("checkbox", { name: "Show expired" })).toHaveFocus();
+			expect(input).toHaveAttribute("aria-expanded", "true");
+
+			await user.tab();
+			await user.keyboard("{Enter}");
+			expect(onLoadMore).toHaveBeenCalledTimes(1);
+			expect(input).toHaveAttribute("aria-expanded", "true");
+
+			await user.tab({ shift: true });
+			await user.tab({ shift: true });
+			expect(input).toHaveFocus();
+			expect(input).toHaveAttribute("aria-expanded", "true");
+			await user.keyboard("{ArrowDown}");
+			expect(input).toHaveAttribute(
+				"aria-activedescendant",
+				screen.getByRole("option", { name: "v1.1.0" }).id,
+			);
+		});
+
+		test("with asChild and a footer, the consumer's element is the listbox", async () => {
+			const user = userEvent.setup();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Release" />
+					<Combobox.Content asChild>
+						<section aria-label="Releases">
+							<Combobox.Item value="v1.2.0" />
+							<Combobox.ContentFooter>
+								<button type="button">Load more</button>
+							</Combobox.ContentFooter>
+						</section>
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			await user.click(screen.getByRole("combobox", { name: "Release" }));
+
+			const listbox = screen.getByRole("listbox", { name: "Releases" });
+			expect(listbox.tagName).toBe("SECTION");
+			expect(within(listbox).getByRole("option", { name: "v1.2.0" })).toBeInTheDocument();
+			expect(listbox).not.toContainElement(screen.getByRole("button", { name: "Load more" }));
+		});
+
+		test("Tab skips an option rendered as a link and moves to the footer", async () => {
+			const user = userEvent.setup();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Page" />
+					<Combobox.Content>
+						<Combobox.Item value="Settings" asChild>
+							<a href="#settings">Settings</a>
+						</Combobox.Item>
+						<Combobox.ContentFooter>
+							<button type="button">Load more</button>
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+
+			await user.click(screen.getByRole("combobox", { name: "Page" }));
+			await user.tab();
+
+			expect(screen.getByRole("button", { name: "Load more" })).toHaveFocus();
+		});
+
+		test("Escape in the footer closes the list and returns focus to the input", async () => {
+			const user = userEvent.setup();
+			render(<Releases />);
+			const input = screen.getByRole("combobox", { name: "Release" });
+
+			await user.click(input);
+			await user.tab();
+			await user.keyboard("{Escape}");
+
+			expect(input).toHaveAttribute("aria-expanded", "false");
+			expect(input).toHaveFocus();
+		});
+
+		test("Tab from the last footer control moves to the control after the field and closes the list", async () => {
+			const user = userEvent.setup();
+			render(<Releases />);
+			const input = screen.getByRole("combobox", { name: "Release" });
+
+			await user.click(input);
+			await user.tab();
+			await user.tab();
+			await user.tab();
+
+			expect(screen.getByRole("button", { name: "Next field" })).toHaveFocus();
+			expect(input).toHaveAttribute("aria-expanded", "false");
+		});
+
+		test("with no footer, Tab leaves the field and closes the list", async () => {
+			const user = userEvent.setup();
+			render(
+				<>
+					<Combobox.Root>
+						<Combobox.Input aria-label="Fruit" />
+						<Combobox.Content>
+							<Combobox.Item value="Apple" />
+						</Combobox.Content>
+					</Combobox.Root>
+					<button type="button">Next field</button>
+				</>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+
+			await user.click(input);
+			await user.tab();
+
+			expect(screen.getByRole("button", { name: "Next field" })).toHaveFocus();
+			expect(input).toHaveAttribute("aria-expanded", "false");
+		});
 	});
 
 	describe("forms", () => {
@@ -178,7 +610,7 @@ describe("Combobox", () => {
 			await user.click(input);
 			await user.click(screen.getByRole("option", { name: "Banana" }));
 			await user.click(screen.getByRole("button", { name: "Reset" }));
-			expect(input).toHaveValue("");
+			expect(input).toHaveValue("Apple");
 			expect(new FormData(fruitForm()).get("fruit")).toBe("Apple");
 		});
 
@@ -507,5 +939,40 @@ describe("Combobox", () => {
 		});
 		container.remove();
 		consoleError.mockRestore();
+	});
+});
+
+describe("Combobox.Item function child", () => {
+	test("renders the returned element as the option and reports the highlight", async () => {
+		const user = userEvent.setup();
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Fruit" />
+				<Combobox.Content>
+					{["Apple", "Banana"].map((fruit) => (
+						<Combobox.Item key={fruit} value={fruit}>
+							{(props, { highlighted }) => (
+								<div {...props}>
+									{fruit}
+									{highlighted && <span data-testid="preview">{`${fruit} preview`}</span>}
+								</div>
+							)}
+						</Combobox.Item>
+					))}
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Fruit" });
+
+		await user.click(input);
+		await user.keyboard("{ArrowDown}");
+		const banana = await screen.findByRole("option", { name: /Banana/ });
+		await user.hover(banana);
+
+		expect(screen.getByTestId("preview")).toHaveTextContent("Banana preview");
+
+		await user.click(banana);
+
+		expect(input).toHaveValue("Banana");
 	});
 });

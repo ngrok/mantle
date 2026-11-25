@@ -20,6 +20,7 @@ import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/m
 import { Empty } from "@ngrok/mantle/empty";
 import {
 	filterItemsByQuery,
+	getEffectiveNegations,
 	parseFilterQuery,
 	queryUsesQualifiers,
 	toggleFacet,
@@ -39,11 +40,14 @@ function projectStates(project: Project): ProjectState[] {
 
 /** Whether the query already keeps only the projects in this state. */
 function hasStateFilter(query: string, state: ProjectState) {
-	return parseFilterQuery(projectFilterGrammar, query).some(
-		(token) =>
+	const tokens = parseFilterQuery(projectFilterGrammar, query);
+	// A `NOT` or a negated group around a token negates it too, as `toggleFacet` reads it.
+	const negations = getEffectiveNegations(tokens);
+	return tokens.some(
+		(token, index) =>
 			token.kind === "facet" &&
 			token.key === "is" &&
-			!token.negated &&
+			!negations[index] &&
 			token.members.length === 1 &&
 			token.members[0]?.value === state,
 	);

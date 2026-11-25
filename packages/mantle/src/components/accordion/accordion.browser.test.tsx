@@ -2,7 +2,8 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { startTransition, useEffect, useState } from "react";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import * as Accordion from "./accordion-parts.js";
 
 /**
@@ -88,7 +89,7 @@ describe("Accordion (browser)", () => {
 		await waitFor(() => expect(region).not.toHaveAttribute("hidden"));
 		// Why wait: the state change renders in a later task in WebKit. The next
 		// test pins the synchronous part, the unhidden box.
-		await waitFor(() => expect(region).toHaveAttribute("data-state", "open"));
+		await waitFor(() => expect(region).toHaveAttribute("data-open"));
 	});
 
 	test('"beforematch" expands the content synchronously so the browser can highlight the revealed match', () => {
@@ -114,7 +115,7 @@ describe("Accordion (browser)", () => {
 		expect(region).not.toHaveAttribute("hidden");
 		// React has not re-rendered yet, so the layout below can only come from the
 		// handler's inline height.
-		expect(region).toHaveAttribute("data-state", "closed");
+		expect(region).not.toHaveAttribute("data-open");
 		expect(region.style.height).toBe("auto");
 		expect(region.offsetHeight).toBeGreaterThan(0);
 		// The closed state is transparent, so a match the browser highlights now
@@ -188,18 +189,237 @@ describe("Accordion (browser)", () => {
 		}
 
 		region.dispatchEvent(new Event("beforematch", { bubbles: true }));
-		await waitFor(() => expect(region).toHaveAttribute("data-state", "open"));
+		await waitFor(() => expect(region).toHaveAttribute("data-open"));
 		expect(region.style.height).toBe("auto");
 
 		await user.click(screen.getByRole("button", { name: /Trigger A/ }));
 
 		// The reveal's inline `height: auto` is a one-shot escape hatch. The close branch
 		// must clear it so the class-driven `h-0 ↔ h-auto` slide takes over again.
-		await waitFor(() => expect(region).toHaveAttribute("data-state", "closed"));
+		await waitFor(() => expect(region).not.toHaveAttribute("data-open"));
 		await waitFor(() => expect(region.style.height).toBe(""));
 		expect(region.style.opacity).toBe("");
 		expect(region.style.transition).toBe("");
 		expect(region).toHaveAttribute("hidden", "until-found");
+	});
+
+	test("an accepted find-in-page reveal stays open when frames run before React commits", async () => {
+		// Why: WebKit can run two frames before React commits the open. A frame that runs as a
+		// microtask puts both frames before the commit on every run.
+		const requestFrame = vi
+			.spyOn(window, "requestAnimationFrame")
+			.mockImplementation((callback) => {
+				queueMicrotask(() => callback(performance.now()));
+				return 0;
+			});
+		try {
+			render(
+				<Accordion.Root type="single" defaultValue="">
+					{items}
+				</Accordion.Root>,
+			);
+			const region = regionFor("Body of section A");
+			if (!(region instanceof HTMLElement)) {
+				throw new Error("expected the content region to be an HTMLElement");
+			}
+
+			region.dispatchEvent(new Event("beforematch", { bubbles: true }));
+
+			await waitFor(() => expect(region).toHaveAttribute("data-open"));
+			expect(region).not.toHaveAttribute("hidden");
+			expect(region.style.height).toBe("auto");
+		} finally {
+			requestFrame.mockRestore();
+		}
+	});
+
+	// A fragment link reveals the content the same way find-in-page does: the
+	// browser fires `beforematch`, then removes `hidden`.
+	const revealByFragment = async (id: string, check: () => Promise<void>) => {
+		window.location.hash = `#${id}`;
+		try {
+			await check();
+		} finally {
+			history.replaceState(null, "", window.location.pathname);
+		}
+	};
+
+	const ControlledItem = ({
+		value,
+		onValueChange,
+	}: {
+		value: string;
+		onValueChange: (value: string) => void;
+	}) => (
+		<Accordion.Root type="single" value={value} onValueChange={onValueChange}>
+			<Accordion.Item value="a">
+				<Accordion.Trigger>Trigger A</Accordion.Trigger>
+				<Accordion.Content>
+					<Accordion.Body id="controlled-a">Body of section A</Accordion.Body>
+				</Accordion.Content>
+			</Accordion.Item>
+		</Accordion.Root>
+	);
+
+	test("a new find-in-page reveal cancels the pending check of a refused one", async () => {
+		// Why a queue: the test decides when each frame runs.
+		const frames = new Map<number, FrameRequestCallback>();
+		let nextFrame = 0;
+		const requestFrame = vi
+			.spyOn(window, "requestAnimationFrame")
+			.mockImplementation((callback) => {
+				nextFrame += 1;
+				frames.set(nextFrame, callback);
+				return nextFrame;
+			});
+		const cancelFrame = vi.spyOn(window, "cancelAnimationFrame").mockImplementation((id) => {
+			frames.delete(id);
+		});
+		const runFrames = () => {
+			const pending = [...frames.values()];
+			frames.clear();
+			for (const callback of pending) {
+				callback(performance.now());
+			}
+		};
+		// Refuses the first reveal and accepts the second.
+		const AcceptsSecond = () => {
+			const [value, setValue] = useState("");
+			const [asks, setAsks] = useState(0);
+			return (
+				<ControlledItem
+					value={value}
+					onValueChange={(next) => {
+						setAsks(asks + 1);
+						if (asks > 0) {
+							setValue(next);
+						}
+					}}
+				/>
+			);
+		};
+		try {
+			render(<AcceptsSecond />);
+			const region = regionFor("Body of section A");
+			if (!(region instanceof HTMLElement)) {
+				throw new Error("expected the content region to be an HTMLElement");
+			}
+
+			region.dispatchEvent(new Event("beforematch", { bubbles: true }));
+			await waitFor(() => expect(frames.size).toBe(1));
+			runFrames();
+			expect(frames.size).toBe(1);
+
+			region.dispatchEvent(new Event("beforematch", { bubbles: true }));
+			// The first reveal's second frame runs before React commits the accepted open.
+			runFrames();
+
+			await waitFor(() => expect(region).toHaveAttribute("data-open"));
+			expect(region).not.toHaveAttribute("hidden");
+			expect(region.style.height).toBe("auto");
+		} finally {
+			requestFrame.mockRestore();
+			cancelFrame.mockRestore();
+		}
+	});
+
+	test("a controlled root that refuses a find-in-page reveal hides the content again", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(<ControlledItem value="" onValueChange={onValueChange} />);
+		const region = regionFor("Body of section A");
+		if (!(region instanceof HTMLElement)) {
+			throw new Error("expected the content region to be an HTMLElement");
+		}
+		await waitFor(() => expect(region).toHaveAttribute("hidden", "until-found"));
+
+		await revealByFragment("controlled-a", async () => {
+			await vi.waitFor(() => expect(onValueChange.mock.calls).toEqual([["a"]]));
+			await vi.waitFor(() => expect(region).toHaveAttribute("hidden", "until-found"));
+		});
+		// A close slide would keep the refused content visible and interactive.
+		expect(region.getAnimations()).toEqual([]);
+		expect(screen.getByRole("button", { name: "Trigger A" })).toHaveAttribute(
+			"aria-expanded",
+			"false",
+		);
+		expect(region).not.toHaveAttribute("data-open");
+		expect(region.style.height).toBe("");
+		expect(region.style.opacity).toBe("");
+		expect(region.offsetHeight).toBe(0);
+	});
+
+	test("a controlled root that accepts a find-in-page reveal in a transition never hides it again", async () => {
+		const Transitioned = () => {
+			const [value, setValue] = useState("");
+			return (
+				<ControlledItem
+					value={value}
+					onValueChange={(next) => {
+						startTransition(() => {
+							setValue(next);
+						});
+					}}
+				/>
+			);
+		};
+		render(<Transitioned />);
+		const region = regionFor("Body of section A");
+		if (!(region instanceof HTMLElement)) {
+			throw new Error("expected the content region to be an HTMLElement");
+		}
+		await waitFor(() => expect(region).toHaveAttribute("hidden", "until-found"));
+		const hiddenValues: (string | null)[] = [];
+		const observer = new MutationObserver(() => {
+			hiddenValues.push(region.getAttribute("hidden"));
+		});
+		observer.observe(region, { attributeFilter: ["hidden"] });
+
+		await revealByFragment("controlled-a", async () => {
+			await vi.waitFor(() => expect(region).toHaveAttribute("data-open"));
+			// Why three frames: a refusal hides the content in the second one.
+			await new Promise((resolve) => {
+				requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+			});
+		});
+		observer.disconnect();
+		expect(hiddenValues).not.toContain("until-found");
+		expect(region.offsetHeight).toBeGreaterThan(0);
+		expect(screen.getByRole("button", { name: "Trigger A" })).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+	});
+
+	test("a reveal from a React effect opens the section without a React error", async () => {
+		const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+		const RevealOnMount = () => {
+			useEffect(() => {
+				window.location.hash = "#effect-a";
+			}, []);
+			return (
+				<Accordion.Root type="single" defaultValue="">
+					<Accordion.Item value="a">
+						<Accordion.Trigger>Trigger A</Accordion.Trigger>
+						<Accordion.Content>
+							<Accordion.Body id="effect-a">Body of section A</Accordion.Body>
+						</Accordion.Content>
+					</Accordion.Item>
+				</Accordion.Root>
+			);
+		};
+		try {
+			render(<RevealOnMount />);
+			await vi.waitFor(() => {
+				expect(screen.getByRole("button", { name: "Trigger A" })).toHaveAttribute(
+					"aria-expanded",
+					"true",
+				);
+			});
+			expect(errors).not.toHaveBeenCalled();
+		} finally {
+			errors.mockRestore();
+			history.replaceState(null, "", window.location.pathname);
+		}
 	});
 
 	const verticalCenter = (rect: DOMRect) => rect.top + rect.height / 2;

@@ -155,7 +155,7 @@ describe("LineChart.Root engagement", () => {
 	test("a chart the observer has not reached mounts no data table but keeps its live region", () => {
 		neverInView();
 		const { container } = renderChart();
-		expect(rootOf(container)).toHaveAttribute("data-state", "dormant");
+		expect(rootOf(container)).not.toHaveAttribute("data-engaged");
 		// The sibling table test above proves this query finds a mounted table.
 		expect(screen.queryByRole("table")).not.toBeInTheDocument();
 		// A live region that mounts with its first message is not announced.
@@ -169,7 +169,7 @@ describe("LineChart.Root engagement", () => {
 		await user.tab();
 		// A discrete event flushes the latch, so the table exists before any key.
 		expect(screen.getByRole("table")).toBeInTheDocument();
-		expect(rootOf(container)).toHaveAttribute("data-state", "engaged");
+		expect(rootOf(container)).toHaveAttribute("data-engaged");
 		await user.keyboard("{ArrowRight}");
 		const status = screen.getByRole("status");
 		await vi.waitFor(() => {
@@ -186,7 +186,7 @@ describe("LineChart.Root engagement", () => {
 		});
 		// A list of sparklines in view must not hold a table per cell.
 		expect(screen.queryByRole("table")).not.toBeInTheDocument();
-		expect(rootOf(container)).toHaveAttribute("data-state", "dormant");
+		expect(rootOf(container)).not.toHaveAttribute("data-engaged");
 		engageChart();
 		expect(screen.getByRole("table")).toBeInTheDocument();
 		act(() => {
@@ -194,14 +194,14 @@ describe("LineChart.Root engagement", () => {
 		});
 		// A latch that follows visibility would unmount the table under a reader.
 		expect(screen.getByRole("table")).toBeInTheDocument();
-		expect(rootOf(container)).toHaveAttribute("data-state", "engaged");
+		expect(rootOf(container)).toHaveAttribute("data-engaged");
 	});
 
-	test("a consumer data-state never overrides the latch", () => {
+	test("a consumer data-engaged never overrides the latch", () => {
 		neverInView();
-		const { container } = renderChart({ "data-state": "engaged" });
+		const { container } = renderChart({ "data-engaged": "" });
 		// A spread after the latch would let a wider props object lie about it.
-		expect(rootOf(container)).toHaveAttribute("data-state", "dormant");
+		expect(rootOf(container)).not.toHaveAttribute("data-engaged");
 	});
 
 	test("a consumer onFocus runs once and focus still engages the chart", async () => {
@@ -212,7 +212,7 @@ describe("LineChart.Root engagement", () => {
 		await user.tab();
 		expect(onFocus).toHaveBeenCalledTimes(1);
 		expect(onFocus).toHaveBeenLastCalledWith(expect.objectContaining({ type: "focus" }));
-		expect(rootOf(container)).toHaveAttribute("data-state", "engaged");
+		expect(rootOf(container)).toHaveAttribute("data-engaged");
 	});
 });
 
@@ -321,22 +321,27 @@ describe("LineChart.CopyButton", () => {
 		expect(screen.getByRole("button", { name: "Copy latency data" })).toBeInTheDocument();
 	});
 
-	test("announces 'Copied' through an always-mounted live region after a copy", async () => {
+	test("announces 'Copied' through one live region shared by every copy button", async () => {
 		const user = userEvent.setup();
-		const { container } = render(
-			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" color="blue" />
-				<LineChart.CopyButton />
-			</LineChart.Root>,
+		render(
+			<>
+				{["Request latency", "Error rate"].map((label) => (
+					<LineChart.Root key={label} data={data} xKey="time" aria-label={label}>
+						<LineChart.Line dataKey="p50" label="p50" color="blue" />
+						<LineChart.CopyButton />
+					</LineChart.Root>
+				))}
+			</>,
 		);
-		// Why the slot: the chart's keyboard announcer is a second `role="status"`. The
-		// copy button's region is the chart's only `LiveRegion`.
-		const button = screen.getByRole("button", { name: "Copy data as Markdown" });
-		const status = container.querySelector('[data-slot="live-region"]');
-		expect(status).toHaveAttribute("role", "status");
+		// Why the slot: each chart's keyboard announcer is another `role="status"`.
+		const [status, ...rest] = document.body.querySelectorAll(
+			':scope > [data-slot="shared-status"]',
+		);
+		expect(rest).toHaveLength(0);
 		expect(status).toHaveTextContent("");
 
-		await user.click(button);
+		const buttons = screen.getAllByRole("button", { name: "Copy data as Markdown" });
+		await user.click(buttons.at(-1) as HTMLElement);
 
 		await vi.waitFor(() => {
 			expect(status).toHaveTextContent("Copied");
@@ -965,7 +970,7 @@ describe("LineChart decorative mode", () => {
 		// The description belongs to the overlay; the slot test above finds it on an interactive chart.
 		expect(container.querySelector('[data-slot="line-chart-description"]')).not.toBeInTheDocument();
 		// No overlay means nothing can engage it, so the latch stays off the element.
-		expect(container.querySelector('[data-slot="line-chart"]')).not.toHaveAttribute("data-state");
+		expect(container.querySelector('[data-slot="line-chart"]')).not.toHaveAttribute("data-engaged");
 		expect(container.querySelector("[tabindex]")).not.toBeInTheDocument();
 		expect(screen.queryByRole("table")).not.toBeInTheDocument();
 		expect(screen.queryByRole("status")).not.toBeInTheDocument();

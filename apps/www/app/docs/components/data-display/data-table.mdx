@@ -151,8 +151,9 @@ const columns = columnHelper.columns([
 	}),
 	columnHelper.accessor("amount", {
 		id: "amount",
+		meta: { width: "fit" },
 		header: (props) => (
-			<DataTable.Header className="w-50" column={props.column}>
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton
 					className="justify-end"
 					column={props.column}
@@ -163,10 +164,15 @@ const columns = columnHelper.columns([
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
+		cell: (props) => (
+			<DataTable.Cell column={props.column} className="text-right">
+				{props.getValue()}
+			</DataTable.Cell>
+		),
 	}),
 	columnHelper.accessor("status", {
 		id: "status",
+		meta: { width: "fit" },
 		header: (props) => (
 			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
@@ -174,7 +180,7 @@ const columns = columnHelper.columns([
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 	columnHelper.accessor("email", {
 		id: "email",
@@ -664,7 +670,7 @@ columnHelper.display({
 
 ### Customizing cells (badges, numeric, truncation)
 
-Cell rendering is plain React. Use `Badge` for status pills, `text-right` for numeric columns, and `truncate max-w-*` for long strings.
+Cell rendering is plain React. Use `Badge` for status pills, `text-right` for numeric columns. A long string truncates on its own; see [Sizing a column](#sizing-a-column).
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -673,6 +679,7 @@ import { DataTable } from "@ngrok/mantle/data-table";
 // Status pill
 columnHelper.accessor("status", {
 	id: "status",
+	meta: { width: "fit" },
 	header: (props) => (
 		<DataTable.Header column={props.column}>
 			<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
@@ -684,7 +691,7 @@ columnHelper.accessor("status", {
 		const status = props.getValue();
 		const color = status === "success" ? "green" : status === "failed" ? "red" : "amber";
 		return (
-			<DataTable.Cell>
+			<DataTable.Cell column={props.column}>
 				<Badge color={color} appearance="muted">
 					{status}
 				</Badge>
@@ -697,6 +704,7 @@ columnHelper.accessor("status", {
 // so the sort affordance stays visually paired with the label
 columnHelper.accessor("amount", {
 	id: "amount",
+	meta: { width: "fit" },
 	header: (props) => (
 		<DataTable.Header column={props.column}>
 			<DataTable.HeaderSortButton
@@ -710,7 +718,7 @@ columnHelper.accessor("amount", {
 		</DataTable.Header>
 	),
 	cell: (props) => (
-		<DataTable.Cell className="text-right">${props.getValue().toFixed(2)}</DataTable.Cell>
+		<DataTable.Cell column={props.column} className="text-right">${props.getValue().toFixed(2)}</DataTable.Cell>
 	),
 }),
 
@@ -718,21 +726,28 @@ columnHelper.accessor("amount", {
 columnHelper.accessor("url", {
 	id: "url",
 	header: (props) => (
-		<DataTable.Header column={props.column} className="min-w-100">
+		<DataTable.Header column={props.column}>
 			<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 				URL
 			</DataTable.HeaderSortButton>
 		</DataTable.Header>
 	),
-	cell: (props) => <DataTable.Cell className="truncate max-w-100">{props.getValue()}</DataTable.Cell>,
+	cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 }),
 ```
 
-### Sizing a column to its content
+### Sizing a column
 
-The table uses the browser's automatic layout, so every column gets a share of the spare width. A short value such as a timestamp then sits in a wide column, far from the next value. Set `meta: { width: "fit" }` on the column, and pass `column` to its `DataTable.Header` and to every `DataTable.Cell`. The column is then only as wide as its widest value, on one line, and the spare width goes to the other columns.
+Each cell stays on one line, and every column gets an equal share of the table's spare width. A long value takes the width it needs. When the row is too narrow, the value truncates with an ellipsis, so every row keeps one height, and a table too narrow for its columns scrolls. A row checkbox or expand column and an action column stay as narrow as their controls. The browser sizes the columns in its own layout pass: no script measures them, and a width class on a cell does nothing. To give a column a least width, put `min-w-*` on its cells.
 
-<Example name="components/data-display/data-table/sizing-a-column-to-its-content" title="Data Table sizing a column to its content example">
+The grid layout has one tradeoff with VoiceOver in Safari. When the table is the first item on a page, "move to top" lands on the first header cell, not on the table. WebKit puts each grid cell on its own text line, and no CSS changes this. VoiceOver still reads the table, its column and row counts, and each header. With content before the table, as on most pages, VoiceOver reads it the same as a table with `display: table`. NVDA reads it the same in both layouts.
+
+Set `meta.width` on a column to change this, and pass `column` to its `DataTable.Header` and to every `DataTable.Cell`:
+
+- `"fit"`: the column never truncates. Use it for a short value of one shape, such as a timestamp, a status, or a duration.
+- `"wrap"`: the text wraps onto more lines. Use it for prose that the reader must see in full.
+
+<Example name="components/data-display/data-table/sizing-a-column" title="Data Table sizing a column example">
 
 ```tsx
 import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
@@ -741,13 +756,34 @@ type Connection = {
 	id: string;
 	timestamp: string;
 	clientIp: string;
+	userAgent: string;
 	duration: string;
 };
 
 const connections: Connection[] = [
-	{ id: "c1", timestamp: "Oct 22, 2026 14:03:11.482", clientIp: "203.0.113.24", duration: "1.2s" },
-	{ id: "c2", timestamp: "Oct 22, 2026 14:02:57.109", clientIp: "198.51.100.7", duration: "48ms" },
-	{ id: "c3", timestamp: "Oct 22, 2026 14:02:40.936", clientIp: "192.0.2.180", duration: "3.9s" },
+	{
+		id: "c1",
+		timestamp: "Oct 22, 2026 14:03:11.482",
+		clientIp: "203.0.113.24",
+		userAgent:
+			"Mozilla/5.0 (Macintosh; Intel Mac OS X 15_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/19.0 Safari/605.1.15",
+		duration: "1.2s",
+	},
+	{
+		id: "c2",
+		timestamp: "Oct 22, 2026 14:02:57.109",
+		clientIp: "198.51.100.7",
+		userAgent: "curl/8.11.1",
+		duration: "48ms",
+	},
+	{
+		id: "c3",
+		timestamp: "Oct 22, 2026 14:02:40.936",
+		clientIp: "192.0.2.180",
+		userAgent:
+			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+		duration: "3.9s",
+	},
 ];
 
 const features = tableFeatures({});
@@ -763,13 +799,20 @@ const columns = columnHelper.columns([
 	}),
 	columnHelper.accessor("clientIp", {
 		id: "clientIp",
-		header: () => <DataTable.Header>Client IP</DataTable.Header>,
+		meta: { width: "fit" },
+		header: (props) => <DataTable.Header column={props.column}>Client IP</DataTable.Header>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("userAgent", {
+		id: "userAgent",
+		header: () => <DataTable.Header>User agent</DataTable.Header>,
 		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
 	columnHelper.accessor("duration", {
 		id: "duration",
-		header: () => <DataTable.Header>Duration</DataTable.Header>,
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		meta: { width: "fit" },
+		header: (props) => <DataTable.Header column={props.column}>Duration</DataTable.Header>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 ]);
 
@@ -791,7 +834,7 @@ function ConnectionsTable() {
 
 </Example>
 
-Pass `column` to the header and to each cell of the column. A part with no `column` cannot read `meta`, so a header without it keeps its share of the spare width, and a cell without it can wrap.
+Pass `column` to the header and to each cell of the column. A part with no `column` cannot read `meta`, so it uses the default.
 
 TanStack Table types `meta` through the global `ColumnMeta` interface, and mantle adds `width` to it. A `columnMeta` slot on `tableFeatures` replaces that interface for its table. If your table has a slot, add `DataTableColumnMeta` to the slot type:
 
@@ -1216,9 +1259,10 @@ const columns = columnHelper.columns([
 	}),
 	columnHelper.accessor("status", {
 		id: "status",
-		header: () => <DataTable.Header>Status</DataTable.Header>,
+		meta: { width: "fit" },
+		header: (props) => <DataTable.Header column={props.column}>Status</DataTable.Header>,
 		cell: (props) => (
-			<DataTable.Cell className="align-top">
+			<DataTable.Cell column={props.column} className="align-top">
 				<Badge color="green" appearance="muted">
 					{props.getValue()}
 				</Badge>
@@ -1227,9 +1271,16 @@ const columns = columnHelper.columns([
 	}),
 	columnHelper.accessor("age", {
 		id: "age",
-		header: () => <DataTable.Header className="text-right">Age</DataTable.Header>,
+		meta: { width: "fit" },
+		header: (props) => (
+			<DataTable.Header column={props.column} className="text-right">
+				Age
+			</DataTable.Header>
+		),
 		cell: (props) => (
-			<DataTable.Cell className="align-top text-right">{props.getValue()}</DataTable.Cell>
+			<DataTable.Cell column={props.column} className="align-top text-right">
+				{props.getValue()}
+			</DataTable.Cell>
 		),
 	}),
 ]);
@@ -1337,11 +1388,11 @@ An empty-state row that spans every visible column. Render this as the `else` br
 
 A `<th>` cell optimized for header actions. Wrap sortable headers' contents in `DataTable.HeaderSortButton` and pass the same `column` here, so the cell carries `aria-sort` while the column is sorted.
 
-| Prop         | Type                               | Default | Description                                                                                                                                                                                                        |
-| :----------- | :--------------------------------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `children`   | `ReactNode`                        |         | Usually a `DataTable.HeaderSortButton`. For non-sortable columns, plain text is fine.                                                                                                                              |
-| `column?`    | `Column<TFeatures, TData, TValue>` |         | The TanStack Table column this cell heads. When the column is sorted, the cell carries `aria-sort`. When the column's `meta.width` is `"fit"`, the column [sizes to its content](#sizing-a-column-to-its-content). |
-| `className?` | `string`                           |         | Extra classes merged onto the `<th>`. Remaining props forward to the HTML `<th>` element.                                                                                                                          |
+| Prop         | Type                               | Default | Description                                                                                                                                                         |
+| :----------- | :--------------------------------- | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `children`   | `ReactNode`                        |         | Usually a `DataTable.HeaderSortButton`. For non-sortable columns, plain text is fine.                                                                               |
+| `column?`    | `Column<TFeatures, TData, TValue>` |         | The TanStack Table column this cell heads. When the column is sorted, the cell carries `aria-sort`. The column's `meta.width` [sizes the column](#sizing-a-column). |
+| `className?` | `string`                           |         | Extra classes merged onto the `<th>`. Remaining props forward to the HTML `<th>` element.                                                                           |
 
 #### Data attributes
 
@@ -1379,11 +1430,11 @@ All additional props from [`Button`](/components/actions/button). Unlike `Button
 
 A `<td>` for one data cell. Applies mantle typography, padding, and alignment from [`Table.Cell`](/components/data-display/table#tablecell). Pass `column` to apply the column's `meta.width`, and pass the same `column` to the column's `DataTable.Header`.
 
-| Prop         | Type                               | Default | Description                                                                                                                                                    |
-| :----------- | :--------------------------------- | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `children`   | `ReactNode`                        |         | The cell's rendered value. Any React node is allowed.                                                                                                          |
-| `column?`    | `Column<TFeatures, TData, TValue>` |         | The TanStack Table column this cell belongs to. When the column's `meta.width` is `"fit"`, the column [sizes to its content](#sizing-a-column-to-its-content). |
-| `className?` | `string`                           |         | Extra classes merged onto the `<td>`. Remaining props forward to the HTML `<td>` element.                                                                      |
+| Prop         | Type                               | Default | Description                                                                                                     |
+| :----------- | :--------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------- |
+| `children`   | `ReactNode`                        |         | The cell's rendered value. Any React node is allowed.                                                           |
+| `column?`    | `Column<TFeatures, TData, TValue>` |         | The TanStack Table column this cell belongs to. The column's `meta.width` [sizes the column](#sizing-a-column). |
+| `className?` | `string`                           |         | Extra classes merged onto the `<td>`. Remaining props forward to the HTML `<td>` element.                       |
 
 #### Data attributes
 

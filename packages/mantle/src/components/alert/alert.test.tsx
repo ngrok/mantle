@@ -446,7 +446,7 @@ describe("Alert", () => {
 
 			const button = container.querySelector('[data-slot~="alert-expand-button"]');
 			const label = button?.querySelector('[data-slot="button-label"]');
-			const caret = button?.querySelector("[data-state='active'] > svg");
+			const caret = button?.querySelector("[data-slot=icon-swap-item]:not([aria-hidden]) > svg");
 			expect(label).toHaveTextContent("+3");
 			// The caret's icon slot is the label's sibling, not its descendant, so the
 			// button's `gap` falls between the two and `iconPlacement="end"` orders the
@@ -551,7 +551,7 @@ describe("Alert", () => {
 			// Why the class: `Root` emits no `data-appearance`, so `rounded-none` is the
 			// only observable of the banner appearance.
 			// `toHaveClass` ignores extras, so the radius list is the proof: the base
-			// `rounded-md` must lose the merge to the variant's `rounded-none`.
+			// `rounded-xl` must lose the merge to the variant's `rounded-none`.
 			const radius = Array.from(getAlertRoot(container)?.classList ?? []).filter((name) =>
 				name.startsWith("rounded"),
 			);

@@ -27,6 +27,7 @@ type Project = {
 	description: string;
 	shared: boolean;
 	archived: boolean;
+	members: number;
 };
 
 const projects: Project[] = [
@@ -36,6 +37,7 @@ const projects: Project[] = [
 		description: "Invoices and payments",
 		shared: true,
 		archived: false,
+		members: 6,
 	},
 	{
 		id: "p_2",
@@ -43,6 +45,7 @@ const projects: Project[] = [
 		description: "Public website",
 		shared: true,
 		archived: false,
+		members: 3,
 	},
 	{
 		id: "p_3",
@@ -50,6 +53,7 @@ const projects: Project[] = [
 		description: "Old color scales",
 		shared: true,
 		archived: true,
+		members: 1,
 	},
 	{
 		id: "p_4",
@@ -57,6 +61,7 @@ const projects: Project[] = [
 		description: "Staging API",
 		shared: false,
 		archived: false,
+		members: 4,
 	},
 	{
 		id: "p_5",
@@ -64,6 +69,7 @@ const projects: Project[] = [
 		description: "Local webhook tests",
 		shared: false,
 		archived: false,
+		members: 1,
 	},
 ];
 
@@ -73,7 +79,8 @@ const projectFilterGrammar: FilterGrammar<Project> = {
 			key: "name",
 			aliases: ["title"],
 			description: "Text in the project name",
-			matches: (project, value) => project.name.toLowerCase().includes(value.toLowerCase()),
+			type: "text",
+			getValue: (project) => project.name,
 		},
 		{
 			key: "description",
@@ -103,6 +110,12 @@ const projectFilterGrammar: FilterGrammar<Project> = {
 				}
 			},
 		},
+		{
+			key: "members",
+			description: "How many people work on it",
+			type: "number",
+			getValue: (project) => project.members,
+		},
 	],
 	getSearchText: (project) => [project.name, project.description, project.id].join("\n"),
 };
@@ -127,6 +140,11 @@ const columns = columnHelper.columns([
 	columnHelper.accessor((project) => (project.shared ? "Shared" : "Private"), {
 		id: "visibility",
 		header: () => <DataTable.Header>Visibility</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("members", {
+		id: "members",
+		header: () => <DataTable.Header>Members</DataTable.Header>,
 		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
 ]);
@@ -197,11 +215,11 @@ export function QueryExample() {
 
 ## When to use
 
-- Filter a list with a typed query of free text and `key:value` qualifiers.
+- Filter a list with a typed query of free text and `key:value` qualifiers. Its `keyboardShortcut` prop makes the slash key (`/`) a keyboard shortcut that focuses the field while no other text field has focus.
 - Prefer [`Input`](/components/forms/input) for a plain search box with no query language.
 - Prefer [`Combobox`](/components/forms/combobox) to pick one value from a filtered list of options.
 - Prefer [`MultiSelect`](/components/forms/multi-select) to pick several values, shown as tags.
-- Prefer [`Command`](/components/navigation/command) for a palette that runs an action or navigates.
+- Prefer [`Command`](/components/navigation/command) for a `⌘K` palette that runs an action or navigates.
 
 ## Composition
 
@@ -236,7 +254,7 @@ Leave out a part to remove it. Wrap your own text in `Footer` in an element, suc
 The other parts don't take `asChild`:
 
 - `Input` renders the field's shell, its painted copy, and the `<input>` together.
-- `Content` wraps `Popover.Content`, whose element Radix positions.
+- `Content` wraps `Popover.Content`, which positions its element.
 - `List` renders the section groups and their headings.
 - `Item` must stay the `role="option"` element that the input names through `aria-activedescendant`.
 - `Empty`, `Legend`, and `KeyboardHints` render their own content.
@@ -244,6 +262,8 @@ The other parts don't take `asChild`:
 ## Query syntax
 
 `Query` is a single-line filter field for a list. Free text and `key:value` qualifiers mix in one query: `is:shared -staging api`. The field colors each token in place. A suggestion popover completes keys and values while the caret stays in the field. In the example at the top of this page, type `is:` to see the values and their live match counts.
+
+A key with a `type` takes operators: `members:>3` compares a number, `name:api*` matches a prefix, and `(is:shared OR is:archived) -name:=billing-api` groups filters. Type `members:` in the example to see the comparisons. [query-filter](/utils/query-filter#typed-keys-and-operators) lists every operator.
 
 The grammar also filters your items with `filterItemsByQuery`, so the field and the list always agree.
 
@@ -310,7 +330,7 @@ export function InlineActionsQueryExample() {
 
 ## Keyboard shortcut
 
-Set `keyboardShortcut` on `Query.Input` to let `/` move focus into the field from anywhere on the page. While the field is empty and not focused, it shows a `/` hint at its right edge. The key still types a slash in any text field, and it does nothing while the field is disabled or a modal covers it.
+Set `keyboardShortcut` on `Query.Input` to let `/` move focus into the field from anywhere on the page. While the field is empty and not focused, it shows a `/` hint at its right edge. A device that can't hover, such as a phone, usually has no key to press, so it shows no hint. The key still types a slash in any text field, and it does nothing while the field is disabled or a modal covers it.
 
 The shortcut is off by default, because a page with many tables has many fields and `/` can focus only one. Turn it on for the one primary filter on a page. If more than one field turns it on, `/` goes to the field that turned it on first and can take focus.
 
@@ -353,7 +373,7 @@ export function KeyboardShortcutQueryExample() {
 
 ## Search on the server
 
-When a server runs the query, declare its vocabulary with `defineRemoteFilterGrammar` and leave out `items`. The suggestions then carry no counts. The grammar's `syntax` keeps the highlighting to what the server reads: `"qualifiers"` (the default) treats only bare `key:value` tokens as structure, and `"conjunction"` reads one AND group of exclusions, comma lists, and quotes.
+When a server runs the query, declare its vocabulary with `defineRemoteFilterGrammar` and leave out `items`. The suggestions then carry no counts. The grammar's `syntax` keeps the highlighting to what the server reads: `"qualifiers"` (the default) treats only bare `key:value` tokens as structure, `"conjunction"` reads one AND group of exclusions, comma lists, and quotes, and `"full"` reads the whole language.
 
 Inside a `<form>`, Enter submits the form, unless the keyboard made a suggestion active. Then Enter accepts that suggestion.
 
@@ -514,24 +534,24 @@ The query field. `className` and `style` go to the field's outer element, as on 
 | `validation`       | `"error"` \| `"success"` \| `"warning"` \| `false` \| `() => "error" \| "success" \| "warning" \| false` | none             | The validation state. It sets the border, and `"error"` also sets `aria-invalid`. Inside `Field.Control`, the `Field.Item` sets it. |
 | `aria-describedby` | `string`                                                                                                 | none             | The field's own description. `Query.Footer` joins it while the popover is open.                                                     |
 
-| CSS Variable             | Default                        | Description                     |
-| ------------------------ | ------------------------------ | ------------------------------- |
-| `--query-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.   |
-| `--query-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value. |
-| `--query-operator-color` | `var(--shiki-token-operator)`  | The color of `OR` and `AND`.    |
+| CSS Variable             | Default                        | Description                                       |
+| ------------------------ | ------------------------------ | ------------------------------------------------- |
+| `--query-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.                     |
+| `--query-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value.                   |
+| `--query-operator-color` | `var(--shiki-token-operator)`  | The color of `OR`, `AND`, `NOT`, and parentheses. |
 
 | Data Attribute    | Value                                   | Description                                                                                                                        |
 | ----------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `data-slot`       | `"query-input"`                         | On the field's outer element.                                                                                                      |
 | `data-slot`       | `"query-input-actions"`                 | On the `span` that wraps the children. The clear button follows it. It has `display: contents`, so each child lays out in the row. |
-| `data-slot`       | `"query-input-shortcut kbd"`            | On the `/` hint, with `keyboardShortcut`. It shows while the field is empty and not focused.                                       |
+| `data-slot`       | `"query-input-shortcut kbd"`            | On the `/` hint, with `keyboardShortcut`. It shows while the field is empty and not focused, on a device that can hover.           |
 | `data-slot`       | `"input"`                               | On the field's chrome, inside `"query-input"`, as on `Input`.                                                                      |
 | `data-disabled`   | present                                 | On the `"input"` chrome while the field is disabled.                                                                               |
 | `data-validation` | `"error"` \| `"success"` \| `"warning"` | On the `"input"` chrome. Omitted when unset.                                                                                       |
 
 ### Query.Content
 
-The suggestion popover. It holds the parts you compose into it and keeps focus in the field. It accepts the `Popover.Content` props except the ones it owns: `align`, `role`, `preferredWidth`, the auto-focus handlers, and `onInteractOutside`.
+The suggestion popover. It holds the parts you compose into it and keeps focus in the field. It grows no taller than the room between the field and the viewport edge, and it scrolls when its parts don't fit there. It accepts the `Popover.Content` props except the ones it owns: `align`, `role`, `preferredWidth`, the auto-focus handlers, and `onInteractOutside`.
 
 | Prop                                                    | Type                  | Default | Description                                                           |
 | ------------------------------------------------------- | --------------------- | ------- | --------------------------------------------------------------------- |
@@ -540,12 +560,11 @@ The suggestion popover. It holds the parts you compose into it and keeps focus i
 | `ref`                                                   | `Ref<HTMLDivElement>` | none    | The popover element.                                                  |
 | `side`, `sideOffset`, `id`, `style`, `aria-*`, `data-*` |                       | none    | Go to the popover, as on `Popover.Content`.                           |
 
-| Data Attribute | Value                  | Description                                 |
-| -------------- | ---------------------- | ------------------------------------------- |
-| `data-slot`    | `"query-content"`      | On the popover, beside `"popover-content"`. |
-| `data-state`   | `"open"` \| `"closed"` | On the popover, from Radix.                 |
-| `data-side`    | `"top"` \| `"bottom"`  | On the popover: the side it opened on.      |
-| `data-align`   | `"start"`              | On the popover.                             |
+| Data Attribute | Value                 | Description                                 |
+| -------------- | --------------------- | ------------------------------------------- |
+| `data-slot`    | `"query-content"`     | On the popover, beside `"popover-content"`. |
+| `data-open`    | present while open    | On the popover, from `Popover.Content`.     |
+| `data-side`    | `"top"` \| `"bottom"` | On the popover: the side it opened on.      |
 
 ### Query.List
 
@@ -556,9 +575,10 @@ The suggestion listbox for the token under the caret. It groups the rows under "
 | `children`   | `(suggestion: FilterSuggestion) => ReactNode` | none                   | Renders one suggestion. Return a `Query.Item` for every suggestion, because the arrow keys move through every one. Required. |
 | `aria-label` | `string`                                      | `"Filter suggestions"` | The accessible name of the listbox.                                                                                          |
 
-| Data Attribute | Value          | Description     |
-| -------------- | -------------- | --------------- |
-| `data-slot`    | `"query-list"` | On the listbox. |
+| Data Attribute | Value                 | Description                                                         |
+| -------------- | --------------------- | ------------------------------------------------------------------- |
+| `data-slot`    | `"query-list"`        | On the listbox.                                                     |
+| `data-slot`    | `"query-group-label"` | On each section heading, a block `span` hidden from assistive tech. |
 
 ### Query.Item
 

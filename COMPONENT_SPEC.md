@@ -62,16 +62,17 @@ accessible, least surprising, fast, delightful, clean, and efficient.
    `<button>`, `Checkbox` a real `<input type="checkbox">`, `Kbd` a real `<kbd>`. Enhancement is layered on
    top and every enhancement names its fallback (`Accordion`'s `hidden="until-found"` and `interpolate-size`
    both degrade cleanly). If a component needs JavaScript to do what an element already does, start over.
-   Enhance an element only when it does not meet a named product or site need. Native `<dialog>`,
-   `<details>`, and `<select>` do not meet them today, so `Dialog`, `Accordion`, and `Select` are mantle's own.
-2. **Own the behavior.** Hand-roll where the platform is enough (`Accordion`, `Field`, `RadioGroup`). Where
-   the behavior is genuinely hard, put it in a mantle behavior hook that follows the APG pattern. Then mantle
-   owns the performance and accessibility contract. A component ships only the code it needs. Some
-   components still wrap a headless library (Radix for `Dialog`, Ariakit for `Combobox`, cmdk for
-   `Command`). Each one is a migration to a hook, and new work adds no headless library. An engine
-   that renders no UI, such as TanStack Table for `DataTable`, can stay. A consumer must not be able to tell
-   which is which: every foundation is normalized behind the same house API: flat namespace, `asChild`,
-   `data-slot`, consumer `className` merged last.
+   Add the least JavaScript that meets a named product or site need. `Dialog`, `AlertDialog`, and `Sheet`
+   each render a native `<dialog>`. `Popover`, `DropdownMenu`, `Tooltip`, and `HoverCard` each render a native
+   `popover`. `RadioGroup` renders native radios. Native `<details>` and `<select>` do not meet the need today, so
+   `Accordion` and `Select` are mantle's own.
+   Measure each new or rewritten interactive part against a hand-written native floor ([§3.9](#39-performance)).
+2. **Own the behavior.** Hand-roll where the platform is enough (`Accordion`, `Field`). Where the behavior
+   is genuinely hard, put it in a mantle behavior hook under `behaviors/` that follows the APG pattern. Then
+   mantle owns the performance and accessibility contract. A component ships only the code it needs. New
+   work adds no headless library. An engine that renders no UI, such as TanStack Table for `DataTable`, can
+   stay. sonner, mounted unstyled, still renders `Toast`'s list, and it stays until a hook replaces it. Every foundation sits behind the same house API: flat namespace, `asChild`, `data-slot`, consumer
+   `className` merged last.
 3. **One component per user intent.** Name the intent in a sentence. A variant is a prop or a sibling part,
    never a second public component ([§1.1](#11-one-component-per-user-intent)).
 4. **Composition over configuration.** Configuration props handle the common case; `asChild` and children
@@ -95,7 +96,7 @@ accessible, least surprising, fast, delightful, clean, and efficient.
 10. **Performance happens before the browser.** Prefer work that never reaches the client (`CodeBlock`
     highlights at build time). Prefer platform mechanisms over listeners (CSS scroll-driven animations over
     scroll handlers). Avoid unremovable module side effects ([§1.7](#17-forbidden-api-shapes)).
-11. **Safe, ecosystem-normal defaults.** A default is the library exercising judgment for the consumer:
+11. **Safe defaults.** A default is the library exercising judgment for the consumer:
     `Button` defaults `type="button"`; `AlertDialog.Action` deliberately does not dismiss; wrapped handlers run
     the consumer's callback first and bail on `preventDefault()`.
 12. **Docs are executable contracts.** JSDoc and docs examples feed the published types, `llms.txt`, and the
@@ -134,7 +135,7 @@ before adding surface.
 ### 1.2. Ship the smallest public surface
 
 Publishing later is additive and non-breaking; un-shipping after release is breaking forever. Default to
-module-internal and promote on demand.
+module-internal and publish on demand.
 
 | Kind                                        | `package.json` export | Docs page | Nav entry              |
 | ------------------------------------------- | --------------------- | --------- | ---------------------- |
@@ -142,6 +143,22 @@ module-internal and promote on demand.
 | Preview component (unstable API)            | required              | required  | `previewComponents`    |
 | Internal primitive backing other components | forbidden             | forbidden | forbidden              |
 | Layout (page/viewport structure)            | required              | required  | `layoutPages` (§2.4)   |
+
+**Stable or preview.** A public component ships stable. Preview is an exception that someone chooses, and the
+choice needs evidence. Layouts have no preview kind.
+
+- **Proven in production → stable.** The code already runs in a shipped product: it is hoisted out of the
+  ngrok frontend repo or another ngrok app, or extracted from a part of a stable mantle component. `Panel`
+  came out of `AppLayout.SidePanel` and should have started stable. Product use has already tested the API,
+  so preview adds a later rename and changeset for no gain.
+- **New, unproven API → ask the requester.** Say which way you recommend and why. If you cannot ask (for
+  example, another agent sent the task), ship stable, or ship preview only when you can name the part of the
+  API you expect to change.
+- Do not copy the status of the last component that landed. It is evidence about that component only.
+
+The check: the PR that adds a public component states "stable" or "preview" and the evidence. That is the
+production code it came from, the requester's answer, "no requester to ask" for stable, or, for preview, the
+API you expect to change.
 
 Two shapes of internal primitive, with different build consequences:
 
@@ -179,11 +196,11 @@ segments, not substrings**: `MenuItem` and `SidebarMenuButton` both hit `Menu`, 
 A hit is a question, not yet a violation. Before using one (alone as `.Menu`, as a qualifier in `.MenuItem`, or
 inside a composite such as `.SidebarMenuButton`), both must be true:
 
-1. **The role is emitted:** natively (`<tr>`, `<dialog>`, `<table>`), explicitly, or by a wrapped third-party
-   primitive that emits it (Radix `DropdownMenu`/`Tabs`/`Dialog`, Ariakit equivalents).
+1. **The role is emitted:** natively (`<tr>`, `<dialog>`, `<table>`), or explicitly by mantle's own
+   behavior code (`DropdownMenu`, `Tabs`, `Select`).
 2. **The pattern's keyboard contract is implemented:** roving focus / single tab stop, arrow keys, typeahead,
-   `Escape` to dismiss, as the APG pattern requires. A wrapped Radix/Ariakit primitive satisfies this; a
-   hand-rolled `<ul>` with `role="menu"` and no key handling does not.
+   `Escape` to dismiss, as the APG pattern requires. Mantle's own behavior code with a keyboard test satisfies
+   this; a hand-rolled `<ul>` with `role="menu"` and no key handling does not.
 
 Outcomes:
 
@@ -196,7 +213,7 @@ Outcomes:
   the name. Report it; do not pick for the author.
 
 A word may also name a pattern the part only _participates_ in: `Command.DialogTrigger` earns `Dialog` because
-it is Radix's dialog trigger, opening a real `role="dialog"` with focus trap and `Escape` handling. Ask the two
+it opens a native modal `<dialog>`, which makes the page inert and closes on `Escape`. Ask the two
 questions of the pattern being referenced.
 
 **Never resolve a mismatch by adding the role.** Adding `role="menu"` to make a name honest destroys the
@@ -206,7 +223,7 @@ porting from the ecosystem; vocabulary is re-derived from what the component emi
 ### 1.5. Composition vs data-driven
 
 Compose children when every behavior derives from the authored children (`Table`, `List`). Take a data prop
-when collection-level behavior (filtering, select-all, virtualization) must operate over items that may not
+when collection-level behavior (filtering, select-all, counts) must operate over items that may not
 be mounted or even created (`DataTable`'s `data`, `SelectableList`'s `options`). Keep the data a thin
 description (a value, its text, a disabled flag).
 
@@ -231,6 +248,10 @@ function child returns each row part:
 **Never** read collection facts off children via prop-sniffing or `cloneElement` injection. Pass data or
 index-based callbacks. Element sniffing only sees the outermost composed child and fails silently the moment a
 consumer wraps it.
+
+**Do not virtualize a new collection.** A virtualized list hides its rows from find-in-page and from the server
+HTML, and it usually patches a page that shows too much at once. Design for pagination, search, or a filter
+instead. `List` and `SelectableList` keep the virtualization they ship.
 
 ### 1.6. Make invalid states unrepresentable
 
@@ -262,7 +283,7 @@ Two of these are non-obvious enough to justify:
 - **`displayName`.** A top-level `Root.displayName = "Foo.Root"` is a module side effect bundlers (verified
   with Vite 8 / Rolldown) cannot eliminate, so unused components and their transitive dependencies stay pinned
   in consumer bundles: a dialog-only consumer bundle measured **11% smaller** without them (#1346). It is the
-  reflexive habit when porting the Radix compounds [§3.4](#34-compound-namespace) tells you to write. Nothing
+  reflexive habit when porting a compound from another library to the form [§3.4](#34-compound-namespace) asks for. Nothing
   reads it at runtime.
 - **Prop bags.** A `*Props` object prop hides the element it configures, defeats autocomplete-driven
   discovery, and grows without bound. Needing to reach an internal element means the component is a compound
@@ -305,6 +326,53 @@ questions. For a component, ask them before you add a prop, a part, or a recipe:
   recipe, move the behavior into the component and delete it from the recipe.
 - **When you are not sure, ship no prop.** To add a prop later is a `patch`. To remove one is a breaking
   `minor` with a migration guide.
+
+### 1.10. Follow the browser
+
+Match what the native element does unless a named product need says otherwise
+([follow the platform](./docs/principles/follow-the-platform.md)).
+
+- **Only the dialog family is modal by default.** `Dialog`, `AlertDialog`, `Sheet`, and parts built on them
+  make the page inert. A menu, a popover, and a picker leave the page live. `DropdownMenu` takes `modal` as an
+  opt-in.
+- **Dismissal follows the element the part enhances.** A float (`Popover`, `DropdownMenu`) closes when an
+  outside primary press ends, as a native `popover` does. `Select` and `MultiSelect` close on the press, as a
+  native `<select>` does. `Combobox` closes when its input loses focus.
+- **A safer ecosystem default wins, with a reason.** `Button` defaults to `type="button"`, not the native
+  `submit` ([§0](#0-principles) item 11). The JSDoc names the reason for each such default.
+- **A departure cites a primary source.** Name the section of the HTML Standard, the ARIA Authoring Practices
+  Guide (APG), or the Web Content Accessibility Guidelines (WCAG), and claim no more than it says. "Common
+  guidance" is not a source.
+- **A default flip is a contract change.** In the same change, find each test, doc, and JSDoc line that names
+  the old default. Make each one pass the value it depends on, or delete it.
+
+### 1.11. Prop vocabulary
+
+A consumer who knows one mantle component can predict the props of the next. Each kind of state in a new
+or changed API takes one triple of names (lint: `mantle/prop-vocabulary`):
+
+| State                     | Controlled   | Uncontrolled        | Change callback      |
+| ------------------------- | ------------ | ------------------- | -------------------- |
+| The chosen value          | `value`      | `defaultValue`      | `onValueChange`      |
+| A toggle                  | `checked`    | `defaultChecked`    | `onCheckedChange`    |
+| Open or closed            | `open`       | `defaultOpen`       | `onOpenChange`       |
+| Filter text beside a pick | `inputValue` | `defaultInputValue` | `onInputValueChange` |
+
+- A callback gets the new value, not an event. `onChange` stays the DOM event.
+- The value is a `string` for one choice and a `string[]` for several. The component decides which; no
+  `multiple` flag. `Accordion`'s `type` is the exception: one component serves both intents, and the union
+  types the value for each ([§1.6](#16-make-invalid-states-unrepresentable)).
+- A toggle's third state is `"indeterminate"`. ARIA's `"mixed"` appears only on the attribute.
+- `inputValue` is only for a part that holds a selection and text together (`Combobox`, `MultiSelect`). A plain
+  text field uses `value`.
+- No `setX` props. A new kind of state gets its own `x`, `defaultX`, and `onXChange`.
+- A behavior hook takes the same option names as its component.
+- A rename keeps the compound API and ships a codemod ([VERSIONING.md](./VERSIONING.md)).
+
+Some shipped props predate the table: `OtpInput.Root`'s `onChange(value)`, `Select`'s deprecated `onChange`,
+`CodeBlock`'s `activeTab`, `SelectableList`'s `query`, `PasswordInput`'s `showValue`, `Sidebar`'s
+`openMobile`, `Slider`'s numeric `value` with an array `onValueChange`, and `Calendar`'s `mode`, `selected`,
+and `onSelect` (react-day-picker's names). Do not copy them into new work. Rename one only in a breaking change with a codemod.
 
 ---
 
@@ -444,6 +512,8 @@ CONVENTIONS.md covers general style ([TypeScript](./CONVENTIONS.md#typescript),
 - Plain helpers are the one exception. Put a helper with no hooks, context, or browser-only API in a module
   without `"use client"`, so server code and loaders can call it. The build keeps such modules out of client
   chunks, and it fails when a subpath exports a helper from one (`scripts/preserve-use-client.ts`).
+- Use only React APIs that React 19.0 ships, because the peer range is `^19`. Local tests run a newer React and
+  stay green on a 19.2 API such as `useEffectEvent`. (lint: `no-restricted-imports`)
 - Named exports only, no default exports. Relative imports ending in `.js` (`../../utils/cx/cx.js`).
 - `type`, not `interface`. Props based on `ComponentProps<…>`, which already includes `ref`. Never
   `HTMLAttributes<…>` alone, which does not.
@@ -495,8 +565,8 @@ intent, not oversight):
 - **The part takes an element via a prop and clones it** (`Empty.Icon`'s `svg` prop, cloned through
   `SvgOnly`): polymorphism already goes through the prop.
 - **The part wraps a third-party primitive that already exposes `asChild` / `render`:** forward to that
-  escape hatch instead of re-implementing with `Slot`. When the props type is `ComponentProps<typeof Radix.X>`
-  this is automatic and needs no comment.
+  escape hatch instead of re-implementing with `Slot`. When the props type is the primitive's own
+  `ComponentProps<typeof Primitive.X>`, this is automatic and needs no comment.
 
 A part that renders no DOM at all (`BrowserOnly`, `Slot`) was never in scope, so it is not an exception.
 
@@ -564,6 +634,16 @@ Errors are control flow. `console.error` is not error handling.
 - Own the keyboard and ARIA contract the component's name promises ([§1.4](#14-aria-pattern-words-are-earned-not-borrowed)),
   and wire ids through context rather than asking consumers to thread them (`Field`).
 - An icon-only control makes its screen-reader label a **required** prop.
+- **A part that enhances a native element acts like that element in a consumer's test.** It exposes the
+  element's role, name, and state. A consumer finds it with `getByRole` and acts on it with Playwright `click`,
+  `check`, `fill`, or `selectOption`, or with Testing Library `user.*`. That holds in jsdom and in a real
+  browser, with no `force` and no knowledge of mantle's markup. Never document a `force` workaround for a
+  regression; fix the part. A `<component>.consumer.test.tsx` holds this contract
+  ([§8](#8-tests)), and a `force` in a mantle test needs a `// Why force:` comment
+  (lint: `mantle/require-force-reason`).
+- An accessible name comes from the DOM, not from CSS generated content, which jsdom and Testing Library
+  cannot read. A default name or live region yields to any name the consumer set, and every idref points at
+  an element that exists.
 - A virtualized collection announces `aria-posinset` / `aria-setsize` so it still reads as the whole set.
 - Any animation or transition honors reduced motion: `usePrefersReducedMotion` (which returns `true` on the
   server and in the hydration render, so nothing animates before the real preference is known) or a
@@ -573,8 +653,9 @@ Errors are control flow. `console.error` is not error handling.
   exit that mirrors its enter, and motion that a second input can interrupt.
 - At a 320px viewport, the component wraps, truncates, or scrolls in its own box. It never makes the page scroll
   sideways or clips content ([CONVENTIONS.md § Browser code](./CONVENTIONS.md#browser-code)).
-- Interactive state is styled through the custom Tailwind variants that match the DOM the behavior layer
-  actually emits (`data-state-*`, `aria-*`), not through JS-toggled classes.
+- Interactive state is styled through Tailwind's built-in variants on the attributes the behavior layer
+  actually emits (`aria-expanded:`, `data-open:`, `data-[side=top]:`), not through JS-toggled classes.
+  `mantle.css` registers no `data-*` custom variants ([§6](#6-data-attributes-are-api)).
 
 ### 3.7. SSR and first paint
 
@@ -668,12 +749,32 @@ cure. Read the roster there rather than restating it here, because an enumerated
 - A component that a page holds many times (a row, a cell, a card, a chart) costs its page a measured amount.
   Share one listener or one observer between the instances. Do no work at mount for an instance that is off
   screen.
+- **A selector costs each element it can match.** Chromium tries a rule on each element when its last
+  compound has no class, id, attribute, or tag (`*`, `:hover`, `:not(.x)`). Keep a class outside `:is()`, so
+  that Chromium's ancestor test can skip the rule. Never write:
+  - a structural pseudo-class before a combinator (`[&>tr:last-child>*]`);
+  - a sibling combinator before a universal subject (`[&+*]`, `[&>tr+tr>*]`);
+  - a `*:` or `**:` variant. Write `[&>*]:` or `[&_*]:`.
+
+  The lint rules are `mantle/no-structural-combinator` and `mantle/no-unanchored-child-variant`, and
+  `check:css-selectors` checks stylesheets. A kept exception has a reason with its measured numbers.
+
 - A leaf component imports no second component family, and no module has a side effect on import
   ([§1.7](#17-forbidden-api-shapes)).
 - Do not add `useMemo`, `useCallback`, or `memo` for speed. Memoization belongs only where it pays.
   [CONVENTIONS.md § React Compiler](./CONVENTIONS.md#react-compiler) owns where the compiler runs.
 - A claim of speed or size gives the base, the branch, the command, and the browser
   ([explain the number](./docs/principles/explain-the-number.md)). Run the base and the branch in turn.
+- **Measure a new or rewritten interactive part against a native floor.** The floor is the same UI written by
+  hand on platform primitives: `<dialog>` with `showModal()`, a `popover`, native inputs, and one shared
+  listener. Report the gap in gzip bytes and in Interaction to Next Paint (INP) at 4× CPU. When the gap stays
+  large, name what fills it. Merging does not waive the report.
+- **Run one browser benchmark at a time.** Two runs on one machine share its CPU and its memory, and each
+  run skews the other. Rotate the order of the base and the branch in each round, report medians, and compare
+  numbers only within one run. One 8ms Event Timing step is noise unless a trace confirms it.
+- An opt-in API, such as a function child, ships only on a part where a named use case needs it. Measure its
+  gzip bytes on each page shape in `bundle-size.json`, and weigh them against the product and marketing
+  JavaScript budgets.
 - Performance does not win against accessibility. Keep what assistive technology reads, and give the measured
   cost to the author as a decision ([docs/north-star.md](./docs/north-star.md#when-two-goals-pull-apart)).
 
@@ -818,20 +919,30 @@ DARK DEFS) or it resolves to nothing outside light mode. No §9 command catches 
 ## 6. Data attributes are API
 
 - `data-slot` is on every part ([§3.2](#32-data-slot-on-every-part)) and is always targetable.
-- Any other `data-*` a component stamps for styling or coordination (`data-state`, `data-orientation`,
+- Any other `data-*` a component stamps for styling or coordination (`data-open`, `data-orientation`,
   `data-validation`, a per-item id) is documented in the part's JSDoc **and** its API-reference section,
   including the attributes a wrapped third-party primitive emits, since consumers style against those too.
   Both use these columns:
 
-| Data Attribute | Value                  | Description                                          |
-| -------------- | ---------------------- | ---------------------------------------------------- |
-| `data-state`   | `"open"` \| `"closed"` | Reflects the disclosure state; drives the animation. |
-| `data-loading` | present when loading   | Presence-only. Style with `data-loading:`.           |
+| Data Attribute | Value                | Description                                        |
+| -------------- | -------------------- | -------------------------------------------------- |
+| `data-open`    | present while open   | Presence-only. Drives the open and exit animation. |
+| `data-loading` | present when loading | Presence-only. Style with `data-loading:`.         |
 
-- Prefer **presence semantics** for boolean states: stamp `data-selected=""` when true and **omit the
-  attribute** when false. Never `data-selected="false"`: mantle's custom variants are defined as
-  `&[data-selected]`, which matches attribute presence, so `"false"` still matches and the variant fires when
-  it should not. Beware `data-x={someBoolean}`: React renders that as `data-x="false"`.
+- **Native and ARIA state first.** When the element already carries the state (`disabled`, `hidden`,
+  `aria-expanded`, `aria-selected`, `aria-checked`, `aria-disabled`, `aria-current`), stamp no data attribute
+  for it, and style with `disabled:`, `aria-expanded:`, and the like. A trigger has `aria-expanded` and no
+  `data-state`.
+- **A boolean state is presence-only** and takes the name of the ARIA or HTML state it mirrors: `data-open`,
+  `data-expanded`, `data-highlighted`, `data-selected`. Stamp `""` when true and **omit the attribute** when
+  false. Never `"false"`: Tailwind's `data-selected:` matches attribute presence, so `"false"` still matches.
+  Beware `data-x={someBoolean}`: React renders that as `data-x="false"`. Style the false state with
+  `not-data-open:`. (lint: `mantle/data-attribute-contract`)
+- **A value with several options is an enum** on the root: `data-side="top"`, `data-validation="error"`.
+  Style it with the bracket form, `data-[side=top]:`.
+- No library names (`data-radix-*`, `data-active-item`, `data-headlessui-*`) and no `data-*` custom variants
+  in `mantle.css` (`check:css-selectors`). Internal markers that mantle code reads (`data-mantle-*`,
+  `data-value`, `data-closing`) keep their names.
 
 No shipped docs page has a data-attribute table yet. New components ship one; add one to an existing component
 when you are already touching it, starting with the highest-traffic hooks (`data-validation`, Button and
@@ -986,6 +1097,10 @@ Minimums:
   only classes and `data-slot`.)
 - The ARIA and keyboard contract the API promises: roles, `aria-current` / `aria-expanded` / `aria-controls`
   wiring, focus movement, keyboard shortcuts.
+- A part that enhances a native element or an ARIA pattern has a `<component>.consumer.test.tsx`: one test
+  that drives the main use with `getByRole` and `user.*` only, as a consumer's suite does
+  ([§3.6](#36-accessibility-and-motion)). The `consumer` project runs it in plain jsdom with no shims. When it
+  fails on a missing API, guard the call in the part; never add a shim to the project.
 - Reduced motion, if the component animates.
 - Business logic and its edge cases: state machines, parsing/formatting, validation, conditional rendering.
 - Every bug fix adds a regression test that fails before the fix and passes after.
@@ -1153,11 +1268,14 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Answers one user intent no existing component already answers; the primary export's JSDoc names the
       sibling boundary in `@useWhen` and `@siblings` tags.
 - [ ] Nothing is public that could have stayed module-internal.
+- [ ] A PR that adds a public component states stable or preview and the evidence ([§1.2](#12-ship-the-smallest-public-surface)).
 - [ ] Each new prop names the shipped app that needs it; a behavior with one right answer has no prop
       ([§1.9](#19-build-the-behavior-in-before-you-add-a-prop)).
 - [ ] Outermost part is `Root`; every part name is the web-standards term for what it renders.
 - [ ] No unearned ARIA pattern word anywhere in the component or part names.
 - [ ] Props read as the ARIA/DOM they emit; no prop-bag passthrough props.
+- [ ] State props use the vocabulary of [§1.11](#111-prop-vocabulary); defaults follow the browser, and only the
+      dialog family is modal ([§1.10](#110-follow-the-browser)).
 - [ ] No data prop renders: rows, empty state, and footer are parts, and rows from data come from a function child.
 - [ ] Namespace is one level deep: a `<name>-parts.ts` module, aliased in `index.ts` ([§3.4](#34-compound-namespace)).
 - [ ] No `forwardRef`, no `React.FC`, no `displayName` assignment.
@@ -1224,6 +1342,11 @@ Run this against the diff before calling a component done. Each line is a defect
 **Proof**
 
 - [ ] Tests cover render, forwarding, the `asChild` merge triple, ARIA/keyboard, and business-logic edge cases.
+- [ ] A consumer can find and act on each native-enhancing part by role, with no `force`
+      ([§3.6](#36-accessibility-and-motion)).
+- [ ] A rewrite matches the last release in each way a user acts: role, label, and text clicks, the keyboard,
+      text selection, and the screen-reader outline and stops, in Chromium, Firefox, and WebKit. A difference
+      is a regression until the maintainer approves it, and the migration guide then says why.
 - [ ] Every part that wraps children, portals them, or locks `translate="no"` has a `translateTextNodes`
       regression test that drives the update which used to throw.
 - [ ] All five verification commands pass, and `components-surface.json` is regenerated **and committed**.

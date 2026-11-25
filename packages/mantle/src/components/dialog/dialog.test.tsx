@@ -167,8 +167,8 @@ describe("Dialog.Content", () => {
 			expect(screen.queryByRole("dialog")).toBeNull();
 		});
 
-		// Why no `Dialog.Trigger`: Radix returns focus only to its trigger, and a
-		// palette that opens from its own buttons or a shortcut has none.
+		// Why no `Dialog.Trigger`: a palette that opens from its own buttons or a
+		// shortcut has no trigger, and focus must still go back.
 		it("returns focus to the element focused before a trigger-less open", async () => {
 			const user = userEvent.setup();
 			function SearchDialog() {
@@ -231,7 +231,7 @@ describe("Dialog.Content", () => {
 		});
 
 		// Why wait on `onCloseAutoFocus`: the focus return runs in the same call,
-		// after Radix's close timer, so focus is final once the spy has run.
+		// after the close, so focus is final once the spy has run.
 		it("keeps focus where the user moved it when a non-modal dialog closes", async () => {
 			const user = userEvent.setup();
 			const onCloseAutoFocus = vi.fn<(event: Event) => void>();
@@ -319,7 +319,7 @@ describe("Dialog.Content", () => {
 		it("runs a consumer onEscapeKeyDown with an unprevented event and still closes", async () => {
 			const user = userEvent.setup();
 			const onOpenChange = vi.fn<(open: boolean) => void>();
-			// Radix prevents the event itself once it decides to dismiss, so the flag
+			// The dialog prevents the event itself after the handler runs, so the flag
 			// is sampled while the handler runs, not from `mock.lastCall`.
 			const preventedWhenCalled: boolean[] = [];
 			const onEscapeKeyDown = vi.fn<(event: KeyboardEvent) => void>((event) => {
@@ -405,8 +405,8 @@ describe("Dialog.Content", () => {
 		});
 
 		it("keeps a consumer-supplied aria-describedby", async () => {
-			// Content spreads its props after the Radix value, so a consumer id must
-			// survive the spread instead of being replaced by `undefined`.
+			// `Description` names itself only when the `<dialog>` has no
+			// `aria-describedby`, so a consumer id stays.
 			render(
 				<Dialog.Root defaultOpen>
 					<Dialog.Content aria-describedby="external-help">
@@ -500,7 +500,7 @@ describe("Dialog.Content", () => {
 });
 
 describe("Dialog.Trigger", () => {
-	it("renders nothing for an empty asChild trigger of a dialog that opens from state, as with Radix", () => {
+	it("renders nothing for an empty asChild trigger of a dialog that opens from state", () => {
 		render(
 			<Dialog.Root open>
 				<Dialog.Trigger asChild>{undefined}</Dialog.Trigger>
@@ -513,6 +513,25 @@ describe("Dialog.Trigger", () => {
 		expect(
 			document.querySelector('[data-slot~="dialog-trigger"],[aria-haspopup="dialog"]'),
 		).toBeNull();
+	});
+});
+
+describe("a DOM with no dialog methods, such as jsdom", () => {
+	it("opens and closes from a click", async () => {
+		const proto = HTMLDialogElement.prototype;
+		const methods = Object.getOwnPropertyDescriptors(proto);
+		for (const name of ["close", "show", "showModal"] as const) {
+			// Why: jsdom's HTMLDialogElement has none of these.
+			Reflect.deleteProperty(proto, name);
+		}
+		try {
+			const { user } = await open();
+			expect(screen.getByRole("dialog", { name: "Request log" })).toBeInTheDocument();
+			await user.click(screen.getByRole("button", { name: "Close Dialog" }));
+			await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		} finally {
+			Object.defineProperties(proto, methods);
+		}
 	});
 });
 
@@ -540,8 +559,8 @@ describe("isDialogOverlayTarget", () => {
 /**
  * A nested popup owner inside a dialog, like a combobox or an input-attached
  * popover: an `aria-expanded` + `aria-controls` trigger paired with the popup it
- * controls. `popupAttributes` stands in for the open-state attribute each
- * library stamps on its popup, Ariakit `data-open` or Radix `data-state`.
+ * controls. `popupAttributes` stands in for the `data-open` a mantle popup
+ * stamps while open.
  */
 function NestedPopupDialog({
 	controlsId = "nested-popup",
@@ -574,42 +593,31 @@ describe("Escape with a nested popup open", () => {
 	// The real integrations run in `multi-select.browser.test.tsx`. These pin each
 	// conjunct of the guard with a synthetic popup, so a dropped check turns red
 	// without Chromium.
-	const openPopups: Array<{ library: string; popupAttributes: Record<string, string> }> = [
-		{ library: "ariakit", popupAttributes: { "data-open": "true" } },
-		{ library: "radix", popupAttributes: { "data-state": "open" } },
-	];
-	it.each(openPopups)(
-		"stays open while an expanded owner controls an open $library popup",
-		async ({ popupAttributes }) => {
-			const user = userEvent.setup();
-			const onOpenChange = vi.fn<(open: boolean) => void>();
-			render(<NestedPopupDialog onOpenChange={onOpenChange} popupAttributes={popupAttributes} />);
-			await screen.findByRole("dialog");
-			screen.getByRole("button", { name: "Region" }).focus();
+	it("stays open while an expanded owner controls an open popup", async () => {
+		const user = userEvent.setup();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(<NestedPopupDialog onOpenChange={onOpenChange} popupAttributes={{ "data-open": "" }} />);
+		await screen.findByRole("dialog");
+		screen.getByRole("button", { name: "Region" }).focus();
 
-			await user.keyboard("{Escape}");
+		await user.keyboard("{Escape}");
 
-			expect(onOpenChange).toHaveBeenCalledTimes(0);
-			expect(screen.getByRole("dialog")).toBeInTheDocument();
-		},
-	);
+		expect(onOpenChange).toHaveBeenCalledTimes(0);
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+	});
 
 	const closingCases: Array<{ reason: string; props: ComponentProps<typeof NestedPopupDialog> }> = [
 		{
 			reason: "the owner is collapsed",
-			props: { expanded: false, popupAttributes: { "data-state": "open" } },
+			props: { expanded: false, popupAttributes: { "data-open": "" } },
 		},
 		{
-			reason: "the popup carries no open-state attribute",
+			reason: "the popup carries no data-open",
 			props: {},
 		},
 		{
-			reason: "the popup is closed",
-			props: { popupAttributes: { "data-state": "closed", "data-open": "false" } },
-		},
-		{
 			reason: "aria-controls resolves to nothing",
-			props: { controlsId: "does-not-exist", popupAttributes: { "data-state": "open" } },
+			props: { controlsId: "does-not-exist", popupAttributes: { "data-open": "" } },
 		},
 	];
 	it.each(closingCases)("closes when $reason", async ({ props }) => {
@@ -629,9 +637,7 @@ describe("Escape with a nested popup open", () => {
 	it("closes when focus is outside the expanded owner", async () => {
 		const user = userEvent.setup();
 		const onOpenChange = vi.fn<(open: boolean) => void>();
-		render(
-			<NestedPopupDialog onOpenChange={onOpenChange} popupAttributes={{ "data-open": "true" }} />,
-		);
+		render(<NestedPopupDialog onOpenChange={onOpenChange} popupAttributes={{ "data-open": "" }} />);
 		const content = await screen.findByRole("dialog");
 		content.focus();
 
@@ -648,10 +654,7 @@ describe("Escape with a nested popup open", () => {
 			preventedWhenCalled.push(event.defaultPrevented);
 		});
 		render(
-			<NestedPopupDialog
-				onEscapeKeyDown={onEscapeKeyDown}
-				popupAttributes={{ "data-state": "open" }}
-			/>,
+			<NestedPopupDialog onEscapeKeyDown={onEscapeKeyDown} popupAttributes={{ "data-open": "" }} />,
 		);
 		await screen.findByRole("dialog");
 		screen.getByRole("button", { name: "Region" }).focus();
@@ -684,7 +687,7 @@ describe("Escape with a nested popup open", () => {
 						>
 							Region
 						</button>
-						{expanded && <div data-state="open" id="nested-popup" role="listbox" />}
+						{expanded && <div data-open="" id="nested-popup" role="listbox" />}
 					</Dialog.Content>
 				</Dialog.Root>
 			);
@@ -722,7 +725,7 @@ function PromptViewport() {
 
 describe("outside interaction with a floating prompt", () => {
 	// `preventCloseOnPromptInteraction` has its own unit tests. These pin that
-	// `Dialog.Content` wires it into both Radix outside-interaction handlers.
+	// `Dialog.Content` applies it to the event of a press outside the dialog.
 	it("stays open on a click inside an .overlay-prompt", async () => {
 		const user = userEvent.setup();
 		const onOpenChange = vi.fn<(open: boolean) => void>();

@@ -11,6 +11,7 @@ import {
 	useTabs,
 } from "../../behaviors/use-tabs.js";
 import type { ActivationMode, Orientation, TabsBehavior } from "../../behaviors/use-tabs.js";
+import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import type { ScrollBehavior } from "../../hooks/use-scroll-behavior.js";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -48,7 +49,7 @@ type RootProps = Omit<ComponentProps<"div">, "defaultValue" | "dir"> &
 		value?: string;
 		/** Called with the tab's value when a tab activates. Fires once per activation. */
 		// Why the method type: its parameter is bivariant, so a handler typed with
-		// a union of tab values still type-checks, as it did with Radix.
+		// a union of tab values still type-checks.
 		onValueChange?: { bivarianceHack(value: string): void }["bivarianceHack"];
 		/**
 		 * The axis of the list. It decides which arrow keys move focus.
@@ -89,10 +90,10 @@ type RootProps = Omit<ComponentProps<"div">, "defaultValue" | "dir"> &
  * ```tsx
  * <HeadlessTabs.Root defaultValue="api" className="flex flex-col gap-6">
  *   <HeadlessTabs.List aria-label="Use cases" className="grid grid-cols-2">
- *     <HeadlessTabs.Trigger value="api" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="api" className="p-6 aria-selected:bg-card-hover">
  *       API gateway
  *     </HeadlessTabs.Trigger>
- *     <HeadlessTabs.Trigger value="webhooks" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="webhooks" className="p-6 aria-selected:bg-card-hover">
  *       Webhooks
  *     </HeadlessTabs.Trigger>
  *   </HeadlessTabs.List>
@@ -156,7 +157,10 @@ const scrollFocusedTab = (event: FocusEvent<HTMLElement>) => {
 	if (
 		focusFromPointer ||
 		event.target === list ||
-		list.getAttribute("aria-orientation") !== "horizontal"
+		list.getAttribute("aria-orientation") !== "horizontal" ||
+		// Why: jsdom has no `scrollIntoView` and no `matchMedia`. A consumer test
+		// must still move focus.
+		!event.target.scrollIntoView
 	) {
 		return;
 	}
@@ -202,10 +206,10 @@ type ListProps = ComponentProps<"div"> &
  * ```tsx
  * <HeadlessTabs.Root defaultValue="api" className="flex flex-col gap-6">
  *   <HeadlessTabs.List aria-label="Use cases" className="grid grid-cols-2">
- *     <HeadlessTabs.Trigger value="api" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="api" className="p-6 aria-selected:bg-card-hover">
  *       API gateway
  *     </HeadlessTabs.Trigger>
- *     <HeadlessTabs.Trigger value="webhooks" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="webhooks" className="p-6 aria-selected:bg-card-hover">
  *       Webhooks
  *     </HeadlessTabs.Trigger>
  *   </HeadlessTabs.List>
@@ -255,19 +259,17 @@ type TriggerProps = ComponentProps<"button"> &
 /**
  * The unstyled `role="tab"` button that activates its content. Its only
  * class is mantle's focus ring for keyboard focus: a pointer press focuses the
- * trigger without the ring. Style the states with `data-state-active:` and
- * `data-state-inactive:`. An `asChild` link activates on click, so a press
+ * trigger without the ring. Style the states with `aria-selected:` and
+ * `not-aria-selected:`. An `asChild` link activates on click, so a press
  * released off the link switches no tab. A disabled `asChild` link renders as
  * a `<button>`, so it does not navigate.
  *
  * **Data attributes:**
  *
- * | Data Attribute     | Value                          | Description                           |
- * | ------------------ | ------------------------------ | ------------------------------------- |
- * | `data-slot`        | `"tabs-trigger"`               | On the trigger element.               |
- * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.               |
- * | `data-state`       | `"active"` \| `"inactive"`     | Whether the trigger's panel is shown. |
- * | `data-disabled`    | present when `disabled`        | Presence-only.                        |
+ * | Data Attribute  | Value                  | Description                                                     |
+ * | --------------- | ---------------------- | --------------------------------------------------------------- |
+ * | `data-slot`     | `"tabs-trigger"`       | On the trigger element.                                         |
+ * | `aria-selected` | `"true"` \| `"false"`  | Whether the trigger's panel is shown. Style it with `aria-selected:`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#headlesstabstrigger
  *
@@ -275,10 +277,10 @@ type TriggerProps = ComponentProps<"button"> &
  * ```tsx
  * <HeadlessTabs.Root defaultValue="api" className="flex flex-col gap-6">
  *   <HeadlessTabs.List aria-label="Use cases" className="grid grid-cols-2">
- *     <HeadlessTabs.Trigger value="api" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="api" className="p-6 aria-selected:bg-card-hover">
  *       API gateway
  *     </HeadlessTabs.Trigger>
- *     <HeadlessTabs.Trigger value="webhooks" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="webhooks" className="p-6 aria-selected:bg-card-hover">
  *       Webhooks
  *     </HeadlessTabs.Trigger>
  *   </HeadlessTabs.List>
@@ -353,14 +355,15 @@ type ContentProps = ComponentProps<"div"> &
 		/** The value of the trigger that shows this panel. */
 		value: string;
 		/**
-		 * Keeps the panel mounted while its tab is inactive. Hide an inactive
-		 * panel yourself, such as with `data-[state=inactive]:hidden`.
+		 * Keeps the panel mounted while its tab is inactive. An inactive panel
+		 * gets the `hidden` attribute.
 		 */
 		forceMount?: true;
 		/**
 		 * Keeps the panel mounted while its tab is inactive, as
 		 * `hidden="until-found"`. Find-in-page and a fragment link reveal the
-		 * text and activate the tab. Implies `forceMount`. Do not hide the panel
+		 * text and activate the tab. After hydration, the inactive panel is
+		 * `aria-hidden`. Implies `forceMount`. Do not hide the panel
 		 * with a `display: none` class: it blocks the search.
 		 * @default false
 		 */
@@ -376,11 +379,10 @@ type ContentProps = ComponentProps<"div"> &
  *
  * **Data attributes:**
  *
- * | Data Attribute     | Value                          | Description                 |
- * | ------------------ | ------------------------------ | --------------------------- |
- * | `data-slot`        | `"tabs-content"`               | On the panel element.       |
- * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.     |
- * | `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. |
+ * | Data Attribute | Value                  | Description                                                           |
+ * | -------------- | ---------------------- | --------------------------------------------------------------------- |
+ * | `data-slot`    | `"tabs-content"`       | On the panel element.                                                 |
+ * | `hidden`       | present while inactive | The browser hides the panel. `"until-found"` with `hiddenUntilFound`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#headlesstabscontent
  *
@@ -388,10 +390,10 @@ type ContentProps = ComponentProps<"div"> &
  * ```tsx
  * <HeadlessTabs.Root defaultValue="api" className="flex flex-col gap-6">
  *   <HeadlessTabs.List aria-label="Use cases" className="grid grid-cols-2">
- *     <HeadlessTabs.Trigger value="api" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="api" className="p-6 aria-selected:bg-card-hover">
  *       API gateway
  *     </HeadlessTabs.Trigger>
- *     <HeadlessTabs.Trigger value="webhooks" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="webhooks" className="p-6 aria-selected:bg-card-hover">
  *       Webhooks
  *     </HeadlessTabs.Trigger>
  *   </HeadlessTabs.List>
@@ -416,6 +418,7 @@ const Content = ({
 		value,
 		forceMount,
 		hiddenUntilFound,
+		hydrated: useIsHydrated(),
 	});
 	const composedRef = useComposedRefs(ref, revealRef);
 	// Why: an `asChild` panel has no element of its own to leave empty.

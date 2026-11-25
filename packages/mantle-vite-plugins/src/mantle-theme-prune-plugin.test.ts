@@ -190,8 +190,12 @@ describe("mantleThemePrunePlugin build", () => {
 	test("keeps every other theme declaration, with the same value, and ships less CSS", () => {
 		const notAStop = (property: string) => !/^--color-[a-z]+-\d+$/.test(property);
 
+		const themeBytes = (css: string) => [...themeDeclarations(css, () => true)].join("\n").length;
+
 		expect(themeDeclarations(pruned, notAStop)).toEqual(themeDeclarations(full, notAStop));
-		expect(pruned.length).toBeLessThan(full.length * 0.85);
+		// Why the theme rules and not the whole sheet: a component rule added to `mantle.css` changes the whole sheet but not what the plugin prunes.
+		expect(themeBytes(pruned)).toBeLessThan(themeBytes(full) * 0.85);
+		expect(pruned.length).toBeLessThan(full.length);
 		expect(pruned).not.toContain("mantle-theme-prune");
 	});
 

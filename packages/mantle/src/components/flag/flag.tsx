@@ -1,4 +1,3 @@
-import { cva } from "class-variance-authority";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -29,25 +28,17 @@ type Props = Omit<ComponentProps<"div">, "children"> & {
 	loading?: ComponentProps<"img">["loading"];
 } & WithDataSlot;
 
-const borderRadiusVariants = cva("", {
-	variants: {
-		size: {
-			s: "rounded-[0.0625rem]",
-			m: "rounded-[0.09375rem]",
-			l: "rounded-xs",
-		} as const satisfies Record<Size, string>,
-	},
-});
+const borderRadiusClasses = {
+	s: "rounded-[0.0625rem]",
+	m: "rounded-[0.09375rem]",
+	l: "rounded-xs",
+} as const satisfies Record<Size, string>;
 
-const sizingVariants = cva("", {
-	variants: {
-		size: {
-			s: "w-4 h-3",
-			m: "w-5 h-3.75",
-			l: "w-8 h-6",
-		} as const satisfies Record<Size, string>,
-	},
-});
+const sizingClasses = {
+	s: "w-4 h-3",
+	m: "w-5 h-3.75",
+	l: "w-8 h-6",
+} as const satisfies Record<Size, string>;
 
 /**
  * Renders a country flag from an [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
@@ -104,8 +95,8 @@ function Flag({
 	loading = "lazy",
 	...props
 }: Props) {
-	const borderRadius = borderRadiusVariants({ size });
-	const sizing = sizingVariants({ size });
+	const borderRadius = borderRadiusClasses[size];
+	const sizing = sizingClasses[size];
 
 	return (
 		<div

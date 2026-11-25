@@ -95,9 +95,7 @@ function resolveValue(value: ValueType | undefined, max: number): ValueType {
  * | Data Attribute | Value               | Description                 |
  * | -------------- | ------------------- | --------------------------- |
  * | `data-slot`    | `"progress-donut"`  | The root `<svg>`.           |
- * | `data-value`   | the current value   | Absent while indeterminate. |
- * | `data-min`     | `0`                 |                             |
- * | `data-max`     | the maximum         |                             |
+ * | `data-indeterminate` | present while indeterminate | Presence-only. |
  *
  * @see https://mantle.ngrok.com/components/feedback/progress-donut#progressdonutroot
  *
@@ -162,9 +160,7 @@ const Root = ({
 					],
 					className,
 				)}
-				data-max={max}
-				data-min={0}
-				data-value={valueNow}
+				data-indeterminate={valueNow == null ? "" : undefined}
 				height="100%"
 				role="progressbar"
 				width="100%"

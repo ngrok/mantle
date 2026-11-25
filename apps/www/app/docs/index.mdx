@@ -23,10 +23,10 @@ the platform.
 To learn more about the design principles and architectural decisions that guide Mantle, see the
 [Philosophy](/philosophy) page.
 
-All of Mantle's components are styled using [Tailwind](https://tailwindcss.com). and we compose
-around [Radix](https://www.radix-ui.com) for some unstyled primitives.
-
-Mantle is moving these patterns onto its own behavior hooks. `Slot`, `Switch`, `ProgressBar`, `RadioGroup`, `SegmentedControl`, `Select`, `Combobox`, and `MultiSelect` already use no third-party primitive.
+Mantle styles every component with [Tailwind](https://tailwindcss.com). Each one starts from
+native HTML, such as `<dialog>`, the popover API, and form controls. Where the platform has no
+element for a pattern, such as a listbox, tabs, or a command palette, Mantle's own behavior hooks
+supply the keyboard, focus, and ARIA wiring.
 
 Mantle uses [Phosphor Icons](https://phosphoricons.com/) as the primary icon library, a versatile
 and consistent set of icons. In addition, custom-designed icons tailored to ngrok's

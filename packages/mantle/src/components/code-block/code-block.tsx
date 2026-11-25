@@ -1,13 +1,13 @@
 "use client";
 
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { CheckIcon } from "@phosphor-icons/react/Check";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { FileTextIcon } from "@phosphor-icons/react/FileText";
 import { TerminalIcon } from "@phosphor-icons/react/Terminal";
 import type { ComponentProps, Dispatch, ReactNode, SetStateAction } from "react";
 import {
 	createContext,
+	Fragment,
+	memo,
 	useCallback,
 	useContext,
 	useEffect,
@@ -29,21 +29,22 @@ import type { TabsBehavior } from "../../behaviors/use-tabs.js";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
-import { alternateAnnouncement } from "../../utils/alternate-announcement.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
+import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { announce, mountSharedStatus } from "../../utils/shared-status.js";
 import { Icon as MantleIcon } from "../icon/icon.js";
-import { IconSwap } from "../icon/icon-swap.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { TrafficPolicyFileIcon } from "../icons/traffic-policy-file.js";
 import { IconButton } from "../button/icon-button.js";
-import { LiveRegion } from "../live-region/live-region.js";
 import { Slot } from "../slot/index.js";
 import { escapeHtml } from "./escape-html.js";
+import { tokenClassForColor } from "./token-classes.js";
 import { attachFoldHandler, resetFoldState } from "./fold-runtime.js";
 import type { Mode } from "./resolve-pre-rendered-props.js";
+import type { CodeLine, CodeToken } from "./line-tokenizer.js";
 import type { MantleCodeBlockValue } from "./mantle-code.js";
 
 type CodeBlockContextType = {
@@ -195,7 +196,7 @@ const Root = ({
 			data-slot={joinDataSlot(dataSlot, "code-block")}
 			data-orientation={hasTabs ? "horizontal" : undefined}
 			className={cx(
-				"text-mono w-full overflow-hidden rounded-md border border-gray-300 bg-base font-mono",
+				"text-mono w-full overflow-hidden rounded-xl border border-gray-300 bg-base font-mono",
 				"[&_svg]:shrink-0",
 				className,
 			)}
@@ -377,31 +378,103 @@ type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children" | "translate"> 
 };
 
 /**
- * The `CodeBlock` content. Renders pre-highlighted code from `mantleCode()`.
+ * One highlighted token: plain text in the inherited foreground color, a
+ * `<span>` with a short token class from `mantle.css`, or a `<span>` with an
+ * inline style for a color with no class or a font style.
+ */
+function TokenView({ token }: { token: CodeToken }) {
+	const fontStyle = token.fontStyle ?? 0;
+	const tokenClass = token.color == null ? "" : tokenClassForColor(token.color);
+	if (tokenClass === "" && fontStyle === 0) {
+		return token.content;
+	}
+	const className = tokenClass === "" ? undefined : tokenClass;
+	return (
+		<span
+			className={className}
+			style={
+				tokenClass == null || fontStyle !== 0
+					? {
+							color: tokenClass == null ? token.color : undefined,
+							fontStyle: fontStyle & 1 ? "italic" : undefined,
+							fontWeight: fontStyle & 2 ? "bold" : undefined,
+							textDecoration:
+								fontStyle & 12
+									? clsx(fontStyle & 4 && "underline", fontStyle & 8 && "line-through")
+									: undefined,
+						}
+					: undefined
+			}
+		>
+			{token.content}
+		</span>
+	);
+}
+
+/**
+ * One line of browser-highlighted code, with the same markup as a line of
+ * pre-rendered HTML, so the two share one stylesheet and one geometry.
+ * Why `memo`: a streamed block renders again for each update, and a finished
+ * line keeps its tokens, so it skips the render.
+ */
+const CodeLineView = memo(function CodeLineView({
+	line,
+	lineNumber,
+}: {
+	line: CodeLine | string;
+	lineNumber: number;
+}) {
+	// Why a space: an empty line keeps its height, and each browser copies it as a blank line (see `decorateHighlightedHtml`).
+	let content: ReactNode;
+	if (line.length === 0) {
+		content = " ";
+	} else if (typeof line === "string") {
+		content = line;
+	} else {
+		content = line.map((token, index) => (
+			// oxlint-disable-next-line react/no-array-index-key -- Why: a token has no identity but its position in a line that renders as a whole.
+			<TokenView key={index} token={token} />
+		));
+	}
+	// Why no number element: `mantle.css` counts the lines and draws each
+	// number, so the digits stay out of the code's text.
+	return (
+		<span className="mantle-code-line" data-line-number={lineNumber}>
+			<span className="mantle-code-line-content">{content}</span>
+		</span>
+	);
+});
+
+/**
+ * The `CodeBlock` content. Renders pre-highlighted code from `mantleCode()`,
+ * or browser-highlighted code from `useCodeBlockStream()`.
  *
- * Mantle's Vite plugin or server highlighter must set `value["~preHtml"]`.
- * Runtime highlighting and runtime line decoration are intentionally unsupported.
+ * Mantle's Vite plugin or server highlighter sets `value["~preHtml"]`.
+ * `useCodeBlockStream` sets `value["~lines"]` instead: each line then renders
+ * as React elements with the same markup, and a line that did not change
+ * does not render again. Code folding needs pre-rendered HTML.
  *
  * The `<pre>` always carries `translate="no"`, so a browser translation engine
  * skips the code. A translated CLI flag, env var, or YAML key is wrong, and the
  * reader copies it anyway. The `translate` prop is omitted from the type, so no
  * call site can turn the guard off.
  *
- * Line numbers render `aria-hidden`, so a screen reader hears the code, not
- * "1 const x".
+ * CSS draws line numbers with empty alternative text, so a screen reader hears
+ * the code, not "1 const x", and a copy holds no numbers.
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-state` | `"collapsed"` \| `"expanded"` | Present when a `CodeBlock.ExpanderButton` is composed. Drives the collapsed max height. |
- * | `data-highlighted` | `"true"` \| `"false"` | Whether the value carried pre-rendered Shiki HTML. |
+ * | `data-expanded` | present when expanded | Presence-only. Only with a composed `CodeBlock.ExpanderButton`, which carries `aria-expanded`. |
+ * | `data-syntax-highlighted` | present when highlighted | Presence-only. The value carried pre-rendered Shiki HTML. |
  * | `data-lang` | the language id | The value's language. |
  * | `data-mantle-line-numbers` | `"true"` \| `"false"` | Whether the gutter shows line numbers. |
  * | `data-mantle-line-number-start` | a number as a string | The first line number. |
  * | `data-mantle-highlight-lines` | comma-separated line numbers | Present when lines are highlighted. |
  *
- * Inside the highlighted HTML, `data-slot="line-number"`, `"fold-toggle"`, and
- * `"fold-ellipsis"` mark the gutter number, the fold button, and the folded
- * marker.
+ * Inside the highlighted HTML, each line is a `.mantle-code-line` with
+ * `data-line-number`, and `mantle.css` draws the gutter number, the fold caret,
+ * and the folded marker. A token has a short color class, such as `tk` for a
+ * keyword, or no element in the foreground color.
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
@@ -438,6 +511,7 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 		"~highlightLines": __highlightLines,
 		"~lineNumberStart": __lineNumberStart,
 		"~preHtml": __preHtml,
+		"~lines": lines,
 		"~showLineNumbers": __showLineNumbers,
 	} = value;
 
@@ -466,14 +540,15 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 		};
 	}, [registerCode, unregisterCode]);
 
+	const hasLines = lines != null;
 	const renderedHtml = useMemo(() => {
-		if (__preHtml == null) {
+		if (__preHtml == null || hasLines) {
 			return undefined;
 		}
 		return __preVals != null && __preVals.length > 0
 			? substitutePreVals(__preHtml, __preVals, __preValToken)
 			: __preHtml;
-	}, [__preHtml, __preValToken, __preVals]);
+	}, [__preHtml, __preValToken, __preVals, hasLines]);
 
 	// Attach a single delegated click handler per <pre> so fold toggles do
 	// not pay the cost of N React re-renders or N event handlers (see the
@@ -492,14 +567,13 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 		return attachFoldHandler(pre);
 	}, [renderedHtml]);
 
-	const isPreRendered = renderedHtml != null;
+	const isPreRendered = renderedHtml != null || hasLines;
 	const displayHtml = renderedHtml ?? escapeHtml(copyText);
 
 	// React diffs `dangerouslySetInnerHTML` by prop reference; a fresh
 	// `{ __html }` literal each render re-applies `innerHTML`, wiping any
 	// runtime-managed DOM state on the children (e.g. fold attributes).
 	const innerHtmlProp = useMemo(() => ({ __html: displayHtml }), [displayHtml]);
-	const expanderState = isCodeExpanded ? "expanded" : "collapsed";
 	// Why omit `MozTabSize`: Firefox reads `-moz-tab-size` as an alias of
 	// `tab-size`. React writes a number as `2px`, and on a client mount it writes
 	// an `undefined` value as `""`, which clears `tab-size` too.
@@ -508,19 +582,19 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	return (
 		<pre
 			data-slot="code-block-code"
-			// Why data-state and not aria-expanded: `aria-expanded` is not a global
+			// Why data-expanded and not aria-expanded: `aria-expanded` is not a global
 			// attribute and `<pre>` has no role that supports it. The expander
-			// button owns the ARIA state; this attribute only drives the styling.
-			data-state={hasCodeExpander ? expanderState : undefined}
+			// button owns the ARIA state; this attribute mirrors it for styling.
+			data-expanded={hasCodeExpander && isCodeExpanded ? "" : undefined}
 			className={cx(
 				"scrollbar overflow-x-auto overscroll-x-none overflow-y-hidden py-4",
 				!isPreRendered && "pr-14",
 				"data-[mantle-line-numbers~='false']:pl-4",
 				"text-mono m-0 font-mono outline-hidden",
-				"data-[state=collapsed]:max-h-[13.6rem]",
+				hasCodeExpander && !isCodeExpanded && "max-h-[13.6rem]",
 				className,
 			)}
-			data-highlighted={isPreRendered ? "true" : "false"}
+			data-syntax-highlighted={isPreRendered ? "" : undefined}
 			data-lang={language}
 			data-mantle-highlight-lines={
 				isPreRendered && effectiveHighlightLines != null && effectiveHighlightLines.length > 0
@@ -545,10 +619,23 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 			// past the type, and translated code is wrong at every call site.
 			translate="no"
 		>
-			<code
-				className="text-size-inherit block min-w-full w-max"
-				dangerouslySetInnerHTML={innerHtmlProp}
-			/>
+			{lines == null ? (
+				<code
+					className="text-size-inherit block min-w-full w-max"
+					dangerouslySetInnerHTML={innerHtmlProp}
+				/>
+			) : (
+				<code className="text-size-inherit block min-w-full w-max">
+					{lines.map((line, index) => (
+						// oxlint-disable-next-line react/no-array-index-key -- Why: a line has no identity but its position, and an appended line must not remount the lines above it.
+						<Fragment key={index}>
+							{/* Why a newline: `textContent` keeps the line breaks, the same as pre-rendered HTML. */}
+							{index > 0 && "\n"}
+							<CodeLineView line={line} lineNumber={effectiveLineNumberStart + index} />
+						</Fragment>
+					))}
+				</code>
+			)}
 		</pre>
 	);
 };
@@ -641,6 +728,10 @@ const Title = ({
 	);
 };
 
+/** The motion of the copy and check paths of `CopyButton` as they swap. */
+const COPY_PATH_CLASS =
+	"origin-center transform-fill motion-safe:transition-[opacity,scale] motion-safe:duration-200 motion-safe:ease-out-strong";
+
 type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "aria-label" | "children" | "type"> &
 	SelfClosingWithAsChild & {
 		/**
@@ -699,12 +790,8 @@ const CopyButton = ({
 }: CodeBlockCopyButtonProps) => {
 	const { copyTextRef } = useCodeBlockContext();
 	const copyToClipboard = useCopyToClipboard();
-	// Why one state: the check icon shows exactly while the region reads "Copied".
-	// `alternateAnnouncement` makes a repeat inside the reset window a real DOM
-	// change, so a second copy is announced again.
-	const [announcement, setAnnouncement] = useState("");
-	const wasCopied = announcement !== "";
-	const announceToggle = useRef(false);
+	const [wasCopied, setWasCopied] = useState(false);
+	const composedRef = useComposedRefs(ref, mountSharedStatus);
 	const timeoutHandle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
 	useEffect(() => {
@@ -720,25 +807,36 @@ const CopyButton = ({
 			data-slot="code-block-copy-button"
 			className="absolute right-3 top-3 z-10 inline-flex size-7 items-center justify-center rounded-(--icon-button-border-radius,0.375rem) bg-base"
 		>
-			{/* Why always mounted: the icon swap is silent to a screen reader. A
-			    lone text child is written with textContent, which is safe under a
-			    browser translation engine, and a fresh live region is not
-			    announced on mount. */}
-			<LiveRegion>{announcement}</LiveRegion>
 			<IconButton
 				type="button"
 				appearance="ghost"
 				intent="neutral"
 				size="sm"
 				label={label}
+				// Why one svg with both paths, and not `IconSwap`: CSS swaps the paths on
+				// `data-copied`, so a copy button renders 3 components fewer. Why a named
+				// group: an ancestor with its own `data-copied` must not swap them.
 				icon={
-					<IconSwap
-						active={wasCopied ? "check" : "copy"}
-						icons={{ check: <CheckIcon />, copy: <CopyIcon /> }}
-					/>
+					<svg viewBox="0 0 256 256" fill="currentColor">
+						<path
+							className={clsx(
+								COPY_PATH_CLASS,
+								"group-data-copied/copy:scale-50 group-data-copied/copy:opacity-0",
+							)}
+							d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"
+						/>
+						<path
+							className={clsx(
+								COPY_PATH_CLASS,
+								"not-group-data-copied/copy:scale-50 not-group-data-copied/copy:opacity-0",
+							)}
+							d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"
+						/>
+					</svg>
 				}
-				className={cx("bg-base not-disabled:hover:bg-neutral-500/15", className)}
-				ref={ref}
+				data-copied={wasCopied ? "" : undefined}
+				className={cx("group/copy bg-base not-disabled:hover:bg-neutral-500/15", className)}
+				ref={composedRef}
 				onClick={async (event) => {
 					// Why if-guards: the React Compiler cannot lower `?.()` inside a `try`
 					// body, and the bail-out ships `CopyButton` uncompiled.
@@ -747,22 +845,29 @@ const CopyButton = ({
 							onClick(event);
 						}
 						if (event.defaultPrevented) {
+							// Why reset: the cleared timeout no longer returns the copy icon.
 							if (timeoutHandle.current != null) {
 								clearTimeout(timeoutHandle.current);
 							}
+							setWasCopied(false);
 							return;
 						}
+						// Why read it before the await: React clears `currentTarget` after the handler returns.
+						const button = event.currentTarget;
 						const text = copyTextRef.current;
 						await copyToClipboard(text);
 						if (onCopy != null) {
 							onCopy(text);
 						}
-						setAnnouncement(alternateAnnouncement("Copied", announceToggle));
+						// Why one shared region: the icon swap is silent to a screen reader,
+						// and an answer with many code blocks must not hold a region for each.
+						announce(button, "Copied", { repeat: true });
+						setWasCopied(true);
 						if (timeoutHandle.current != null) {
 							clearTimeout(timeoutHandle.current);
 						}
 						timeoutHandle.current = setTimeout(() => {
-							setAnnouncement("");
+							setWasCopied(false);
 						}, 2000);
 					} catch (error) {
 						onCopyError?.(error);
@@ -814,7 +919,7 @@ const ExpanderButton = ({
 }: CodeBlockExpanderButtonProps) => {
 	const { codeId, isCodeExpanded, setIsCodeExpanded, setHasCodeExpander } = useCodeBlockContext();
 
-	// Why a layout effect: `Code` stamps `data-state="collapsed"` from this flag,
+	// Why a layout effect: `Code` collapses to its max height from this flag,
 	// and a passive registration paints one frame at full height first.
 	useIsomorphicLayoutEffect(() => {
 		setHasCodeExpander(true);
@@ -1048,7 +1153,7 @@ const TabTrigger = ({
 				"shrink-0 cursor-pointer rounded px-1.5 py-0.5 font-sans text-xs font-medium whitespace-nowrap",
 				"text-gray-600 outline-hidden",
 				"hover:text-gray-900",
-				"data-[state=active]:bg-neutral-500/15 data-[state=active]:text-strong",
+				"aria-selected:bg-neutral-500/15 aria-selected:text-strong",
 				"focus-visible:focus-ring",
 				className,
 			)}

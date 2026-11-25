@@ -3,7 +3,7 @@ import { createRef, Profiler, type ReactNode, StrictMode, useEffect, useState } 
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, onTestFinished, test, vi } from "vitest";
-import { commands, userEvent, server } from "vitest/browser";
+import { commands, userEvent } from "vitest/browser";
 import * as AlertDialog from "../alert-dialog/alert-dialog-parts.js";
 import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import * as MultiSelect from "../multi-select/multi-select-parts.js";
@@ -79,9 +79,8 @@ describe("Dialog", () => {
 		const dialog = screen.getByRole("dialog", { name: "Delete tunnel" });
 		expect(dialog.matches(":modal")).toBe(true);
 		expect(dialog).toHaveAccessibleDescription("The tunnel stops at once.");
-		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).toHaveAttribute("data-open");
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
-		expect(trigger).toHaveAttribute("data-state", "open");
 		expect(screen.getByRole("button", { name: "Close Dialog" })).toHaveFocus();
 		expect(onOpenChange).toHaveBeenCalledTimes(1);
 		expect(onOpenChange).toHaveBeenLastCalledWith(true);
@@ -90,7 +89,7 @@ describe("Dialog", () => {
 		await userEvent.keyboard("{Escape}");
 
 		await waitFor(() => expect(dialogElement().open).toBe(false));
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
 		expect(trigger).toHaveFocus();
 		expect(onOpenChange).toHaveBeenCalledTimes(2);
@@ -108,7 +107,7 @@ describe("Dialog", () => {
 		const dialog = screen.getByRole("dialog", { name: "Delete tunnel" });
 		expect(dialog.matches(":modal")).toBe(true);
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
-		// The browser focuses the first focusable element, as Radix did.
+		// The browser focuses the first focusable element.
 		expect(screen.getByRole("button", { name: "Close Dialog" })).toHaveFocus();
 
 		await userEvent.keyboard("{Escape}");
@@ -148,53 +147,43 @@ describe("Dialog", () => {
 		expect(screen.getByRole("textbox", { name: "Name" })).toHaveFocus();
 	});
 
-	// Why not in Firefox: there the first button shows no focus ring after a
-	// keyboard open. The Dialog owners track the fix.
-	test.skipIf(server.browser === "firefox")(
-		"the first button shows a focus ring after a hotkey open with no focused element",
-		async () => {
-			function HotkeyDialog() {
-				const [open, setOpen] = useState(false);
-				useEffect(() => {
-					const onKeyDown = (event: KeyboardEvent) => event.key === "k" && setOpen(true);
-					document.addEventListener("keydown", onKeyDown);
-					return () => document.removeEventListener("keydown", onKeyDown);
-				}, []);
-				return <ExampleDialog open={open} onOpenChange={setOpen} />;
-			}
-			render(<HotkeyDialog />);
-			await userEvent.click(document.body);
-			expect(document.activeElement).toBe(document.body);
+	test("the first button shows a focus ring after a hotkey open with no focused element", async () => {
+		function HotkeyDialog() {
+			const [open, setOpen] = useState(false);
+			useEffect(() => {
+				const onKeyDown = (event: KeyboardEvent) => event.key === "k" && setOpen(true);
+				document.addEventListener("keydown", onKeyDown);
+				return () => document.removeEventListener("keydown", onKeyDown);
+			}, []);
+			return <ExampleDialog open={open} onOpenChange={setOpen} />;
+		}
+		render(<HotkeyDialog />);
+		await userEvent.click(document.body);
+		expect(document.activeElement).toBe(document.body);
 
-			await userEvent.keyboard("k");
+		await userEvent.keyboard("k");
 
-			const close = screen.getByRole("button", { name: "Close Dialog" });
-			expect(close).toHaveFocus();
-			expect(close.matches(":focus-visible")).toBe(true);
-		},
-	);
+		const close = screen.getByRole("button", { name: "Close Dialog" });
+		expect(close).toHaveFocus();
+		expect(close.matches(":focus-visible")).toBe(true);
+	});
 
-	// Why not in Firefox: there the first button shows no focus ring after a
-	// keyboard open. The Dialog owners track the fix.
-	test.skipIf(server.browser === "firefox")(
-		"the first button shows a focus ring after a keyboard open and none after a press",
-		async () => {
-			render(<ExampleDialog />);
-			const trigger = screen.getByRole("button", { name: "Open dialog" });
+	test("the first button shows a focus ring after a keyboard open and none after a press", async () => {
+		render(<ExampleDialog />);
+		const trigger = screen.getByRole("button", { name: "Open dialog" });
 
-			await userEvent.click(trigger);
-			const close = screen.getByRole("button", { name: "Close Dialog" });
-			expect(close).toHaveFocus();
-			expect(close.matches(":focus-visible")).toBe(false);
+		await userEvent.click(trigger);
+		const close = screen.getByRole("button", { name: "Close Dialog" });
+		expect(close).toHaveFocus();
+		expect(close.matches(":focus-visible")).toBe(false);
 
-			await userEvent.keyboard("{Escape}");
-			await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
-			await userEvent.keyboard("{Enter}");
-			expect(screen.getByRole("button", { name: "Close Dialog" }).matches(":focus-visible")).toBe(
-				true,
-			);
-		},
-	);
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
+		await userEvent.keyboard("{Enter}");
+		expect(screen.getByRole("button", { name: "Close Dialog" }).matches(":focus-visible")).toBe(
+			true,
+		);
+	});
 
 	test("focus stays in the dialog when the focused button leaves the panel", async () => {
 		function RetryDialog() {
@@ -218,11 +207,40 @@ describe("Dialog", () => {
 		await waitFor(() => expect(dialogElement()).toHaveFocus());
 	});
 
-	test("the dialog stays modal with `data-state` closed through its exit, then unmounts", async () => {
+	test("Shift+Tab reaches the previous field when the field it leaves renders on blur", async () => {
+		function ErrorOnBlurDialog() {
+			const [error, setError] = useState(true);
+			return (
+				<ExampleDialog open>
+					<input aria-label="Email" />
+					<button type="button" onBlur={() => setError(false)}>
+						Role
+					</button>
+					{error && <p>Choose a role.</p>}
+				</ExampleDialog>
+			);
+		}
+		// Why fake timers: the dialog takes focus back a task after a change, so a
+		// check at once passes either way. Running the timers first makes it count.
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		onTestFinished(() => {
+			vi.useRealTimers();
+		});
+		render(<ErrorOnBlurDialog />);
+		screen.getByRole("button", { name: "Role" }).focus();
+
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+
+		expect(screen.queryByText("Choose a role.")).toBeNull();
+		await vi.runOnlyPendingTimersAsync();
+		expect(screen.getByRole("textbox", { name: "Email" })).toHaveFocus();
+	});
+
+	test("the dialog stays modal with `data-closing` through its exit, then unmounts", async () => {
 		const style = document.createElement("style");
 		style.textContent = `
 @keyframes test-exit { to { opacity: 0; } }
-[data-slot~="dialog-content"][data-state="closed"] { animation: test-exit 200ms; }
+[data-slot~="dialog-content"][data-closing] { animation: test-exit 200ms; }
 `;
 		document.head.append(style);
 		onTestFinished(() => style.remove());
@@ -234,7 +252,7 @@ describe("Dialog", () => {
 
 		await userEvent.keyboard("{Escape}");
 
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(dialog.matches(":modal")).toBe(true);
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
 		await waitFor(() => expect(dialog.isConnected).toBe(false));
@@ -270,7 +288,7 @@ describe("Dialog", () => {
 		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
 	});
 
-	test("onOpenAutoFocus and onCloseAutoFocus get the panel as event.currentTarget, as with Radix", async () => {
+	test("onOpenAutoFocus and onCloseAutoFocus get the panel as event.currentTarget", async () => {
 		const targets: (EventTarget | null)[] = [];
 		render(
 			<Dialog.Root>
@@ -401,8 +419,8 @@ describe("Dialog", () => {
 		);
 
 		expect(container.querySelector("[data-slot~='dialog-content']")).toHaveAttribute(
-			"data-state",
-			"open",
+			"data-open",
+			"",
 		);
 		expect(container.querySelector("[data-slot~='dialog-trigger']")).toHaveAttribute(
 			"aria-expanded",
@@ -476,7 +494,7 @@ describe("Dialog", () => {
 			</StrictMode>,
 		);
 		expect(dialogElement().open).toBe(true);
-		expect(dialogElement()).toHaveAttribute("data-state", "open");
+		expect(dialogElement()).toHaveAttribute("data-open");
 		expect(screen.getByText("Open dialog")).toHaveAttribute("aria-expanded", "true");
 	});
 
@@ -494,7 +512,7 @@ describe("Dialog", () => {
 		const { rerender } = render(<LateTrigger withTrigger={false} />);
 		rerender(<LateTrigger withTrigger />);
 		expect(screen.getByText("Open dialog")).toHaveAttribute("aria-expanded", "true");
-		expect(screen.getByText("Open dialog")).toHaveAttribute("data-state", "open");
+		expect(screen.getByText("Open dialog")).not.toHaveAttribute("data-open");
 	});
 
 	test("Content gives its aria-label, aria-labelledby, and aria-describedby to the <dialog>", () => {
@@ -1076,7 +1094,7 @@ describe("state the DOM owns, hydration, and nesting", () => {
 	test("a reopen during the exit keeps the dialog open", async () => {
 		const style = document.createElement("style");
 		style.textContent =
-			"@keyframes exit { to { opacity: 0 } } [data-slot~='dialog-content'][data-state='closed'] { animation: exit 200ms }";
+			"@keyframes exit { to { opacity: 0 } } [data-slot~='dialog-content'][data-closing] { animation: exit 200ms }";
 		document.head.append(style);
 		onTestFinished(() => style.remove());
 		render(
@@ -1105,7 +1123,8 @@ describe("state the DOM owns, hydration, and nesting", () => {
 		});
 
 		expect(dialogElement().open).toBe(true);
-		expect(dialogElement().dataset.state).toBe("open");
+		expect(dialogElement()).toHaveAttribute("data-open", "");
+		expect(dialogElement()).not.toHaveAttribute("data-closing");
 	});
 
 	test("nested default-open forceMount dialogs open parent first, so the child is on top", async () => {
@@ -1353,11 +1372,8 @@ describe("a stack of three", () => {
 		expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
 		// Everything outside the top layer is inert, the dialogs under it too.
 		expect(two.closest("dialog")?.contains(top)).toBe(true);
-		// Why WebKit expects focus: there the trigger under the top modal still takes
-		// it, a known Dialog bug. This check fails once that is fixed; then expect
-		// no focus in every engine.
 		two.focus();
-		expect(document.activeElement === two).toBe(server.browser === "webkit");
+		expect(two).not.toHaveFocus();
 
 		for (const [trigger, name] of [
 			[three, "Three"],
@@ -1372,6 +1388,66 @@ describe("a stack of three", () => {
 		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
 		expect(one).toHaveFocus();
 		expect(root).not.toHaveAttribute("data-mantle-scroll-lock");
+	});
+
+	test("a panel that its owner makes inert stays inert after a dialog above it closes", async () => {
+		const Page = ({ second }: { second: boolean }) => (
+			<>
+				<Dialog.Root open>
+					<Dialog.Content inert>
+						<Dialog.Title>Saving</Dialog.Title>
+						<button type="button">Retry</button>
+					</Dialog.Content>
+				</Dialog.Root>
+				<Dialog.Root open={second}>
+					<Dialog.Content>
+						<Dialog.Title>Second</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>
+		);
+		const view = render(<Page second={false} />);
+		view.rerender(<Page second />);
+		await waitFor(() =>
+			expect(screen.getByRole("dialog", { name: "Second" }).matches(":modal")).toBe(true),
+		);
+		view.rerender(<Page second={false} />);
+		await waitFor(() => expect(screen.queryByRole("dialog", { name: "Second" })).toBeNull());
+
+		const retry = screen.getByText("Retry");
+		expect(retry.closest("[inert]")).not.toBeNull();
+	});
+
+	test("a native close() of a kept-mounted dialog returns focus to the trigger that opened it", async () => {
+		render(
+			<Dialog.Root defaultOpen>
+				<Dialog.Content>
+					<Dialog.Title>One</Dialog.Title>
+					<Dialog.Root>
+						<Dialog.Trigger>First trigger</Dialog.Trigger>
+						<Dialog.Trigger>Second trigger</Dialog.Trigger>
+						<Dialog.Content forceMount>
+							<Dialog.Title>Two</Dialog.Title>
+							<button
+								type="button"
+								onClick={(event) => event.currentTarget.closest("dialog")?.close()}
+							>
+								Done
+							</button>
+						</Dialog.Content>
+					</Dialog.Root>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		const second = screen.getByRole("button", { name: "Second trigger" });
+		await userEvent.click(second);
+		await waitFor(() =>
+			expect(screen.getByRole("dialog", { name: "Two" }).matches(":modal")).toBe(true),
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Done" }));
+
+		await waitFor(() => expect(second).toHaveFocus());
 	});
 });
 

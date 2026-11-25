@@ -1,5 +1,661 @@
 # @ngrok/mantle
 
+## 0.95.0
+
+### Minor Changes
+
+- [#1766](https://github.com/ngrok/mantle/pull/1766) [`d9ab8be`](https://github.com/ngrok/mantle/commit/d9ab8be98aef434996b21587c8b8fc1ce9189282) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `AlertCenter` shows the top alert in the server HTML, so hydration no longer shifts the page. Each `AlertCenter.Item` now renders its children on the server in a copy of the bar, and at hydration the client bar replaces the copy at the same height, with no enter animation.
+
+  This works only when the items exist during the server render. Prefetch the data your items read, such as your notifications query, in the root loader. Without the prefetch, the server has no items, and the bar still enters after hydration and pushes the page down. The items must also follow `AlertCenter.Bar` in the same parent.
+
+  Breaking: item children now render on the server and in the hydration pass. Before, they rendered only in the browser. Render an item only after `useIsHydrated()` returns `true` when its children read browser-only state during render, or when only the browser can decide it, such as an alert hidden by a dismissal in `sessionStorage`. `AlertCenter.Bar` and `AlertCenter.Content` also render a hidden anchor while they show nothing, so a test that expects an empty notice slot must ignore hidden elements. Migration guide: https://mantle.ngrok.com/migrations/0022-alert-center-server-render-migration
+
+- [#1851](https://github.com/ngrok/mantle/pull/1851) [`2b8acb5`](https://github.com/ngrok/mantle/commit/2b8acb57f9f0a8061726d34efd98e233be2c0aab) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A style pass over the whole page costs less, such as when a `Dialog`, `AlertDialog`, or `Sheet` opens. Mantle's parts no longer use Tailwind's `*:` and `**:` variants or an arbitrary variant with a selector list. Those compile to a rule such as `:is(.class > *)`, which Chromium tries on each element of the page. The same styles now compile to rules such as `.class > *`, which Chromium skips at once outside the part. Each rule keeps its specificity and matches the same elements, so mantle's parts look the same. Tailwind sorts these rules after its variant classes, so a class of equal specificity that you put on a styled child, such as `hover:flex-none` on `Dialog.Title`, no longer overrides them. To override one of these styles from a part's `className`, write the same arbitrary variant that the part uses, such as `[&>*]:duration-500` on `Toaster` in place of `*:duration-500`, so that `cx` replaces mantle's class. Read the [migration guide](https://mantle.ngrok.com/migrations/0031-anchored-child-variant-migration). On a page of 1,200 elements at 4× CPU slowdown, the largest style pass of a `Dialog` open drops from 32 ms to 28 ms in Chromium.
+
+- [#1859](https://github.com/ngrok/mantle/pull/1859) [`e43b673`](https://github.com/ngrok/mantle/commit/e43b673aa2d8dbb7dee45bcd63c6c44e91f7e7f8) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Mantle registers a `between:` Tailwind variant, and its parts use it in place of `space-*` and `divide-*`. `between:` applies a class to each child of an element except the last, at zero specificity, as `space-*` and `divide-*` do, so the parts look the same. Tailwind puts the class of `space-*` and `divide-*` inside `:where()`, so Chromium tries those rules on each element of the page on each style pass. Chromium skips a `between:` rule at once outside the element. On a page of 1,200 elements at 4× CPU slowdown, the largest style pass of a `Dialog` open drops from 28 ms to 25 ms in Chromium.
+
+  Breaking: a `space-*` or `divide-*` class that you pass to `Accordion.Root`, `Strata.Root`, `AlertDialog.Body`, `AlertDialog.Header`, `AlertDialog.Footer`, `Empty.Description`, `Select.Group`, `Select.Content`, `DropdownMenu.Group`, `DropdownMenu.RadioGroup`, `DropdownMenu.Content`, `DropdownMenu.SubContent`, `MultiSelect.Content`, `Combobox.Content`, `Combobox.Group`, `Sidebar.Body`, `Sidebar.List`, or `SplitButton.MenuContent` no longer replaces the part's own spacing or dividers. Write it with `between:`, such as `between:border-b-0` on `Accordion.Root` in place of `divide-y-0`. Read the [migration guide](https://mantle.ngrok.com/migrations/0030-between-variant-migration); its codemod rewrites those classes.
+
+- [#1739](https://github.com/ngrok/mantle/pull/1739) [`d859fd1`](https://github.com/ngrok/mantle/commit/d859fd1535018b3c54e7bbe05a05a55f6edd6a17) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Combobox` no longer uses `@ariakit/react`. The `useListbox` hook that drives `Select` now drives `Combobox` too, with the WAI-ARIA editable combobox contract: DOM focus stays on the input, and `aria-activedescendant` names the highlighted item. Bundle size (gzip, React external): `Combobox` 53.4 KB → 16.1 KB. A page with `Select` and `Combobox` drops from 86.0 KB to 25.2 KB.
+
+  Breaking changes. Follow the [migration guide](https://mantle.ngrok.com/migrations/0018-combobox-owned-behavior-migration); `pnpm -w run migrate 0018` applies the prop renames and deletions, and reports each click opt-out that it cannot delete.
+
+  - Each part takes the props of its element plus a fixed set of its own, not every Ariakit prop.
+  - `Combobox.Root` uses mantle's selection names: `value` / `defaultValue` / `onValueChange` for the picked value, `inputValue` / `defaultInputValue` / `onInputValueChange` for the text, and `open` / `defaultOpen` / `onOpenChange`. Ariakit's `selectedValue` / `defaultSelectedValue` / `setSelectedValue`, `setValue`, and `setOpen` are gone, and `value` and `defaultValue` now set the picked value, not the text.
+  - `Combobox.Content` portals into the nearest overlay's positioner, or into `document.body`. It drops `unmountOnHide` and the Ariakit popover props, and keeps `sameWidth` and `asChild`.
+  - `Combobox.Item` drops `focusOnHover`, `hideOnClick`, `setValueOnClick`, and `selectValueOnClick`. A click writes the item's value into the input, picks it, and closes the list, unless `onClick` calls `event.preventDefault()`. The highlighted item carries `data-highlighted` in place of `data-active-item`.
+  - `Combobox.Input` drops `autoComplete`: it always uses list autocomplete. Its text moves to `inputValue` and `onInputValueChange` on `Combobox.Root`.
+  - `Combobox.ItemValue` drops `asChild` and `children`. Pass the text as `value`.
+
+  Other changes:
+
+  - The highlighted item has `aria-selected="true"`, as in the WAI-ARIA combobox pattern. No other item has the attribute.
+  - `Combobox.Root` takes `name`, `form`, `required`, and `disabled`. The picked value submits under `name` through a hidden input, a form reset returns the pick to `defaultValue` and the text to `defaultInputValue`, `required` blocks the submit until an item is picked, and `disabled` keeps the pick out of the form. With a root `name`, the typed text does not submit.
+  - The picked item carries `data-selected`, because `aria-selected` follows the highlight.
+
+- [#1784](https://github.com/ngrok/mantle/pull/1784) [`d070ee9`](https://github.com/ngrok/mantle/commit/d070ee9d86eed9e4d1a4a3a9e8ba14d6f53fdc4e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Command` no longer uses `cmdk`. The `useListbox` hook that drives `Select`, `Combobox`, and `MultiSelect` now drives the palette too, and a query filters in one pass over the DOM: it writes `hidden` on each item and group that does not match and moves the matches into score order, so no item re-renders on a keystroke. The parts, their props, the `command-score` ranking, the keyboard, `useCommandState`, and the accessibility tree stay the same.
+
+  Measured on an inline palette of 2,000 items in Chromium 159 at 4× CPU slowdown, against `cmdk` (median of 5 rounds): hydration 478 → 155 ms, mount 637 → 328 ms, the slowest keystroke 272 → 136 ms, and the heap after a typing session 14.9 → 4.9 MB. An inline palette (`Command.Root` with no dialog) drops from 25.0 KB to 13.5 KB gzip, because `cmdk` imported Radix Dialog for its own `Command.Dialog`. A dialog palette is 0.5 KB larger (29.7 → 30.2 KB) until `Dialog` moves off Radix.
+
+  Breaking changes. Follow the [migration guide](https://mantle.ngrok.com/migrations/0024-command-owned-behavior-migration); `pnpm -w run migrate 0024` rewrites `[cmdk-*]` selectors in class strings.
+
+  - The parts no longer render the `cmdk-*` attributes. Select a part by its `data-slot`: `command`, `command-input`, `command-list`, `command-group`, `command-group-heading`, `command-group-items`, `command-item`, `command-separator`, and `command-empty`. `--cmdk-list-height` is gone.
+  - An item that the query does not match stays mounted with the `hidden` attribute, so it keeps its state. A test that asserts a filtered item with `queryByText` now finds it; use `queryByRole("option", { name })`.
+  - A group with a better match now moves above the other groups during a search, as `cmdk` documents. `cmdk` never moved its groups.
+  - `Command.Root`, `Command.List`, and `Command.Group` no longer take `asChild`, which threw at runtime with `cmdk`.
+  - `Command.Item` has `data-disabled="true"` only when it is disabled, and `data-selected="true"` only while it is active. It no longer renders the `"false"` values.
+
+  Other changes:
+
+  - An empty query puts the items back in the order they had before the search, and an item appended during the search stays at the end. With `cmdk`, the order after a search stayed shuffled.
+  - Items with the same score keep their first order.
+  - The empty state shows when the last item unmounts, and an item that mounts during a query is filtered against it.
+  - `Command.List` scrolls with no visible scrollbar, fades its edges where more items are past them, and does not bounce or scroll the page at its end.
+  - A press inside `Command.List` keeps focus in `Command.Input`.
+  - `Command.Root`'s `label` sets the input's `aria-label`, in place of a hidden `<label>` element.
+
+- [#1820](https://github.com/ngrok/mantle/pull/1820) [`df66cfc`](https://github.com/ngrok/mantle/commit/df66cfc6f95b446f7c233b335d995da4e53d6665) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Mantle's `data-*` attributes follow one mantle-owned contract. The names from Radix, Ariakit, and Headless UI are gone, and each part emits fewer attributes.
+
+  Breaking changes:
+
+  - `mantle.css` registers no `data-*` custom variants. `data-state-open:`, `data-state-closed:`, `data-state-checked:`, `data-state-active:`, `data-side-*:`, `data-orientation-*:`, `data-validation-*:`, `data-active-item:`, and the others no longer exist. Use Tailwind's built-in forms: `data-open:`, `not-data-open:`, `data-[side=top]:`, `data-[validation=error]:`, `aria-expanded:`, `aria-selected:`.
+  - Triggers carry `aria-expanded` and no `data-state`. Tooltip and HoverCard triggers carry no state attribute.
+  - Open content, panels, and items carry presence-only `data-open` in place of `data-state="open|closed"`. `Sidebar.Nav` carries `data-expanded` in place of `data-state="expanded|collapsed"`. A native `<dialog>` part (Dialog, AlertDialog, Sheet, and the Sidebar mobile sheet) also carries `data-closing` while its exit plays.
+  - Tabs triggers and Select items use `aria-selected`, Switch and menu checkbox items use `aria-checked`, and an inactive `Tabs.Content` has the `hidden` attribute. None of them carries `data-state`.
+  - Buttons, tabs, menu items, Select items, and Command items carry no `data-disabled`. Use `disabled:` or `aria-disabled:`. Label and the Input chrome keep presence-only `data-disabled`.
+  - `data-align` is gone from every floating part. `data-current` is gone from Sidebar rows: style them with `aria-[current=page]:`. List rows and OTP slots carry `data-highlighted` in place of `data-active`, and a MultiSelect tag uses DOM focus.
+  - Progress parts carry `data-indeterminate` in place of `data-state`, `data-value`, `data-min`, and `data-max`. Charts carry `data-engaged` in place of `data-state="dormant|engaged"`. `CodeBlock.Code` carries `data-syntax-highlighted` in place of `data-highlighted="true|false"`.
+  - `data-drag-over`, `data-x-overflow`, `data-x-scroll-end`, and `data-sticky-active` are `""` when true and absent when false, never `"true"` or `"false"`.
+
+  The codemod rewrites the old class variants and the `data-state` test assertions.
+
+  Migration guide: https://mantle.ngrok.com/migrations/0029-data-attribute-contract-migration
+
+- [#1739](https://github.com/ngrok/mantle/pull/1739) [`d859fd1`](https://github.com/ngrok/mantle/commit/d859fd1535018b3c54e7bbe05a05a55f6edd6a17) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `MultiSelect` no longer uses `@ariakit/react`, and mantle drops the Ariakit dependency. The `useListbox` hook that drives `Select` and `Combobox` now drives `MultiSelect` too. The tags, `lockedValues`, the keyboard, and the hidden form inputs stay the same.
+
+  - Bundle size (gzip, React external): `MultiSelect` 57.2 KB → 18.9 KB.
+  - Memory and mount time, measured as the heap delta of 300 mounted instances in Node with happy-dom: `MultiSelect` 385 KB → 194 KB and 2.2 ms → 0.9 ms per instance; `Combobox` 261 KB → 77 KB and 1.4 ms → 0.3 ms. A closed `Combobox` or `MultiSelect` list now renders no items.
+
+  Breaking changes. Follow the [migration guide](https://mantle.ngrok.com/migrations/0019-multi-select-owned-behavior-migration); `pnpm -w run migrate 0019` applies the prop renames and deletions.
+
+  - Each part takes the props of its element plus a fixed set of its own, not every Ariakit prop.
+  - `MultiSelect.Root` uses mantle's selection names: `value` / `defaultValue` / `onValueChange` for the picked values, `inputValue` / `defaultInputValue` / `onInputValueChange` for the text, and `open` / `defaultOpen` / `onOpenChange`. Ariakit's `selectedValue` / `defaultSelectedValue` / `setSelectedValue`, `setValue`, and `setOpen` are gone, and `value` and `defaultValue` now set the picked values, not the text.
+  - `MultiSelect.Input` drops `onValueChange`. Use `onInputValueChange` on `MultiSelect.Root`.
+  - The list is not modal, the same as a native select. `MultiSelect.Content` drops `modal`, `backdrop`, `preventBodyScroll`, `portalElement`, `unmountOnHide`, and the other Ariakit popover props, and portals into the nearest overlay's positioner, or into `document.body`.
+  - `MultiSelect.Item` drops `focusOnHover`. The highlighted item carries `data-highlighted` in place of `data-active-item`.
+
+  Other changes:
+
+  - The list has `aria-multiselectable="true"`.
+  - Tab from the open input reaches a control in the list, such as a button in `MultiSelect.ContentFooter`.
+  - A visually hidden "Dismiss popup" button sits before the list, as with Ariakit, so a touch screen reader can close it.
+  - The list no longer opens when focus arrives from outside the trigger, such as by Tab or a dialog's autofocus. A click, ArrowDown, or typing opens it.
+
+- [#1787](https://github.com/ngrok/mantle/pull/1787) [`bd537d7`](https://github.com/ngrok/mantle/commit/bd537d79ebf92bd3c7dd2726b9cace768a2ca406) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Dialog`, `AlertDialog`, `Sheet`, and the `Command` palette render the browser's modal `<dialog>` in place of Radix Dialog, and `@radix-ui/react-dialog` is no longer a dependency of mantle. The parts, their names, and the look stay the same. A few Radix props go, listed below. The browser makes the page inert, closes the dialog on Escape, paints it in the top layer, and returns focus to the trigger.
+
+  - The content mounts in the frame of the tap that opens it. On a mobile navigation sheet of about 150 elements at a 4× CPU slowdown, the open's Interaction to Next Paint drops from about 150 ms with Radix to about 115 ms.
+  - `forceMount` on `Content` keeps the content mounted and server-rendered while closed. An uncontrolled trigger then opens it with no React render, even before hydration.
+  - The exit animation plays in every browser: the dialog writes `data-state="closed"`, waits for the animations of the panel and the backdrop, and then closes.
+  - An open modal locks page scroll with a `data-mantle-scroll-lock` attribute on the root, not a `:root:has()` rule. Before this change, that rule made each change to the page slower, such as a tab switch, with no dialog open.
+  - `useCallbackRef` updates its callback in an insertion effect, so a ref callback or a layout effect of the same commit calls the latest one.
+  - Dialog, AlertDialog, and Sheet content scrolls with no overscroll bounce and no scroll chaining to the page.
+  - An open `Select`, `Combobox`, `MultiSelect`, or other popup with `aria-expanded` in the panel takes the first Escape.
+
+  Breaking changes:
+
+  - A modal dialog makes a frame that a script puts on `<body>` inert, such as a 3-D Secure challenge or a captcha. Set `modal={false}` on the `Root` of an overlay that holds one. A dialog that is not modal has no backdrop, paints at `z-60`, leaves the page live, and closes on Escape and a press outside, not on a focus move.
+  - The overlay elements are gone: no element carries `dialog-overlay`, `sheet-overlay`, or `alert-dialog-overlay`. Style `[data-slot~="dialog-positioner"]::backdrop` instead. `Dialog.Portal` and `Dialog.Overlay` are deprecated and do nothing.
+  - `role="dialog"` is on the `<dialog>` (`data-slot="dialog-positioner"`). The props of `Content` go to the panel inside it, which keeps `data-slot="dialog-content"`, `data-state`, and `data-mantle-modal-content`.
+  - `Content` takes no `asChild` and no `role`: it renders the `<dialog>`, which takes the role, and the panel inside it. `Content` has no `onFocusOutside`: focus cannot move to the page behind a modal dialog, and a non-modal dialog closes on Escape and a press outside, not on a focus move. `Title` takes no `id`: the dialog names itself from the id it gives the title.
+  - The close completes after the exit animation, so a test waits for it.
+  - `overlay-prompt` UI outside the dialog takes no input while a modal is open. Wrap it in the new `OverlayPrompt`, which moves it into the open dialog, as `Toaster` and `Sandbar` do.
+
+  Migration guide: https://mantle.ngrok.com/migrations/0027-native-dialog-migration
+
+- [#1776](https://github.com/ngrok/mantle/pull/1776) [`d60e1cf`](https://github.com/ngrok/mantle/commit/d60e1cf6f4defbf01f63ac27c2487add8fbfe109) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Build `DropdownMenu` on native popovers and CSS anchor positioning, and remove Radix from it. The parts and their nesting do not change.
+
+  - `DropdownMenu.Content` and `DropdownMenu.SubContent` do not take the Radix positioning props: `alignOffset`, `avoidCollisions`, `collisionBoundary`, `collisionPadding`, `arrowPadding`, `sticky`, `hideWhenDetached`, `updatePositionStrategy`, and `forceMount`.
+  - The content hides its scrollbar and stops overscroll bounce and scroll chaining. It still scrolls by wheel, touch, and keyboard. Its items scroll in an inner `dropdown-menu-viewport` element with the `scroll-fade-y` edge fade. Under `asChild`, your element scrolls the items itself, with no fade.
+  - The content sets `--anchor-width` and `--available-height`. They replace `--radix-dropdown-menu-trigger-width` and `--radix-dropdown-menu-content-available-height`.
+  - A menu is not modal by default, as with a native popover and the WAI-ARIA menu button pattern. The page behind it stays live. A press outside closes the menu, and its primary click (left button, no Ctrl) does not activate what is under it. Pass `modal` to make the rest of the page inert. A `Popover` or other float that an item opens portals into the menu, so it takes keyboard focus and input.
+  - `DropdownMenu.RadioGroup` takes `defaultValue`, and `DropdownMenu.CheckboxItem` takes `defaultChecked`. `ArrowUp` on the trigger opens the menu on its last item. `onValueChange` does not run when the user selects the checked radio item.
+
+  Run migration 0026 to remove the props and rename the variables: `pnpm -w run migrate 0026 <path>`. See https://mantle.ngrok.com/migrations/0026-native-dropdown-menu-migration.
+
+- [#1762](https://github.com/ngrok/mantle/pull/1762) [`6d56b31`](https://github.com/ngrok/mantle/commit/6d56b310ed88e7e243ac554c41a41d1932173875) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Popover`, `Tooltip`, and `HoverCard` are native popovers in the top layer. CSS anchor positioning places each one next to its trigger, and a script places it where the browser has no anchor positioning. Radix is gone from the three components, and `@radix-ui/react-popover`, `@radix-ui/react-tooltip`, and `@radix-ui/react-hover-card` are no longer dependencies.
+
+  Breaking changes (migration guide and codemod: https://mantle.ngrok.com/migrations/0020-native-floats-migration):
+
+  - `Popover.Content`, `Tooltip.Content`, and `HoverCard.Content` no longer take `collisionPadding`, `collisionBoundary`, `sticky`, `avoidCollisions`, `alignOffset`, `hideWhenDetached`, `forceMount`, `updatePositionStrategy`, or `arrowPadding`. The content flips to the opposite side when only that side fits, and shifts to stay inside the viewport.
+  - `Popover.Content` and `HoverCard.Content` no longer take `asChild`. Move the child's props onto the content.
+  - `Tooltip.Content` no longer takes `id`. The trigger's `aria-describedby` points at the id that `Tooltip.Root` owns.
+  - A float in the top layer paints above toasts.
+  - `Popover.Root` no longer takes `modal`. Use `Dialog` for a task that blocks the page.
+  - `HoverCard.Portal` is gone. `HoverCard.Content` portals by itself.
+  - `Popover.Content` sets `--anchor-width` and `--available-height` in place of `--radix-popover-trigger-width` and `--radix-popover-content-available-height`.
+  - A float inside a `Popover` portals into `Popover.Content`.
+  - A float does not show while an overlay that does not hold it is open. A tooltip or hover card closes, and a popover shows again when the overlay closes.
+  - `Tooltip.Trigger asChild` and `HoverCard.Trigger asChild` join `tooltip-trigger` or `hover-card-trigger` ahead of the child's `data-slot`, as `Popover.Trigger` does.
+  - A closed float stays in the DOM for its 150ms exit transition.
+
+  `TooltipProvider` is now optional. In a browser with no popover API (Safari before 17, Chrome before 114, Firefox before 125), a float is a fixed box at `z-50`, as before.
+
+- [#1769](https://github.com/ngrok/mantle/pull/1769) [`9bf2515`](https://github.com/ngrok/mantle/commit/9bf251597d67188f48342b3461fbfd75e5f024fc) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `RadioGroup` and `SegmentedControl` use native `<input type="radio">` elements and no longer depend on Headless UI. Each item (`RadioGroup.Item`, `RadioGroup.ListItem`, `RadioGroup.Card`, and `SegmentedControl.Item`) is a `<div>` with an invisible radio that covers it, and a click anywhere on the item checks the radio. The browser owns the one tab stop, Space, and form submission, and the value follows a choice that the browser restores. The root moves the arrow keys itself, so they wrap at either end and swap in right-to-left text in every browser. The accessibility tree, the item markup, and the look do not change, and the HTML stays valid with any content in an item. In Safari, Tab reaches a radio only with "Press Tab to highlight each item" or Option-Tab, as for every native control. The `RadioGroup` entry is about 8.6 KB smaller (gzip), and Headless UI's patch of `HTMLElement.prototype.focus` and its document listeners are gone.
+
+  Breaking changes:
+
+  - `RadioGroup.Root`, `RadioGroup.List`, and `SegmentedControl.Root` report the value with `onValueChange(value)`, the same name as `Select`. `onChange` on a root is now the DOM `change` event. The codemod renames it.
+  - The radio inside an item carries the state, so a class on an item that reads `aria-checked:`, `aria-disabled:`, or `focus-visible:` no longer matches. Use `has-[>input:checked]:`, `has-[>input:disabled]:`, and `has-[>input:focus-visible]:`. From a child of the item, use `group-has-[>input:checked]/radio:`.
+  - Items no longer emit `data-checked`, `data-focus`, `data-hover`, `data-disabled`, or `data-headlessui-state`.
+  - `RadioGroup.Indicator` render props receive `checked` and `disabled` only. Style hover and keyboard focus with `group-hover/radio:` and `group-has-[>input:focus-visible]/radio:`.
+  - Radio items no longer take `as`, and the roots no longer take `by`. The codemod removes them.
+  - `RadioGroup.InputSandbox` no longer stops key presses: the nested input has focus, so typing never moves the selection. Its `onClick` runs before it checks the radio, and `event.preventDefault()` keeps the radio unchecked.
+  - In tests, `getByRole("radio")` returns the `<input>`. Read the item with `radio.parentElement`.
+  - `RadioGroup.Indicator` renders a `<span>`, so it is valid inside `Choice.Indicator`.
+
+  New: `RadioGroup.Root` and `SegmentedControl.Root` take `required` and pass `form` to each radio. Both need a `name`. A `<label htmlFor>` with the item's `id`, or `Choice.Label`, can be the title line that names the radio.
+
+  Migration guide: https://mantle.ngrok.com/migrations/0021-native-radio-group-migration
+
+- [#1775](https://github.com/ngrok/mantle/pull/1775) [`0bdc0cf`](https://github.com/ngrok/mantle/commit/0bdc0cf070325d48aab2fca219cec5e0eb90cf92) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Slider` no longer uses a third-party primitive. Each thumb is a native `<input type="range">`, and Mantle drops `@radix-ui/react-slider`. The props, the `data-slot` values, and `onValueChange` stay the same.
+
+  Bundle size (gzip, React external): `Slider` 17.0 KB → 10.5 KB. 6.7 KB of that is the `cx` runtime that every mantle component shares.
+
+  - The server HTML holds each thumb at its value, and screen readers find each thumb before hydration. The placeholder thumb is gone.
+  - An uncontrolled slider keeps its values in the DOM. A drag or a key press changes the thumb's CSS and calls `onValueChange`, and React renders nothing.
+  - `id` goes onto the first thumb, so a `<label htmlFor>` names and focuses it. `aria-describedby`, `aria-errormessage`, and `aria-invalid` go onto each thumb only.
+  - A form reset returns an uncontrolled slider to `defaultValue`. A controlled slider keeps its `value`, as a controlled React input does.
+  - A disabled slider now tells assistive technology that each thumb is disabled, and submits no value with its form, as a disabled native input does.
+  - A press on a thumb grabs it where it is, so the thumb no longer jumps to the pointer on the first move.
+  - `Home` and `End` move the focused thumb as far as `min`, `max`, or its neighbor allows. Before, they always moved the first or the last thumb.
+  - With no `dir` prop, the slider follows the text direction it inherits from the page. Before, it was left to right.
+  - Each thumb has `data-slot="slider-input"` on its range input. `data-orientation` and `data-disabled` are on the root only. The track, the range, and the thumbs no longer carry them.
+  - A right-click no longer moves a thumb, and a slider inside a disabled `<fieldset>` ignores the pointer.
+  - A second finger no longer moves or ends a drag that another finger started, and a cancelled drag calls `onValueCommit`.
+  - Each thumb's range input takes the pointer, so a test can click, hover, fill, and drag `getByRole("slider")` in Playwright or Testing Library without `force`.
+  - A focused thumb shows an outline in forced-colors mode.
+  - Its type no longer offers `asChild`, which never worked: the slider slotted its track and thumbs into one child.
+
+  Migration guide: https://mantle.ngrok.com/migrations/0028-native-slider-migration. See https://mantle.ngrok.com/components/forms/slider.
+
+- [`325f0a8`](https://github.com/ngrok/mantle/commit/325f0a8684cafc713fc436303bec92254bfe8970) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `OverlayPrompt` (`@ngrok/mantle/overlay-prompt`). It keeps a banner, a bar, or another floating element usable above an open `Dialog`, `AlertDialog`, or `Sheet`, such as a cookie banner. An open modal dialog makes the rest of the page inert. While one is open, `OverlayPrompt` moves its content into the top modal dialog, at each depth of a stack, so the content takes clicks and focus, and a press in it does not close the dialog. When the last modal closes, the content moves back to where you render it, so a form owns its buttons and Tab reaches them in page order.
+
+  - With no dialog open, it renders a wrapper with no box (`data-slot="overlay-prompt"`, `display: contents`) and adds no listener.
+  - The server renders the content in place. After hydration the content renders through a portal, so it mounts again one time when the page hydrates, and never when a dialog opens or closes.
+  - In Chrome and Firefox the move keeps a frame in the content loaded and keeps focus (`moveBefore`). Safari reloads the frame.
+
+  `Toaster` and `Sandbar` now use `OverlayPrompt`. A `Sandbar` keeps the state of its children when a dialog opens or closes; before this change, they mounted again.
+
+  Docs: https://mantle.ngrok.com/components/primitives/overlay-prompt
+
+- [#1739](https://github.com/ngrok/mantle/pull/1739) [`d859fd1`](https://github.com/ngrok/mantle/commit/d859fd1535018b3c54e7bbe05a05a55f6edd6a17) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Select` no longer uses `@radix-ui/react-select`. Mantle's own behavior hooks drive it, with the WAI-ARIA select-only combobox contract: DOM focus stays on the trigger, and `aria-activedescendant` names the highlighted option. Bundle size (gzip, React external): `Select` 43.2 KB → 19.5 KB. Memory and mount time, measured as the heap delta of 300 mounted instances in Node with happy-dom: 1.33 MB → 150 KB and 9.0 ms → 1.2 ms per instance. A closed list now renders no items.
+
+  Breaking changes. Follow the [migration guide](https://mantle.ngrok.com/migrations/0017-select-owned-behavior-migration); `pnpm -w run migrate 0017` deletes the positioning props.
+
+  - `Select.Content` takes no positioning props (`position`, `side`, `sideOffset`, `align`, and the other Radix Popper props) and no Radix event handlers (`onEscapeKeyDown`, `onPointerDownOutside`, `onCloseAutoFocus`). The list opens below the trigger, or above it when the space below is too small. `data-side` is `"top"` or `"bottom"`.
+  - The list is not modal, the same as a native select. Tab does not move focus out of an open list.
+  - The `--radix-select-*` CSS variables are gone. Use `--anchor-width`, `--anchor-height`, and `--available-height`.
+
+  Other changes:
+
+  - A server-rendered or prerendered select shows the selected item's text in its first paint. `Select.Value` reads it from the `Select.Item` elements while the list is closed.
+  - `Select.Value asChild` merges the value's props onto your element.
+  - A value of `""` shows the placeholder.
+  - A form reset returns a select to `defaultValue`, or to no value when it has none, with or without a `name`.
+  - A `required` select blocks its form until it has a value, with or without a `name`.
+
+- [#1720](https://github.com/ngrok/mantle/pull/1720) [`3fd5c5a`](https://github.com/ngrok/mantle/commit/3fd5c5a322c8006007cf19ba97e9c64b10b26fbd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Rename the theme token `--container-side-panel-lane-icon-rail` to `--container-side-panel-lane-collapsed`. The default (`46.75rem`) and the job are the same: the narrowest `AppLayout.Workspace` row that holds a collapsed sidebar, the page, and an `AppLayout.SidePanel`. The Tailwind container variants change name with it: `@min-side-panel-lane-icon-rail` and `@max-side-panel-lane-icon-rail` are now `@min-side-panel-lane-collapsed` and `@max-side-panel-lane-collapsed`.
+
+  To migrate, replace `side-panel-lane-icon-rail` with `side-panel-lane-collapsed` in your CSS and your class strings. An app that never set the token changes nothing. See the [migration guide](https://mantle.ngrok.com/migrations/0016-side-panel-lane-collapsed-migration).
+
+  The docs and the JSDoc no longer say "rail" or "icon rail". The sidebar is "collapsed" or "expanded", the words that `data-state` on `Sidebar.Nav` uses.
+
+- [#1777](https://github.com/ngrok/mantle/pull/1777) [`9d75509`](https://github.com/ngrok/mantle/commit/9d75509302638b2094e4a7015efe18eba617f6cd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Tabs` and the `CodeBlock` tab parts no longer use `@radix-ui/react-tabs`. Mantle owns the WAI-ARIA tabs behavior in one small hook. The parts, their props, and their `data-*` attributes do not change. The `tabs` entry ships 6 KB (gzip) less on its own.
+
+  - **Breaking:** a Radix Tabs part inside a mantle `Tabs.Root` has no context and throws. Replace a Radix `Trigger` (or your own wrapper around one, such as a `TabsTrigger` in `~/components/tabs-trigger`) with `Tabs.Trigger`, and keep its classes. Guide: https://mantle.ngrok.com/migrations/0023-tabs-owned-behavior-migration
+  - **New:** `<Tabs.Content hiddenUntilFound>` keeps an inactive panel's text in the HTML as `hidden="until-found"`. Find-in-page and a fragment link reveal it and activate its tab. React warns once in development about the `HIDDEN` attribute that sets it.
+  - The active tab is a Tab stop in the server HTML, so the keyboard reaches it before hydration.
+  - An inactive panel hides at once. Radix kept it mounted while a CSS exit animation on it ran.
+  - The root sets `dir` only when you pass it. In a right-to-left page, **ArrowLeft** now moves to the next tab.
+
+- [#1755](https://github.com/ngrok/mantle/pull/1755) [`f67ca7d`](https://github.com/ngrok/mantle/commit/f67ca7d5c633df3ae96cca7571dc9c414bcccb57) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Remove the `stone` palette and theme duplication from `mantle.css`, so every page ships less render-blocking CSS. No app at ngrok used `stone`. See the [migration guide](https://mantle.ngrok.com/migrations/0025-stone-palette-migration).
+
+  - `stone` classes, such as `bg-stone-500`, make no CSS. Use `gray`.
+  - `gray` is an alias of `neutral` in both themes, and the 41 tokens with one value in both themes are declared once, on `:root` and on `invert-theme` islands. No resolved color changes for an app that does not override them.
+  - Your overrides can now win where they lost before: a later `:root { … }` override of a moved token applies in every theme, also on a page with an explicit or forced theme; a later `.invert-theme { … }` override applies on every island; and an `@theme` override of `--color-gray-*` takes effect.
+  - The theme rules no longer declare `--divide-color-card` and `--divide-color-card-muted`. Read `--border-color-card` and `--border-color-card-muted` instead; the `divide-card` classes keep working.
+
+  A marketing page drops from 109.6 KB to 106.0 KB minified (19.8 KB to 19.5 KB gzipped). The [decision doc](https://github.com/ngrok/mantle/blob/main/decisions/2026-11-21-trim-unused-palettes.md) catalogs each removed value, so a palette can come back.
+
+- [#1731](https://github.com/ngrok/mantle/pull/1731) [`586fb56`](https://github.com/ngrok/mantle/commit/586fb5614b4b211b8b8865c88e9c1e7e1ed3eb30) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `Typography` (`@ngrok/mantle/typography`): headings and paragraphs in the site's type scale, for JSX and for MDX.
+
+  - `Typography.H1` to `Typography.H6` render the heading element of their name. `Typography.P` renders a paragraph in the body text color.
+  - Each part renders the element it is named for, so an MDX `components` map assigns one part to each element: `{ h1: Typography.H1, p: Typography.P }`.
+  - Each part stamps a `data-slot`: `typography-h1` to `typography-h6`, and `typography-p`.
+  - The parts hold no state and use no hooks or context. Memoization saves them no work, so the React Compiler skips them, and their chunk ships with no compiler cache.
+
+  `mantle.css` adds type-role tokens in `@theme`, with steps that follow Tailwind's `text-*` scale: `--text-heading-xs` to `--text-heading-8xl`, `--text-paragraph-xs` to `--text-paragraph-xl`, and `--font-heading`. Each step has `--line-height`, `--letter-spacing`, and `--font-weight` sub-keys, and its default size matches the Tailwind class of its name. They make the `text-heading-*`, `text-paragraph-*`, and `font-heading` classes. `Typography.H1` to `Typography.H6` use the `5xl`, `3xl`, `2xl`, `xl`, `base`, and `xs` heading steps, and `Typography.P` uses `paragraph-base`. A site sets its own scale with a `@theme` block after the mantle import. It must set every sub-key of a step it changes, because a sub-key it leaves out keeps mantle's value.
+
+  `cx` now treats the type-role classes as font sizes. `cx("text-heading-3xl text-strong")` keeps both classes, and `cx("text-heading-3xl text-heading-xl")` keeps the last one.
+
+  See https://mantle.ngrok.com/components/data-display/typography and https://mantle.ngrok.com/base/typography.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `WorldMap` (preview) at `@ngrok/mantle/world-map`: a canvas-rendered world map that plots points by longitude and latitude on the Robinson projection, such as agents placed by their IP address.
+
+  - `WorldMap.Root` takes `data`, `longitudeKey`, an optional `labelKey` that names each point, an optional `sizeKey` that makes a point's area follow a count, and an optional `bounds` that zooms the map to one region.
+  - `WorldMap.Point` adds one series, reads its latitudes from `latitudeKey`, and takes a required `color`.
+  - `WorldMap.Graticule` draws meridians and parallels every 30°.
+  - `WorldMap.Connector` draws a great-circle line between two places, such as from a client to the ngrok edge.
+  - `WorldMap.Callout` keeps a card over one place without a hover. It carries `data-slot="world-map-callout"` and `data-side`. `data-side` names the side the callout sits on after placement, so it changes when the callout flips to the side with room.
+  - `WorldMap.Tooltip` customizes the readout. `WorldMap.Legend` names the series.
+
+  The map has the same interaction contract as the other charts. It is one Tab stop, and the arrow keys step from west to east. With `bounds`, the keyboard skips a point outside the plot, and the data table still lists it. The tooltip and the announcements name each point, and give its size value when `sizeKey` is set. Focus mounts an sr-only data table that lists the first 150 points from west to east. When new rows arrive, a point at a new place pulses once, except under reduced motion. Set `--world-map-land-color` and `--world-map-ocean-color` on the Root to restyle the map. Only `WorldMap` loads the projection and the land outline. The other charts grow by less than 1 KB gzip for the shared readout support.
+
+  Docs: https://mantle.ngrok.com/components/preview/world-map
+
+### Patch Changes
+
+- [#1878](https://github.com/ngrok/mantle/pull/1878) [`afe4db5`](https://github.com/ngrok/mantle/commit/afe4db520f2895ba6e3c7d4131a9d61ee9893f88) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A controlled `Accordion` that refuses a find-in-page or fragment-link reveal in `onValueChange` now hides the section again. Before, the content stayed visible while its trigger reported `aria-expanded="false"`.
+
+- [#1760](https://github.com/ngrok/mantle/pull/1760) [`f9bf434`](https://github.com/ngrok/mantle/commit/f9bf43444205afe31f42e90778344fcdcf20e489) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - An uncontrolled `Accordion` answers a tap faster. On a tap, only the sections that open or close re-render their trigger and content. A controlled `Accordion` whose parent renders its sections again on each change still re-renders every section.
+
+- [#1753](https://github.com/ngrok/mantle/pull/1753) [`92bbec8`](https://github.com/ngrok/mantle/commit/92bbec8e612b05aa71d60632931b7ac70a9e4999) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `dist/agent.json` now has a `recipes` list. Each recipe has its `name`, `slug`, `docsUrl`, `markdownUrl`, `summary`, `useWhen`, `aliases`, and the `parts` it composes. These are the same recipe records that the mantle MCP server's `find` and `get` tools serve, so an agent with no MCP connection finds the same recipes. `dist/llms.txt` lists each recipe on one line with its parts.
+
+- [#1733](https://github.com/ngrok/mantle/pull/1733) [`591a5c8`](https://github.com/ngrok/mantle/commit/591a5c806804e6721e9608728e61295c51e6362b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `dist/agent.json` now has a `sourceHash` of the package source and its dependency ranges. The mantle MCP server compares it with the hash of its docs build, and uses the docs as the contract of a version only when the two are equal. Before this change, the server used the docs on `main` as the contract of the latest release, so it showed props that the release did not have.
+
+- [#1725](https://github.com/ngrok/mantle/pull/1725) [`4d7eff5`](https://github.com/ngrok/mantle/commit/4d7eff560982d2e304f8ac0b7d26125ed08b3d27) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `AlertCenter.Bar` starts its exit in the render that removes the last alert. It no longer renders one more time from a layout effect. The bar looks and animates the same.
+
+- [#1869](https://github.com/ngrok/mantle/pull/1869) [`1f7295e`](https://github.com/ngrok/mantle/commit/1f7295e9dab09661e6b9774876db2b13e2f439f9) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The `app-layout-card` morph between `AppLayout.Content` and `AppLayout.SidePanel` now reads as one card. The frame draws the card's edge and grows or shrinks from its start edge, and each snapshot keeps the frame's end edge, so the panel stays where it is while the page grows out of it. When the two pair, the new snapshot fills the frame with the card's surface and stays opaque, and the old one fades out on top of it in 150ms, so two layouts of the same text do not show through each other. A card that enters or leaves alone fades, with no surface behind it. While a view transition other than a theme swap runs, an open docked panel holds its end gutter as margin, so its snapshot is its card and the morph shows one end edge. Under reduced motion the old snapshot hides at once.
+
+  The Assistant Across Routes recipe moves the title, the new conversation button, and the composer on their own across the switch, and slides the close button out past the end edge, so the header reads as one panel.
+
+- [#1846](https://github.com/ngrok/mantle/pull/1846) [`f82cc40`](https://github.com/ngrok/mantle/commit/f82cc40495e2f2183d9b53ea378745a4c1aeb62b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `AppLayout.Content` and `AppLayout.SidePanel` now carry `view-transition-class: app-layout-card`, and `mantle.css` styles the view transition between them. When an app gives the card and the panel the same `view-transition-name`, a navigation that swaps one for the other morphs between them in 300ms. The morph clips to the card's corners, does not stretch text, and is a cut under reduced motion. An app no longer needs its own view transition stylesheet for this.
+
+  Add `useScrollAnchor` to `@ngrok/mantle/hooks`. It keeps the reader's place in some content when the content remounts at the same width or another, such as a conversation that moves from a page to the side panel.
+
+  The Assistant Across Routes recipe now uses React's `<ViewTransition>` in place of React Router's `viewTransition` prop, and keeps the reader's place across the switch.
+
+- [#1714](https://github.com/ngrok/mantle/pull/1714) [`6cfbebe`](https://github.com/ngrok/mantle/commit/6cfbebe34a57dd76df713683bd80b9586371138f) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Keep space for the scrollbar in `AppLayout.Body` and `AppLayout.SidePanelBody` with `scrollbar-gutter-stable`. A page no longer moves sideways when it starts to overflow. This matches `Dialog.Body` and `Sheet.Body`. Browsers with overlay scrollbars, such as macOS by default, show no change.
+
+  `AppLayout.Body`, `AppLayout.SidePanelBody`, `Dialog.Body`, and `Sheet.Body` all set `scrollbar-gutter-stable`. If you pass `scrollbar-gutter-stable` in the `className` of one of these parts, remove it: it has no effect.
+
+- [#1792](https://github.com/ngrok/mantle/pull/1792) [`8dc68b3`](https://github.com/ngrok/mantle/commit/8dc68b366e421a201eddde420edb3a0a7c705732) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `AppLayout.SidePanel` lets its close slide end before it turns its transitions off. Before, the panel turned them off about one frame early and the slide's last frame jumped. The panel now waits for its running transitions to finish, so a `duration-*` or `delay-*` that you set still sets the wait.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - When only the height of a dense `LineChart` or `AreaChart` changes, the chart no longer reads each row again. A dense chart has 4 or more rows for each device-pixel column. When the count of device-pixel columns changes, such as for a new width, the chart still samples the rows again.
+
+- [#1713](https://github.com/ngrok/mantle/pull/1713) [`00d4611`](https://github.com/ngrok/mantle/commit/00d46115971e68ee9b45ee207fcb0753d59cc027) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Make the chart enter animation easier to follow. When a `BarChart` first comes into view, its bars grow from the baseline one after another, in category order, instead of all at once. Each bar grows for 300ms, and the last bar starts at 300ms for any bar count, so the whole enter takes 600ms. A stacked column grows as one bar. A `LineChart` or an `AreaChart` series now sweeps in from the left over 600ms instead of 280ms, and a `ScatterPlot` series fades in over the same time. The enter uses the `ease-out-strong` curve. `prefers-reduced-motion` and `animate={false}` still show the chart at once.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - After an update animation ends, a chart no longer plays it again for equal data. A finished value tween could end one rounding step from its target. The next update with equal values, such as a poll that returns the same rows, then read as a change and ran a full tween that changed no pixel: 17 frames at 60 Hz. A finished tween now holds its exact target, and that update takes one frame. This applies to `AreaChart`, `BarChart`, `LineChart`, and `ScatterPlot`.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `LineChart` and `AreaChart` with string x values no longer animate an x domain that no paint reads. When a category came or went and the tick labels stayed, the chart painted the same picture 17 to 22 more times. It now paints one frame. A dense series, which draws one column for each device pixel, keeps its glide.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A chart that is not on screen no longer animates a data update while the page prints. Between `beforeprint` and `afterprint`, each chart on the page played the full update animation for each data update (32 to 37 frames), also a chart far from the viewport. Such a chart then kept the rest of the animation for the moment it came into view. A chart that is not on screen now paints the new data at once, and a chart on screen keeps its motion. The print itself now shows an update that had not reached a frame yet, settled.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The `tickFormat` docs of the chart axes now say that the chart compares the function by identity, so a new function paints the chart again. With the React Compiler in your build, an inline function stays stable; without it, define the function outside the component. This applies to the `XAxis` and `YAxis` parts of `AreaChart`, `BarChart`, `LineChart`, and `ScatterPlot`.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Keep the chart tooltip inside the plot when neither side of the hovered point has room for it. Before, on a narrow chart such as one on a phone, the tooltip went past the plot's right edge and made the page scroll horizontally. This applies to `AreaChart`, `BarChart`, `LineChart`, and `ScatterPlot`.
+
+- [#1872](https://github.com/ngrok/mantle/pull/1872) [`3fc6f79`](https://github.com/ngrok/mantle/commit/3fc6f7930a3138e9154c109821c5d74291004c73) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `@ngrok/mantle/checkbox` now exports `CheckboxGroup`, the card variant of `Checkbox` for a "select all that apply" question. It looks like `RadioGroup.Card`, but the user can check any number of cards.
+
+  - `CheckboxGroup.Root` is a `role="group"` element that holds the checked values: `value`, `defaultValue`, and `onValueChange` take a `string[]`. With a `name`, a form submits one entry for each checked value, and a form reset returns to `defaultValue`. It also takes `disabled` and `form`.
+  - `CheckboxGroup.Card` is a card with a native `<input type="checkbox">` that covers it. A click anywhere on the card toggles it, each card is its own Tab stop, and a screen reader outlines the whole card and stops once on it. Links, buttons, and form controls in the card keep their own clicks. A `Choice.Title` in the card names the checkbox, and a `Choice.Description` describes it. Style its state with `has-[>input:checked]:`, `has-[>input:disabled]:`, and `has-[>input:focus-visible]:`, or with `group-has-[>input:checked]/checkbox:` from a child.
+  - `CheckboxGroup.Indicator` draws a check box by default. Pass your own mark, or a render-props function that receives `checked` and `disabled`.
+  - `CheckboxGroup.ItemContent` holds the card's title and description, and it takes `asChild`.
+
+  Each part has a `data-slot`: `checkbox-group`, `checkbox-group-card`, `checkbox-group-card-label` (the `display: contents` wrapper of the card's children), `checkbox-group-indicator`, and `checkbox-group-item-content`.
+
+  See https://mantle.ngrok.com/components/forms/checkbox#cards.
+
+- [#1811](https://github.com/ngrok/mantle/pull/1811) [`202df9d`](https://github.com/ngrok/mantle/commit/202df9dd8cadadf38cb5b7c5496eebdb1e811f1e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Checkbox` takes `onCheckedChange(checked)`, in line with `Switch` and `DropdownMenu.CheckboxItem`. It runs with the new checked state after the native `onChange`. A click on an indeterminate box passes `true`.
+
+- [#1803](https://github.com/ngrok/mantle/pull/1803) [`685b99d`](https://github.com/ngrok/mantle/commit/685b99d49fd58180b311e254dc2c975108abd022) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `CodeBlock.ExpanderButton` shows the mantle focus ring on keyboard focus, as the other controls do. The ring draws inside the button, so the rounded `CodeBlock.Root` does not clip it. Before, the button showed the browser's default outline, which the root clipped.
+
+- [#1719](https://github.com/ngrok/mantle/pull/1719) [`fd5539a`](https://github.com/ngrok/mantle/commit/fd5539a7e9530b22cc9a8a186ea201b4ab9046af) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Make the fold toggle of a `CodeBlock` easier to tap. Its hit area is now 34px wide instead of 18px: it extends 12px into the empty space before the toggle and 4px into the gap after it. The toggle looks the same, and the layout does not change.
+
+- [#1721](https://github.com/ngrok/mantle/pull/1721) [`ac1ea8d`](https://github.com/ngrok/mantle/commit/ac1ea8db9f82b743c88e87b50609fa687ae53dec) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Give the fold toggles of a `CodeBlock` the spacing that WCAG 2.5.8 needs. A code block that has fold toggles now uses a 24px line height instead of 20px, and each toggle is 24px high, so the toggles of adjacent lines are 24px apart. A code block with no fold toggles shows no change.
+
+  The new `--mantle-code-fold-line-height` CSS variable holds the value. Set it to `1.25rem` on a code block to get the 20px lines again; the toggles of adjacent lines then fail the target-size check. A `leading-*` class on `CodeBlock.Code` also sets the line height, and each toggle fills its line.
+
+- [#1789](https://github.com/ngrok/mantle/pull/1789) [`0912720`](https://github.com/ngrok/mantle/commit/0912720d5b763ea4df1dae4b6ea473914bef119b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Command` answers faster when the query clears. It puts the items back in their first order with fewer DOM moves.
+
+- [#1860](https://github.com/ngrok/mantle/pull/1860) [`0b9cb48`](https://github.com/ngrok/mantle/commit/0b9cb48a0e0ba72a0e356e818ad1d9b06e10cfd7) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `ThemeProvider`, `ThemeSwitcher`, `ThemeDropdownMenuItem`, `SegmentedControl`, `useMatchesMediaQuery`, `usePrefersReducedMotion`, `getPrefersReducedMotion`, and a press on `Slider` no longer throw in jsdom, which has no `matchMedia` and no pointer capture. With no `matchMedia`, a media query answers `false` and reduced motion is on, as on the server. A consumer's test can render them and act on them by role with no shims.
+
+- [#1738](https://github.com/ngrok/mantle/pull/1738) [`ecd9a10`](https://github.com/ngrok/mantle/commit/ecd9a10f2ef674523ed97b8bf55903653c19d7de) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Mantle components merge their own static class names at build time. The published components call `cx` only when a consumer passes `className` or a class name is not known at build time. Of the 332 `cx` calls in mantle components, 19 become string literals and 267 merge only when `className` is set. The class names that the components render do not change.
+
+- [#1737](https://github.com/ngrok/mantle/pull/1737) [`1048268`](https://github.com/ngrok/mantle/commit/1048268b239cdf231eb51d5d5756e66bed5d806c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `cx` resolves Tailwind CSS conflicts with mantle's own merge instead of a port of `tailwind-merge`. The `@ngrok/mantle/cx` bundle is about 26% smaller (6.7 KB gzip, from 9.1 KB). In V8 (Node 26), the first render of 400 `cx` calls takes about 30% less time, a call that misses the cache is about 2× faster, and `cx` keeps about half the memory.
+
+  The output is the same as before for the class strings in mantle and its main consumers. The merge covers the classes that mantle and its apps write; `decisions/2026-11-21-cx-merge-scope.md` lists the custom classes and arbitrary values where it does not match `tailwind-merge`. The output now matches `tailwind-merge` 3.7 where a shorthand utility sets the same CSS property as an earlier utility, which the old port missed:
+
+  - `place-items-*`, `place-content-*`, and `place-self-*` replace an earlier `items-*`, `content-*`, `self-*`, or `justify-*` class.
+  - `px-*`, `py-*`, `mx-*`, `my-*`, `scroll-mx-*`, `scroll-px-*`, `inset-x-*`, `inset-y-*`, and the `border-x-*` and `border-y-*` widths and colors replace their logical sides, such as `ps-*` or `border-s-*`.
+  - `mask-x-*` and `mask-y-*` gradient stops replace an earlier `mask-l-*`, `mask-r-*`, `mask-t-*`, or `mask-b-*` stop.
+  - `sr-only` replaces an earlier position, size, padding, margin, overflow, or `whitespace-*` class, because it sets each of them.
+  - The logical sizes (`inline-*`, `block-*`, `min-inline-*`, `max-block-*`, …) merge across all their values, such as `inline-1/2` and `inline-4xl`.
+  - `bg-conic` is a background image, so it keeps a background color. `shadow-inner` is a shadow size, so it keeps a shadow color.
+
+- [#1788](https://github.com/ngrok/mantle/pull/1788) [`4d94386`](https://github.com/ngrok/mantle/commit/4d943867e6215358d5e708bc245bd65ce72bae6d) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Tailwind no longer builds CSS from the class names in `cx`'s merge tables. Tailwind scans mantle's built JavaScript, and the tables listed about 180 classes by name, such as `invert-theme`, `backdrop-blur`, `snap-x`, and `mask-add`. So each page that imported a mantle component got those classes, used or not, and got the whole `invert-theme` island. The tables now separate names with commas, which Tailwind's scanner does not split on.
+
+  Measured with Tailwind 4.3.5 and the files that `mantleSourcesPlugin` lists, a marketing page drops from 107.7 KiB to 80.2 KiB minified (19.6 KiB to 15.6 KiB gzipped), and a product page from 158.9 KiB to 132.7 KiB (27.6 KiB to 22.0 KiB gzipped). With `mantleThemePrunePlugin`, the marketing page drops from 97.8 KiB to 73.3 KiB (17.7 KiB to 13.6 KiB gzipped).
+
+  A class that your app writes only in a runtime string, such as a class name from an API, may now build no CSS, because mantle's tables no longer add it by accident. Add it with `@source inline("…")` in your app's CSS.
+
+- [#1791](https://github.com/ngrok/mantle/pull/1791) [`0bada77`](https://github.com/ngrok/mantle/commit/0bada773a405981fd91df24780ebbe9d2385b398) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - In Firefox, a click on text that is selected in a clickable `DataTable` row now only clears the selection. Before, it also ran the row's `onClick`. Chromium and Safari already worked this way.
+
+- [#1797](https://github.com/ngrok/mantle/pull/1797) [`08422a4`](https://github.com/ngrok/mantle/commit/08422a45541253e1a5b3d0e6ea930843f1c2bd6f) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Correct the JSDoc of `Dialog`, `AlertDialog`, `Sheet`, and `Sidebar`: the browser makes the page behind a modal dialog inert, and Tab can move from the dialog to the browser UI. It does not trap focus in the dialog.
+
+- [#1785](https://github.com/ngrok/mantle/pull/1785) [`7882394`](https://github.com/ngrok/mantle/commit/788239440681e43276aacaa6ef7978a5d266dd78) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Dialog`, `Sheet`, `AlertDialog`, and `Command.DialogRoot` now return focus on close to the element that had focus when the dialog opened. Before this change, a dialog that opened with no `Dialog.Trigger`, such as from a keyboard shortcut or from controlled state, left focus on `<body>`, and a dialog with a trigger always returned focus to the trigger. If the element that had focus is gone or cannot take focus, focus goes to the trigger as before. A consumer `onCloseAutoFocus` that calls `preventDefault()` still owns the focus.
+
+- [#1809](https://github.com/ngrok/mantle/pull/1809) [`4fff3d7`](https://github.com/ngrok/mantle/commit/4fff3d78570fbed4a887aebb68cc1c1d452af156) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix three `Dialog`, `AlertDialog`, and `Sheet` bugs in Safari, Firefox, and jsdom:
+
+  - Safari: in a stack of modal dialogs, script focus could still reach a control in a dialog under the top one. The panel of each dialog under the top modal now takes `inert`.
+  - Firefox: a dialog that a key opens shows a focus ring on its first control again, also when its trigger got focus back from a dialog that a press opened.
+  - jsdom: a dialog opens and closes again in a test that clicks its trigger. jsdom has no `showModal()`, `show()`, or `close()`, so the dialog now sets and removes the `open` attribute when they are missing.
+
+- [#1771](https://github.com/ngrok/mantle/pull/1771) [`e8a7508`](https://github.com/ngrok/mantle/commit/e8a7508637f4cf1cf5fe6d5088af8adeaaf5a737) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `mantle.css` no longer emits Tailwind's `color-mix()` fallbacks. Tailwind wrote a fallback declaration and an `@supports (color: color-mix(in lab, red, red))` block for each translucent color, such as `bg-neutral-500/20`, the shadow tokens, and the focus ring tokens. They cost up to 1.9 KB gz (with every mantle class) and applied only below Tailwind 4's browser floor (Safari 16.4, Chrome 111, Firefox 128). In a browser without `color-mix()`, such as Safari 16.1 and earlier, translucent fills, shadows, and focus rings no longer show. Text stays readable.
+
+  An app that has its own `@import "tailwindcss"` before `mantle.css` keeps the fallbacks on its utilities and shadow tokens. Remove that import: `mantle.css` imports Tailwind. An app's own CSS, such as `@apply bg-neutral-500/20` in a stylesheet or a CSS module, keeps its fallbacks.
+
+- [#1868](https://github.com/ngrok/mantle/pull/1868) [`9648ba2`](https://github.com/ngrok/mantle/commit/9648ba2e67e96e97fdef5fb32dd6967d777f555f) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Clarify the `@useWhen` tags of `Accordion`, `Alert`, `Badge`, `Choice`, `DataTable`, `SegmentedControl`, `Select`, `Tabs`, and `Toast`, the first JSDoc sentence of `Toast`, and the aliases of `Alert` and `RadioGroup`. `dist/agent.json` carries the new text, so an agent that searches for "inline alert", "radio cards", "error toast", "expiry duration", or "custom tab markup" finds the correct part.
+
+- [#1746](https://github.com/ngrok/mantle/pull/1746) [`fa9974d`](https://github.com/ngrok/mantle/commit/fa9974d3d8d29c087e4614c57c24952ade263c80) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Agents and people can now find Strata, Media Object, Choice, and App Layout by how designers describe them. `dist/agent.json` and the docs-site Model Context Protocol (MCP) `find` tool read these words:
+
+  - Strata has the aliases `form section`, `two-column form`, `two-column layout`, `description left controls right`, `label and description on the left`, and `group of info on the left form fields on the right`. Its `useWhen` now names long forms and the title and description on the left.
+  - Media Object has the aliases `icon on the left text on the right`, `image beside text`, and `avatar beside text`.
+  - Choice has the alias `checkbox on the left label on the right`, so a single control row still ranks Choice above Strata.
+  - The App Layout `useWhen` now says that the header holds the page heading and its actions.
+
+- [#1814](https://github.com/ngrok/mantle/pull/1814) [`e9b0b72`](https://github.com/ngrok/mantle/commit/e9b0b7276c2cbf190a01d4f990351495d67e79ba) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Popover`, `Tooltip`, `HoverCard`, and `DropdownMenu`: when the content fits on neither side of its trigger, it now opens on the side with more room, as it did with Radix in 0.94.1. Before, it stayed on its preferred side, and a menu near the bottom of a short window was capped to the small room below its trigger.
+
+- [#1776](https://github.com/ngrok/mantle/pull/1776) [`d60e1cf`](https://github.com/ngrok/mantle/commit/d60e1cf6f4defbf01f63ac27c2487add8fbfe109) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Popover`, `Tooltip`, and `HoverCard`: an open float now follows a custom `asChild` trigger, or a `Popover.Anchor`, that replaces its own element. Before, the float stayed at the place of the old element.
+
+- [#1833](https://github.com/ngrok/mantle/pull/1833) [`a7d9ad8`](https://github.com/ngrok/mantle/commit/a7d9ad88d80bc47d1d4ead1756a9a10c1b41faeb) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Close `Popover`, `DropdownMenu`, and the other floats when an outside press ends, as a native `popover="auto"` does.
+
+  - A touch scroll that starts outside a float no longer closes it. A press that ends in the float keeps it open.
+  - A right click or Control click still closes the float when it starts.
+  - `onPointerDownOutside` and `onInteractOutside` still run when the press starts. The focus move of that press no longer calls `onFocusOutside` or `onInteractOutside` a second time.
+  - A controlled `DropdownMenu` that refuses to close keeps the click of the outside press, and the next outside press asks it to close again.
+
+- [#1808](https://github.com/ngrok/mantle/pull/1808) [`e542ff8`](https://github.com/ngrok/mantle/commit/e542ff80d6419a15299ad56a7d63f3f07f921636) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Select`, `Combobox`, `MultiSelect`, `DropdownMenu`, `Popover`, `Tooltip`, and `HoverCard` show their content in jsdom again, as in 0.94.1. A test can find the options, menu items, and dialog by their roles. In a browser with no popover API, the content no longer has a `popover` attribute: jsdom hides each `[popover]` that is not open, and it has no `showPopover`.
+
+- [#1782](https://github.com/ngrok/mantle/pull/1782) [`541fe98`](https://github.com/ngrok/mantle/commit/541fe9890dbae79598ca17f071d52c70bdd3ab23) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Stop overscroll bounce and scroll chaining in floats. `Popover`, `Tooltip`, and `HoverCard` content that scrolls, and the `Command` list, no longer bounce or scroll the page at their ends.
+
+- [#1721](https://github.com/ngrok/mantle/pull/1721) [`ac1ea8d`](https://github.com/ngrok/mantle/commit/ac1ea8db9f82b743c88e87b50609fa687ae53dec) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add the `focus-ring` utility: the shared focus ring of mantle. It draws a 4px ring in a focus color, in place of the browser outline. Put a state variant before it, such as `focus-visible:focus-ring`. `focus-ring` is the accent ring; `focus-ring-danger`, `focus-ring-warning`, `focus-ring-success`, and `focus-ring-neutral` are the other tones. A `ring-focus-*` class or a `ring-*` width class on the same element overrides the tone or the width. The [Focus Ring](https://mantle.ngrok.com/base/focus-ring) page lists the rules.
+
+  The mantle controls now use the utility. Their focus rings do not change, with one exception: the focus ring of a fold toggle in a `CodeBlock` is now the mantle ring, not a 2px outline, and it shows above the adjacent lines.
+
+- [#1863](https://github.com/ngrok/mantle/pull/1863) [`745cdce`](https://github.com/ngrok/mantle/commit/745cdce10a7d7f75b1676eca582522f58a3df6c8) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Update dependencies within the 6h minimum release age.
+
+- [#1805](https://github.com/ngrok/mantle/pull/1805) [`ee13438`](https://github.com/ngrok/mantle/commit/ee13438b1ad06e0eb7439b6ef5c60a59aa30fba4) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `HeadlessTabs` to `@ngrok/mantle/tabs`: tabs with the behavior of `Tabs` and no look of their own, for pages that draw tabs in their own visual language, such as a marketing page. `HeadlessTabs.Root`, `HeadlessTabs.List`, `HeadlessTabs.Trigger`, and `HeadlessTabs.Content` take the props of the `Tabs` parts, except `appearance`.
+
+  The parts keep the keyboard and ARIA contract, `hiddenUntilFound`, the scroll of a keyboard-focused tab into view, link tabs through `asChild`, and the mantle focus ring for keyboard focus. A pointer press focuses a trigger without the ring. They stamp the same `data-slot`, `data-state`, `data-orientation`, and `data-disabled` attributes as `Tabs`, so style the states with `data-state-active:` and `data-state-inactive:`. The two namespaces share one state, so a `HeadlessTabs.Trigger` works inside a `Tabs.List`.
+
+  A page that imports `@radix-ui/react-tabs` for its own tab look can change the import to `HeadlessTabs` and keep its JSX. The behavior and look of `Tabs` do not change. Its parts now render the `HeadlessTabs` parts, so the class string of `Tabs.Trigger` starts with the focus-ring classes, and `Tabs.Content` outside a root throws the `HeadlessTabs.Content` message.
+
+  See https://mantle.ngrok.com/components/navigation/tabs#headless-tabs.
+
+- [#1719](https://github.com/ngrok/mantle/pull/1719) [`fd5539a`](https://github.com/ngrok/mantle/commit/fd5539a7e9530b22cc9a8a186ea201b4ab9046af) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add the `hit-area` utility, an escape hatch for a control that must stay small. It gives the control a tap target of at least 44px by 44px with no change to its look or the layout. The hit area is an invisible `::after` pseudo-element, centered on the control. Set `--hit-area-size` for another minimum.
+
+  Do not use it by default: first make the control the correct size. The [Hit Area](https://mantle.ngrok.com/base/hit-area) page lists when to use it, when not to, and the risks.
+
+  The thumb of a `Slider` now uses `hit-area`. Its tap target is 44px wide instead of 34px. With more than one thumb, the tap target grows only across the track, so it does not cover an adjacent thumb.
+
+- [#1756](https://github.com/ngrok/mantle/pull/1756) [`06f8ee0`](https://github.com/ngrok/mantle/commit/06f8ee0334cf12f14b4c66d8c1d682837e73f7be) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `IconButton` now accepts `children` only with `asChild`. Before, `<IconButton …>Copy text</IconButton>` type-checked, and the button dropped the children at runtime and rendered the `icon` alone. Now that call site is a type error. With `asChild`, the one child is still the element that renders.
+
+  `Alert.DismissIconButton`, `Dialog.CloseIconButton`, `Sheet.CloseIconButton`, `Field.HelpTrigger`, and `DataTable.RowExpandButton` take the same rule. `SplitButton.MenuTrigger` takes no `children`. The change is to types only: the runtime code and the bundle do not change.
+
+  Two valid patterns can stop compiling:
+
+  - A wrapper typed `Omit<IconButtonProps, "icon">` or `Omit<ComponentProps<typeof IconButton>, "icon">` that spreads its props into `IconButton`. `Omit` merges the two branches of the `asChild` union. Use an `Omit` that keeps each branch:
+
+    ```ts
+    type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
+    type MyIconButtonProps = DistributiveOmit<IconButtonProps, "icon">;
+    ```
+
+  - A dynamic `asChild={isLink}`. Render one `IconButton` for each case instead:
+
+    ```tsx
+    isLink ? (
+    	<IconButton asChild {...props}>
+    		<a href={href} />
+    	</IconButton>
+    ) : (
+    	<IconButton {...props} />
+    );
+    ```
+
+- [#1768](https://github.com/ngrok/mantle/pull/1768) [`822bc2c`](https://github.com/ngrok/mantle/commit/822bc2c90ffd786f76cd4072146db4f6fa50680d) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `IconButton` renders its loading spinner only while `isLoading` is `true`. An idle `IconButton` now renders its icon in one wrapper, with no hidden spinner and no `IconSwap` markup: four fewer elements for each button. While loading, the spinner sits over the icon in the same box, so the button does not change size. The spinner fades in. When loading ends, the spinner goes at once and the icon fades back in.
+
+  `IconButton` no longer renders `data-slot="icon-swap"` or `data-slot="icon-swap-item"`. A test that finds its icon with `[data-slot="icon-swap-item"][data-state="active"] svg` must query `svg` instead. A `[&_svg]` selector on the button still reaches the icon. `Button` does not change.
+
+- [#1752](https://github.com/ngrok/mantle/pull/1752) [`c835d92`](https://github.com/ngrok/mantle/commit/c835d924ea301662d7870e7bdd15ac9d255a337e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Ship the `invert-theme` island CSS only to pages that use it. `mantle.css` now declares the island's palette aliases and its light palette restore as `@utility invert-theme`, so Tailwind emits them only when a scanned file names the class. Before, every build shipped them.
+
+  With `mantleSourcesPlugin`, a marketing page without an island drops from 127.9 KB to 113.9 KB minified (21.8 KB to 18.4 KB gzipped), and from 103.4 KB to 92.8 KB with `mantleThemePrunePlugin`. With `source-all.css` and no plugin, the build scans `Sandbar`, so it still ships the island CSS.
+
+  What changes for an island:
+
+  - Write the bare class in full in a scanned file, such as `className="invert-theme"`. A name that only script builds, such as `"invert-" + theme`, gets no island palette. To keep one, add `@source inline("invert-theme");` to your stylesheet.
+  - Use the bare class only. Tailwind accepts `md:invert-theme`, `hover:invert-theme`, and `invert-theme!`, but they flip only the palette, not the semantic tokens.
+  - The island rules now sit in `@layer utilities`. Your own unlayered rule on the island element, and a utility that sets the same custom property, can now override them.
+
+  Every `invert-theme` use in ngrok's apps is a literal class in a scanned file.
+
+- [#1858](https://github.com/ngrok/mantle/pull/1858) [`f08bd79`](https://github.com/ngrok/mantle/commit/f08bd796c11b6e0d2f4bc887cb0d6c69a26a8252) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Correct the JSDoc examples of `OverlayPrompt` and `useTheme`: each `Button` now sets its required `intent`, and the `useTheme` one also sets `appearance`. The `useMatchesMediaQuery` example now builds its `className` with `cx`.
+
+- [#1739](https://github.com/ngrok/mantle/pull/1739) [`d859fd1`](https://github.com/ngrok/mantle/commit/d859fd1535018b3c54e7bbe05a05a55f6edd6a17) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Switch` and `ProgressBar` no longer use a third-party primitive. Mantle drops `@radix-ui/react-switch` and `@radix-ui/react-progress`.
+
+  Bundle sizes (gzip, React external): `Switch` 14.5 KB → 11.2 KB, `ProgressBar` 12.7 KB → 10.9 KB.
+
+  - `Switch` renders its hidden checkbox only when it has a `name` or `required`. A form reset returns an uncontrolled switch to `defaultChecked`. Its type no longer offers `asChild`, which never worked: the switch slotted its props onto its own thumb.
+  - `ProgressBar.Root` sets `aria-valuetext` to the percent, as before.
+
+- [#1810](https://github.com/ngrok/mantle/pull/1810) [`1eacd3f`](https://github.com/ngrok/mantle/commit/1eacd3fdf1a533b1230706592117fb8b269adbfd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `DropdownMenu` and `Command.List` now cue their scrolling edges with `scroll-cue-y`, the same cue as the `Select`, `Combobox`, and `MultiSelect` lists, in place of the `scroll-fade-y` mask.
+
+  - The cue shows in every engine, and it does no style work while you scroll or type. With the mask, a `Command` query that made the list scrollable again restyled the whole list a second time.
+  - The scrolling element gets `data-overflow-top` and `data-overflow-bottom` while it has items past that edge.
+  - In every list with the cue, a group label that scrolls past the top or bottom edge now cues that edge too, not only an item.
+
+- [#1783](https://github.com/ngrok/mantle/pull/1783) [`9ae7c0e`](https://github.com/ngrok/mantle/commit/9ae7c0ea7d83776dbf9d24c0d0d8d46e3d52323e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `OtpInput` no longer depends on `input-otp`. `OtpInput.Root` renders its own native `<input>` over the slots, with `autocomplete="one-time-code"`, `inputmode="numeric"`, `maxlength`, and `pattern`, so typing, paste, IME, SMS fill, and password manager fill stay with the browser. The parts, the props (except `nonce`), the look, the server HTML, and the accessibility tree do not change.
+
+  - The `otp-input` entry is about 1.7 KB smaller (gzip). It adds no `<style>` element at runtime, and the input's styles are static CSS in the `otp-input-overlay` utility of `mantle.css`.
+  - An `OtpInput` has no timers and no listeners while it is not focused. Each instance no longer measures its ancestors once a second, and it listens for `selectionchange` only while it has focus.
+  - On a page with 200 codes (Chromium, 4× CPU slowdown), the script time until hydration is about half, and hydration ends 17 to 34% sooner across three measured runs.
+  - In right-to-left text, a click on the code puts the caret after the last character, so typing appends. The outer corners of each group are rounded on the correct side.
+  - `OtpInput.Slot` outside `OtpInput.Root` throws a descriptive error.
+  - `OtpInput.Root` adds no `<style>` at runtime, so `nonce` has no effect. It goes to the `<input>` as an attribute. A `noScriptCSSFallback` string renders a `<style>` with no `nonce` in a `<noscript>`.
+  - With JavaScript off, the fallback input uses mantle's form colors. It needs `@media (scripting: none)` (Chrome 120, Safari 17, Firefox 113).
+
+  https://mantle.ngrok.com/components/forms/otp-input
+
+- [#1811](https://github.com/ngrok/mantle/pull/1811) [`202df9d`](https://github.com/ngrok/mantle/commit/202df9dd8cadadf38cb5b7c5496eebdb1e811f1e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Select.Item`, `Combobox.Item`, and `MultiSelect.Item` accept a function child, `(props, { highlighted }) => element`. Use it when a highlighted row must render different content, such as a preview. Spread `props` on the element you return, and write the label inside it. The label span and the check move inside your element, as with `asChild`. Give a `Select.Item` with a function child a `textValue`: it is the label `Select.Value` shows, and without it `Select.Value` shows the `value`. Only a row with a function child re-renders when the highlight moves. To restyle the highlighted row only, keep using the `data-highlighted:` variant.
+
+- [#1759](https://github.com/ngrok/mantle/pull/1759) [`1e0f2d2`](https://github.com/ngrok/mantle/commit/1e0f2d265b3a626285599ecbecd5a92635998563) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Ship mantle's Phosphor icons with only the weights mantle renders. The package bundles each icon module it uses and drops the weights no mantle component renders, so an app gets the smaller icons with no setup. On a page that imports every mantle component, mantle's icon data drops from 16.7 KB to 5.1 KB gzipped.
+
+  - Each icon ships in its own chunk, so your bundler drops each mantle icon that a page never renders.
+  - `@phosphor-icons/react` stays a peer dependency. mantle's icons import its `IconBase` and `IconContext` from your installed copy, so they share one runtime with your own icons.
+  - A mantle icon that renders without a `weight` keeps `regular` only. If your app sets another weight through `IconContext`, that icon renders empty.
+  - `ThemeIcon`, `AutoThemeIcon`, and `SortIcon` always render the `regular` weight, and no longer follow an `IconContext` weight.
+
+- [#1774](https://github.com/ngrok/mantle/pull/1774) [`730b9a6`](https://github.com/ngrok/mantle/commit/730b9a6ad262bc2902c7d98d10193c7e50140a8b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A closed `Select`, `Combobox`, or `MultiSelect` costs less on the page. A page with many pickers loads, hydrates, and holds less memory.
+
+  - A closed `Select.Content`, `Combobox.Content`, or `MultiSelect.Content` mounts nothing. The popup, its portal host, and the list store start when the list opens, so the pickers add no second commit to hydration.
+  - `Select.Trigger`, `Combobox.Input`, and `MultiSelect.Input` no longer subscribe to the list. The open list sets their `aria-activedescendant` and removes it when the list closes. A move of the highlight re-renders only the two options that change. The parts own this attribute: `Select.Trigger` now ignores an `aria-activedescendant` prop, the same as the two inputs.
+  - `Select.Value` subscribes to the list only when it cannot find the selected item's text among the `Select.Item` elements.
+  - The select caret, the item check, and the tag remove and lock icons render as one `<svg>` each. They keep `data-slot="icon svg-only"`, `aria-hidden`, and their size and color classes. They no longer read a Phosphor `IconContext` that an app sets.
+  - The class lists of the three `Content` parts fold at build time, so an open runs no class merge.
+
+- [#1778](https://github.com/ngrok/mantle/pull/1778) [`4353ac9`](https://github.com/ngrok/mantle/commit/4353ac945d092918d38d56c0588764f280e0ded1) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Select`, `Combobox`, and `MultiSelect` open faster and behave like a native select. The parts and their nesting do not change.
+
+  - `Select` and `MultiSelect` are no longer modal, the same as a native select and `Combobox`. While the list is open, the page scrolls and stays reachable to assistive technology: no `inert` on the rest of the page and no scroll lock on `<html>`. Focus stays on the trigger or input, Tab stays held, Escape closes the list, and a primary press outside closes the list without its click reaching the page. In `MultiSelect`, Shift+Tab from the first control in the list goes back to the input.
+  - `Select.Content`, `Combobox.Content`, and `MultiSelect.Content` are `popover="manual"` elements in the top layer, so an open list paints above the page and every overlay. They portal into the overlay or float that holds them, else into `document.body`. A browser with no popover API shows a fixed box at `z-50`, as before. The wrapper `<div>` around each list is gone.
+  - The lists use the native float placement that `Popover` uses, from script. A list that fits on neither side opens on the side with more room, as before. In a right-to-left document, a list now lines up with the trigger's right edge, as `Popover` does.
+  - The open list writes each option's `data-highlighted` (and, in `Combobox`, `aria-selected`) itself, so opening the list and moving the highlight with the keyboard or the pointer re-render no option. An open needs no `flushSync`. The highlighted option scrolls into view inside the list only, never the page.
+  - An open list that an overlay covers, such as a controlled picker left open under a dialog that does not hold it, waits until that overlay closes, as `Popover` does. The top layer would otherwise paint it over the dialog.
+
+- [#1786](https://github.com/ngrok/mantle/pull/1786) [`1ff99ad`](https://github.com/ngrok/mantle/commit/1ff99ad58b08b5f6353fe7efbd01cedd4fc00e67) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The `Select`, `Combobox`, and `MultiSelect` lists now fade the top or bottom edge while more options sit past it, so a long list shows that it scrolls.
+
+  - The list gets `data-overflow-top` and `data-overflow-bottom` while it has options past that edge. An `IntersectionObserver` sets them only when an edge flips, so a scroll runs no script. The new `scroll-cue-y` utility draws each fade as a sticky gradient over the list. It masks nothing, so the border, shadow, and open animation stay whole, and it works in every engine.
+  - The keyboard highlight now stops 1.5rem from each edge (`scroll-py-6`), so it never sits under a fade. A list too short for that shares the room, so the option still shows in full.
+  - With a `MultiSelect.ContentFooter`, only the top edge fades, because the sticky footer sits on the bottom edge.
+  - The `Command` highlight now also stops clear of its `scroll-fade-y` edges, because `Command.List` already sets `scroll-py-6` and the shared list scroll now honors it.
+
+- [#1780](https://github.com/ngrok/mantle/pull/1780) [`bda7515`](https://github.com/ngrok/mantle/commit/bda7515b93eea7f664a4fdf267632f659b32b165) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Select.Content`, `Combobox.Content`, and `MultiSelect.Content` hide their scrollbar and stop overscroll. A list still scrolls by wheel, touch, and keyboard. In a list that scrolls, a scroll past either end does not bounce and does not scroll the page.
+
+- [#1796](https://github.com/ngrok/mantle/pull/1796) [`9775b19`](https://github.com/ngrok/mantle/commit/9775b1969ccddcb70cceb34c7ebd7718add5256f) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Keep `Tab` inside an open `Popover`, as in 0.94.1. `Tab` on the last tab stop of `Popover.Content` moves focus to the first one, and `Shift+Tab` on the first moves focus to the last. The native content portals to the end of the body, so without this wrap `Tab` moved focus out of the page and left the popover open. Between the first and last stops, the browser moves focus, as with Radix. A `Dialog` opened from the content and a React child portaled out of it keep their own `Tab` order. `Field.HelpContent` is a `Popover.Content` and wraps the same way.
+
+- [#1829](https://github.com/ngrok/mantle/pull/1829) [`540eca1`](https://github.com/ngrok/mantle/commit/540eca11c730c5dc588f70a440f5aef412c4bb2b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A server-rendered `QrCode` now ships no encoder to the browser. The server render puts the finished SVG in the HTML, and hydration keeps it, so the client bundle no longer holds the `uqr` encoder (about 3.6 KB gzip). The API and the markup do not change, and the drawn code is the same.
+
+  A `QrCode` that the browser renders loads the encoder one time, then draws. This applies to a client navigation, a popover, a prop change, and an app that renders only in the browser (an SPA or Storybook). Until the encoder arrives, the frame shows an empty tile of the same size, and a test that reads the `d` attribute must wait for it. If the encoder fails to load, `QrCode.Root` throws to the nearest error boundary.
+
+  A bundler picks the encoder with the conditions of `package.json#imports`. A server bundle gets it at import, and this includes `workerd` and `edge-light`. A server bundle that resolves only `browser` waits for the encoder with `use`: streaming and `prerender` work, and `renderToString` throws until the first load ends.
+
+  See https://mantle.ngrok.com/components/data-display/qr-code.
+
+- [#1866](https://github.com/ngrok/mantle/pull/1866) [`00723f5`](https://github.com/ngrok/mantle/commit/00723f59a37c94313e24eb24209ea0438d33678f) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Query.Content` grows no taller than the room between the field and the viewport edge, as `Combobox`, `Select`, and `DropdownMenu` do. When the room is short, the popover scrolls. Before, a field near the bottom of the viewport pushed `Query.Footer` off screen, out of reach. The list now hides its scrollbar and fades an edge while rows sit past it, as the pickers do.
+
+  The `/` hint of `Query.Input keyboardShortcut` no longer shows on a device that can't hover, such as a phone, because it usually has no key to press. The shortcut and `aria-keyshortcuts` stay.
+
+- [#1708](https://github.com/ngrok/mantle/pull/1708) [`2fdab59`](https://github.com/ngrok/mantle/commit/2fdab59e4213d4d8b6f9bc6752b936f0c3f69537) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add an opt-in `/` shortcut to `Query.Input`. Set `keyboardShortcut` to let `/` move focus into the field from anywhere on the page. The field then shows a `/` hint while it is empty and not focused, and the `<input>` carries `aria-keyshortcuts="/"`. The shortcut is off by default, because a page with many tables has many fields and `/` can focus only one. The key still types a slash in any text field.
+
+- [#1831](https://github.com/ngrok/mantle/pull/1831) [`c944619`](https://github.com/ngrok/mantle/commit/c9446198f1ec8db943fb887ff4b9585271fd0d12) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A screen reader outlines the whole `RadioGroup` or `SegmentedControl` item again, as in 0.94.1, and stops once on each item. The native radio covers its item, over the item's content. The content's text is hidden from assistive technology, because it already names the radio; an item whose content holds a link, button, label, or form control keeps it visible. Those controls sit over the radio. A Playwright or Cypress click by the item's text now lands on the radio; click it by its role or label.
+
+- [#1779](https://github.com/ngrok/mantle/pull/1779) [`4d5d77b`](https://github.com/ngrok/mantle/commit/4d5d77b34d3deccff301265999dae9a3de7b460c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `RadioGroup`, `SegmentedControl`, and radio `Choice` items hydrate about 10% faster: 246 ms in place of 276 ms for 1,200 items in Chromium with a 4× CPU throttle (median of 15 paired runs). Each item finds a title `<label>` without a selector query, and gives its parts one context in place of two. Every `RadioGroup.Indicator` with no children shares one default circle element.
+
+- [#1779](https://github.com/ngrok/mantle/pull/1779) [`4d5d77b`](https://github.com/ngrok/mantle/commit/4d5d77b34d3deccff301265999dae9a3de7b460c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A test can click a `RadioGroup` or `SegmentedControl` radio by its role, as in 0.94.1. Playwright `getByRole("radio").click()` and `check()`, and Testing Library `user.click()`, work without `force`. The radio is a small invisible box at the middle of the item's start edge, so a click at its center lands on the radio itself.
+
+- [#1773](https://github.com/ngrok/mantle/pull/1773) [`d20c95a`](https://github.com/ngrok/mantle/commit/d20c95a13a424813aeb67b1a5b42e234e479009e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Mantle no longer ships React Compiler output by default. A component or hook ships compiled only when it starts with `"use memo"` and a browser benchmark shows a better Interaction to Next Paint (INP). Today none does. Every component still passes the compiler's strict validations.
+
+  Against a build that compiles every component with a hook, all of mantle's JavaScript is 69.6 KB (gzip, 22%) smaller, a page loads 6 to 13 KB gzip less, and its heap is up to 5% smaller. At 4× CPU, MultiSelect and Combobox typing, charts, and `DataTable` respond as fast as the compiled build, and Select responds faster. A file with no `"use client"`, such as `Card`, builds to a chunk with no `"use client"`, so a server component can render it.
+
+  These parts now keep a stable ref callback without the compiler, so a callback ref that you pass runs once, not on each re-render:
+
+  - `Select.Trigger` and `Select.Root`
+  - `MultiSelect.Trigger` and `MultiSelect.Tag`
+  - `MultiSelect.Content`, `Combobox.Content`, and `Select.Content`, which no longer place the popup again on each keystroke
+  - every part that renders through `Slot` (`asChild`)
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Two `ScatterPlot` fixes:
+
+  - An `aria-labelledby` that names an ancestor of the chart no longer throws "Maximum update depth exceeded" when the chart takes focus. Before, the caption of the screen-reader data table read the text of that ancestor, which held the caption itself, so each render made the caption longer. The caption now skips the text of the data table.
+  - In forced-colors mode (Windows High Contrast), a color that the chart resolves through a hidden element inside `Root` keeps its own value: a `var()` with a fallback, a `var()` or a `currentColor` inside another function such as `color-mix()`, or `light-dark()`. Before, each such color painted as the system text color.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `ScatterPlot` draws a round point with about half the canvas work. Each circle recorded a `moveTo` before its `arc`, and Chromium then records the circle as a general path. A round point is now one bare `arc`. In headless Chromium 158 on an Apple M3 Max, one paint of 5,000 points with rings takes 2.5 ms in place of 4.7 ms, and one paint of 10,000 points takes 2.3 ms in place of 6.2 ms (a 960 by 400 canvas at a device pixel ratio of 2, median of 4 interleaved rounds). A 3D plot, which paints each frame of a rotation, gets the same gain. In Chromium, the edge pixels of a round point change: it has the antialiasing of a circle again, as before 0.94.0. The other point shapes paint the same pixels.
+
+- [#1850](https://github.com/ngrok/mantle/pull/1850) [`95517a3`](https://github.com/ngrok/mantle/commit/95517a387e6e34f3d2b7de85d569e8ac93be954a) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Screen readers announce more of what changes, and say less twice:
+
+  - `MultiSelect` says which value a removed tag held, such as "Removed apple", in a polite status. It says nothing when a controlled `value` keeps the tag.
+  - `ThemeSwitcher` says the theme a click applied, such as "Dark theme", in a polite status.
+  - `Popover.Content` takes its dialog name from its trigger when it opens. An `aria-label` or `aria-labelledby` replaces it.
+  - `Command.Input` is named "Search" when it has no other name: no `label`, `aria-label`, `aria-labelledby`, `<label>`, `title`, or `placeholder`.
+  - The tooltips of `Sidebar.Trigger` and `AppLayout.SidePanelTrigger` no longer repeat the button's name as its description.
+  - An arrow key in `Tabs` selects the tab before it takes focus, so NVDA reads the tab once. A tab's `onFocus` that calls `preventDefault()` no longer stops that selection. To stop an arrow key, call `preventDefault()` in the `onKeyDown` of the tab that has focus.
+  - In a modal `Dialog`, `Sheet`, or `AlertDialog`, Tab and Shift+Tab reach the next field when the field that loses focus renders on blur, such as a field that clears its error.
+
+- [#1790](https://github.com/ngrok/mantle/pull/1790) [`58fabc2`](https://github.com/ngrok/mantle/commit/58fabc2f0f570f2969b397c529204411a84856da) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Place `Popover`, `Tooltip`, `HoverCard`, and `DropdownMenu` from script in each browser, not with CSS anchor positioning. Chromium lays out an anchor-positioned element again on each frame of a transition on it, so each open fade cost about 12 layouts. Now an open costs one. The floats look and act the same.
+
+- [#1817](https://github.com/ngrok/mantle/pull/1817) [`bee7c57`](https://github.com/ngrok/mantle/commit/bee7c57941a8028db8887a2bc45d3de6d66ca0e5) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Dialog.Body` and `Sheet.Body` take a Tab while they scroll and hold no tab stop of their own, so a keyboard user can scroll them with the arrow keys in each browser. Chromium does this for each scroll container, and Safari does not. A body that does not scroll, or that holds a link, button, or field, gets no extra tab stop. Pass `tabIndex` to turn the automatic tab stop off.
+
+  In a DOM with no `ResizeObserver`, such as jsdom, the body takes no automatic tab stop.
+
+- [#1813](https://github.com/ngrok/mantle/pull/1813) [`604fb6f`](https://github.com/ngrok/mantle/commit/604fb6f2e0c5df8aef36ff2ccf33a9bb9852b7ca) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Floats, picker lists, and `OtpInput` work in jsdom, which has no `IntersectionObserver`, `ResizeObserver`, `scrollIntoView`, or `CSS.supports`. `Select`, `Combobox`, `MultiSelect`, `DropdownMenu`, `Popover`, `Tooltip`, and `HoverCard` threw when they opened, and the `Command` list threw when it rendered. `DropdownMenu` also threw on a keyboard open, and `OtpInput` threw on paste. Where an API is missing, a float places itself when it opens and on scroll and resize, and a list shows no edge cue.
+
+- [#1798](https://github.com/ngrok/mantle/pull/1798) [`da5e434`](https://github.com/ngrok/mantle/commit/da5e434d1d63186b5f766c42957e195d0c1d4cd9) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Keep focus on the `Select.Trigger` after a press outside the open list, as in 0.94.1 and as with a native select. A press on blank space closed the list and moved focus to the body. The press cancels its `pointerdown`, so a browser that still sends a `mousedown` after that, such as some touch browsers, can still move focus.
+
+- [#1806](https://github.com/ngrok/mantle/pull/1806) [`7045798`](https://github.com/ngrok/mantle/commit/70457982c029b22b83d8e2ab9b65e4f10c94172a) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Select.Trigger` shows the focus ring for keyboard use only, as `Button` does. A click that opens the list no longer shows the ring, and after the list closes, the clicked trigger no longer keeps the accent border. A Tab to the trigger and a failed `required` check still show them. In Chromium and WebKit, an arrow key in the open list also shows them; Firefox does not re-check `:focus-visible` on a key press after a click. The open list keeps the accent border on the trigger. `Combobox` and `MultiSelect` still show the ring on each focus, because the user types into them.
+
+- [#1763](https://github.com/ngrok/mantle/pull/1763) [`4b9fc34`](https://github.com/ngrok/mantle/commit/4b9fc34b82a531daf62a629f5f9b13099daf4f3a) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Server code can now call mantle's plain helpers, such as `extractThemeCookie`, `getStoredTheme`, `getOffsetPaginatedSlice`, `parseValidation`, `selectAllChecked`, `breakpoints`, and the `OtpInput` `REGEXP_ONLY_*` patterns. Before this change, these helpers shipped in `"use client"` chunks, so a React Server Components host turned each one into a client reference that throws when a server component or a loader calls it. The import paths do not change.
+
+  The build now fails when a subpath exports a plain helper from a `"use client"` chunk. Helpers that read a browser-only API, such as `readThemeFromHtmlElement` and `makeToast`, stay client code. `@ngrok/mantle/button`, `dialog`, `sheet`, and `icons` also load on the server now; before, their Phosphor icon imports threw on load.
+
+- [#1770](https://github.com/ngrok/mantle/pull/1770) [`f7f9bed`](https://github.com/ngrok/mantle/commit/f7f9bed2fb07024dd56032e25aa9f262922e5809) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Sidebar.Nav` renders its nav once, in the browser's `<dialog>`. Above the root's `mobileBreakpoint` the closed `<dialog>` has no box, so the panel sits in the row as before. Below it the same tree is the mobile sheet. Before this change, a phone hydrated the desktop nav, removed it, and mounted every row again in a Radix `Sheet` on each open.
+
+  - A tap opens the sheet with no React render. In the docs app-shell demo on a phone at 4× CPU slowdown, the open's Interaction to Next Paint falls from 232 ms to 72 ms (median of 10), with the `Tooltip.Trigger` fix in this release.
+  - The browser traps focus, makes the page inert, closes the sheet on Escape or a click on the backdrop, and returns focus to the trigger. Page scroll locks while the sheet is open.
+  - Alone, `Sidebar` costs 14.3 KB less gzip JS. On a page that also renders a `DropdownMenu`, it costs 1.4 KB less.
+  - The look, the public API, and the expanded and collapsed state, with its cookie, do not change.
+
+  Behavior to know when you upgrade:
+
+  - The closed sheet keeps the nav in the document, so `Sidebar.Trigger` names it in `aria-controls` at every state.
+  - The mobile panel's `data-slot` is `sidebar-nav`, no longer `sidebar-nav sheet-content`. The `<dialog>` around it is `data-slot="sidebar-positioner"`. On desktop the `<dialog>` takes `role="generic"`, so screen readers meet only the `<nav>` landmark.
+  - An uncontrolled sheet calls `onOpenMobileChange` only when it opens or closes, not when `setOpenMobile` asks for the state it already has. `setOpenMobile(true)` above the breakpoint does nothing.
+  - Floats and dialogs in the open sheet mount in the `<dialog>`, above the panel. Toasts move above the open sheet.
+
+- [#1720](https://github.com/ngrok/mantle/pull/1720) [`3fd5c5a`](https://github.com/ngrok/mantle/commit/3fd5c5a322c8006007cf19ba97e9c64b10b26fbd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Sidebar` now yields its width to an open `AppLayout.SidePanel`. While the panel is open in a window narrower than the `--container-side-panel-lane` theme token (`56.5rem`), an expanded sidebar collapses, so the panel sits beside the page and does not float over it. When the panel closes, unmounts, or the window widens, a sidebar that the panel collapsed expands again. If the reader toggles the sidebar in between, their choice stands.
+
+  The behavior is built in. No prop turns it on, and `Sidebar.Root` and `AppLayout.SidePanelRoot` can nest in either order. `onOpenChange` reports only the reader's toggles, so a sidebar cookie keeps their preference. `useSidebar().open` reports the state on screen.
+
+  If you copied `AssistantSidebarRoot` from the Assistant Across Routes recipe, replace it with `Sidebar.Root` and delete your copy. The recipe no longer has that part.
+
+  Docs: https://mantle.ngrok.com/components/navigation/sidebar#yielding-to-a-side-panel
+
+- [#1879](https://github.com/ngrok/mantle/pull/1879) [`30c7cc4`](https://github.com/ngrok/mantle/commit/30c7cc4be27de342e9d410fce430f7c201ebaa4e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The `RadioGroup` and `Checkbox` JSDoc now names their card layouts: `RadioGroup` for a single choice between selectable cards, and `CheckboxGroup` for cards where the user picks several. `dist/agent.json` carries the new text.
+
+- [#1812](https://github.com/ngrok/mantle/pull/1812) [`a4f3ae5`](https://github.com/ngrok/mantle/commit/a4f3ae5b5d9b29e68bbc8c48d7f8056621eff97e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A press beside the thin `Slider` track now reaches it: the track takes presses 24px tall with a mouse and 44px tall with a finger, and its look and layout stay the same. A press on the track glides the thumb and the range to the new value in 200ms on `ease-out-strong`. A drag, a key press, and reduced motion still move the thumb at once. The root has `data-track-press` while the thumb glides.
+
+  See https://mantle.ngrok.com/components/forms/slider.
+
+- [#1823](https://github.com/ngrok/mantle/pull/1823) [`431bf43`](https://github.com/ngrok/mantle/commit/431bf438a1382ad32d6569758f7cc83b4d1d99a0) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `SliderValue` shows a `Slider`'s value in a small label while a pointer or a finger drags a thumb, and hides it at rest and under keyboard focus. Place it inside `Slider`. It sits above each thumb and follows it, or with `placement="track"`, above the center of the track. CSS places it, and a label at a thumb stays inside the slider at each end. The new `formatValue` prop sets its text and `aria-valuetext` on each thumb. The root has `data-dragging` during a drag. A slider without `SliderValue` renders as before.
+
+  See https://mantle.ngrok.com/components/forms/slider.
+
+- [#1739](https://github.com/ngrok/mantle/pull/1739) [`d859fd1`](https://github.com/ngrok/mantle/commit/d859fd1535018b3c54e7bbe05a05a55f6edd6a17) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Slot` no longer uses `@radix-ui/react-slot`. Mantle now owns the prop merge: the child's event handler runs before the `Slot`'s, refs from both sides receive the element (a ref callback cleanup runs on unmount), and `aria-describedby` ids from both sides are joined without duplicates. `Slot` stays a server component.
+
+  A part that is not set leaves the child's own prop alone, so `Slot` sends no `undefined` props to the child. Unlike the Radix slot, `Slot` does not unwrap a lazy child from a React Server Components payload. Pass it an element.
+
+  A page that renders `Button` with no Radix part ships about 0.9 KB (gzip) less JavaScript. A page that also renders a Radix part, such as `Tooltip`, ships about 0.2 KB more until that part moves off Radix, because Radix keeps its own slot.
+
+- [#1794](https://github.com/ngrok/mantle/pull/1794) [`2296580`](https://github.com/ngrok/mantle/commit/2296580d1d01460c6d77a985891128048beafc51) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Opening a select, menu, or dialog no longer restyles every element on the page in Chromium. `Table.Head` and `Table.Foot` drew their row dividers with `:last-child` and `:first-child` selectors. With those selectors in the stylesheet, Chromium restyled the whole subtree of an element that stopped being a last child, such as the app root when a portal is appended to `<body>`. The dividers look the same. A consumer utility that targets the divider cells with a selector weaker than the old one, such as `[&>tr>*]:border-t-0` on `Table.Foot`, can now win where it lost before.
+
+- [#1768](https://github.com/ngrok/mantle/pull/1768) [`822bc2c`](https://github.com/ngrok/mantle/commit/822bc2c90ffd786f76cd4072146db4f6fa50680d) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Table.Root` watches its overflow with one `ResizeObserver` and no `MutationObserver`. An edit to a cell that does not change the size of the table no longer makes the table read its layout. The `data-x-overflow`, `data-x-scroll-end`, and `data-sticky-active` attributes do not change.
+
+- [#1742](https://github.com/ngrok/mantle/pull/1742) [`5167129`](https://github.com/ngrok/mantle/commit/5167129919742cc907b8aad192cefd15a7d34f7f) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Table.Root` no longer tracks whether its content is scrolled to the start, which it never used. The React Compiler memoizes its overflow observer, so the observer no longer wraps its result in `useMemo`. Its data attributes and behavior do not change, and the `table` bundle is 23 bytes (gzip) smaller.
+
+- [#1733](https://github.com/ngrok/mantle/pull/1733) [`591a5c8`](https://github.com/ngrok/mantle/commit/591a5c806804e6721e9608728e61295c51e6362b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `DataTable` and `Table` now say that row expansion is a `DataTable` feature. The `@useWhen` text and the `@siblings` boundaries of both name a detail panel and sub-rows. The `Table` JSDoc names `renderExpanded` and `getSubRows`. An agent that reads `Table` switches to `DataTable` instead of building its own expandable rows.
+
+- [#1848](https://github.com/ngrok/mantle/pull/1848) [`0b1f8a2`](https://github.com/ngrok/mantle/commit/0b1f8a2395caaabc059b69a9e2319064a2c74de9) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Tabs` and `HeadlessTabs`: keyboard focus in a horizontal list no longer throws where `scrollIntoView` is missing, such as plain jsdom, which also has no `matchMedia`. Focus still moves, and the tab does not scroll. Browsers are not affected.
+
+- [#1871](https://github.com/ngrok/mantle/pull/1871) [`245b368`](https://github.com/ngrok/mantle/commit/245b368b715f2de0bd62223293ba8c1c65300c13) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - After hydration, an inactive `Tabs.Content` or `HeadlessTabs.Content` with `hiddenUntilFound` has `aria-hidden`. Before, Chromium put it in the accessibility tree as an empty tab panel, and in Chromium, Firefox, and WebKit `getByRole("tabpanel")` found two panels. The server HTML leaves `aria-hidden` out, so a panel that the browser reveals before hydration stays readable. Find-in-page still reveals the panel and activates its tab.
+
+- [#1749](https://github.com/ngrok/mantle/pull/1749) [`7cfc95c`](https://github.com/ngrok/mantle/commit/7cfc95c888197f5f1ef1aaa0315538a09751b194) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Register the semantic color tokens with `@theme inline reference`. Tailwind no longer writes 73 `--token: var(--token)` declarations into `@layer theme`, so the compiled CSS is 4.0 KB smaller (minified). The utilities and the resolved colors do not change.
+
+  The removed declarations refer to themselves, so they were invalid. The theme rules override them on `:root`, so pages see no change. In a shadow root that adopts mantle's CSS, `:host` now inherits the page value of each token. Before, each token was invalid on the host.
+
+- [#1764](https://github.com/ngrok/mantle/pull/1764) [`e821887`](https://github.com/ngrok/mantle/commit/e8218870d633d95cc52c5fb45f4b29a8416b94a2) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `ThemeSwitcher` and `ThemeSwitcherIcon` show the right icon from the first paint, with no `Skeleton` placeholder. CSS picks the sun or the moon from the theme class on `<html>`, which `PreventWrongThemeFlashScript` and `ThemeProvider` set before paint. The server HTML is the same for every stored theme, hydration needs no second render, and a theme or OS change renders nothing. The switcher keeps no media query list of its own.
+
+  The server HTML takes the default accessible name of `ThemeSwitcher` ("Switch to dark theme", "Switch to light theme (system default)", and so on) from CSS generated content, so the name is correct before hydration and with no JavaScript, and the page text stays free of it. After mount, an `aria-label` holds the same name and follows the theme with no render, so a test in jsdom or happy-dom finds the switcher with `getByRole("button", { name: "Switch to dark theme" })`. A `label` still sets `aria-label`.
+
+  The new `root-dark:` variant matches when the root paints dark, with the same selector as the dark theme block. Unlike `dark:`, a `.dark` class on another ancestor does not match it.
+
+  See https://mantle.ngrok.com/components/forms/theme-switcher.
+
+- [#1827](https://github.com/ngrok/mantle/pull/1827) [`9534089`](https://github.com/ngrok/mantle/commit/95340892d9c3d7c2ac19c998e1c7453f429b815e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `@ngrok/mantle/time-zone` (preview). It renders dates in the visitor's time zone on the server, with no hydration mismatch.
+
+  - `TimeZoneScript` stores the browser's time zone in the `mantle-tz` cookie before hydration. On an `ngrok.com` or `ngrok.ai` host, the cookie covers every subdomain of that site.
+  - `readTimeZoneCookie` reads the zone from a `Cookie` header in a loader. It returns only a valid zone name.
+  - `TimeZoneProvider` gives the zone to `LocalTime` and `useTimeZone`. The server and the hydration render use the cookie's zone, then the browser's zone. A request with no cookie renders UTC first.
+  - `LocalTime` renders a `<time>` element with the instant in `datetime` and the text in the visitor's zone. It stamps `data-slot="local-time"`.
+  - `formatDateTime` formats a date in a required time zone. It is safe to call on the server.
+
+  See https://mantle.ngrok.com/components/preview/time-zone.
+
+- [#1767](https://github.com/ngrok/mantle/pull/1767) [`c5934b1`](https://github.com/ngrok/mantle/commit/c5934b1401b9f52d88e036e7e19e5b116b3a29f3) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Toaster` no longer puts sonner on a page's critical path. The toast code loads in its own chunk when the browser is idle after hydration, or on the first `makeToast` call if that comes first. In a Vite build of a page with `ThemeProvider`, `Button`, `Toaster`, and one `makeToast` call, the toast code adds 3.1 KB gzip to the entry chunk instead of 12.0 KB. `Toaster` also no longer reads the theme, so a theme change does not render it again.
+
+  A toast made before the chunk loads waits for it, and the waiting toasts show in call order. This includes a toast made before hydration. If the chunk fails to load, the page keeps working, `reportError` reports the error, and the next `makeToast` call tries the load again. A browser that caches failed module fetches fails that retry too. The notifications landmark is in the page from hydration on, as before, and the Alt+T shortcut does not change.
+
+  `makeToast` still returns the toast's ID. When you pass no `id`, the ID is now a negative number that mantle makes, unique on the page, not a positive number from sonner.
+
+- [#1757](https://github.com/ngrok/mantle/pull/1757) [`72fd45a`](https://github.com/ngrok/mantle/commit/72fd45aac8dedf260281a0ba1a397cd34fc816c8) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Toaster` renders its toasts in a container on `<body>` after hydration, instead of in place. While a `Dialog`, `AlertDialog`, `Sheet`, or the mobile `Sidebar.Nav` is open as a modal, the container moves into it, so a toast fired from the dialog paints above it, takes clicks, and stays live for screen readers. The server no longer renders the empty toast region.
+
+- [#1770](https://github.com/ngrok/mantle/pull/1770) [`f7f9bed`](https://github.com/ngrok/mantle/commit/f7f9bed2fb07024dd56032e25aa9f262922e5809) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A tap on a `Tooltip.Trigger` no longer opens its tooltip on the focus that the tap causes. A tap focuses the trigger after `pointerup`, so the tooltip opened there and the tap's click closed it again in the same frame. A keyboard focus still opens the tooltip, also after a touch press that becomes a scroll. On a phone at 4× CPU slowdown, this takes about 40 ms off the tap that opens the mobile `Sidebar` sheet.
+
+- [#1730](https://github.com/ngrok/mantle/pull/1730) [`920f52e`](https://github.com/ngrok/mantle/commit/920f52e5cbb6abf95c9c783632651fcc1d94c321) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Compound components now tree-shake: a bundle keeps only the parts an app reads. `DropdownMenu`, `Dialog`, `Field`, and the other 45 compound namespaces are ES module namespaces instead of objects. Imports, call sites, types, and editor hovers stay the same: `import { DropdownMenu } from "@ngrok/mantle/dropdown-menu"` and `<DropdownMenu.Item>` read as before.
+
+  In a Vite 8 build, a page that renders `Button` with a few parts each of `DropdownMenu`, `Tabs`, `Accordion`, `Card`, and `Dialog` ships 154.5 KB of mantle JavaScript instead of 185.9 KB (minified). `Field` with `Item`, `Label`, and `Control` drops from 124.2 KB to 38.0 KB, because the popover behind `Field.Help` no longer comes along.
+
+  A namespace is now a read-only module namespace object. Spreading or iterating one still works. Assigning to one of its parts (`Dialog.Root = …`) now throws at runtime, and TypeScript does not flag it.
+
 ## 0.94.1
 
 ### Patch Changes

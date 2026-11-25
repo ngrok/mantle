@@ -1,5 +1,39 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.2.11
+
+### Patch Changes
+
+- [#1863](https://github.com/ngrok/mantle/pull/1863) [`745cdce`](https://github.com/ngrok/mantle/commit/745cdce10a7d7f75b1676eca582522f58a3df6c8) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Update dependencies within the 6h minimum release age.
+
+- [#1759](https://github.com/ngrok/mantle/pull/1759) [`1e0f2d2`](https://github.com/ngrok/mantle/commit/1e0f2d265b3a626285599ecbecd5a92635998563) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `mantlePhosphorPrunePlugin`. It removes the `@phosphor-icons/react` icon weights that a build never renders. Each Phosphor icon holds the paths of all six weights, and a bundler ships all six without the plugin.
+
+  - The plugin reads the `weight` that each module renders, in JSX and in the compiled `jsx()` and `createElement()` calls of a dependency. A `weight` that a `cloneElement()` call sets stays for every icon. An icon without a `weight` keeps `regular` and each weight that an `IconContext` value of the build sets.
+  - A kept weight renders the same markup as before.
+  - When the plugin cannot read a weight (a computed `weight`, a spread of props, or an icon passed as a value), it keeps every weight of that icon. A namespace import keeps every weight of every icon, and the build warns. An icon that a dynamic import or an unread import path reaches keeps every weight.
+  - An icon imported by another name, such as `ActivityIcon` for `PulseIcon`, keeps every weight of every icon, and the build warns.
+  - If an icon module of the installed Phosphor has a shape that the plugin does not know, the build warns and keeps all six weights of that icon.
+
+  It runs on `vite build` and as a Rolldown or tsdown plugin. On an ngrok.com-like page with 53 icons, Phosphor's icon data drops from 42.1 KB to 9.6 KB gzipped.
+
+  ```ts
+  plugins: [mantlePhosphorPrunePlugin()],
+  ```
+
+- [#1751](https://github.com/ngrok/mantle/pull/1751) [`d94b7ee`](https://github.com/ngrok/mantle/commit/d94b7eecfc33a1fab38d699c792a5d46b3eb999d) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `mantleThemePrunePlugin`. It removes the mantle theme CSS that a production build does not read. It runs once on the finished bundle of `vite build` and changes only mantle's own theme rules:
+
+  - `mantle.css` restates every palette stop for the dark theme and for `invert-theme` islands. The plugin keeps a stop in those rules only when the same stylesheet reads it, including `@layer theme`, where Tailwind writes each stop that a scanned file names. The build warns when another file reads a stop that the stylesheet drops.
+  - Tailwind's color-mix fallbacks split each theme rule into pieces that repeat the theme selector. The plugin joins them.
+
+  On a marketing page, mantle's CSS drops from 128.6 KB to 104.1 KB minified (21.9 KB to 18.1 KB gzipped).
+
+  ```ts
+  plugins: [tailwindcss(), mantleSourcesPlugin(), mantleThemePrunePlugin()],
+  ```
+
+- Updated dependencies [[`745cdce`](https://github.com/ngrok/mantle/commit/745cdce10a7d7f75b1676eca582522f58a3df6c8)]:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.24
+
 ## 1.2.10
 
 ### Patch Changes

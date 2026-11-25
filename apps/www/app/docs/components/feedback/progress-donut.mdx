@@ -214,12 +214,10 @@ The `ProgressDonut` accepts the following props in addition to the [standard HTM
 | `strokeWidth`                | `number` \| `` `${number}rem` ``     | `"0.25rem"`                  | The width of the progress bar stroke, clamped between 1px and 12px.                                                                                                                                 |
 | `value`                      | `number` \| `"indeterminate"`        | `0`                          | The current value of the progress bar. Must be between 0 and `max`; a value outside that range renders as indeterminate. If set to `"indeterminate"`, the progress bar is considered indeterminate. |
 
-| Data Attribute | Value              | Description                 |
-| -------------- | ------------------ | --------------------------- |
-| `data-slot`    | `"progress-donut"` | The root `<svg>`.           |
-| `data-value`   | the current value  | Absent while indeterminate. |
-| `data-min`     | `0`                |                             |
-| `data-max`     | the maximum        |                             |
+| Data Attribute       | Value                       | Description       |
+| -------------------- | --------------------------- | ----------------- |
+| `data-slot`          | `"progress-donut"`          | The root `<svg>`. |
+| `data-indeterminate` | present while indeterminate | Presence-only.    |
 
 ### ProgressDonut.Indicator
 

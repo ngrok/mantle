@@ -72,6 +72,10 @@ describe("resolveColumnWidth", () => {
 		expect(resolveColumnWidth({ width: "fit" })).toBe("fit");
 	});
 
+	test("given meta with a wrap width, returns wrap", () => {
+		expect(resolveColumnWidth({ width: "wrap" })).toBe("wrap");
+	});
+
 	test("given meta with an unknown width, returns undefined", () => {
 		expect(resolveColumnWidth({ width: 120 })).toBeUndefined();
 	});

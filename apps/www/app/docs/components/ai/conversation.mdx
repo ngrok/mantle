@@ -1,0 +1,216 @@
+---
+title: Conversation
+description: A chat transcript that follows the newest message while an answer streams, with a button back to the end.
+category: AI
+aliases: [chat, transcript, message list, thread, stick to bottom, scroll to bottom, ai chat]
+---
+
+import { PageHeader } from "~/components/page-header";
+import { Example } from "~/components/example";
+
+<PageHeader id="conversation">Conversation</PageHeader>
+
+A chat transcript that follows the newest message while an answer streams, with a button back to the end. Scroll up while the answer streams: the view stays put, the bottom edge fades, and a button takes you back.
+
+<Example name="components/ai/conversation/overview" title="Conversation example">
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Card } from "@ngrok/mantle/card";
+import { Conversation } from "@ngrok/mantle/conversation";
+import { Message } from "@ngrok/mantle/message";
+import { useEffect, useState } from "react";
+
+type Turn = { id: number; from: "user" | "assistant"; text: string };
+
+const answer = `Two of your endpoints have no traffic policy.
+
+https://api.example.com takes every request it gets. Add a rate limit by client IP so one client cannot use up its capacity.
+
+tcp://1.tcp.ngrok.io:20012 is open to the internet. Add an IP restriction so only your office network can reach it.
+
+app.example.com already has a policy, so it needs no change.
+
+To add a policy, open the endpoint, choose Traffic Policy, and paste the rule. The change takes effect at once, with no restart. You can test it with a request from another network before you rely on it.`;
+
+const firstTurns: Turn[] = [
+	{ id: 1, from: "user", text: "What's live right now?" },
+	{
+		id: 2,
+		from: "assistant",
+		text: "Three endpoints are online: https://api.example.com, https://app.example.com, and tcp://1.tcp.ngrok.io:20012.",
+	},
+];
+
+function AssistantTranscript() {
+	const [turns, setTurns] = useState(firstTurns);
+	const [streaming, setStreaming] = useState(false);
+
+	useEffect(() => {
+		if (!streaming) {
+			return;
+		}
+		const words = answer.split(" ");
+		let count = 0;
+		const interval = setInterval(() => {
+			count += 1;
+			const text = words.slice(0, count).join(" ");
+			setTurns((current) =>
+				current.map((turn, index) => (index === current.length - 1 ? { ...turn, text } : turn)),
+			);
+			if (count === words.length) {
+				setStreaming(false);
+			}
+		}, 60);
+		return () => clearInterval(interval);
+	}, [streaming]);
+
+	return (
+		<div className="flex flex-col items-center gap-4">
+			<Card.Root className="h-80 w-full max-w-2xl overflow-hidden p-0">
+				<Conversation.Root streaming={streaming} className="h-full">
+					<Conversation.Viewport>
+						<Conversation.Content aria-label="Conversation with the assistant" className="p-4">
+							{turns.map((turn) => (
+								<Message.Root key={turn.id} from={turn.from}>
+									<Message.Content className="flex flex-col gap-3">
+										{turn.text.split("\n\n").map((paragraph) => (
+											<p key={paragraph}>{paragraph}</p>
+										))}
+									</Message.Content>
+								</Message.Root>
+							))}
+						</Conversation.Content>
+					</Conversation.Viewport>
+					<Conversation.ScrollButton />
+				</Conversation.Root>
+			</Card.Root>
+			<Button
+				type="button"
+				appearance="filled"
+				intent="neutral"
+				disabled={streaming}
+				onClick={() => {
+					setTurns((current) => [
+						...current,
+						{
+							id: current.length + 1,
+							from: "user",
+							text: "Which endpoints have no traffic policy?",
+						},
+						{ id: current.length + 2, from: "assistant", text: "" },
+					]);
+					setStreaming(true);
+				}}
+			>
+				Ask about traffic policies
+			</Button>
+		</div>
+	);
+}
+```
+
+</Example>
+
+## When to use
+
+- Show the messages of a chat with an assistant or a model, and keep the newest text in view while an answer streams.
+- Use [Message](/components/ai/message) for each message in it.
+- Prefer [List](/components/data-display/list) for items that do not grow at the end while the reader watches.
+
+## Composition
+
+```text showLineNumbers=false
+Conversation.Root
+├── Conversation.Viewport
+│   └── Conversation.Content
+│       └── Message.Root
+└── Conversation.ScrollButton
+```
+
+## Polymorphism
+
+`Conversation.Viewport` and `Conversation.Content` take `asChild`. `Conversation.Root` and `Conversation.ScrollButton` do not: the root renders the status region beside its children, and the button owns its icon and position.
+
+## How it follows the end
+
+`Conversation.Viewport` follows the end while the reader is at the end, so streamed text never lands below the fold. It works as Amp does:
+
+- When the reader scrolls up by any means (wheel, touch, keys, or the scrollbar), the view stays where they put it. The bottom edge fades, and `Conversation.ScrollButton` shows.
+- The view follows the end again when the reader scrolls back to it, presses `Conversation.ScrollButton`, or sends a message. A message from the person is a `Message.Root` with `from="user"`.
+- On mount, the view starts at the end. If something already moved it, such as [`useScrollAnchor`](/hooks#usescrollanchor) restoring the reader's place, the view stays there.
+
+The bottom edge fades when newer text is below the view, with [`scroll-fade-b`](/base/scroll-fade), as in Amp. The top edge does not fade, on purpose:
+
+- **A top fade signals nothing.** A chat nearly always has older history above, so a top fade would stay on in almost every view and dim the first line for no reason.
+- **The bottom fade is the signal.** Most of the time the reader is at the end, and the bottom does not fade. The fade appears only after the reader scrolls up and the newest text is out of view, and `Conversation.ScrollButton` shows beside it. Both say "there is more below". The fade needs CSS scroll-driven animations; where a browser lacks them, the button alone carries the signal.
+
+The viewport reserves the scrollbar's space on both sides, so centered content lines up with a centered composer below it.
+
+## Accessibility
+
+`Conversation.Root` owns the chat's one status announcement. Set `streaming` while an answer streams. Screen readers then hear "Answering…" when it starts and "Answer ended." when it ends. Nothing reads the answer aloud word by word, because that interrupts a reader who is busy with other content.
+
+Keyboard focus goes to one message at a time, as in Claude's chat. `Conversation.Content` is an [ARIA feed](https://www.w3.org/WAI/ARIA/apg/patterns/feed/): `role="feed"`, named with `aria-label`, and each `Message.Root` is an `<article>` with `aria-posinset` and `aria-setsize`. Only one message is in the tab order, so Tab enters the transcript at one message and leaves it at the next. That message is the newest until the reader focuses another one, and the newest again when they send a message or press `Conversation.ScrollButton`. The focus ring goes around the focused message, and a mouse or touch press shows no ring. The viewport draws no ring, even after a click in its blank space and a key press, unless it holds no message and so holds focus itself.
+
+| Key                | Action                                                                                  |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| `Tab`              | Moves focus to the message that is the tab stop, then into its links and buttons.       |
+| `ArrowDown`        | On a focused message, moves focus to the next message.                                  |
+| `ArrowUp`          | On a focused message, moves focus to the previous message.                              |
+| `Control` + `End`  | Moves focus to the first tabbable element after the conversation, such as the composer. |
+| `Control` + `Home` | Moves focus to the last tabbable element before the conversation.                       |
+
+Page Up, Page Down, Space, Home, and End scroll the viewport, because focus sits inside it. Up and Down scroll as usual at the first and the newest message, so a long last answer stays readable. A visually hidden hint, "Use the up and down arrow keys to move between messages.", describes the feed; translate it with `keyboardHint` on `Conversation.Root`.
+
+Streamed text never moves focus: `Markdown` keeps each finished block, so focus on a link or a copy button in an answer stays put, and a focused newest message keeps following the end. When `Conversation.ScrollButton` hides after a press, focus moves to the newest message. When a focused message leaves the transcript, such as on a retry, focus moves to the new tab stop.
+
+## API Reference
+
+### Conversation.Root
+
+The transcript: it holds the viewport and the scroll button, and owns the status announcement. Give it a height, such as `flex-1` in a flex column.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop            | Type      | Default                                                      | Description                                                                                                     |
+| --------------- | --------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `streaming?`    | `boolean` | `false`                                                      | True while an answer streams. Screen readers hear "Answering…" when it starts and "Answer ended." when it ends. |
+| `keyboardHint?` | `string`  | `"Use the up and down arrow keys to move between messages."` | The visually hidden hint that describes the feed. Set it to translate the hint.                                 |
+
+| Data Attribute     | Value                                | Description                                       |
+| ------------------ | ------------------------------------ | ------------------------------------------------- |
+| `data-scrolled-up` | present while the end is out of view | Presence-only. Shows `Conversation.ScrollButton`. |
+| `data-streaming`   | present while `streaming`            | Presence-only. Style with `data-streaming:`.      |
+
+The children sit in a `display: contents` wrapper, `data-slot="conversation-label"`, so a translated loading message can change to a transcript.
+
+### Conversation.Viewport
+
+The element that scrolls and follows the end. It takes no Tab stop of its own: a message does.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                       |
+| ---------- | --------- | ------- | ------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
+
+### Conversation.Content
+
+The messages, as an ARIA feed. Name it with `aria-label`. Set the measure and padding here, such as `mx-auto max-w-3xl p-4`: the padding leaves room for the focus ring.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                       |
+| ---------- | --------- | ------- | ------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
+
+### Conversation.ScrollButton
+
+The round button at the bottom right of the viewport that goes back to the newest message. It shows only while the end is out of view, and grows in and out as it shows and hides. To move it, such as to the corner of a centered composer, set `right-*` and `bottom-*` in `className`.
+
+All props from [Icon Button](/components/actions/icon-button) except `appearance`, `asChild`, `icon`, `intent`, `label`, and `type`, plus:
+
+| Prop     | Type     | Default                          | Description                        |
+| -------- | -------- | -------------------------------- | ---------------------------------- |
+| `label?` | `string` | `"Scroll to the latest message"` | The accessible name of the button. |

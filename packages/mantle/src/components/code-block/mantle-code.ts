@@ -1,6 +1,7 @@
 import type { SupportedLanguage } from "../code-block/supported-languages.js";
 import type { LineRange } from "../code-block/line-numbers.js";
 import type { Indentation } from "../code-block/indentation.js";
+import type { CodeLine } from "../code-block/line-tokenizer.js";
 
 /** Languages that represent shell/terminal commands. */
 const shellLanguages = new Set<SupportedLanguage>(["bash", "sh", "shell"]);
@@ -44,6 +45,13 @@ type MantleCodeBlockValue = {
 	 * `createMantleServerSyntaxHighlighter`). Never pass unsanitized user input.
 	 */
 	"~preHtml"?: string | undefined;
+	/**
+	 * The code as React-rendered lines, for code that the browser highlights,
+	 * such as code that streams in. A string is a line of plain text, and a
+	 * `CodeLine` is a highlighted line. When set, `CodeBlock.Code` renders these
+	 * lines and ignores `~preHtml`. `useCodeBlockStream` sets it.
+	 */
+	"~lines"?: readonly (CodeLine | string)[] | undefined;
 	/**
 	 * Runtime values used to replace `SHIKI_VAL_N` placeholders in `~preHtml`.
 	 * This enables interpolated template expressions while preserving build-time highlighting.
@@ -107,6 +115,7 @@ type MantleCodeOptions = {
  * `createMantleServerSyntaxHighlighter`). Never pass unsanitized user input as `preHtml`.
  */
 function createMantleCodeBlockValue({
+	lines,
 	preHtml,
 	preValToken,
 	preVals,
@@ -121,6 +130,7 @@ function createMantleCodeBlockValue({
 		language,
 		code,
 		"~preHtml": preHtml,
+		"~lines": lines,
 		"~preValToken": preValToken,
 		"~preVals": preVals,
 		"~highlightLines": highlightLines,

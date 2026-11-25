@@ -28,7 +28,7 @@
         "boundary": "every section stays open, with its title and explanation beside its content."
       }
     ],
-    "useWhen": "Stack titled sections that each expand and collapse in place, such as questions and answers or a group of advanced settings."
+    "useWhen": "Stack titled sections that each expand and collapse in place to show and hide their content, such as questions and answers or a group of advanced settings."
   },
   {
     "name": "Alert",
@@ -46,7 +46,9 @@
     "aliases": [
       "callout",
       "notice",
-      "admonition"
+      "admonition",
+      "inline alert",
+      "page banner"
     ],
     "siblings": [
       {
@@ -66,7 +68,7 @@
         "boundary": "a region has no data, no results, or no access to show."
       }
     ],
-    "useWhen": "Show a persistent message in the page, such as a warning, an error, or a success note, beside the content it describes."
+    "useWhen": "Show a persistent message in the page, such as a warning about degraded data, an error, or a success note, beside the content it describes."
   },
   {
     "name": "Alert Center",
@@ -215,6 +217,38 @@
     "useWhen": "Show how a volume, or a total and its parts, changes across an ordered x axis, such as time."
   },
   {
+    "name": "Attachment",
+    "slug": "components/ai/attachment",
+    "kind": "component",
+    "category": "AI",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/attachment",
+    "summary": "A file attached to a chat message, as a chip with its preview, name, size, and a remove button.",
+    "jsdoc": "A file attached to a chat message, as a chip with its preview, name, size, and a remove button.",
+    "examples": [
+      "Composition:\n```\nAttachment.List\n└── Attachment.Root\n    ├── Attachment.Preview\n    ├── Attachment.Name\n    ├── Attachment.Size\n    └── Attachment.Remove\n```",
+      "```tsx\n<Attachment.List aria-label=\"Attachments\">\n  {files.map((file) => (\n    <Attachment.Root key={file.id}>\n      <Attachment.Preview src={file.previewUrl} />\n      <Attachment.Name>{file.name}</Attachment.Name>\n      <Attachment.Size bytes={file.size} />\n      <Attachment.Remove\n        label={`Remove ${file.name}`}\n        onClick={() => removeFile(file.id)}\n      />\n    </Attachment.Root>\n  ))}\n</Attachment.List>\n```"
+    ],
+    "aliases": [
+      "file chip",
+      "attached file",
+      "upload chip",
+      "file attachment",
+      "ai attachment"
+    ],
+    "siblings": [
+      {
+        "name": "PromptInput",
+        "boundary": "the message box that takes the files."
+      },
+      {
+        "name": "Badge",
+        "boundary": "a short status label, not a file."
+      }
+    ],
+    "useWhen": "Show the files attached to a chat message, with a remove button while the message is a draft."
+  },
+  {
     "name": "Avatar",
     "slug": "components/data-display/avatar",
     "kind": "component",
@@ -257,7 +291,7 @@
     ],
     "aliases": [
       "tag",
-      "chip",
+      "colored chip",
       "pill",
       "lozenge"
     ],
@@ -275,7 +309,7 @@
         "boundary": "the tags are values that the user picks and removes."
       }
     ],
-    "useWhen": "Label an item with a short status, a category tag, or a count."
+    "useWhen": "Label an item with a short status or state (such as active, paused, or unknown), a category tag, or a count, shown as one or two words on a colored background."
   },
   {
     "name": "Bar Chart",
@@ -425,7 +459,6 @@
       "```tsx\n<Card.Root>\n  <Card.Body>\n    <p>Laborum in aute officia adipisicing elit velit.</p>\n  </Card.Body>\n</Card.Root>\n\n<Card.Root>\n  <Card.Header>\n    <Card.Title>Card Title Here</Card.Title>\n  </Card.Header>\n  <Card.Body>\n    <p>Laborum in aute officia adipisicing elit velit.</p>\n  </Card.Body>\n  <Card.Footer>\n    <p>Card footer</p>\n  </Card.Footer>\n</Card.Root>\n```"
     ],
     "aliases": [
-      "panel",
       "tile",
       "paper"
     ],
@@ -477,14 +510,18 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/checkbox",
-    "summary": "A form control that toggles between checked and not checked, with an indeterminate state.",
-    "jsdoc": "A form control that allows the user to toggle between checked and not checked.",
+    "summary": "A form control that toggles between checked and not checked, with an indeterminate state, alone or in a group of selectable cards.",
+    "jsdoc": "A form control that allows the user to toggle between checked and not checked, alone or in a group of cards.",
     "examples": [
       "```tsx\n<form>\n  <Label htmlFor=\"terms\" className=\"flex items-center gap-2\">\n    <Checkbox name=\"terms\" id=\"terms\" />\n    Accept terms and conditions\n  </Label>\n</form>\n```"
     ],
     "aliases": [
       "check box",
-      "tickbox"
+      "tickbox",
+      "checkbox group",
+      "checkbox cards",
+      "selectable cards",
+      "multi-select cards"
     ],
     "siblings": [
       {
@@ -500,7 +537,45 @@
         "boundary": "the checkbox needs a title and a description beside it."
       }
     ],
-    "useWhen": "Turn one or more independent options on or off in a form, with an indeterminate state for a partial selection."
+    "useWhen": "Turn one or more independent options on or off in a form, with an indeterminate state for a partial selection. `CheckboxGroup` shows the options as selectable cards where the user picks several, for a \"select all that apply\" question."
+  },
+  {
+    "name": "Chip",
+    "slug": "components/forms/chip",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/chip",
+    "summary": "A compact label for a value or a selectable choice.",
+    "jsdoc": "A compact label for a value or a selectable choice.",
+    "examples": [
+      "```tsx\n<Chip>Read</Chip>\n<Chip onRemove={removeWrite} removeLabel=\"Remove Write\">Write</Chip>\n<Chip selectable defaultPressed>Manage</Chip>\n```"
+    ],
+    "aliases": [
+      "toggle chip",
+      "filter chip",
+      "scope chip",
+      "removable chip"
+    ],
+    "siblings": [
+      {
+        "name": "Badge",
+        "boundary": "the label shows status and has no control."
+      },
+      {
+        "name": "Checkbox",
+        "boundary": "the choice needs a form value."
+      },
+      {
+        "name": "MultiSelect",
+        "boundary": "the user must search a long list of choices."
+      },
+      {
+        "name": "Button",
+        "boundary": "a press runs an action without a selected state."
+      }
+    ],
+    "useWhen": "Show a compact value, let a user remove it, or turn a choice on or off."
   },
   {
     "name": "Choice",
@@ -531,7 +606,7 @@
         "boundary": "the thing beside the text is an image or an icon, not a control."
       }
     ],
-    "useWhen": "Put a checkbox, a radio, or a switch beside a title and an optional description."
+    "useWhen": "Put a checkbox, a radio, or a toggle switch beside a title and an optional description, such as an explanation of one or more lines."
   },
   {
     "name": "Code",
@@ -576,7 +651,7 @@
     "jsdoc": "Shiki-powered code blocks with build-time syntax highlighting and zero browser bundle.",
     "examples": [
       "Composition:\n```\n# Standard\nCodeBlock.Root\n├── CodeBlock.Header\n│   ├── CodeBlock.Icon\n│   └── CodeBlock.Title\n├── CodeBlock.Body\n│   ├── CodeBlock.CopyButton\n│   └── CodeBlock.Code\n└── CodeBlock.ExpanderButton\n\n# Tabbed\nCodeBlock.Root\n├── CodeBlock.Header\n│   └── CodeBlock.TabList\n│       └── CodeBlock.TabTrigger\n├── CodeBlock.Body\n│   ├── CodeBlock.CopyButton\n│   └── CodeBlock.TabContent\n│       └── CodeBlock.Code\n└── CodeBlock.ExpanderButton\n```",
-      "```tsx\n<CodeBlock.Root>\n  <CodeBlock.Header>\n    <CodeBlock.Icon preset=\"file\" />\n    <CodeBlock.Title>example.ts</CodeBlock.Title>\n  </CodeBlock.Header>\n  <CodeBlock.Body>\n    <CodeBlock.CopyButton />\n    <CodeBlock.Code value={mantleCode(\"typescript\")`const x = \"hello\";`} />\n  </CodeBlock.Body>\n  <CodeBlock.ExpanderButton />\n</CodeBlock.Root>\n\n// Server-highlighted HTML fetched via an action route + React Query mutation\nconst highlightMutation = useMutation({\n  mutationFn: async () => {\n    const response = await fetch(\"/api/shiki-highlight\", {\n      method: \"POST\",\n      headers: { \"Content-Type\": \"application/json\" },\n      body: JSON.stringify({ code: source, language: \"typescript\" }),\n    });\n    return response.json();\n  },\n});\n\nconst serverValue = createMantleCodeBlockValue({\n  language: \"typescript\",\n  code: source,\n  preHtml: highlightMutation.data?.html,\n});\n```"
+      "```tsx\n<CodeBlock.Root>\n  <CodeBlock.Header>\n    <CodeBlock.Icon preset=\"file\" />\n    <CodeBlock.Title>example.ts</CodeBlock.Title>\n  </CodeBlock.Header>\n  <CodeBlock.Body>\n    <CodeBlock.CopyButton />\n    <CodeBlock.Code value={mantleCode(\"typescript\")`const x = \"hello\";`} />\n  </CodeBlock.Body>\n  <CodeBlock.ExpanderButton />\n</CodeBlock.Root>\n\n// Server-highlighted HTML fetched via an action route + React Query mutation\nconst highlightMutation = useMutation({\n  mutationFn: async () => {\n    const response = await fetch(\"/api/shiki-highlight\", {\n      method: \"POST\",\n      headers: { \"Content-Type\": \"application/json\" },\n      body: JSON.stringify({ code: source, language: \"typescript\" }),\n    });\n    return response.json();\n  },\n});\n\n// The HTML holds no line numbers, so pass the result's number settings too.\nconst serverValue = createMantleCodeBlockValue({\n  language: \"typescript\",\n  code: source,\n  preHtml: highlightMutation.data?.html,\n  showLineNumbers: highlightMutation.data?.showLineNumbers,\n  lineNumberStart: highlightMutation.data?.lineNumberStart,\n});\n```"
     ],
     "aliases": [
       "syntax highlighter",
@@ -605,7 +680,7 @@
     "summary": "A text input with autocomplete: the user types to filter a list of suggested values and picks one, with full keyboard support.",
     "jsdoc": "Fill in a React input field with autocomplete & autosuggest functionalities.",
     "examples": [
-      "Composition:\n```\nCombobox.Root\n├── Combobox.Input\n└── Combobox.Content\n    ├── Combobox.Group\n    │   ├── Combobox.GroupLabel\n    │   └── Combobox.Item\n    │       └── Combobox.ItemValue\n    └── Combobox.Separator\n```",
+      "Composition:\n```\nCombobox.Root\n├── Combobox.Input\n└── Combobox.Content\n    ├── Combobox.Group\n    │   ├── Combobox.GroupLabel\n    │   └── Combobox.Item\n    │       └── Combobox.ItemValue\n    ├── Combobox.Separator\n    └── Combobox.ContentFooter\n```",
       "```tsx\n<Combobox.Root>\n  <Combobox.Input />\n  <Combobox.Content>\n    <Combobox.Item value=\"Apple\" />\n    <Combobox.Item value=\"Banana\" />\n  </Combobox.Content>\n</Combobox.Root>\n```"
     ],
     "aliases": [
@@ -651,6 +726,8 @@
       "command palette",
       "command menu",
       "cmdk",
+      "cmd k",
+      "ctrl k",
       "spotlight"
     ],
     "siblings": [
@@ -661,9 +738,83 @@
       {
         "name": "DropdownMenu",
         "boundary": "a short list of actions opens from one button."
+      },
+      {
+        "name": "Query",
+        "boundary": "a filter on the page that its `keyboardShortcut` prop binds to `/`."
       }
     ],
-    "useWhen": "Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K` menu."
+    "useWhen": "Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K` menu. Cmd+K on Apple platforms and Ctrl+K elsewhere open its search field."
+  },
+  {
+    "name": "Conversation",
+    "slug": "components/ai/conversation",
+    "kind": "component",
+    "category": "AI",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/conversation",
+    "summary": "A chat transcript that follows the newest message while an answer streams, with a button back to the end.",
+    "jsdoc": "A chat transcript that follows the newest message while an answer streams, as Amp does.",
+    "examples": [
+      "Composition:\n```\nConversation.Root\n├── Conversation.Viewport\n│   └── Conversation.Content\n│       └── Message.Root\n└── Conversation.ScrollButton\n```",
+      "```tsx\n<Conversation.Root streaming={isAnswering} className=\"flex-1\">\n  <Conversation.Viewport>\n    <Conversation.Content\n      aria-label=\"Conversation with the assistant\"\n      className=\"mx-auto max-w-3xl p-4\"\n    >\n      {messages.map((message) => (\n        <Message.Root key={message.id} from={message.role}>\n          <Message.Content>{message.text}</Message.Content>\n        </Message.Root>\n      ))}\n    </Conversation.Content>\n  </Conversation.Viewport>\n  <Conversation.ScrollButton />\n</Conversation.Root>\n```"
+    ],
+    "aliases": [
+      "chat",
+      "transcript",
+      "message list",
+      "thread",
+      "stick to bottom",
+      "scroll to bottom",
+      "ai chat"
+    ],
+    "siblings": [
+      {
+        "name": "Message",
+        "boundary": "one message inside the conversation."
+      },
+      {
+        "name": "List",
+        "boundary": "a list of items that does not grow at its end while the reader watches."
+      }
+    ],
+    "useWhen": "Show the messages of a chat with an assistant or a model, and keep the newest text in view while an answer streams."
+  },
+  {
+    "name": "Conversation Outline",
+    "slug": "components/ai/conversation-outline",
+    "kind": "component",
+    "category": "AI",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/conversation-outline",
+    "summary": "A list of the person's messages in a long chat. A press on one jumps to that message.",
+    "jsdoc": "A list of the person's messages in a long chat, as Amp's conversation outline does.",
+    "examples": [
+      "Composition:\n```\nConversationOutline.Root\n├── ConversationOutline.Trigger\n└── ConversationOutline.Content\n    └── ConversationOutline.Item\n```",
+      "```tsx\n<ConversationOutline.Root>\n  <ConversationOutline.Trigger />\n  <ConversationOutline.Content>\n    {userMessages.map((message) => (\n      <ConversationOutline.Item key={message.id} target={`message-${message.id}`}>\n        {message.text}\n      </ConversationOutline.Item>\n    ))}\n  </ConversationOutline.Content>\n</ConversationOutline.Root>\n```"
+    ],
+    "aliases": [
+      "chat navigator",
+      "jump to message",
+      "message outline",
+      "thread outline",
+      "ai chat"
+    ],
+    "siblings": [
+      {
+        "name": "Conversation",
+        "boundary": "the transcript the outline jumps in."
+      },
+      {
+        "name": "Message",
+        "boundary": "give each `Message.Root` an `id` for an item's `target`."
+      },
+      {
+        "name": "Popover",
+        "boundary": "a floating panel with other content."
+      }
+    ],
+    "useWhen": "Let the person find and jump back to one of their own messages in a long chat."
   },
   {
     "name": "Data Table",
@@ -700,7 +851,7 @@
         "boundary": "one record shows as label and value pairs."
       }
     ],
-    "useWhen": "Show rows of application data that the user sorts, filters, pages through, selects, or expands into a detail panel or sub-rows."
+    "useWhen": "Show rows of application data that the user sorts, filters, pages through, selects, or expands with a row button into a detail panel or sub-rows."
   },
   {
     "name": "Description List",
@@ -1214,6 +1365,36 @@
     "useWhen": "Mark the primary content of a page as a focusable `<main>` landmark that a skip link can move focus to."
   },
   {
+    "name": "Markdown",
+    "slug": "components/data-display/markdown",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/markdown",
+    "summary": "Renders Markdown from a model as it streams, with mantle's CodeBlock, Table, and Anchor for its fences, tables, and links.",
+    "jsdoc": "Renders Markdown from a model, as it streams.",
+    "examples": [
+      "```tsx\nimport { Markdown } from \"@ngrok/mantle/markdown\";\n\nfunction Answer({ text, isStreaming }: { text: string; isStreaming: boolean }) {\n  return <Markdown streaming={isStreaming}>{text}</Markdown>;\n}\n```"
+    ],
+    "aliases": [
+      "streaming markdown",
+      "chat answer",
+      "llm output",
+      "prose"
+    ],
+    "siblings": [
+      {
+        "name": "CodeBlock",
+        "boundary": "the content is one block of code."
+      },
+      {
+        "name": "Typography",
+        "boundary": "you write the prose in the source."
+      }
+    ],
+    "useWhen": "Render Markdown that arrives at runtime, such as a model's answer, as it streams or after."
+  },
+  {
     "name": "Media Object",
     "slug": "components/structure/media-object",
     "kind": "component",
@@ -1243,6 +1424,39 @@
       }
     ],
     "useWhen": "Put an image, an avatar, or an icon beside a title and a description, such as in a comment or a list row."
+  },
+  {
+    "name": "Message",
+    "slug": "components/ai/message",
+    "kind": "component",
+    "category": "AI",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/message",
+    "summary": "One message of a chat, a person's message in a bubble or the assistant's answer as full-width prose.",
+    "jsdoc": "One message of a chat: a person's message in a bubble at the end of the row, or the assistant's answer as full-width prose.",
+    "examples": [
+      "Composition:\n```\nMessage.Root\n├── Message.Content\n├── Message.Pending\n└── Message.Actions\n```",
+      "```tsx\n<Conversation.Content>\n  <Message.Root from=\"user\">\n    <Message.Content>Which endpoints have no traffic policy?</Message.Content>\n  </Message.Root>\n  <Message.Root from=\"assistant\">\n    <Message.Content>{answer}</Message.Content>\n    {isAnswering && <Message.Pending>Thinking…</Message.Pending>}\n    <Message.Actions>\n      <IconButton\n        appearance=\"ghost\"\n        intent=\"neutral\"\n        size=\"sm\"\n        label=\"Copy the answer\"\n        icon={<CopyIcon />}\n        onClick={() => copyToClipboard(answer)}\n      />\n    </Message.Actions>\n  </Message.Root>\n</Conversation.Content>\n```"
+    ],
+    "aliases": [
+      "chat message",
+      "chat bubble",
+      "bubble",
+      "answer",
+      "ai message",
+      "transcript message"
+    ],
+    "siblings": [
+      {
+        "name": "Conversation",
+        "boundary": "the transcript that holds the messages and follows the newest one."
+      },
+      {
+        "name": "CodeBlock",
+        "boundary": "code in an answer, inside `Message.Content`."
+      }
+    ],
+    "useWhen": "Show one message of a chat with an assistant or a model, with its actions and a marker while the answer is on its way."
   },
   {
     "name": "Multi Select",
@@ -1311,6 +1525,40 @@
     "useWhen": "Enter a one-time passcode, such as a two-factor code, with one box for each character."
   },
   {
+    "name": "Overlay Prompt",
+    "slug": "components/primitives/overlay-prompt",
+    "kind": "component",
+    "category": "Primitives",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/overlay-prompt",
+    "summary": "Keeps a banner, a bar, or another floating element usable above an open dialog or sheet.",
+    "jsdoc": "Keeps its content usable above an open `Dialog`, `AlertDialog`, or `Sheet`.",
+    "examples": [
+      "```tsx\n<OverlayPrompt>\n  <div className=\"pointer-events-none fixed inset-x-0 bottom-4 z-max flex justify-center\">\n    <div role=\"group\" aria-label=\"Cookie preferences\" className=\"pointer-events-auto\">\n      <Button type=\"button\" appearance=\"filled\" intent=\"neutral\" onClick={acceptAll}>\n        Accept all\n      </Button>\n    </div>\n  </div>\n</OverlayPrompt>\n```"
+    ],
+    "aliases": [
+      "above dialog",
+      "top layer",
+      "cookie banner",
+      "inert"
+    ],
+    "siblings": [
+      {
+        "name": "Toast",
+        "boundary": "show short notifications; its `Toaster` already stays above dialogs."
+      },
+      {
+        "name": "Sandbar",
+        "boundary": "show a save bar for unsaved changes; it already stays above dialogs."
+      },
+      {
+        "name": "Dialog",
+        "boundary": "put a control that belongs to the task inside the dialog content instead."
+      }
+    ],
+    "useWhen": "Keep a banner, a bar, or another floating element that is not part of a dialog usable above an open dialog or sheet, such as a cookie banner."
+  },
+  {
     "name": "Pagination",
     "slug": "components/navigation/pagination",
     "kind": "component",
@@ -1324,6 +1572,40 @@
       "paginator"
     ],
     "useWhen": "Move through paged data one page at a time, with a cursor or an offset."
+  },
+  {
+    "name": "Panel",
+    "slug": "components/structure/panel",
+    "kind": "component",
+    "category": "Structure",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/panel",
+    "summary": "The look of the app shell's side panel as a part of its own, with a header row, a scroll body, and a pinned footer.",
+    "jsdoc": "The look of `AppLayout.SidePanel` as a part of its own: a card with a header row, a scroll region, and a bar pinned to the bottom.",
+    "examples": [
+      "Composition:\n```\nPanel.Root\n├── Panel.Header\n├── Panel.Body\n└── Panel.Footer\n```",
+      "```tsx\n<Panel.Root aria-label=\"Assistant\" className=\"h-120\">\n  <Panel.Header>\n    <p className=\"text-strong min-w-0 flex-1 truncate text-sm font-medium\">Assistant</p>\n    <IconButton type=\"button\" appearance=\"ghost\" intent=\"neutral\" icon={<XIcon />} label=\"Close\" />\n  </Panel.Header>\n  <Panel.Body>\n    <AssistantConversation />\n  </Panel.Body>\n  <Panel.Footer>\n    <AssistantComposer />\n  </Panel.Footer>\n</Panel.Root>\n```"
+    ],
+    "aliases": [
+      "assistant panel",
+      "aside card",
+      "panel header"
+    ],
+    "siblings": [
+      {
+        "name": "AppLayout",
+        "boundary": "the panel opens and closes beside the page card of an app shell; use `AppLayout.SidePanel`."
+      },
+      {
+        "name": "Card",
+        "boundary": "the content sits in the page flow and does not scroll on its own."
+      },
+      {
+        "name": "Sheet",
+        "boundary": "the panel is a modal overlay with a backdrop."
+      }
+    ],
+    "useWhen": "Show a titled surface beside other content, with a header row, a body that scrolls on its own, and an optional bar pinned to the bottom, such as an assistant beside the page."
   },
   {
     "name": "Password Input",
@@ -1447,6 +1729,39 @@
     "useWhen": "Show how much of a task or a quota is complete, as a small circle."
   },
   {
+    "name": "Prompt Input",
+    "slug": "components/ai/prompt-input",
+    "kind": "component",
+    "category": "AI",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/prompt-input",
+    "summary": "The message box of a chat, with a field that grows with its text and one button that sends or stops.",
+    "jsdoc": "The message box of a chat: a text field that grows with its text and a button that sends the message, or stops the answer while one streams.",
+    "examples": [
+      "Composition:\n```\nPromptInput.Root\n├── PromptInput.TextArea\n└── PromptInput.Footer\n    ├── PromptInput.AttachButton\n    ├── PromptInput.Dictate\n    └── PromptInput.Submit\n```",
+      "```tsx\n<PromptInput.Root\n  streaming={isAnswering}\n  onStop={stop}\n  onSubmit={(event) => {\n    event.preventDefault();\n    send(draft);\n  }}\n>\n  <PromptInput.TextArea\n    aria-label=\"Message the assistant\"\n    name=\"message\"\n    placeholder=\"Ask about your endpoints…\"\n    value={draft}\n    onChange={(event) => setDraft(event.target.value)}\n  />\n  <PromptInput.Footer>\n    <PromptInput.Submit />\n  </PromptInput.Footer>\n</PromptInput.Root>\n```"
+    ],
+    "aliases": [
+      "chat input",
+      "composer",
+      "message box",
+      "prompt",
+      "chat composer",
+      "ai input"
+    ],
+    "siblings": [
+      {
+        "name": "TextArea",
+        "boundary": "a form field for free-form text that a form submits with its other fields."
+      },
+      {
+        "name": "Input",
+        "boundary": "a single-line field, such as a search box."
+      }
+    ],
+    "useWhen": "Let a person write and send a message to an assistant or a model, and stop the answer while it streams."
+  },
+  {
     "name": "QR Code",
     "slug": "components/data-display/qr-code",
     "kind": "component",
@@ -1495,10 +1810,10 @@
       },
       {
         "name": "Command",
-        "boundary": "a palette that runs an action or navigates."
+        "boundary": "a `⌘K` palette that runs an action or navigates."
       }
     ],
-    "useWhen": "Filter a list with a typed query of free text and `key:value` qualifiers."
+    "useWhen": "Filter a list with a typed query of free text and `key:value` qualifiers. Its `keyboardShortcut` prop makes the slash key (`/`) a keyboard shortcut that focuses the field while no other text field has focus."
   },
   {
     "name": "Radio Group",
@@ -1507,15 +1822,17 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/radio-group",
-    "summary": "A set of checkable buttons (known as radio buttons) where no more than one of the buttons can be checked at a time.",
-    "jsdoc": "A group of radio items.",
+    "summary": "A set of radio buttons, shown as radios, a list, or selectable cards, where no more than one can be checked at a time.",
+    "jsdoc": "A group of radio items, shown as radios, a list, or cards.",
     "examples": [
       "Composition:\n```\n# Default radios\nRadioGroup.Root\n└── RadioGroup.Item\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# List layout with descriptions\nRadioGroup.List\n└── RadioGroup.ListItem\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# Card-style radios\nRadioGroup.Root\n└── RadioGroup.Card\n    └── RadioGroup.Indicator\n\n# Rich option layout (Choice)\nRadioGroup.Root\n└── RadioGroup.Item\n    └── Choice.Root\n        ├── Choice.Indicator\n        │   └── RadioGroup.Indicator\n        └── Choice.Content\n            ├── Choice.Title\n            └── Choice.Description\n```",
       "```tsx\n<RadioGroup.Root value={value} onValueChange={setValue}>\n  <RadioGroup.Item value=\"option1\">\n    <RadioGroup.Indicator />\n    <span>Option 1</span>\n  </RadioGroup.Item>\n  <RadioGroup.Item value=\"option2\">\n    <RadioGroup.Indicator />\n    <span>Option 2</span>\n  </RadioGroup.Item>\n</RadioGroup.Root>\n```"
     ],
     "aliases": [
       "radio button",
-      "radio"
+      "radio",
+      "radio cards",
+      "radio card grid"
     ],
     "siblings": [
       {
@@ -1535,7 +1852,43 @@
         "boundary": "a few short options switch a view or a mode in one row."
       }
     ],
-    "useWhen": "Pick exactly one value from a few fixed options, with every option visible at once."
+    "useWhen": "Pick exactly one value from a few fixed options, with every option visible at once, such as a single choice between selectable cards."
+  },
+  {
+    "name": "Reasoning",
+    "slug": "components/ai/reasoning",
+    "kind": "component",
+    "category": "AI",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/reasoning",
+    "summary": "A model's reasoning in a chat answer, folded under a label that reads \"Thinking…\" while it streams.",
+    "jsdoc": "A model's reasoning in a chat answer, folded under a one-line label that reads \"Thinking…\" while it streams.",
+    "examples": [
+      "Composition:\n```\nReasoning.Root\n├── Reasoning.Trigger\n└── Reasoning.Content\n```",
+      "```tsx\n<Reasoning.Root streaming={isThinking}>\n  <Reasoning.Trigger>Thought for 4 seconds</Reasoning.Trigger>\n  <Reasoning.Content>{reasoning}</Reasoning.Content>\n</Reasoning.Root>\n```"
+    ],
+    "aliases": [
+      "thinking",
+      "chain of thought",
+      "reasoning summary",
+      "ai reasoning",
+      "thought process"
+    ],
+    "siblings": [
+      {
+        "name": "ToolCall",
+        "boundary": "a tool the model called while it answered."
+      },
+      {
+        "name": "Work",
+        "boundary": "the toggle that folds every step of one answer."
+      },
+      {
+        "name": "Accordion",
+        "boundary": "titled sections that are not part of a chat answer."
+      }
+    ],
+    "useWhen": "Show the reasoning a model wrote before its answer, closed by default, with a label that pulses while the model thinks."
   },
   {
     "name": "Sandbar",
@@ -1624,7 +1977,7 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/segmented-control",
-    "summary": "A row of segments that switches between a few short options, like a view or an environment. A raised thumb slides to the checked segment.",
+    "summary": "A row of segments that switches between a few short options, like a view or an environment. A tinted thumb slides to the checked segment.",
     "jsdoc": "A row of segments that switches between a few short options, like a view or an environment.",
     "examples": [
       "Composition:\n```\nSegmentedControl.Root\n└── SegmentedControl.Item\n```",
@@ -1650,7 +2003,7 @@
         "boundary": "the set is long, or the row has little space."
       }
     ],
-    "useWhen": "Switch between a few short options, like a view or an environment, in one row."
+    "useWhen": "Switch between a few short options in one compact, inline row, such as a view, an environment, or a filter."
   },
   {
     "name": "Select",
@@ -1687,7 +2040,7 @@
         "boundary": "the list runs actions and sets no value."
       }
     ],
-    "useWhen": "Pick one value from a short, fixed list of options that needs no filter."
+    "useWhen": "Pick one value from a short, fixed list of options that needs no filter, such as a region or an expiry duration."
   },
   {
     "name": "Selectable List",
@@ -1803,7 +2156,9 @@
     "aliases": [
       "side nav",
       "side navigation",
-      "navigation drawer"
+      "navigation drawer",
+      "cmd b",
+      "ctrl b"
     ],
     "siblings": [
       {
@@ -2034,7 +2389,7 @@
     "jsdoc": "Use `Table` for STATIC, layout-driven tabular data: read-only data dumps, simple key/value displays, plain markup tables.",
     "examples": [
       "Composition:\n```\nTable.Root\n└── Table.Element\n    ├── Table.Caption\n    ├── Table.Head\n    │   └── Table.Row\n    │       └── Table.Header\n    ├── Table.Body\n    │   └── Table.Row\n    │       └── Table.Cell\n    └── Table.Foot\n```",
-      "```tsx\n<Table.Root>\n  <Table.Element>\n    <Table.Caption>A list of your recent invoices.</Table.Caption>\n    <Table.Head>\n      <Table.Row>\n        <Table.Header className=\"w-25\">Invoice</Table.Header>\n        <Table.Header>Status</Table.Header>\n        <Table.Header>Method</Table.Header>\n        <Table.Header className=\"text-right\">Amount</Table.Header>\n      </Table.Row>\n    </Table.Head>\n    <Table.Body>\n      {invoices.map((invoice) => (\n        <Table.Row key={invoice.invoice}>\n          <Table.Cell className=\"font-medium\">{invoice.invoice}</Table.Cell>\n          <Table.Cell>{invoice.paymentStatus}</Table.Cell>\n          <Table.Cell>{invoice.paymentMethod}</Table.Cell>\n          <Table.Cell className=\"text-right\">{invoice.totalAmount}</Table.Cell>\n        </Table.Row>\n      ))}\n    </Table.Body>\n    <Table.Foot>\n      <Table.Row>\n        <Table.Cell colSpan={3}>Total</Table.Cell>\n        <Table.Cell className=\"text-right\">$2,500.00</Table.Cell>\n      </Table.Row>\n    </Table.Foot>\n  </Table.Element>\n</Table.Root>\n```"
+      "```tsx\n<Table.Root>\n  <Table.Element>\n    <Table.Caption>A list of your recent invoices.</Table.Caption>\n    <Table.Head>\n      <Table.Row>\n        <Table.Header width=\"fit\">Invoice</Table.Header>\n        <Table.Header width=\"fit\">Status</Table.Header>\n        <Table.Header>Method</Table.Header>\n        <Table.Header width=\"fit\" className=\"text-right\">Amount</Table.Header>\n      </Table.Row>\n    </Table.Head>\n    <Table.Body>\n      {invoices.map((invoice) => (\n        <Table.Row key={invoice.invoice}>\n          <Table.Cell width=\"fit\" className=\"font-medium\">{invoice.invoice}</Table.Cell>\n          <Table.Cell width=\"fit\">{invoice.paymentStatus}</Table.Cell>\n          <Table.Cell>{invoice.paymentMethod}</Table.Cell>\n          <Table.Cell width=\"fit\" className=\"text-right\">{invoice.totalAmount}</Table.Cell>\n        </Table.Row>\n      ))}\n    </Table.Body>\n    <Table.Foot>\n      <Table.Row>\n        <Table.Cell colSpan={3}>Total</Table.Cell>\n        <Table.Cell width=\"fit\" className=\"text-right\">$2,500.00</Table.Cell>\n      </Table.Row>\n    </Table.Foot>\n  </Table.Element>\n</Table.Root>\n```"
     ],
     "aliases": [
       "html table",
@@ -2080,7 +2435,7 @@
         "boundary": "the user picks a form value, not a view."
       }
     ],
-    "useWhen": "Switch between peer views of related content in one place, with one view visible at a time."
+    "useWhen": "Switch between peer views of related content in one place, with one view visible at a time. Use `HeadlessTabs` to keep the tab state and behavior under your own custom markup and styling."
   },
   {
     "name": "Text Area",
@@ -2188,8 +2543,8 @@
     "category": "Feedback",
     "status": "stable",
     "importPath": "@ngrok/mantle/toast",
-    "summary": "A succinct message that appears temporarily.",
-    "jsdoc": "A succinct message that appears temporarily.",
+    "summary": "A brief message that shows the result of an action, such as a save or a failed request, then goes away on its own.",
+    "jsdoc": "A brief message that shows the result of an action, such as a save or a failed request, then goes away on its own.",
     "examples": [
       "Composition:\n```\nToast.Root\n├── Toast.Icon\n├── Toast.Message\n└── Toast.Action\n```",
       "```tsx\nmakeToast(\n  <Toast.Root intent=\"success\">\n    <Toast.Icon />\n    <Toast.Message>Operation completed successfully!</Toast.Message>\n    <Toast.Action>Dismiss</Toast.Action>\n  </Toast.Root>\n);\n```"
@@ -2214,7 +2569,43 @@
         "boundary": "the message waits for the user to save or discard pending changes."
       }
     ],
-    "useWhen": "Report the result of an action, such as a save or a copy, in a brief message that goes away on its own."
+    "useWhen": "Show the result of an action in a brief message that goes away on its own, such as a saved change, a copied value, or an error when a delete failed."
+  },
+  {
+    "name": "Tool Call",
+    "slug": "components/ai/tool-call",
+    "kind": "component",
+    "category": "AI",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/tool-call",
+    "summary": "One tool call of a chat answer, folded under a row with the tool's name and its state.",
+    "jsdoc": "One tool call of a chat answer, folded under a row with the tool's name and its state: running, done, failed, or interrupted.",
+    "examples": [
+      "Composition:\n```\nToolCall.Root\n├── ToolCall.Trigger\n│   └── ToolCall.Name\n└── ToolCall.Content\n```",
+      "```tsx\n<ToolCall.Root status=\"done\">\n  <ToolCall.Trigger>\n    <ToolCall.Name>list_endpoints</ToolCall.Name>\n  </ToolCall.Trigger>\n  <ToolCall.Content>\n    <CodeBlock.Root>\n      <CodeBlock.Body>\n        <CodeBlock.Code value={jsonCodeBlockValue({ limit: 5 })} />\n      </CodeBlock.Body>\n    </CodeBlock.Root>\n  </ToolCall.Content>\n</ToolCall.Root>\n```"
+    ],
+    "aliases": [
+      "tool use",
+      "function call",
+      "tool result",
+      "agent step",
+      "ai tool"
+    ],
+    "siblings": [
+      {
+        "name": "Reasoning",
+        "boundary": "the reasoning a model wrote before its answer."
+      },
+      {
+        "name": "Work",
+        "boundary": "the toggle that folds every step of one answer."
+      },
+      {
+        "name": "Accordion",
+        "boundary": "titled sections that are not part of a chat answer."
+      }
+    ],
+    "useWhen": "Show a tool that a model called while it answered, with its state, and its arguments and result behind a disclosure."
   },
   {
     "name": "Tooltip",
@@ -2372,6 +2763,41 @@
       }
     ],
     "useWhen": "De-emphasize a block of content relative to the surface around it."
+  },
+  {
+    "name": "Work",
+    "slug": "components/ai/work",
+    "kind": "component",
+    "category": "AI",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/work",
+    "summary": "The work behind one chat answer, its reasoning and its tool calls, under one \"Show work\" toggle that stays open while the answer streams.",
+    "jsdoc": "The work behind one chat answer, its reasoning and its tool calls, under one \"Show work\" toggle.",
+    "examples": [
+      "Composition:\n```\nWork.Root\n├── Work.Trigger\n└── Work.Content\n    ├── Reasoning.Root\n    └── ToolCall.Root\n```",
+      "```tsx\n<Work.Root streaming={answer.streaming}>\n  <Work.Trigger />\n  <Work.Content>\n    <Reasoning.Root>\n      <Reasoning.Trigger>Thought for 4 seconds</Reasoning.Trigger>\n      <Reasoning.Content>{answer.reasoning}</Reasoning.Content>\n    </Reasoning.Root>\n    <ToolCall.Root status=\"done\">\n      <ToolCall.Trigger>\n        <ToolCall.Name>list_endpoints</ToolCall.Name>\n      </ToolCall.Trigger>\n      <ToolCall.Content>{result}</ToolCall.Content>\n    </ToolCall.Root>\n  </Work.Content>\n</Work.Root>\n```"
+    ],
+    "aliases": [
+      "agent steps",
+      "tool calls and reasoning",
+      "ai work",
+      "answer steps"
+    ],
+    "siblings": [
+      {
+        "name": "Reasoning",
+        "boundary": "one block of reasoning, a step inside `Work.Content`."
+      },
+      {
+        "name": "ToolCall",
+        "boundary": "one tool call, a step inside `Work.Content`."
+      },
+      {
+        "name": "Accordion",
+        "boundary": "titled sections that are not part of a chat answer."
+      }
+    ],
+    "useWhen": "Fold the reasoning and the tool calls of one chat answer under one \"Show work\" / \"Hide work\" toggle that stays open while the answer streams."
   },
   {
     "name": "World Map",

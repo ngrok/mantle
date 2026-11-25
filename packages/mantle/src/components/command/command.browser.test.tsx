@@ -62,7 +62,7 @@ describe("Command.List edge cue (browser)", () => {
 			await userEvent.keyboard("{ArrowDown}");
 		}
 		// Why 24: the cue is 1.5rem tall.
-		const active = list.querySelector('[data-selected="true"]') as HTMLElement;
+		const active = list.querySelector("[data-highlighted]") as HTMLElement;
 		expect(active.getBoundingClientRect().bottom).toBeLessThanOrEqual(
 			list.getBoundingClientRect().bottom - 24 + 0.5,
 		);

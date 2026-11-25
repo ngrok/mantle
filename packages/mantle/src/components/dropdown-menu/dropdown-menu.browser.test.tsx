@@ -124,6 +124,31 @@ describe("DropdownMenu keyboard (browser)", () => {
 		await waitFor(() => expect(item("More")).toHaveFocus());
 	});
 
+	test("a click with no press, as a screen reader sends, toggles the menu; a pointer click opens it once", async () => {
+		render(<FruitMenu />);
+		const trigger = screen.getByRole("button", { name: "Open" });
+
+		act(() => trigger.click());
+		await waitFor(() => expect(item("Apple")).toHaveFocus());
+		act(() => trigger.click());
+		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
+
+		await browserUser.click(trigger);
+		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "true"));
+
+		// A click with no press on a sub-trigger moves focus into its submenu.
+		act(() => item("More").click());
+		await waitFor(() => expect(item("Cherry")).toHaveFocus());
+	});
+
+	test("a click with a detail but no press, as a label sends, opens the menu", async () => {
+		render(<FruitMenu />);
+		const trigger = screen.getByRole("button", { name: "Open" });
+
+		fireEvent.click(trigger, { detail: 1 });
+		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "true"));
+	});
+
 	test("arrow keys skip a disabled item, and Home and End move to the ends", async () => {
 		const user = userEvent.setup();
 		render(<FruitMenu />);
@@ -544,7 +569,7 @@ function menuBoxOf(element: HTMLElement): DOMRect {
 	return menu.getBoundingClientRect();
 }
 
-describe("DropdownMenu parity with Radix (browser)", () => {
+describe("DropdownMenu parity with its former Radix menu (browser)", () => {
 	test("Content and SubContent with asChild render the menu on the child and forward the ref", async () => {
 		const user = userEvent.setup();
 		let content: HTMLElement | null = null;
@@ -722,7 +747,7 @@ describe("DropdownMenu parity with Radix (browser)", () => {
 		await user.keyboard("{ArrowDown}");
 		await waitFor(() => expect(item("Apple")).toHaveFocus());
 
-		// Why a real click: the outside button is inert, so the press lands on the page.
+		// Why force: the outside button is inert, so the press lands on the page.
 		await browserUser.click(screen.getByRole("button", { name: "Outside" }), { force: true });
 
 		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));

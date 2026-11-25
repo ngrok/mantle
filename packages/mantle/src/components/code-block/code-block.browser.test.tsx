@@ -71,25 +71,43 @@ describe("CodeBlock (browser)", () => {
 			expect(clipboardText).toBe(expectedPlainText);
 		});
 
-		test("CopyButton swaps to check icon after clicking", async () => {
-			const user = userEvent.setup();
+		// Why the compiled CSS: the swap lives in the paths' classes, so only computed opacity shows which icon paints.
+		test.each(["no-preference", "reduce"] as const)(
+			"CopyButton shows exactly one icon before, during, and after a copy (%s motion)",
+			async (reducedMotion) => {
+				const style = document.createElement("style");
+				style.textContent = await commands.tailwindCss("./code-block.tsx");
+				document.head.append(style);
+				await commands.emulateMedia({ reducedMotion });
+				try {
+					const user = userEvent.setup();
+					// Why an ancestor with `data-copied`: only the button's own attribute swaps the icons.
+					render(
+						<div data-copied="">
+							<CodeBlock.Root>
+								<CodeBlock.Body>
+									<CodeBlock.CopyButton />
+									<CodeBlock.Code value={makeValue("code")} />
+								</CodeBlock.Body>
+							</CodeBlock.Root>
+						</div>,
+					);
+					const button = screen.getByRole("button", { name: /copy code/i });
+					const [copyPath, checkPath] = button.querySelectorAll("path");
+					const opacities = () =>
+						[copyPath, checkPath].map((path) => getComputedStyle(path as Element).opacity);
 
-			render(
-				<CodeBlock.Root>
-					<CodeBlock.Body>
-						<CodeBlock.CopyButton />
-						<CodeBlock.Code value={makeValue("code")} />
-					</CodeBlock.Body>
-				</CodeBlock.Root>,
-			);
-
-			const button = screen.getByRole("button", { name: /copy code/i });
-			const iconBefore = button.querySelector("[data-state='active'] > svg")?.innerHTML;
-			await user.click(button);
-			const iconAfter = button.querySelector("[data-state='active'] > svg")?.innerHTML;
-
-			expect(iconAfter).not.toBe(iconBefore);
-		});
+					expect(opacities()).toEqual(["1", "0"]);
+					await user.click(button);
+					await expect.poll(opacities).toEqual(["0", "1"]);
+					// The check shows for two seconds, then the copy icon comes back.
+					await expect.poll(opacities, { timeout: 4000 }).toEqual(["1", "0"]);
+				} finally {
+					await commands.emulateMedia({ reducedMotion: "no-preference" });
+					style.remove();
+				}
+			},
+		);
 	});
 
 	/**
@@ -126,20 +144,24 @@ describe("CodeBlock (browser)", () => {
 			--mantle-code-fold-gutter-gap: 0.25rem;
 			--mantle-code-fold-line-height: 1.5rem;
 		}
-		pre[data-slot="code-block-code"] {
+		pre[data-slot~="code-block-code"] {
 			margin: 0;
 			padding: 1rem 0;
 			overflow-x: auto;
 			overflow-y: hidden;
 		}
 		/* The \`pl-4\` of the <pre> with line numbers off. Only the hit-area tests opt in. */
-		.fixture-pl-4 pre[data-slot="code-block-code"][data-mantle-line-numbers~="false"] {
+		.fixture-pl-4 pre[data-slot~="code-block-code"][data-mantle-line-numbers~="false"] {
 			padding-left: 1rem;
 		}
-		pre[data-slot="code-block-code"] > code {
+		pre[data-slot~="code-block-code"] > code {
 			display: block;
 			min-width: 100%;
 			width: max-content;
+		}
+		pre[data-slot~="code-block-code"][data-syntax-highlighted] > code {
+			display: flex;
+			flex-direction: column;
 		}
 		.mantle-code-line {
 			display: flex;
@@ -159,7 +181,14 @@ describe("CodeBlock (browser)", () => {
 			min-width: 0;
 			flex: 1 1 auto;
 		}
-		.mantle-code-line-number {
+		pre[data-mantle-line-numbers="true"] > code {
+			counter-reset: mantle-line calc(var(--mantle-line-number-start, 1) - 1);
+		}
+		pre[data-mantle-line-numbers="true"] .mantle-code-line {
+			counter-increment: mantle-line;
+		}
+		pre[data-mantle-line-numbers="true"] .mantle-code-line::before {
+			content: counter(mantle-line) / "";
 			position: sticky;
 			left: 0;
 			z-index: 1;
@@ -173,10 +202,10 @@ describe("CodeBlock (browser)", () => {
 			left: calc(var(--mantle-code-line-number-width) + var(--mantle-code-line-number-gap));
 			z-index: 1;
 		}
-		pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-content {
+		pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-content {
 			margin-left: calc(var(--mantle-code-fold-gutter-width) + var(--mantle-code-fold-gutter-gap));
 		}
-		pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
+		pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle)
 			.mantle-code-line-opener
 			> .mantle-code-line-content {
 			margin-left: 0;
@@ -240,7 +269,7 @@ describe("CodeBlock (browser)", () => {
 	 */
 	function foldLineHeightCss(): string {
 		const match =
-			/pre\[data-slot="code-block-code"\]:has\(\.mantle-code-fold-toggle\) \{\n\tline-height:[\s\S]*?\n\}/.exec(
+			/pre\[data-slot~="code-block-code"\]:has\(\.mantle-code-fold-toggle\) \{\n\tline-height:[\s\S]*?\n\}/.exec(
 				mantleCss,
 			);
 		if (match == null) {
@@ -280,7 +309,6 @@ describe("CodeBlock (browser)", () => {
 						`<span class="line"><span style="display:inline-block;width:${width}px"></span></span>`,
 				)
 				.join("\n"),
-			showLineNumbers,
 		});
 		return createMantleCodeBlockValue({
 			language: "typescript",
@@ -306,6 +334,35 @@ describe("CodeBlock (browser)", () => {
 		}
 		return pre;
 	}
+
+	describe("copy a selection", () => {
+		test("a copied selection keeps a blank line", () => {
+			const html = decorateHighlightedHtml({
+				html: ["alpha", "", "omega"].map((text) => `<span class="line">${text}</span>`).join("\n"),
+			});
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code
+							value={createMantleCodeBlockValue({
+								language: "text",
+								code: "alpha\n\nomega",
+								preHtml: html,
+							})}
+						/>
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			const code = getPre().querySelector("code");
+			if (code == null) {
+				throw new Error("expected the <code>");
+			}
+			getSelection()?.selectAllChildren(code);
+			// Why the space: it is the only empty-line content that each engine copies as one blank line.
+			expect(getSelection()?.toString()).toBe("alpha\n \nomega");
+		});
+	});
 
 	describe("horizontal overflow", () => {
 		test("no scrollbar when every line fits the container", () => {
@@ -398,20 +455,24 @@ describe("CodeBlock (browser)", () => {
 			);
 
 			const pre = getPre();
-			const number = pre.querySelector(".mantle-code-line-number");
+			const line = pre.querySelector(".mantle-code-line");
 			const content = pre.querySelector(".mantle-code-line-content");
-			if (number == null || content == null) {
-				throw new Error("expected a line number and line content");
+			if (line == null || content == null) {
+				throw new Error("expected a line and its content");
 			}
 
+			// Why a hit test: the number is a pseudo-element, and a hit on it
+			// returns its line. A gutter that scrolled away exposes the content.
 			const preLeft = pre.getBoundingClientRect().left;
+			const { top, height } = content.getBoundingClientRect();
+			const gutterHit = () => document.elementFromPoint(preLeft + 2, top + height / 2);
 			const contentLeftBefore = content.getBoundingClientRect().left;
-			expect(number.getBoundingClientRect().left - preLeft).toBe(0);
+			expect(gutterHit()).toBe(line);
 
 			pre.scrollLeft = 100;
 			expect(pre.scrollLeft).toBe(100);
 
-			expect(number.getBoundingClientRect().left - preLeft).toBe(0);
+			expect(gutterHit()).toBe(line);
 			expect(content.getBoundingClientRect().left).toBe(contentLeftBefore - 100);
 		});
 

@@ -265,3 +265,36 @@ export function UntranslatableLabelsExample() {
 		</PreviewCanvas>
 	);
 }
+
+const regionDetails = [
+	{ value: "us-east-1", label: "US East", detail: "Virginia · 12 ms" },
+	{ value: "eu-west-1", label: "EU West", detail: "Ireland · 84 ms" },
+	{ value: "ap-southeast-2", label: "Asia Pacific", detail: "Sydney · 210 ms" },
+];
+
+/** The "Highlighted row details" example on the Select docs page. */
+export function HighlightedRowDetailsExample() {
+	return (
+		<PreviewCanvas className="min-h-160">
+			<Select.Root defaultValue="us-east-1">
+				<Select.Trigger className="w-56" aria-label="Region">
+					<Select.Value placeholder="Select a region" />
+				</Select.Trigger>
+				<Select.Content width="trigger">
+					{regionDetails.map((region) => (
+						<Select.Item key={region.value} value={region.value} textValue={region.label}>
+							{(props, { highlighted }) => (
+								<div {...props}>
+									{region.label}
+									{highlighted && (
+										<span className="text-muted ml-auto text-xs">{region.detail}</span>
+									)}
+								</div>
+							)}
+						</Select.Item>
+					))}
+				</Select.Content>
+			</Select.Root>
+		</PreviewCanvas>
+	);
+}

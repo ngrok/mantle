@@ -24,6 +24,8 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import * as Panel from "../panel/panel-parts.js";
+import { headerBandClassName } from "../panel/panel.js";
 import { isTabbable } from "../alert/tabbable-neighbors.js";
 import type { IconButtonProps } from "../button/icon-button.js";
 import { escapeBelongsToNestedPopup } from "../dialog/targets.js";
@@ -289,6 +291,13 @@ const Workspace = ({
  * against the card instead of escaping to `AppLayout.Root` and painting across
  * the sidebar.
  *
+ * It carries `view-transition-class: app-layout-card`, and so does
+ * `AppLayout.SidePanel`. When an app gives the card and the panel the same
+ * `view-transition-name`, such as an assistant that is the page on its own
+ * route and the panel on every other one, a navigation between them morphs
+ * one card into the other. `mantle.css` styles the morph; the app only names
+ * the cards. See the Assistant Across Routes recipe.
+ *
  * **CSS variables (public API):**
  *
  * | CSS Variable | Default | Description |
@@ -349,6 +358,9 @@ const Content = ({
 				// scrollbar, so a long toolbar lets focus scroll the card sideways.
 				// That translates the header and the page off-screen with no way back.
 				"overflow-clip",
+				// The morph to and from `AppLayout.SidePanel` in `mantle.css`. A class
+				// does nothing until the app names the card.
+				"[view-transition-class:app-layout-card]",
 				className,
 			)}
 			{...props}
@@ -357,22 +369,6 @@ const Content = ({
 		</Comp>
 	);
 };
-
-/**
- * The toolbar band `AppLayout.Header` and `AppLayout.SidePanelHeader` share, so
- * the two rows and the sidebar header's switcher row center on one line.
- * Standalone the band is `h-14`. With a `Sidebar.Header` in the shell, the
- * height derives from the sidebar's `--sidebar-header-height` token, except
- * when the sidebar is the mobile sheet (`data-mobile`), which sits above the
- * page instead of beside the header: the row
- * sits below the card's gutter and its 1px border, so center parity needs the
- * band minus twice each. The band is the sidebar header's first row, so a header
- * that stacks a second row leaves this height alone. Set
- * `--sidebar-header-height` on a common ancestor (e.g. `AppLayout.Root`) and
- * every row moves together.
- */
-const headerBandClassName =
-	"h-14 group-has-[[data-slot~=sidebar-header]:not([data-mobile]_*)]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]";
 
 /**
  * The toolbar row at the top of the content card. Render it as the **first
@@ -456,7 +452,7 @@ const Header = ({
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "app-layout-header")}
 			className={cx(
-				"border-card-muted flex shrink-0 items-center gap-2 border-b px-4",
+				"border-separator flex shrink-0 items-center gap-2 border-b px-4",
 				headerBandClassName,
 				className,
 			)}
@@ -793,9 +789,9 @@ type AppLayoutSidePanelMobileBreakpoint = "sm" | "md" | "lg";
  * constant can hold the prefix.
  */
 const sidePanelFloatClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
-	sm: "sm:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 sm:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded]))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:basis-0 max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:my-0 max-sm:rounded-xl max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:[--_side-panel-content-inset:0px] max-sm:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-sm:data-state-closed:invisible",
-	md: "md:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 md:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded]))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:basis-0 max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100cqw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:data-state-closed:invisible max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
-	lg: "lg:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 lg:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded]))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:basis-0 max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100cqw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-lg:data-state-closed:invisible max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
+	sm: "sm:@min-side-panel-lane/app-layout-workspace:not-data-open:basis-0 sm:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile])))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:not-data-open:basis-0 max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:my-0 max-sm:rounded-xl max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:[--_side-panel-content-inset:0px] max-sm:not-data-open:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-sm:not-data-open:invisible",
+	md: "md:@min-side-panel-lane/app-layout-workspace:not-data-open:basis-0 md:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile])))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:not-data-open:basis-0 max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100cqw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:not-data-open:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:not-data-open:invisible max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
+	lg: "lg:@min-side-panel-lane/app-layout-workspace:not-data-open:basis-0 lg:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile])))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:not-data-open:basis-0 max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100cqw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:not-data-open:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-lg:not-data-open:invisible max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
 };
 
 /**
@@ -808,17 +804,17 @@ const sidePanelFloatClassName: Record<AppLayoutSidePanelMobileBreakpoint, string
  * width and a width from this rule would outrank it.
  */
 const sidePanelLaneFloatClassName =
-	"@max-side-panel-lane-collapsed/app-layout-workspace:absolute @max-side-panel-lane-collapsed/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane-collapsed/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane-collapsed/app-layout-workspace:z-20 @max-side-panel-lane-collapsed/app-layout-workspace:my-0 @max-side-panel-lane-collapsed/app-layout-workspace:rounded-xl @max-side-panel-lane-collapsed/app-layout-workspace:shadow-lg @max-side-panel-lane-collapsed/app-layout-workspace:[--_side-panel-content-width:100%] @max-side-panel-lane-collapsed/app-layout-workspace:[--_side-panel-content-inset:0px] @max-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] @max-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:invisible";
+	"@max-side-panel-lane-collapsed/app-layout-workspace:absolute @max-side-panel-lane-collapsed/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane-collapsed/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane-collapsed/app-layout-workspace:z-20 @max-side-panel-lane-collapsed/app-layout-workspace:my-0 @max-side-panel-lane-collapsed/app-layout-workspace:rounded-xl @max-side-panel-lane-collapsed/app-layout-workspace:shadow-lg @max-side-panel-lane-collapsed/app-layout-workspace:[--_side-panel-content-width:100%] @max-side-panel-lane-collapsed/app-layout-workspace:[--_side-panel-content-inset:0px] @max-side-panel-lane-collapsed/app-layout-workspace:not-data-open:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] @max-side-panel-lane-collapsed/app-layout-workspace:not-data-open:invisible";
 
 /**
  * The same float as {@link sidePanelLaneFloatClassName}, up to
  * `--container-side-panel-lane`, while a direct child of the row is an
  * expanded `Sidebar.Nav`. The arbitrary variant keys the row through `:has()`
- * on the sidebar's `data-slot` and `data-state`, so collapsing the sidebar returns
+ * on the sidebar's `data-slot` and `data-expanded`, so collapsing the sidebar returns
  * the panel to the lane at the narrower threshold.
  */
 const sidePanelExpandedSidebarLaneFloatClassName =
-	"[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:absolute [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:z-20 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:my-0 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:rounded-xl [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:shadow-lg [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:[--_side-panel-content-width:100%] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:[--_side-panel-content-inset:0px] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:data-state-closed:invisible";
+	"[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:absolute [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:z-20 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:my-0 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:rounded-xl [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:shadow-lg [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:[--_side-panel-content-width:100%] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:[--_side-panel-content-inset:0px] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:not-data-open:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:not-data-open:invisible";
 
 /**
  * The strip width for the row-driven float, gated to the viewports above the
@@ -831,9 +827,9 @@ const sidePanelExpandedSidebarLaneFloatClassName =
  * than 24rem plus the strip never holds a panel wider than itself.
  */
 const sidePanelLaneStripWidthClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
-	sm: "sm:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
-	md: "sm:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
-	lg: "md:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] md:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
+	sm: "sm:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
+	md: "sm:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
+	lg: "md:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] md:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
 };
 
 /**
@@ -887,8 +883,8 @@ function isSidePanelFloating(panel: HTMLElement | null): boolean {
  */
 type AppLayoutSidePanelState = {
 	/**
-	 * Whether the panel is on screen. Mirrored as `data-state="open" | "closed"`
-	 * on `AppLayout.SidePanel` and `AppLayout.SidePanelTrigger`.
+	 * Whether the panel is on screen. Mirrored as presence-only `data-open` on
+	 * `AppLayout.SidePanel` and as `aria-expanded` on `AppLayout.SidePanelTrigger`.
 	 */
 	open: boolean;
 	/**
@@ -924,6 +920,15 @@ type SidePanelContextValue = {
 	 * element a swipe moves.
 	 */
 	panelRef: RefObject<HTMLElement | null>;
+	/**
+	 * Whether the panel has been open since the root mounted, with no reader
+	 * action on it. A covering panel takes no focus while it is `true`.
+	 */
+	openSinceMount: boolean;
+	/**
+	 * Marks the open as one the reader acted on, so a covering panel traps focus.
+	 */
+	armFocusTrap: () => void;
 };
 
 const SidePanelContext = createContext<SidePanelContextValue | null>(null);
@@ -1017,7 +1022,7 @@ type AppLayoutSidePanelRootProps = {
  * To persist the state across visits with no first-frame correction, read
  * `extractSidePanelStateCookie` in the server loader, pass the result to
  * `defaultOpen`, and write `serializeSidePanelStateCookie` from
- * `onOpenChange`. The server HTML then carries the right `data-state`, the
+ * `onOpenChange`. The server HTML then carries the right `data-open`, the
  * same way `Sidebar.Root` persists the sidebar.
  *
  * When the panel closes while focus is inside it, the root moves focus to the
@@ -1100,6 +1105,19 @@ const SidePanelRoot = ({
 	const lastFocusedInsideRef = useRef<Element | null>(null);
 	const panelRef = useRef<HTMLElement | null>(null);
 
+	// Why: a panel open since mount (`defaultOpen`, a saved cookie, or a
+	// controlled `open`) is a page state, not an open the reader asked for, so a
+	// covering panel must not take focus from the page or from a parent frame.
+	// Why on the root: a panel that mounts only when it opens must still read
+	// that open as the reader's. Every open after a close is the reader's.
+	const [openSinceMount, setOpenSinceMount] = useState(open);
+	if (openSinceMount && !open) {
+		setOpenSinceMount(false);
+	}
+	const armFocusTrap = useCallback(() => {
+		setOpenSinceMount(false);
+	}, []);
+
 	const setOpen = useCallback(
 		(next: boolean) => {
 			if (!isControlled) {
@@ -1150,8 +1168,14 @@ const SidePanelRoot = ({
 	}, [open, panelId]);
 
 	const contextValue = useMemo<SidePanelContextValue>(
-		() => ({ lastFocusedInsideRef, panelRef, state: { open, panelId, setOpen, toggle } }),
-		[open, panelId, setOpen, toggle],
+		() => ({
+			armFocusTrap,
+			lastFocusedInsideRef,
+			openSinceMount,
+			panelRef,
+			state: { open, panelId, setOpen, toggle },
+		}),
+		[armFocusTrap, open, openSinceMount, panelId, setOpen, toggle],
 	);
 
 	return <SidePanelContext.Provider value={contextValue}>{children}</SidePanelContext.Provider>;
@@ -1213,6 +1237,11 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  *   width, so the content never reflows or shifts.
  * - The box's start edge sweeps across the card.
  *
+ * It carries `view-transition-class: app-layout-card`, the same as
+ * `AppLayout.Content`, so a panel and a card with the same
+ * `view-transition-name` morph into each other on a navigation that swaps
+ * them. `mantle.css` styles the morph.
+ *
  * A CSS transition reverses from wherever it is, so a second click mid-flight
  * turns the panel around. `motion-reduce:transition-none` turns the slide into
  * a cut. `not-data-hydrated:transition-none` holds the transition until one
@@ -1267,7 +1296,12 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  * When the panel covers the row, it is modal. The row's other children (the
  * card and the sidebar) go `inert` while it is open, so nothing beneath it is
  * clickable or read; `useFocusTrap` wraps `Tab` inside it and moves focus
- * into it on open. The one `<aside>` stays mounted across the lane, the
+ * into it on open. A panel that is open on mount (`defaultOpen` or a saved
+ * cookie) still covers the card and keeps the row `inert`, but it does not
+ * take focus: the trap starts when focus first enters the panel, when a resize
+ * covers the card while it holds focus, or when the reader opens it again.
+ * Until then the panel is a tab stop of its own, so a panel with no control
+ * still takes `Tab` and `Escape`. The one `<aside>` stays mounted across the lane, the
  * float, and the cover, so a conversation keeps its DOM and the trap turns
  * on and off with the viewport.
  *
@@ -1284,7 +1318,7 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-state` | `"open"` \| `"closed"` | Mirrors the root's open state. The collapse and the transition key off it in CSS, and consumers style against it. |
+ * | `data-open` | present while open | Presence-only. Mirrors the root's open state. The collapse and the transition key off it in CSS, and consumers style against it. |
  * | `data-hydrated` | present one frame after hydration | Presence-only. The transition keys off its absence in CSS (`not-data-hydrated:transition-none`), so a state correction after the server render snaps instead of animating. |
  *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepanel
@@ -1344,7 +1378,9 @@ const SidePanel = ({
 	...props
 }: AppLayoutSidePanelProps) => {
 	const {
+		armFocusTrap,
 		lastFocusedInsideRef,
+		openSinceMount,
 		panelRef,
 		state: { open, panelId, setOpen },
 	} = useSidePanelContext("SidePanel");
@@ -1393,7 +1429,8 @@ const SidePanel = ({
 	// Why a viewport query and not the computed position: the cover is the one
 	// presentation the viewport alone decides, and this is the range Tailwind
 	// compiles the cover tier to.
-	const covers = useMatchesMediaQuery(sidePanelCoverQuery[mobileBreakpoint]);
+	const coverQuery = sidePanelCoverQuery[mobileBreakpoint];
+	const covers = useMatchesMediaQuery(coverQuery);
 	const isModal = open && covers;
 
 	// Why a layout effect: the sidebar's state is in `Sidebar.Root`, above or
@@ -1408,10 +1445,67 @@ const SidePanel = ({
 		return () => requestSidebarWidth(false);
 	}, [needsSidebarWidth, requestSidebarWidth]);
 
+	// Why a native listener: React's `onFocus` misses focus that a child stops
+	// and a button portaled into the panel, and it reports popups portaled out
+	// of it. A document capture listener runs before any child can stop it, and
+	// the DOM check skips popups portaled out. Why a layout effect: a parent's
+	// layout effect can move focus in the mount commit, and it runs after this one.
+	useLayoutEffect(() => {
+		const panel = panelRef.current;
+		if (!openSinceMount || panel == null) {
+			return;
+		}
+		const handleFocusIn = (event: FocusEvent) => {
+			if (event.target instanceof Element && panel.contains(event.target)) {
+				lastFocusedInsideRef.current = event.target;
+				armFocusTrap();
+			}
+		};
+		document.addEventListener("focusin", handleFocusIn, true);
+		return () => {
+			document.removeEventListener("focusin", handleFocusIn, true);
+		};
+	}, [armFocusTrap, lastFocusedInsideRef, openSinceMount, panelRef]);
+
+	// Why: a panel open since mount still arms the trap in two cases with no
+	// focus event. Focus that entered before hydration fires none, and a resize
+	// that covers the row takes focus from the card or the sidebar when they go
+	// `inert`. Why the live `matches` and not `covers`: the first client
+	// snapshot also turns a phone's panel modal, and that is no resize, while
+	// the live value has covered since the first commit. Event order differs
+	// by engine, so no `resize` listener can tell them apart. Why before
+	// `useInertSiblings`: focus is read before the row goes `inert`.
+	const coveredAtLastCommitRef = useRef<boolean | null>(null);
+	useLayoutEffect(() => {
+		const coveredBefore = coveredAtLastCommitRef.current;
+		// Why optional: jsdom has no `matchMedia`.
+		coveredAtLastCommitRef.current = window.matchMedia?.(coverQuery).matches ?? false;
+		const panel = panelRef.current;
+		const row = panel?.parentElement;
+		if (!isModal || !openSinceMount || panel == null || row == null) {
+			return;
+		}
+		const activeElement = document.activeElement;
+		const focusIsInPanel = panel.contains(activeElement);
+		const resizeTookRowFocus =
+			coveredBefore === false && activeElement !== row && row.contains(activeElement);
+		if (focusIsInPanel || resizeTookRowFocus) {
+			armFocusTrap();
+		}
+	}, [armFocusTrap, coverQuery, isModal, openSinceMount, panelRef]);
+
 	// Why siblings: the card and the sidebar are the panel's siblings in the row,
 	// and `AppLayout` knows nothing about the sidebar.
 	useInertSiblings(panelRef, { active: isModal });
-	useFocusTrap(panelRef, { active: isModal });
+	const isTrapping = isModal && !openSinceMount;
+	useFocusTrap(panelRef, { active: isTrapping });
+	// Why a tab stop while the trap waits: the row is `inert`, and a panel with
+	// no tab stop of its own must still take Tab and then Escape. Why -1 once
+	// it traps: the trap keeps focus on the panel itself.
+	let modalTabIndex: number | undefined;
+	if (isModal) {
+		modalTabIndex = isTrapping ? -1 : 0;
+	}
 
 	// Why a document capture listener, registered at mount: a combobox or a
 	// popover inside the panel closes on the same Escape from a document
@@ -1448,6 +1542,9 @@ const SidePanel = ({
 				// Why isolate: a page's sticky rows carry their own z-index, and the
 				// panel's children must stack inside the panel, not against them.
 				"isolate",
+				// The morph to and from `AppLayout.Content` in `mantle.css`. A class
+				// does nothing until the app names the panel.
+				"[view-transition-class:app-layout-card]",
 				// Why clip on the inline axis only: the sweep is horizontal, and a
 				// clip on both axes would cut the card's shadow at the top and bottom.
 				"overflow-x-clip",
@@ -1477,7 +1574,7 @@ const SidePanel = ({
 				"transition-[flex-basis,translate,visibility] duration-200 ease-out-strong motion-reduce:transition-none not-data-hydrated:transition-none",
 				!open && closeEnded && "transition-none",
 				// The closed `basis-0` is in `sidePanelFloatClassName`, gated to the lane.
-				"data-state-closed:pointer-events-none",
+				"not-data-open:pointer-events-none",
 				sidePanelFloatClassName[mobileBreakpoint],
 				sidePanelLaneFloatClassName,
 				sidePanelExpandedSidebarLaneFloatClassName,
@@ -1516,28 +1613,26 @@ const SidePanel = ({
 			}}
 			{...props}
 			// Why after the spread: a wider props object can carry `id`,
-			// `data-state`, `data-hydrated`, or `inert` past the type, and a consumer
+			// `data-open`, `data-hydrated`, or `inert` past the type, and a consumer
 			// value would break the trigger's `aria-controls`, desync the collapse
-			// from the root, release the transition gate, or leave a closed panel in
-			// the tab order.
+			// from the root, release the transition gate, leave a closed panel in
+			// the tab order, or take a waiting cover out of it.
 			id={panelId}
-			data-state={open ? "open" : "closed"}
+			tabIndex={modalTabIndex ?? props.tabIndex}
+			data-open={open ? "" : undefined}
 			data-hydrated={isHydrated ? "" : undefined}
 			inert={!open}
 		>
 			{/* The card: pinned to the box's end inset at the open width, so the
 			    header, the body, and the footer keep their layout and the box's start
 			    edge sweeps across them instead of reflowing or moving them. */}
-			<div
-				className={cx(
-					"bg-card border-card-muted absolute inset-y-0 flex flex-col rounded-xl border shadow-sm",
-					"right-(--_side-panel-content-inset) w-(--_side-panel-content-width)",
-					// clip, not hidden: the same trap AppLayout.Content avoids.
-					"overflow-clip",
-				)}
-			>
-				{children}
-			</div>
+			{/* Why asChild: the `<aside>` above is the landmark, and a second one
+			    inside it would read as a second panel. */}
+			<Panel.Root asChild>
+				<div className="absolute inset-y-0 right-(--_side-panel-content-inset) w-(--_side-panel-content-width)">
+					{children}
+				</div>
+			</Panel.Root>
 		</aside>
 	);
 };
@@ -1616,7 +1711,6 @@ const defaultSidePanelTriggerIcon = <SidebarSimpleIcon mirrored />;
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-state` | `"open"` \| `"closed"` | Mirrors the root's open state. Pairs with `aria-expanded`. |
  * | `data-slot` | `"app-layout-side-panel-trigger icon-button"` | On the button: the part's slot, joined ahead of `IconButton`'s own. |
  * | `data-slot` | `"app-layout-side-panel-trigger-tooltip tooltip-content"` | On the tooltip surface, not the button: the styling hook for the label popup this part renders, joined ahead of `Tooltip.Content`'s own slot. |
  * | `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
@@ -1624,7 +1718,6 @@ const defaultSidePanelTriggerIcon = <SidebarSimpleIcon mirrored />;
  * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `"sm"`. |
  * | `data-icon-button` | `"true"` | Read, not stamped: always present on the underlying `IconButton`. |
  * | `data-loading` | present when `isLoading` | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`. |
- * | `data-disabled` | present when disabled | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`, when it resolves disabled: `disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`. |
  *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepaneltrigger
  *
@@ -1693,7 +1786,6 @@ const SidePanelTrigger = ({
 					aria-controls={panelId}
 					aria-expanded={open}
 					data-slot={joinDataSlot(dataSlot, "app-layout-side-panel-trigger")}
-					data-state={open ? "open" : "closed"}
 					icon={icon}
 					intent={intent}
 					label={label}
@@ -1707,7 +1799,11 @@ const SidePanelTrigger = ({
 					{...props}
 				/>
 			</Tooltip.Trigger>
-			<Tooltip.Content data-slot="app-layout-side-panel-trigger-tooltip">{label}</Tooltip.Content>
+			<Tooltip.Content data-slot="app-layout-side-panel-trigger-tooltip">
+				{/* Why hidden: the label is also the button's name, and the tooltip is its
+				    description, so a screen reader would say the label twice. */}
+				<span aria-hidden>{label}</span>
+			</Tooltip.Content>
 		</Tooltip.Root>
 	);
 };
@@ -1798,7 +1894,6 @@ const SidePanelHeader = ({
 	ref,
 	...props
 }: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
-	const Comp = asChild ? Slot : "div";
 	// Why nullable: the header renders outside `AppLayout.SidePanelRoot` too,
 	// and only the swipe needs the root.
 	const context = useContext(SidePanelContext);
@@ -1820,21 +1915,17 @@ const SidePanelHeader = ({
 	});
 
 	return (
-		<Comp
+		<Panel.Header
 			ref={composedRef}
+			asChild={asChild}
 			data-slot={joinDataSlot(dataSlot, "app-layout-side-panel-header")}
-			className={cx(
-				"border-card-muted flex shrink-0 items-center gap-2 border-b px-4",
-				// Why pan-y: the row is the swipe handle on a floating panel, and a
-				// vertical swipe on it must still scroll.
-				"touch-pan-y",
-				headerBandClassName,
-				className,
-			)}
+			// Why pan-y: the row is the swipe handle on a floating panel, and a
+			// vertical swipe on it must still scroll.
+			className={cx("touch-pan-y", className)}
 			{...props}
 		>
 			{children}
-		</Comp>
+		</Panel.Header>
 	);
 };
 
@@ -1900,19 +1991,15 @@ const SidePanelBody = ({
 	"data-slot": dataSlot,
 	...props
 }: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
-	const Comp = asChild ? Slot : "div";
-
 	return (
-		<Comp
+		<Panel.Body
+			asChild={asChild}
 			data-slot={joinDataSlot(dataSlot, "app-layout-side-panel-body")}
-			className={cx(
-				"scrollbar scrollbar-gutter-stable relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none",
-				className,
-			)}
+			className={className}
 			{...props}
 		>
 			{children}
-		</Comp>
+		</Panel.Body>
 	);
 };
 
@@ -1980,16 +2067,15 @@ const SidePanelFooter = ({
 	"data-slot": dataSlot,
 	...props
 }: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
-	const Comp = asChild ? Slot : "div";
-
 	return (
-		<Comp
+		<Panel.Footer
+			asChild={asChild}
 			data-slot={joinDataSlot(dataSlot, "app-layout-side-panel-footer")}
-			className={cx("flex shrink-0 flex-col gap-2 px-3 pb-3", className)}
+			className={className}
 			{...props}
 		>
 			{children}
-		</Comp>
+		</Panel.Footer>
 	);
 };
 

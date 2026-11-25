@@ -1,29 +1,28 @@
-import { cva } from "class-variance-authority";
 import type { ComponentProps } from "react";
-import type { VariantProps } from "../../types/index.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
 
-const buttonGroupVariants = cva("border-form inline-flex items-center rounded-md", {
-	variants: {
+/** The visual style of a `ButtonGroup`. */
+type ButtonGroupAppearance = "panel" | "ghost" | "outlined";
+
+const appearanceClasses = {
+	panel:
+		"bg-form gap-0.5 border p-0.75 [--icon-button-border-radius:0.125rem] [&>.separator]:mx-px",
+	ghost: "gap-0.5",
+	outlined: "", // TODO(cody): implement me
+} as const satisfies Record<ButtonGroupAppearance, string>;
+
+type ButtonGroupProps = ComponentProps<"div"> &
+	WithAsChild &
+	WithDataSlot & {
 		/**
 		 * Defines the visual style of the ButtonGroup.
 		 */
-		appearance: {
-			panel:
-				"bg-form gap-0.5 border p-0.75 [--icon-button-border-radius:0.125rem] [&>.separator]:mx-px",
-			ghost: "gap-0.5",
-			outlined: "", // TODO(cody): implement me
-		},
-	},
-});
-
-type ButtonGroupVariants = VariantProps<typeof buttonGroupVariants>;
-
-type ButtonGroupProps = ComponentProps<"div"> & ButtonGroupVariants & WithAsChild & WithDataSlot;
+		appearance?: ButtonGroupAppearance;
+	};
 
 /**
  * A contained group of related buttons.
@@ -55,7 +54,11 @@ const ButtonGroup = ({
 	return (
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "button-group")}
-			className={cx(buttonGroupVariants({ appearance }), className)}
+			className={cx(
+				"border-form inline-flex items-center rounded-md",
+				appearance && appearanceClasses[appearance],
+				className,
+			)}
 			ref={ref}
 			{...props}
 		>

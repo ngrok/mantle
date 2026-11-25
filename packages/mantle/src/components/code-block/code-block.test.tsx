@@ -1,12 +1,13 @@
 "use client";
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import * as CodeBlock from "./code-block-parts.js";
 import { createMantleCodeBlockValue } from "./mantle-code.js";
+import { useCodeBlockStream } from "./use-code-block-stream.js";
 
 function makeValue(code: string, preHtml?: string) {
 	return createMantleCodeBlockValue({
@@ -139,7 +140,7 @@ describe("CodeBlock", () => {
 
 			const pre = document.querySelector("pre");
 			expect(pre).not.toBeNull();
-			expect(pre?.dataset.highlighted).toBe("false");
+			expect(pre).not.toHaveAttribute("data-syntax-highlighted");
 			const code = document.querySelector("code");
 			expect(code?.innerHTML).toBe("const x = 1;");
 		});
@@ -395,6 +396,90 @@ describe("CodeBlock", () => {
 			});
 		});
 
+		test("shares one live region across code blocks", async () => {
+			const user = userEvent.setup();
+
+			render(
+				<>
+					{["a", "b", "c"].map((code) => (
+						<CodeBlock.Root key={code}>
+							<CodeBlock.Body>
+								<CodeBlock.CopyButton />
+								<CodeBlock.Code value={makeValue(code)} />
+							</CodeBlock.Body>
+						</CodeBlock.Root>
+					))}
+				</>,
+			);
+
+			// Why: an answer with many fences must not hold a polite region for each.
+			const [status, ...rest] = screen.getAllByRole("status");
+			expect(rest).toHaveLength(0);
+
+			await user.click(screen.getAllByRole("button", { name: /copy code/i }).at(-1) as HTMLElement);
+			await vi.waitFor(() => {
+				expect(status).toHaveTextContent("Copied");
+			});
+		});
+
+		test("announces a copy from a second code block after a copy from the first", async () => {
+			const user = userEvent.setup();
+
+			render(
+				<>
+					{["a", "b"].map((code) => (
+						<CodeBlock.Root key={code}>
+							<CodeBlock.Body>
+								<CodeBlock.CopyButton />
+								<CodeBlock.Code value={makeValue(code)} />
+							</CodeBlock.Body>
+						</CodeBlock.Root>
+					))}
+				</>,
+			);
+
+			const status = screen.getByRole("status");
+			const [first, second] = screen.getAllByRole("button", { name: /copy code/i });
+			await user.click(first as HTMLElement);
+			await vi.waitFor(() => {
+				expect(status).toHaveTextContent("Copied");
+			});
+			const before = status.textContent;
+
+			await user.click(second as HTMLElement);
+			// Why: the region is shared, so the second button's text must differ from the first's.
+			await vi.waitFor(() => {
+				expect(status.textContent).not.toBe(before);
+			});
+			expect(status).toHaveTextContent("Copied");
+		});
+
+		test("announces in the dialog that a copy button moved into", async () => {
+			const user = userEvent.setup();
+
+			const { container } = render(
+				<>
+					<dialog open />
+					<CodeBlock.Root>
+						<CodeBlock.Body>
+							<CodeBlock.CopyButton />
+							<CodeBlock.Code value={makeValue("const x = 1;")} />
+						</CodeBlock.Body>
+					</CodeBlock.Root>
+				</>,
+			);
+
+			const dialog = container.querySelector("dialog") as HTMLDialogElement;
+			const button = screen.getByRole("button", { name: /copy code/i });
+			// Why a DOM move: a portal host such as `OverlayPrompt` moves its content and keeps the ref.
+			dialog.append(button);
+
+			await user.click(button);
+			await vi.waitFor(() => {
+				expect(within(dialog).getByRole("status")).toHaveTextContent("Copied");
+			});
+		});
+
 		test("announces again when a second copy lands inside the reset window", async () => {
 			const user = userEvent.setup();
 
@@ -525,6 +610,37 @@ describe("CodeBlock", () => {
 
 			expect(onCopy).not.toHaveBeenCalled();
 		});
+
+		test("returns the copy icon when onClick cancels a click after a copy", async () => {
+			const user = userEvent.setup();
+			let cancel = false;
+
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.CopyButton
+							onClick={(event) => {
+								if (cancel) {
+									event.preventDefault();
+								}
+							}}
+						/>
+						<CodeBlock.Code value={makeValue("code")} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			const button = screen.getByRole("button", { name: /copy code/i });
+			await user.click(button);
+			await vi.waitFor(() => {
+				expect(button).toHaveAttribute("data-copied");
+			});
+
+			cancel = true;
+			await user.click(button);
+			// Why: the cancel clears the timeout that returns the copy icon.
+			expect(button).not.toHaveAttribute("data-copied");
+		});
 	});
 
 	describe("TabList", () => {
@@ -606,8 +722,8 @@ describe("CodeBlock", () => {
 				<TabbedCodeBlock activeTab="a" onActiveTabChange={onActiveTabChange} />,
 			);
 
-			// Why the keyboard: a click fires Radix's mousedown and focus activation
-			// both, so one controlled click reports "b" twice.
+			// Why the keyboard: one key press is one activation, with no mousedown
+			// and focus pair in it.
 			screen.getByRole("tab", { name: "example.ts" }).focus();
 			await user.keyboard("{ArrowRight}");
 
@@ -655,7 +771,7 @@ describe("CodeBlock", () => {
 	});
 
 	describe("ExpanderButton", () => {
-		test("owns the ARIA state and points at the <pre>, which carries data-state instead", async () => {
+		test("owns the ARIA state and points at the <pre>, which carries data-expanded instead", async () => {
 			const user = userEvent.setup();
 
 			render(
@@ -672,9 +788,9 @@ describe("CodeBlock", () => {
 			expect(pre).not.toBeNull();
 			expect(button).toHaveAttribute("aria-expanded", "false");
 			expect(button).toHaveAttribute("aria-controls", pre?.getAttribute("id") ?? "");
-			// Why: `aria-expanded` is not valid on a `<pre>`; styling reads `data-state`.
+			// Why: `aria-expanded` is not valid on a `<pre>`; it mirrors as `data-expanded`.
 			expect(pre).not.toHaveAttribute("aria-expanded");
-			expect(pre).toHaveAttribute("data-state", "collapsed");
+			expect(pre).not.toHaveAttribute("data-expanded");
 
 			await user.click(button);
 
@@ -682,19 +798,7 @@ describe("CodeBlock", () => {
 				"aria-expanded",
 				"true",
 			);
-			expect(pre).toHaveAttribute("data-state", "expanded");
-		});
-
-		test("without an expander the <pre> carries no data-state", () => {
-			render(
-				<CodeBlock.Root>
-					<CodeBlock.Body>
-						<CodeBlock.Code value={makeValue("const x = 1;")} />
-					</CodeBlock.Body>
-				</CodeBlock.Root>,
-			);
-
-			expect(document.querySelector("pre")).not.toHaveAttribute("data-state");
+			expect(pre).toHaveAttribute("data-expanded");
 		});
 
 		test("runs a consumer's onClick and still toggles", async () => {
@@ -713,7 +817,7 @@ describe("CodeBlock", () => {
 			await user.click(screen.getByRole("button", { name: "Show more" }));
 
 			expect(onClick).toHaveBeenCalledTimes(1);
-			expect(document.querySelector("pre")).toHaveAttribute("data-state", "expanded");
+			expect(document.querySelector("pre")).toHaveAttribute("data-expanded");
 		});
 
 		test("points aria-controls at the <pre> id in the server HTML", () => {
@@ -740,7 +844,7 @@ describe("CodeBlock", () => {
 			expect(button).toHaveAttribute("aria-controls", preId);
 		});
 
-		test("stamps data-state on the <pre> in the same task as the mount commit", async () => {
+		test("collapses the <pre> in the same task as the mount commit", async () => {
 			// Why not `render`: its `act()` flushes layout and passive effects together,
 			// so it cannot tell which one wrote the attribute. `MutationObserver`
 			// reports in the microtask right after the commit, before React runs a
@@ -749,10 +853,12 @@ describe("CodeBlock", () => {
 			vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", false);
 			const container = document.createElement("div");
 			document.body.appendChild(container);
-			const firstObservedState = new Promise<string | null>((resolve) => {
+			// Why a class: the collapse is the max height itself, and no attribute
+			// marks a collapsed `<pre>`.
+			const firstObservedCollapsed = new Promise<boolean>((resolve) => {
 				const observer = new MutationObserver(() => {
 					observer.disconnect();
-					resolve(container.querySelector("pre")?.getAttribute("data-state") ?? null);
+					resolve(container.querySelector("pre")?.classList.contains("max-h-[13.6rem]") ?? false);
 				});
 				observer.observe(container, { attributes: true, childList: true, subtree: true });
 			});
@@ -767,11 +873,30 @@ describe("CodeBlock", () => {
 			);
 
 			try {
-				await expect(firstObservedState).resolves.toBe("collapsed");
+				await expect(firstObservedCollapsed).resolves.toBe(true);
 			} finally {
 				root.unmount();
 				container.remove();
 			}
 		});
+	});
+});
+
+describe("useCodeBlockStream", () => {
+	function StreamedCode({ code }: { code: string }) {
+		return (
+			<CodeBlock.Root>
+				<CodeBlock.Body>
+					<CodeBlock.Code value={useCodeBlockStream({ code, language: "text" })} />
+				</CodeBlock.Body>
+			</CodeBlock.Root>
+		);
+	}
+
+	test("server HTML of CRLF code holds one line break for each line ending", () => {
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(<StreamedCode code={"alpha\r\nbeta"} />);
+		const code = container.querySelector("[data-slot='code-block-code'] code");
+		expect(code?.textContent).toBe("alpha\nbeta");
 	});
 });

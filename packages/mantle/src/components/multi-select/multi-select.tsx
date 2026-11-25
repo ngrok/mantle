@@ -1,10 +1,10 @@
 "use client";
 
 import type { ComponentProps, KeyboardEvent, PropsWithChildren, ReactNode } from "react";
-import { cloneElement, createContext, isValidElement, use, useId, useRef, useState } from "react";
+import { cloneElement, createContext, isValidElement, use, useId, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
-import { composeHandlers } from "../../behaviors/compose-handlers.js";
-import { useComboboxInput } from "../../behaviors/use-combobox.js";
+import { composeHandlers, disabledItemGuard } from "../../behaviors/compose-handlers.js";
+import { useComboboxInput, useComboboxPopup } from "../../behaviors/use-combobox.js";
 import { childId, useOption } from "../../behaviors/use-listbox.js";
 import { useMultiSelect } from "../../behaviors/use-multi-select.js";
 import type { MultiSelectBehavior, UseMultiSelectProps } from "../../behaviors/use-multi-select.js";
@@ -17,21 +17,19 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { hasPopoverApi } from "../../utils/float/use-float.js";
 import { shakeElement } from "../../utils/shake.js";
+import { TagChip } from "../chip/chip.js";
 import { FieldControlContext } from "../field/field-context.js";
+import { LiveRegion } from "../live-region/live-region.js";
 import { parseValidation } from "../field/validation.js";
 import { useFieldValidation } from "../field/validation-context.js";
 import type { AriaInvalid, WithValidation } from "../field/validation.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
+import { OptionSlot } from "../slot/option-slot.js";
+import type { OptionRender } from "../slot/option-slot.js";
 import invariant from "tiny-invariant";
 
 const EMPTY_ARRAY: readonly string[] = [];
-
-/** Phosphor's `Lock` (regular) and `X` (bold) paths, for the tag's remove button. */
-const LOCK_PATH =
-	"M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Zm-68-56a12,12,0,1,1-12-12A12,12,0,0,1,140,152Z";
-const X_PATH =
-	"M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z";
 
 /** Whether two arrays hold the same items in the same order. */
 const haveSameItems = (first: readonly string[], second: readonly string[]): boolean =>
@@ -53,12 +51,11 @@ const useMultiSelectContext = (): MultiSelectBehavior => {
  */
 const TriggerAriaInvalidContext = createContext<AriaInvalid>(undefined);
 
+/** The element after the listbox in the open popup, where `MultiSelect.ContentFooter` renders. */
+const FooterHostContext = createContext<HTMLElement | null>(null);
+
 /** The `id` of the closest `MultiSelect.Group`'s label. */
 const GroupLabelContext = createContext<string | undefined>(undefined);
-
-/** The controls in the list that Tab can reach, such as a footer button. */
-const TABBABLE =
-	'a[href], button:not(:disabled), input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
 
 /** Shakes the tag of `value` to show that a removal is blocked. */
 const shakeTag = (tags: Map<string, HTMLElement>, value: string) => {
@@ -151,7 +148,7 @@ const Trigger = ({
 	validation: _validation,
 	...props
 }: MultiSelectTriggerProps) => {
-	const { inputRef, open, setOpen, tags, triggerRef } = useMultiSelectContext();
+	const { inputRef, listbox, open, setOpen, tags, triggerRef } = useMultiSelectContext();
 	// Why a hook: a new ref callback on each render would run the caller's callback ref again.
 	const composedRef = useComposedRefs(triggerRef, ref);
 	const inTag = (target: EventTarget) =>
@@ -175,9 +172,9 @@ const Trigger = ({
 					"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-data-[slot=multi-select-tag]:px-1",
 					"has-focus-within:focus-ring has-aria-expanded:focus-ring",
 					"has-focus-within:border-accent-600 has-aria-expanded:border-accent-600",
-					"data-validation-success:border-success-600 data-validation-success:has-focus-within:border-success-600 data-validation-success:has-focus-within:ring-focus-success data-validation-success:has-aria-expanded:border-success-600 data-validation-success:has-aria-expanded:ring-focus-success",
-					"data-validation-warning:border-warning-600 data-validation-warning:has-focus-within:border-warning-600 data-validation-warning:has-focus-within:ring-focus-warning data-validation-warning:has-aria-expanded:border-warning-600 data-validation-warning:has-aria-expanded:ring-focus-warning",
-					"data-validation-error:border-danger-600 data-validation-error:has-focus-within:border-danger-600 data-validation-error:has-focus-within:ring-focus-danger data-validation-error:has-aria-expanded:border-danger-600 data-validation-error:has-aria-expanded:ring-focus-danger motion-safe:data-validation-error:animate-shake",
+					"data-[validation=success]:border-success-600 data-[validation=success]:has-focus-within:border-success-600 data-[validation=success]:has-focus-within:ring-focus-success data-[validation=success]:has-aria-expanded:border-success-600 data-[validation=success]:has-aria-expanded:ring-focus-success",
+					"data-[validation=warning]:border-warning-600 data-[validation=warning]:has-focus-within:border-warning-600 data-[validation=warning]:has-focus-within:ring-focus-warning data-[validation=warning]:has-aria-expanded:border-warning-600 data-[validation=warning]:has-aria-expanded:ring-focus-warning",
+					"data-[validation=error]:border-danger-600 data-[validation=error]:has-focus-within:border-danger-600 data-[validation=error]:has-focus-within:ring-focus-danger data-[validation=error]:has-aria-expanded:border-danger-600 data-[validation=error]:has-aria-expanded:ring-focus-danger motion-safe:data-[validation=error]:animate-shake",
 					className,
 				)}
 				data-validation={validation || undefined}
@@ -187,7 +184,7 @@ const Trigger = ({
 					// input. Clicks on buttons, the input itself, or tag spans are handled by those elements.
 					if (
 						event.target instanceof HTMLElement &&
-						!event.target.closest("button, input, [data-slot='multi-select-tag']")
+						!event.target.closest('button, input, [data-slot~="multi-select-tag"]')
 					) {
 						event.preventDefault();
 						inputRef.current?.focus();
@@ -205,10 +202,16 @@ const Trigger = ({
 				})}
 				onBlur={composeHandlers(onBlur, (event) => {
 					const { relatedTarget } = event;
-					if (
-						inTag(event.target) &&
-						!(relatedTarget instanceof Node && event.currentTarget.contains(relatedTarget))
-					) {
+					// Why the listbox id and not a ref: the compiler's pass forbids a ref read in
+					// a handler built during render. Focus in this list's footer stays inside.
+					const popup =
+						relatedTarget instanceof Element
+							? relatedTarget.closest('[data-slot="multi-select-popup"]')
+							: null;
+					const inside =
+						(relatedTarget instanceof Node && event.currentTarget.contains(relatedTarget)) ||
+						popup?.querySelector(`[id="${listbox.id}"]`) != null;
+					if (inTag(event.target) && !inside) {
 						setOpen(false);
 					}
 				})}
@@ -241,20 +244,21 @@ type TagProps = Omit<ComponentProps<"span">, "children"> & {
 /**
  * The default tag rendered inside `MultiSelect.TagValues` for each selected value.
  * Displays the value label with a remove button. Renders a `role="listitem"`
- * inside the `role="list"` that `MultiSelect.TagValues` renders, and marks
- * itself `data-active` while it has focus.
+ * inside the `role="list"` that `MultiSelect.TagValues` renders. The tag that
+ * keyboard navigation is on has DOM focus; style it with `focus-visible:`.
  *
  * Arrow-key navigation and Backspace/Delete removal come from the
  * `MultiSelect.TagValues` render props; spread them onto the tag to get them.
- * On its own, `Tag` only blocks Backspace and Delete on a locked tag.
+ * On its own, `Tag` only blocks Backspace and Delete on a locked or `aria-disabled` tag.
  *
  * Use this when building a custom `TagValues`-like component and you want the
- * default tag chrome with consistent styling.
+ * default tag chrome with consistent styling. The tag is a `square` `Chip` at the `sm` size.
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-active` | present while focused | The tag that keyboard navigation is on. |
  * | `data-locked` | present when `locked` | The tag cannot be removed. |
+ * | `data-appearance` | `"square"` | The `Chip` appearance of the tag. |
+ * | `data-size` | `"sm"` | The `Chip` size of the tag. |
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttag
  *
@@ -279,91 +283,32 @@ const Tag = ({
 	value,
 	onRemove,
 	locked = false,
-	onBlur,
-	onFocus,
 	onKeyDown,
 	ref,
 	...props
 }: TagProps) => {
-	const internalRef = useRef<HTMLSpanElement | null>(null);
-	// Why local state: the tag list has no listbox, so `aria-selected` is not
-	// valid here, and `aria-current` names a current item, not focus. DOM focus
-	// exposes the active tag; `data-active` drives its styling.
-	const [isActive, setIsActive] = useState(false);
-	// Why a hook: the tags re-render on each keystroke, and a new ref callback would run the caller's callback ref again.
-	const composedRef = useComposedRefs(internalRef, ref);
-
 	return (
-		<span
-			ref={composedRef}
+		<TagChip
+			ref={ref}
 			role="listitem"
 			tabIndex={-1}
-			data-slot={joinDataSlot(dataSlot, "multi-select-tag")}
-			data-active={isActive || undefined}
-			data-locked={locked || undefined}
+			data-slot={dataSlot}
+			appearance="square"
+			size="sm"
+			locked={locked}
+			onRemove={() => onRemove?.()}
+			removeLabel={`Remove ${value}`}
+			removeButtonTabIndex={-1}
 			className={cx(
-				"cursor-default bg-neutral-500/10 border border-neutral-500/20 rounded-xs text-strong inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 text-sm font-normal motion-safe:data-shake:animate-shake",
+				"cursor-default",
 				"focus-visible:border-accent-600/50 focus-visible:ring-3 focus-visible:focus-ring",
 				className,
 			)}
-			onBlur={(event) => {
-				setIsActive(false);
-				onBlur?.(event);
-			}}
-			onFocus={(event) => {
-				setIsActive(true);
-				onFocus?.(event);
-			}}
-			onKeyDown={(event) => {
-				if (locked && (event.key === "Backspace" || event.key === "Delete")) {
-					event.preventDefault();
-					shakeElement(event.currentTarget);
-					return;
-				}
-				onKeyDown?.(event);
-			}}
+			onKeyDown={onKeyDown}
 			{...props}
 		>
 			{value}
-			<button
-				type="button"
-				aria-label={`Remove ${value}`}
-				tabIndex={-1}
-				aria-disabled={locked || undefined}
-				className={cx(
-					"cursor-pointer text-strong/40 hover:bg-neutral-500/15 hover:text-strong rounded-xs p-0.5",
-					"aria-disabled:cursor-default aria-disabled:hover:bg-transparent aria-disabled:hover:text-strong/40",
-				)}
-				onClick={(event) => {
-					// Prevent the click from bubbling to the trigger, which would reopen or refocus the combobox
-					event.stopPropagation();
-					if (locked) {
-						// Shake the tag to signal that removal is blocked
-						const tagElement = internalRef.current;
-						if (tagElement) {
-							shakeElement(tagElement);
-						}
-						return;
-					}
-					onRemove?.();
-				}}
-				onMouseDown={(event) => {
-					// Prevent the input from losing focus on click, which would close the popover before the remove fires
-					event.preventDefault();
-				}}
-			>
-				{/* Why inline svgs: one host element in place of four parts for each tag. */}
-				<svg
-					aria-hidden
-					data-slot="icon svg-only"
-					viewBox="0 0 256 256"
-					fill="currentColor"
-					className="size-4 shrink-0"
-				>
-					<path d={locked ? LOCK_PATH : X_PATH} />
-				</svg>
-			</button>
-		</span>
+		</TagChip>
 	);
 };
 
@@ -664,6 +609,8 @@ const Input = ({
 	onClick,
 	onFocus,
 	onKeyDown,
+	onKeyDownCapture,
+	onKeyUp,
 	placeholder,
 	ref,
 	...props
@@ -692,7 +639,13 @@ const Input = ({
 				placeholder={selected.length > 0 ? undefined : placeholder}
 				onChange={composeHandlers(onChange, inputProps.onChange)}
 				onClick={composeHandlers(onClick, inputProps.onClick)}
+				onKeyUp={composeHandlers(onKeyUp, inputProps.onKeyUp)}
+				onKeyDownCapture={(event) => {
+					onKeyDownCapture?.(event);
+					inputProps.onKeyDownCapture();
+				}}
 				onFocus={composeHandlers(onFocus, (event) => {
+					inputProps.onFocus();
 					// Why only from a tag: focus that returns from a tag keeps the list
 					// open. Focus from outside, such as a dialog's autofocus, opens nothing.
 					const trigger = event.currentTarget.closest('[data-slot~="multi-select-trigger"]');
@@ -701,30 +654,17 @@ const Input = ({
 					}
 				})}
 				onBlur={composeHandlers(onBlur, (event) => {
-					// Why: focus that moves to a tag, a remove button, or a control in the
-					// list stays in the component, so the list stays open.
+					// Why: focus that moves to a tag or a remove button stays in the
+					// component, so the list stays open. The input handles the popup itself.
 					const trigger = event.currentTarget.closest('[data-slot~="multi-select-trigger"]');
 					const { relatedTarget } = event;
-					const inside =
-						relatedTarget instanceof Node &&
-						(trigger?.contains(relatedTarget) ||
-							multiSelect.listbox.ref.current?.contains(relatedTarget));
-					if (!inside) {
-						inputProps.onBlur();
+					if (!(relatedTarget instanceof Node && trigger?.contains(relatedTarget))) {
+						inputProps.onBlur(event);
 					}
 				})}
 				onKeyDown={composeHandlers(onKeyDown, (event) => {
 					// Why: an input method uses these keys for its own candidates.
 					if (event.nativeEvent.isComposing) {
-						return;
-					}
-					// Why: while the list is open, Tab moves only to a control in the list,
-					// such as a footer button, and focus stays until Escape closes it.
-					if (event.key === "Tab" && multiSelect.open) {
-						event.preventDefault();
-						if (!event.shiftKey) {
-							multiSelect.listbox.ref.current?.querySelector<HTMLElement>(TABBABLE)?.focus();
-						}
 						return;
 					}
 					const input = event.currentTarget;
@@ -770,6 +710,9 @@ const Input = ({
 						disabled={props.disabled}
 					/>
 				))}
+			{/* Why: a removed tag leaves no focus or option to describe the change, so
+			    nothing else tells a screen reader which value went. */}
+			<LiveRegion>{multiSelect.removal}</LiveRegion>
 		</>
 	);
 };
@@ -828,16 +771,19 @@ const OpenContent = ({
 	sameWidth = true,
 	...props
 }: MultiSelectContentProps) => {
-	const { inputRef, listbox, setOpen, triggerRef } = useMultiSelectContext();
+	const multiSelect = useMultiSelectContext();
+	const { inputRef, listbox, setOpen, triggerRef } = multiSelect;
 	const { portalTarget, popupRef } = usePopup({
 		anchorRef: triggerRef,
 		ownerRef: inputRef,
 		onOutsidePress: () => setOpen(false),
 	});
-
-	const listRef = useComposedRefs(listbox.listboxProps.ref, observeScrollEdges);
-	const composedRef = useComposedRefs(ref, popupRef, listRef);
-	const Component = asChild ? Slot : "div";
+	const { footerRef, ...popupProps } = useComboboxPopup(multiSelect, { anchorRef: triggerRef });
+	const [footerHost, setFooterHost] = useState<HTMLElement | null>(null);
+	const hostRef = useComposedRefs(setFooterHost, footerRef);
+	const boxRef = useComposedRefs(popupRef, multiSelect.popupRef);
+	const listRef = useComposedRefs(ref, listbox.listboxProps.ref, observeScrollEdges);
+	const List = asChild ? Slot : "div";
 	return (
 		portalTarget != null &&
 		createPortal(
@@ -846,61 +792,50 @@ const OpenContent = ({
 				<button type="button" tabIndex={-1} className="sr-only" onClick={() => setOpen(false)}>
 					Dismiss popup
 				</button>
-				<Component
-					{...props}
-					{...listbox.listboxProps}
-					onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
-					aria-multiselectable
+				<div
+					{...popupProps}
+					// Why presentation: the handlers only catch keys and focus from the footer's
+					// controls. The listbox inside and the controls carry the semantics.
+					role="presentation"
 					popover={hasPopoverApi ? "manual" : undefined}
-					ref={composedRef}
-					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
-					data-state="open"
+					ref={boxRef}
+					data-slot="multi-select-popup"
+					data-mantle-popup=""
+					data-open=""
 					className={cx(
-						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 has-data-content-footer:after:hidden rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col space-y-px outline-hidden",
-						sameWidth && "w-(--anchor-width)",
-						className,
+						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) flex flex-col overflow-hidden box-border rounded-md border shadow-md font-sans",
 					)}
-					onKeyDown={composeHandlers(props.onKeyDown, (event) => {
-						// Why: a focused control in the footer, such as a button, closes the list on Escape too.
-						if (event.key === "Escape") {
-							setOpen(false);
-						}
-						// Why: Shift+Tab from the first control in the list goes back to the
-						// input, the way Tab came in. Tab from the last one leaves and closes the list.
-						if (
-							event.key === "Tab" &&
-							event.shiftKey &&
-							event.target === event.currentTarget.querySelector(TABBABLE)
-						) {
-							// Why the root node and not `inputRef`: the compiler's pass forbids a
-							// ref read in a handler built during render. The input names this list
-							// in `aria-controls`, in the same document or shadow root.
-							const root = event.currentTarget.getRootNode();
-							const input =
-								root instanceof Document || root instanceof ShadowRoot
-									? root.querySelector<HTMLElement>(`[aria-controls="${event.currentTarget.id}"]`)
-									: null;
-							if (input != null) {
-								event.preventDefault();
-								input.focus();
-							}
-						}
-					})}
-					onBlur={composeHandlers(props.onBlur, (event) => {
-						// Why: focus that leaves a control in the list for outside the
-						// component closes the list, as it does from the input.
-						const { relatedTarget } = event;
-						const inside =
-							relatedTarget instanceof Element &&
-							(event.currentTarget.contains(relatedTarget) ||
-								relatedTarget.closest('[data-slot~="multi-select-trigger"]') != null);
-						if (!inside) {
-							setOpen(false);
-						}
-					})}
 				>
-					{children}
-				</Component>
+					<FooterHostContext value={footerHost}>
+						<List
+							{...props}
+							{...listbox.listboxProps}
+							{...disabledItemGuard(props)}
+							onMouseDown={composeHandlers(props.onMouseDown, (event) => {
+								// Why: the footer is in this list's React tree, so its presses reach this handler.
+								if (event.target instanceof Node && event.currentTarget.contains(event.target)) {
+									listbox.listboxProps.onMouseDown(event);
+								}
+							})}
+							aria-multiselectable
+							ref={listRef}
+							data-float-scroll=""
+							data-slot={joinDataSlot(dataSlot, "multi-select-content")}
+							// Why: an enclosing Dialog reads `data-open` on the `aria-controls` target to leave Escape to this list.
+							data-open=""
+							className={cx(
+								"relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none min-w-32 scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 py-1 flex flex-col between:mbe-px outline-hidden",
+								// Why less 2px: the popup's border sits outside the listbox, and the popup matches the anchor.
+								sameWidth && "w-[calc(var(--anchor-width)-2px)]",
+								className,
+							)}
+						>
+							{children}
+						</List>
+					</FooterHostContext>
+					{/* Why a host: the footer's controls must sit outside the listbox, wherever the footer is written. */}
+					<div ref={hostRef} className="contents" />
+				</div>
 			</>,
 			portalTarget,
 		)
@@ -923,11 +858,18 @@ const renderItemLabel = (label: ReactNode) => (
 /**
  * Props for `MultiSelect.Item`.
  */
-type MultiSelectItemProps = Omit<ComponentProps<"div">, "value"> &
+type MultiSelectItemProps = Omit<ComponentProps<"div">, "children" | "value"> &
 	WithAsChild &
 	WithDataSlot & {
 		/**
+		 * The item's label. A function renders the item as the element it returns,
+		 * with the item's props and `{ highlighted }`: spread `props` on that
+		 * element and write the label inside it.
+		 */
+		children?: ReactNode | OptionRender;
+		/**
 		 * Whether the item is inert.
+		 * A disabled item runs no click handler, and an `asChild` link does not navigate.
 		 */
 		disabled?: boolean;
 		/**
@@ -952,6 +894,9 @@ type MultiSelectItemProps = Omit<ComponentProps<"div">, "value"> &
  *
  * **`asChild`.** Your single child becomes the option element. The label div
  * and the check move inside it, so the guarantee above holds on both paths.
+ *
+ * **Function child.** `(props, { highlighted }) => element` renders the option as
+ * the element it returns. Spread `props` on it and write the label inside it.
  *
  * **Data attributes:**
  *
@@ -1009,7 +954,38 @@ const Item = ({
 		</span>
 	);
 
-	let content: ReactNode;
+	const renderContent = (inner: ReactNode) => (
+		<>
+			{renderItemLabel(inner)}
+			{check}
+		</>
+	);
+	const elementProps = {
+		...props,
+		...optionProps,
+		onClick: composeHandlers(onClick, optionProps.onClick),
+		onPointerMove: composeHandlers(onPointerMove, optionProps.onPointerMove),
+		"data-slot": joinDataSlot(dataSlot, "multi-select-item"),
+		className: cx(
+			"relative mx-1 cursor-pointer rounded-md pl-2 pr-8 py-1.5 text-strong text-sm font-normal flex min-w-0 items-center gap-2",
+			"[[role=option]+&]:mt-px",
+			"data-highlighted:bg-active-menu-item",
+			"aria-disabled:cursor-default aria-disabled:opacity-50",
+			"aria-selected:bg-selected-menu-item aria-selected:data-highlighted:bg-active-selected-menu-item",
+			className,
+		),
+		ref,
+	};
+	if (typeof children === "function") {
+		return (
+			<OptionSlot
+				{...elementProps}
+				listbox={listbox}
+				render={children}
+				renderContent={renderContent}
+			/>
+		);
+	}
 	if (asChild) {
 		// Why clone here: the consumer's element becomes the option, with the label
 		// div and the check inside it, so both keep their places.
@@ -1017,44 +993,13 @@ const Item = ({
 			isValidElement<PropsWithChildren>(children),
 			"When using `asChild`, MultiSelect.Item must be passed a single child as a JSX tag.",
 		);
-		content = cloneElement(
-			children,
-			{},
-			<>
-				{renderItemLabel(children.props.children)}
-				{check}
-			</>,
-		);
-	} else {
-		content = (
-			<>
-				{renderItemLabel(children)}
-				{check}
-			</>
+		return (
+			<Slot {...elementProps}>
+				{cloneElement(children, {}, renderContent(children.props.children))}
+			</Slot>
 		);
 	}
-
-	const Component = asChild ? Slot : "div";
-	return (
-		<Component
-			{...props}
-			{...optionProps}
-			onClick={composeHandlers(onClick, optionProps.onClick)}
-			onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
-			data-slot={joinDataSlot(dataSlot, "multi-select-item")}
-			className={cx(
-				"relative mx-1 cursor-pointer rounded-md pl-2 pr-8 py-1.5 text-strong text-sm font-normal flex min-w-0 items-center gap-2",
-				"[[role=option]+&]:mt-px",
-				"data-highlighted:bg-active-menu-item",
-				"aria-disabled:opacity-50",
-				"aria-selected:bg-selected-menu-item aria-selected:data-highlighted:bg-active-selected-menu-item",
-				className,
-			)}
-			ref={ref}
-		>
-			{content}
-		</Component>
-	);
+	return <div {...elementProps}>{renderContent(children)}</div>;
 };
 
 type MultiSelectGroupProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
@@ -1281,8 +1226,10 @@ const Empty = ({
 type MultiSelectContentFooterProps = ComponentProps<"div"> & WithDataSlot;
 
 /**
- * Renders a sticky footer pinned to the bottom inside `MultiSelect.Content`,
- * with a separator border at the top.
+ * Renders a footer at the bottom of the open `MultiSelect.Content`, after the
+ * listbox and not in it, with a separator border at the top. Tab from the input
+ * moves to its first control, and the list stays open. Shift+Tab from that
+ * control returns to the input, and Escape closes the list.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontentfooter
  *
@@ -1310,16 +1257,22 @@ const ContentFooter = ({
 	ref,
 	...props
 }: MultiSelectContentFooterProps) => {
+	const host = use(FooterHostContext);
 	return (
-		<div
-			ref={ref}
-			data-slot={joinDataSlot(dataSlot, "multi-select-content-footer")}
-			data-content-footer
-			className={cx("bg-popover sticky bottom-0 border-t border-popover", className)}
-			{...props}
-		>
-			{children}
-		</div>
+		host != null &&
+		createPortal(
+			<div
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "multi-select-content-footer")}
+				data-content-footer
+				// Why contain-inline-size: the footer takes the popup's width and never widens it.
+				className={cx("bg-popover border-popover shrink-0 border-t contain-inline-size", className)}
+				{...props}
+			>
+				{children}
+			</div>,
+			host,
+		)
 	);
 };
 

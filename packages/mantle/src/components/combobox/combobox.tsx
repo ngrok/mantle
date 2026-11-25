@@ -1,10 +1,10 @@
 "use client";
 
 import type { ComponentProps, ReactNode } from "react";
-import { createContext, use, useId, useMemo } from "react";
+import { createContext, isValidElement, use, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { composeHandlers } from "../../behaviors/compose-handlers.js";
-import { useCombobox, useComboboxInput } from "../../behaviors/use-combobox.js";
+import { composeHandlers, disabledItemGuard } from "../../behaviors/compose-handlers.js";
+import { useCombobox, useComboboxInput, useComboboxPopup } from "../../behaviors/use-combobox.js";
 import type { UseComboboxProps } from "../../behaviors/use-combobox.js";
 import { childId, useOption } from "../../behaviors/use-listbox.js";
 import { usePopup } from "../../behaviors/use-popup.js";
@@ -20,6 +20,8 @@ import { useFieldValidation } from "../field/validation-context.js";
 import type { WithValidation } from "../field/validation.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
+import { OptionSlot } from "../slot/option-slot.js";
+import type { OptionRender } from "../slot/option-slot.js";
 
 const ComboboxContext = createContext<ComboboxContextValue | null>(null);
 
@@ -40,7 +42,10 @@ const ItemValueContext = createContext<string | undefined>(undefined);
 /** The `id` of the closest `Combobox.Group`'s label. */
 const GroupLabelContext = createContext<string | undefined>(undefined);
 
-type ComboboxProps = UseComboboxProps & {
+/** The element after the listbox in the open popup, where `Combobox.ContentFooter` renders. */
+const FooterHostContext = createContext<HTMLElement | null>(null);
+
+type ComboboxProps = Omit<UseComboboxProps, "textFor"> & {
 	children?: ReactNode;
 	/**
 	 * The name the picked value submits under with its form. The text in
@@ -53,6 +58,54 @@ type ComboboxProps = UseComboboxProps & {
 	required?: boolean;
 	/** Whether the combobox is disabled. Its input takes no input, and the pick does not submit. */
 	disabled?: boolean;
+};
+
+const isNodeList = (node: ReactNode): node is readonly ReactNode[] => Array.isArray(node);
+
+/** The text that the elements in `node` show, without their `hidden` and `aria-hidden` parts. */
+const nodeText = (node: ReactNode): string => {
+	if (typeof node === "string" || typeof node === "number") {
+		return String(node);
+	}
+	if (isNodeList(node)) {
+		return node.map(nodeText).join("");
+	}
+	if (
+		!isValidElement<{ children?: ReactNode; hidden?: unknown; "aria-hidden"?: unknown }>(node) ||
+		Boolean(node.props.hidden) ||
+		String(node.props["aria-hidden"]) === "true"
+	) {
+		return "";
+	}
+	return nodeText(node.props.children);
+};
+
+/**
+ * Walks an element tree for the `Combobox.Item` with `value` and returns the
+ * text its children show, on one line, else `value`. It reads the elements
+ * that the caller wrote, so it works on the server. It misses an item that a
+ * component of your own renders, and a component with no `children` prop,
+ * such as `Combobox.ItemValue` or an icon, shows no text.
+ */
+const findItemText = (node: ReactNode, value: string): string | undefined => {
+	if (isNodeList(node)) {
+		for (const child of node) {
+			const found = findItemText(child, value);
+			if (found != null) {
+				return found;
+			}
+		}
+		return undefined;
+	}
+	if (!isValidElement<{ children?: ReactNode | OptionRender; value?: string }>(node)) {
+		return undefined;
+	}
+	const { children } = node.props;
+	if (node.type === Item && node.props.value === value) {
+		const text = typeof children === "function" ? "" : nodeText(children);
+		return text.replace(/\s+/g, " ").trim() || value;
+	}
+	return typeof children === "function" ? undefined : findItemText(children, value);
 };
 
 /**
@@ -86,7 +139,7 @@ type ComboboxProps = UseComboboxProps & {
  * ```
  */
 const Root = ({ children, name, form, required, disabled, ...props }: ComboboxProps) => {
-	const combobox = useCombobox(props);
+	const combobox = useCombobox({ ...props, textFor: (value) => findItemText(children, value) });
 	const contextValue = useMemo(
 		() => ({ ...combobox, name, form, disabled }),
 		[combobox, name, form, disabled],
@@ -128,6 +181,8 @@ type ComboboxInputProps = Omit<ComponentProps<"input">, "value" | "defaultValue"
 
 /**
  * Renders a combobox input element for filtering a list of items.
+ *
+ * A click or a Tab into the input opens the list. Focus from script does not.
  *
  * When the combobox is open, Enter selects the active option or does nothing. It
  * never submits a parent form. `autoSelect` defaults to `"always"`, so the first
@@ -179,7 +234,10 @@ const Input = ({
 	onBlur,
 	onChange,
 	onClick,
+	onFocus,
 	onKeyDown,
+	onKeyDownCapture,
+	onKeyUp,
 	ref,
 	validation: _validation,
 	...props
@@ -215,15 +273,15 @@ const Input = ({
 			data-slot={joinDataSlot(dataSlot, "combobox-input")}
 			className={cx(
 				"pointer-coarse:text-base h-9 text-sm",
-				"bg-form relative block w-full rounded-md border px-3 py-2 border-form text-strong font-sans",
+				"bg-form relative block w-full rounded-md border px-3 py-2 border-form text-strong font-sans text-ellipsis",
 				"placeholder:text-placeholder",
 				"aria-disabled:opacity-50 disabled:opacity-50",
 				"hover:border-neutral-400",
 				"focus:focus-ring aria-expanded:focus-ring",
 				"focus:border-accent-600 aria-expanded:border-accent-600",
-				"data-validation-success:border-success-600 data-validation-success:focus:border-success-600 data-validation-success:focus:ring-focus-success data-validation-success:aria-expanded:border-success-600 data-validation-success:aria-expanded:ring-focus-success",
-				"data-validation-warning:border-warning-600 data-validation-warning:focus:border-warning-600 data-validation-warning:focus:ring-focus-warning data-validation-warning:aria-expanded:border-warning-600 data-validation-warning:aria-expanded:ring-focus-warning",
-				"data-validation-error:border-danger-600 data-validation-error:focus:border-danger-600 data-validation-error:focus:ring-focus-danger data-validation-error:aria-expanded:border-danger-600 data-validation-error:aria-expanded:ring-focus-danger motion-safe:data-validation-error:animate-shake",
+				"data-[validation=success]:border-success-600 data-[validation=success]:focus:border-success-600 data-[validation=success]:focus:ring-focus-success data-[validation=success]:aria-expanded:border-success-600 data-[validation=success]:aria-expanded:ring-focus-success",
+				"data-[validation=warning]:border-warning-600 data-[validation=warning]:focus:border-warning-600 data-[validation=warning]:focus:ring-focus-warning data-[validation=warning]:aria-expanded:border-warning-600 data-[validation=warning]:aria-expanded:ring-focus-warning",
+				"data-[validation=error]:border-danger-600 data-[validation=error]:focus:border-danger-600 data-[validation=error]:focus:ring-focus-danger data-[validation=error]:aria-expanded:border-danger-600 data-[validation=error]:aria-expanded:ring-focus-danger motion-safe:data-[validation=error]:animate-shake",
 				"autofill:shadow-(--color-blue-50) autofill:bg-blue-50 autofill:[-webkit-text-fill-color:var(--text-color-strong)]", // Autofill styling on the input itself and any children with autofill styling
 				className,
 			)}
@@ -233,6 +291,15 @@ const Input = ({
 			onChange={composeHandlers(onChange, inputProps.onChange)}
 			onClick={composeHandlers(onClick, inputProps.onClick)}
 			onKeyDown={composeHandlers(onKeyDown, inputProps.onKeyDown)}
+			onKeyUp={composeHandlers(onKeyUp, inputProps.onKeyUp)}
+			onFocus={(event) => {
+				onFocus?.(event);
+				inputProps.onFocus();
+			}}
+			onKeyDownCapture={(event) => {
+				onKeyDownCapture?.(event);
+				inputProps.onKeyDownCapture();
+			}}
 		/>
 	);
 };
@@ -259,11 +326,14 @@ type ComboboxContentProps = ComponentProps<"div"> &
  *
  * It opens below the input, or above it when the space below is too small.
  *
- * The popover has `role="listbox"`, so its children must be `Combobox.Item`,
- * `Combobox.Group`, or `Combobox.Separator`. Render an empty-state or "create" row as a
- * `Combobox.Item`: arrow keys skip any other element, and assistive technology
- * does not expect it in a listbox. Give an empty-state row `disabled`, so Enter or a
- * click cannot pick its text. Keep a "create" row enabled.
+ * The popover holds a `role="listbox"`, so its children must be `Combobox.Item`,
+ * `Combobox.Group`, `Combobox.Separator`, or `Combobox.ContentFooter`. Render an
+ * empty-state or "create" row as a `Combobox.Item`: arrow keys skip any other
+ * element, and assistive technology does not expect it in a listbox. Give an
+ * empty-state row `disabled`, so Enter or a click cannot pick its text. Put a
+ * button, a switch, or a link in `Combobox.ContentFooter`, which renders after
+ * the listbox and not in it.
+
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxcontent
  *
@@ -291,51 +361,98 @@ const OpenContent = ({
 	sameWidth = true,
 	...props
 }: ComboboxContentProps) => {
-	const { inputRef, listbox } = useComboboxContext();
+	const combobox = useComboboxContext();
+	const { inputRef, listbox } = combobox;
+	// Why no outside press: a press outside blurs the input or the footer control, which closes the list, and the click still runs.
 	const { portalTarget, popupRef } = usePopup({ anchorRef: inputRef, ownerRef: inputRef });
-	const listRef = useComposedRefs(listbox.listboxProps.ref, observeScrollEdges);
-	const composedRef = useComposedRefs(ref, popupRef, listRef);
-	const Component = asChild ? Slot : "div";
+	const { footerRef, ...popupProps } = useComboboxPopup(combobox, { anchorRef: inputRef });
+	const [footerHost, setFooterHost] = useState<HTMLElement | null>(null);
+	const hostRef = useComposedRefs(setFooterHost, footerRef);
+	const boxRef = useComposedRefs(popupRef, combobox.popupRef);
+	const listRef = useComposedRefs(ref, listbox.listboxProps.ref, observeScrollEdges);
+	const List = asChild ? Slot : "div";
 	return (
 		portalTarget != null &&
 		createPortal(
-			<Component
-				{...props}
-				{...listbox.listboxProps}
+			<div
+				{...popupProps}
+				// Why presentation: the handlers only catch keys and focus from the footer's
+				// controls. The listbox inside and the controls carry the semantics.
+				role="presentation"
 				popover={hasPopoverApi ? "manual" : undefined}
-				onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
-				ref={composedRef}
-				data-slot={joinDataSlot(dataSlot, "combobox-content")}
-				data-state="open"
+				ref={boxRef}
+				data-slot="combobox-popup"
+				data-mantle-popup=""
+				data-open=""
 				className={cx(
-					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 rounded-md border shadow-md p-1 space-y-px font-sans outline-hidden",
-					sameWidth && "w-(--anchor-width)",
-					className,
+					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) flex flex-col overflow-hidden box-border rounded-md border shadow-md font-sans",
 				)}
 			>
-				{children}
-			</Component>,
+				<FooterHostContext value={footerHost}>
+					<List
+						{...props}
+						{...listbox.listboxProps}
+						{...disabledItemGuard(props)}
+						onMouseDown={composeHandlers(props.onMouseDown, (event) => {
+							// Why: the footer is in this list's React tree, so its presses reach this handler.
+							if (event.target instanceof Node && event.currentTarget.contains(event.target)) {
+								listbox.listboxProps.onMouseDown(event);
+							}
+						})}
+						ref={listRef}
+						data-float-scroll=""
+						data-slot={joinDataSlot(dataSlot, "combobox-content")}
+						// Why: an enclosing Dialog reads `data-open` on the `aria-controls` target to leave Escape to this list.
+						data-open=""
+						className={cx(
+							"relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none min-w-32 scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 p-1 between:mbe-px outline-hidden",
+							// Why less 2px: the popup's border sits outside the listbox, and the popup matches the anchor.
+							sameWidth && "w-[calc(var(--anchor-width)-2px)]",
+							className,
+						)}
+					>
+						{children}
+					</List>
+				</FooterHostContext>
+				{/* Why a host: the footer's controls must sit outside the listbox, wherever the footer is written. */}
+				<div ref={hostRef} className="contents" />
+			</div>,
 			portalTarget,
 		)
 	);
 };
 
-type ComboboxItemProps = Omit<ComponentProps<"div">, "value"> &
+type ComboboxItemProps = Omit<ComponentProps<"div">, "children" | "value"> &
 	WithAsChild &
 	WithDataSlot & {
 		/**
+		 * The item's content, which defaults to its `value`. A function renders the
+		 * item as the element it returns, with the item's props and `{ highlighted }`:
+		 * spread `props` on that element.
+		 *
+		 * The input is a plain text input, so a pick puts only text in it, never
+		 * the content's elements. It writes the text the content shows, without its
+		 * `hidden` and `aria-hidden` parts, so filter on that text. A preset `value`
+		 * writes it too.
+		 */
+		children?: ReactNode | OptionRender;
+		/**
 		 * Whether the item is inert.
+		 * A disabled item runs no click handler, and an `asChild` link does not navigate.
 		 */
 		disabled?: boolean;
 		/**
-		 * The value that picking the item writes into the input. An item with no
-		 * value is static text that the keyboard skips.
+		 * The value that picking the item sets on `Combobox.Root`, such as an ID. An
+		 * item with no value is static text that the keyboard skips.
 		 */
 		value?: string;
 	};
 
 /**
  * Renders a combobox item inside a Combobox.Content component.
+ *
+ * **Function child.** `(props, { highlighted }) => element` renders the item as
+ * the element it returns. Spread `props` on it.
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxitem
  *
@@ -368,31 +485,37 @@ const Item = ({
 		value: value ?? "",
 		disabled: disabled || value == null,
 		id: childId({ asChild, children, id: props.id }),
+		// Why: a function child can render text only while highlighted, so a pick
+		// writes `value`, as a preset value does.
+		textValue: typeof children === "function" ? value : undefined,
 	});
+	const elementProps = {
+		...props,
+		...optionProps,
+		onClick: composeHandlers(onClick, optionProps.onClick),
+		onPointerMove: composeHandlers(onPointerMove, optionProps.onPointerMove),
+		// Why: in the APG combobox pattern, the highlighted option is the selected
+		// one, and the open list writes the attribute with the highlight.
+		"aria-selected": undefined,
+		// Why `data-selected`: `aria-selected` follows the highlight, so the picked option needs its own attribute.
+		"data-selected": selected ? "" : undefined,
+		ref,
+		"data-slot": joinDataSlot(dataSlot, "combobox-item"),
+		className: cx(
+			"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
+			"data-highlighted:bg-active-menu-item",
+			"aria-disabled:cursor-default aria-disabled:opacity-50",
+			className,
+		),
+	};
 	const Component = asChild ? Slot : "div";
 	return (
 		<ItemValueContext value={value}>
-			<Component
-				{...props}
-				{...optionProps}
-				onClick={composeHandlers(onClick, optionProps.onClick)}
-				onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
-				// Why: in the APG combobox pattern, the highlighted option is the selected
-				// one, and the open list writes the attribute with the highlight.
-				aria-selected={undefined}
-				// Why `data-selected`: `aria-selected` follows the highlight, so the picked option needs its own attribute.
-				data-selected={selected ? "" : undefined}
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "combobox-item")}
-				className={cx(
-					"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
-					"data-highlighted:bg-active-menu-item",
-					"aria-disabled:opacity-50",
-					className,
-				)}
-			>
-				{children ?? value}
-			</Component>
+			{typeof children === "function" ? (
+				<OptionSlot {...elementProps} listbox={listbox} render={children} />
+			) : (
+				<Component {...elementProps}>{children ?? value}</Component>
+			)}
 		</ItemValueContext>
 	);
 };
@@ -438,7 +561,7 @@ const Group = ({
 				role="group"
 				aria-labelledby={labelId}
 				data-slot={joinDataSlot(dataSlot, "combobox-group")}
-				className={cx("space-y-px", className)}
+				className={cx("between:mbe-px", className)}
 				ref={ref}
 				{...props}
 			>
@@ -552,27 +675,121 @@ const ItemValue = ({
 	const userValue = userValueProp ?? inputValue;
 	const start = userValue === "" ? -1 : itemValue.toLowerCase().indexOf(userValue.toLowerCase());
 	const end = start + userValue.length;
+	// Why the last match: when the text stops matching, the match span keeps its text, so its line can
+	// transition out (`combobox-match-line` in mantle.css). Set during render, so the exit starts on this commit.
+	// Why the item value in it: a new label must not inherit the old label's line.
+	const [lastMatch, setLastMatch] = useState<readonly [string, number, number] | null>(null);
+	if (
+		start !== -1 &&
+		(lastMatch?.[0] !== itemValue || lastMatch[1] !== start || lastMatch[2] !== end)
+	) {
+		setLastMatch([itemValue, start, end]);
+	}
+	const matched = start !== -1;
+	const exiting = !matched && lastMatch?.[0] === itemValue ? lastMatch : null;
+	const from = matched ? start : (exiting?.[1] ?? 0);
+	const to = matched ? end : (exiting?.[2] ?? itemValue.length);
 	return (
 		<span
 			data-slot={joinDataSlot(dataSlot, "combobox-item-value")}
 			className={cx(
-				"*:data-user-value:font-medium flex-1 shrink-0 text-strong font-normal",
+				"flex-1 shrink-0 text-strong font-normal",
+				// Why a line and not a weight: a heavier glyph is wider, so the row text moves as the user types.
+				"combobox-match-line",
 				className,
 			)}
 			ref={ref}
 			{...props}
 		>
-			{start === -1 ? (
-				<span data-autocomplete-value="">{itemValue}</span>
-			) : (
-				<>
-					{/* Why a span for each slice: docs/browser-translation.md */}
-					{start > 0 && <span data-autocomplete-value="">{itemValue.slice(0, start)}</span>}
-					<span data-user-value="">{itemValue.slice(start, end)}</span>
-					{end < itemValue.length && <span data-autocomplete-value="">{itemValue.slice(end)}</span>}
-				</>
-			)}
+			{/* Why a span for each slice: docs/browser-translation.md
+			    Why the start in the key: React keeps the match span while its start stays, so its line can
+			    transition. A match at a new start gets a new span, and its line grows in. */}
+			{[
+				from > 0 && (
+					<span key="before" data-autocomplete-value="">
+						{itemValue.slice(0, from)}
+					</span>
+				),
+				<span
+					key={`match-${from}`}
+					data-user-value={matched ? "" : undefined}
+					data-autocomplete-value={matched ? undefined : ""}
+					// Why: after the exit, one text run again keeps the kerning across the old cut. A hidden tab
+					// fires no event, and the label then stays split, which only costs that kerning.
+					onTransitionEnd={
+						exiting
+							? (event) => {
+									if (event.propertyName === "background-size") {
+										setLastMatch(null);
+									}
+								}
+							: undefined
+					}
+				>
+					{itemValue.slice(from, to)}
+				</span>,
+				to < itemValue.length && (
+					<span key="after" data-autocomplete-value="">
+						{itemValue.slice(to)}
+					</span>
+				),
+			]}
 		</span>
+	);
+};
+
+type ComboboxContentFooterProps = ComponentProps<"div"> & WithDataSlot;
+
+/**
+ * Renders a footer at the bottom of the open `Combobox.Content`, after the
+ * listbox and not in it, for controls such as a "Show expired" switch or a
+ * "Load more" button.
+ *
+ * Tab from the input moves to the footer's first control, and the list stays
+ * open. Shift+Tab from that control returns to the input. Escape closes the list
+ * and returns focus to the input. Arrow keys in the input still move through the
+ * options.
+ *
+ * @see https://mantle.ngrok.com/components/forms/combobox#comboboxcontentfooter
+ *
+ * @example
+ * ```tsx
+ * <Combobox.Root>
+ *   <Combobox.Input aria-label="Release" />
+ *   <Combobox.Content>
+ *     <Combobox.Item value="v1.2.0" />
+ *     <Combobox.Item value="v1.1.0" />
+ *     <Combobox.ContentFooter>
+ *       <Button type="button" appearance="ghost" intent="accent" onClick={loadMore}>
+ *         Load more releases
+ *       </Button>
+ *     </Combobox.ContentFooter>
+ *   </Combobox.Content>
+ * </Combobox.Root>
+ * ```
+ */
+const ContentFooter = ({
+	"data-slot": dataSlot,
+	className,
+	children,
+	ref,
+	...props
+}: ComboboxContentFooterProps) => {
+	const host = use(FooterHostContext);
+	return (
+		host != null &&
+		createPortal(
+			<div
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "combobox-content-footer")}
+				// Why contain-inline-size: the footer takes the popup's width and never widens it.
+				className={cx("bg-popover border-popover shrink-0 border-t contain-inline-size", className)}
+				{...props}
+			>
+				{children}
+			</div>,
+			host,
+		)
 	);
 };
 
@@ -616,6 +833,7 @@ export {
 	//,
 	Root,
 	Content,
+	ContentFooter,
 	Group,
 	GroupLabel,
 	Input,

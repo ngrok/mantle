@@ -59,7 +59,7 @@ export function OverviewExample() {
 					<Table.Caption>A list of your recent invoices.</Table.Caption>
 					<Table.Head>
 						<Table.Row>
-							<Table.Header className="w-25">Invoice</Table.Header>
+							<Table.Header>Invoice</Table.Header>
 							<Table.Header>Status</Table.Header>
 							<Table.Header>Method</Table.Header>
 							<Table.Header className="text-right">Amount</Table.Header>

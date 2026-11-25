@@ -3,7 +3,12 @@ import os from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { checkAgentDocs } from "./check-agent-docs.ts";
+import {
+	checkAgentDocs,
+	findRetiredLibraryMentions,
+	listCurrentDocs,
+	retiredLibraries,
+} from "./check-agent-docs.ts";
 
 const budgets = [{ path: "AGENTS.md", maxBytes: 10 }];
 
@@ -41,6 +46,114 @@ describe("checkAgentDocs", () => {
 	it("reports a missing doc", () => {
 		expect(checkAgentDocs({ rootDir, budgets })).toEqual([
 			"AGENTS.md is missing. Update its budget in scripts/check-agent-docs.ts.",
+		]);
+	});
+});
+
+describe("findRetiredLibraryMentions", () => {
+	const libraries = [{ mention: /\bRadix\b/, packageName: /^@radix-ui\// }];
+
+	const write = (file: string, content: string) => {
+		fs.mkdirSync(path.dirname(path.join(rootDir, file)), { recursive: true });
+		fs.writeFileSync(path.join(rootDir, file), content);
+	};
+
+	const writeManifest = (dependencies: Record<string, string>) =>
+		write("packages/mantle/package.json", JSON.stringify({ dependencies }));
+
+	it("reports the line of a contributor doc that names a library the manifest does not list", () => {
+		writeManifest({ sonner: "2.0.7" });
+		write("docs/motion.md", "# Motion\n\nA Radix overlay keeps keyframes.\n");
+
+		expect(findRetiredLibraryMentions({ rootDir, files: ["docs/motion.md"], libraries })).toEqual([
+			"docs/motion.md:3 names Radix, which packages/mantle/package.json does not list.",
+		]);
+	});
+
+	it.each(["dependencies", "peerDependencies"])(
+		"allows the name while the manifest lists the library in %s",
+		(field) => {
+			write(
+				"packages/mantle/package.json",
+				JSON.stringify({ [field]: { "@radix-ui/react-dialog": "1.1.15" } }),
+			);
+			write("docs/motion.md", "A Radix overlay keeps keyframes.\n");
+
+			expect(findRetiredLibraryMentions({ rootDir, files: ["docs/motion.md"], libraries })).toEqual(
+				[],
+			);
+		},
+	);
+
+	it.each([
+		["a flow list", "aliases: [Radix dialog]"],
+		["a block list", "aliases:\n  - Radix dialog\n- Radix modal"],
+	])("skips a frontmatter alias in %s, which only feeds search", (_, aliases) => {
+		writeManifest({});
+		write(
+			"apps/www/app/docs/command.mdx",
+			`---\n${aliases}\ntitle: Radix\n---\n\naliases: Radix\n`,
+		);
+		const lines = aliases.split("\n").length;
+
+		expect(
+			findRetiredLibraryMentions({ rootDir, files: ["apps/www/app/docs/command.mdx"], libraries }),
+		).toEqual([
+			`apps/www/app/docs/command.mdx:${lines + 2} names Radix, which packages/mantle/package.json does not list.`,
+			`apps/www/app/docs/command.mdx:${lines + 5} names Radix, which packages/mantle/package.json does not list.`,
+		]);
+	});
+
+	it("skips a decision doc, which records what was true on its date", () => {
+		writeManifest({});
+		write("decisions/2026-11-21-hooks.md", "Mantle wraps Radix.\n");
+
+		expect(
+			findRetiredLibraryMentions({ rootDir, files: ["decisions/2026-11-21-hooks.md"], libraries }),
+		).toEqual([]);
+	});
+});
+
+describe("retiredLibraries", () => {
+	it.each([
+		["Radix wraps the dialog.", true],
+		["`@radix-ui/react-tabs` ships Tabs.", true],
+		["cmdk filters the list.", true],
+		["the input-otp library", true],
+		["HeadlessUI renders the radio.", true],
+		["Select `[data-input-otp]` in a page style.", false],
+		["No library names (`data-radix-*`).", false],
+	])("%s → reported: %s", (line, reported) => {
+		expect(retiredLibraries.some((library) => library.mention.test(line))).toBe(reported);
+	});
+});
+
+describe("listCurrentDocs", () => {
+	it("finds nested skills, docs, READMEs, and docs-site pages, and skips decisions, migrations, and changelogs", () => {
+		for (const file of [
+			"AGENTS.md",
+			"README.md",
+			"docs/principles/a.md",
+			".claude/skills/x/SKILL.md",
+			"decisions/2026-11-21-a.md",
+			"packages/mantle/README.md",
+			"packages/mantle/CHANGELOG.md",
+			"apps/www/app/docs/index.mdx",
+			"apps/www/app/docs/components/forms/select.mdx",
+			"apps/www/app/docs/migrations/0017-select-migration.mdx",
+		]) {
+			fs.mkdirSync(path.dirname(path.join(rootDir, file)), { recursive: true });
+			fs.writeFileSync(path.join(rootDir, file), "");
+		}
+
+		expect(listCurrentDocs(rootDir).toSorted()).toEqual([
+			".claude/skills/x/SKILL.md",
+			"AGENTS.md",
+			"README.md",
+			"apps/www/app/docs/components/forms/select.mdx",
+			"apps/www/app/docs/index.mdx",
+			"docs/principles/a.md",
+			"packages/mantle/README.md",
 		]);
 	});
 });

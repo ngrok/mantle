@@ -12,32 +12,33 @@ import type { Align, Side } from "./position.js";
 
 /**
  * How long a closed float stays mounted for its exit transition, in
- * milliseconds. It matches `data-state-closed:duration-150` in `floatClassName`.
+ * milliseconds. It matches `not-data-open:duration-150` in `floatClassName`.
  */
 const EXIT_DURATION = 150;
 
 /**
  * The classes every native float shares. The float is a `popover` in the top
  * layer: these classes undo the browser's centered `[popover]` box. It fades
- * and scales in from `@starting-style` and out on `data-state="closed"`.
+ * and scales in from `@starting-style` and out when `data-open` goes away.
  * Chromium keeps the float in the top layer for the exit (`overlay`). Firefox
  * and Safari hide it at once, because they do not transition `overlay`.
  *
- * Why `data-state`, `fixed`, and `z-50`, not `:popover-open`: a browser with no
+ * Why `data-open`, `fixed`, and `z-50`, not `:popover-open`: a browser with no
  * popover API (Safari before 17, Chrome before 114, Firefox before 125) does
  * not know `:popover-open` and has no top layer. There the float is a plain
  * fixed box at the float tier, as before mantle used the popover API. The top
  * layer ignores `z-index`.
  *
- * Why `pointer-events-auto`: a modal Radix menu sets `pointer-events: none` on
- * `<body>`, and a float that portals there would inherit it.
+ * Why `pointer-events-auto`: a modal from another library, such as a Radix
+ * menu, sets `pointer-events: none` on `<body>`, and a float that portals
+ * there would inherit it.
  *
  * Why `overscroll-none`: a float whose content scrolls, such as a tall
  * popover, does not bounce or scroll the page at its ends. It changes nothing
  * on a float that does not scroll.
  */
 const floatClassName =
-	"pointer-events-auto fixed z-50 m-0 inset-auto overflow-visible overscroll-none starting:opacity-0 starting:scale-95 data-state-closed:opacity-0 data-state-closed:scale-95 transition-[opacity,scale,display,overlay] transition-discrete duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:transition-none";
+	"pointer-events-auto fixed z-50 m-0 inset-auto overflow-visible overscroll-none starting:opacity-0 starting:scale-95 not-data-open:opacity-0 not-data-open:scale-95 transition-[opacity,scale,display,overlay] transition-discrete duration-200 ease-out-strong not-data-open:duration-150 motion-reduce:transition-none";
 
 /**
  * Whether the browser has the popover API. Without it, `useFloat` shows the
@@ -86,12 +87,13 @@ type OpenFloat = {
 const openFloats: OpenFloat[] = [];
 
 /**
- * A layer that a float holds and that handles its own Escape: a Radix popper,
- * an overlay, or an expanded popup owner such as a combobox input. An expanded
- * accordion trigger also sets `aria-controls`, but it does not take Escape.
+ * A layer that a float holds and that handles its own Escape: an overlay, an
+ * open popup such as a combobox list with a footer, or an expanded popup owner
+ * such as a combobox input. An expanded accordion trigger
+ * also sets `aria-controls`, but it does not take Escape.
  */
 const nestedLayerSelector =
-	"[data-radix-popper-content-wrapper], [data-mantle-modal-content], [aria-expanded='true'][aria-controls]:is([role='combobox'], [aria-haspopup]:not([aria-haspopup='false']))";
+	"[data-mantle-modal-content], [data-mantle-popup], [aria-expanded='true'][aria-controls]:is([role='combobox'], [aria-haspopup]:not([aria-haspopup='false']))";
 
 /** Whether an Escape at `target` belongs to a layer inside `floating`. */
 function belongsToNestedLayer(floating: HTMLElement, target: EventTarget | null): boolean {
@@ -104,7 +106,7 @@ function belongsToNestedLayer(floating: HTMLElement, target: EventTarget | null)
 
 /**
  * Gives Escape to the float that opened last. Why the capture phase on
- * `window`: it runs before the document listeners of a Radix overlay under the
+ * `window`: it runs before the document listeners of an overlay under the
  * float, and a prevented Escape keeps that overlay and the browser's own close
  * request from closing anything else.
  */
@@ -184,6 +186,8 @@ type UseFloatOptions = OutsideHandlers & {
 	onDismiss: (reason: DismissReason, outside?: PointerDownOutsideEvent | FocusOutsideEvent) => void;
 	/** The element the float sits next to. */
 	getAnchor: () => HTMLElement | null;
+	/** Beside the anchor, whether the float may cover the anchor to stay on screen, as a submenu covers its menu. */
+	overlapAnchor?: boolean;
 	/** Elements a press or a focus move may reach without closing the float, such as its trigger. */
 	getInsideElements?: () => readonly (Element | null)[];
 	/** Whether outside presses and focus moves close the float. */
@@ -236,6 +240,7 @@ function useFloat({
 	onPointerDownOutside,
 	onShow,
 	open,
+	overlapAnchor,
 	side,
 	sideOffset,
 }: UseFloatOptions): {
@@ -379,6 +384,7 @@ function useFloat({
 					anchor: target,
 					dir,
 					floating,
+					overlapAnchor,
 					side,
 					sideOffset,
 				});
@@ -416,7 +422,7 @@ function useFloat({
 					detail: { originalEvent },
 				});
 				// Why dispatch on the target: a handler reads `event.target` to keep the
-				// float open for one outside control, as it could with Radix.
+				// float open for one outside control.
 				const runHandlers = () => {
 					handler(event);
 					interactOutside(event);
@@ -542,6 +548,7 @@ function useFloat({
 			insideElementsOf,
 			interactOutside,
 			pointerDownOutside,
+			overlapAnchor,
 			side,
 			sideOffset,
 		],

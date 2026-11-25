@@ -164,12 +164,14 @@ const listCollectionClassName = "relative flex w-full flex-col gap-px outline-hi
  * with the shared menu-item tokens, matching the `MultiSelect` popover options.
  * The active grid row (keyboard `aria-activedescendant` target) tints with the
  * same hover color rather than a ring (`bg-active-menu-item` when unselected,
- * `bg-active-selected-menu-item` when also selected), so `data-[active]` reads
- * exactly like `:hover`. The active+selected rule carries an extra attribute
- * selector, so it wins over the plain selected tint by specificity.
+ * `bg-active-selected-menu-item` when also selected), so `data-highlighted`
+ * reads exactly like `:hover`. The highlighted+selected rule carries an extra
+ * attribute selector, so it wins over the plain selected tint by specificity.
+ * A grid row is selected through `aria-selected`; a list row, which cannot
+ * take `aria-selected`, through `data-selected`.
  */
 const listItemClassName =
-	"rounded-md data-[state=selected]:bg-selected-menu-item data-active:bg-active-menu-item data-active:data-[state=selected]:bg-active-selected-menu-item";
+	"rounded-md aria-selected:bg-selected-menu-item data-selected:bg-selected-menu-item data-highlighted:bg-active-menu-item data-highlighted:aria-selected:bg-active-selected-menu-item";
 
 /**
  * Props for {@link Root} / `VirtualRoot`. Standard `<div>` props (on the scroll
@@ -820,9 +822,10 @@ const Item = ({
 					: props.id
 			}
 			data-index={index}
-			data-state={selected ? "selected" : "unselected"}
-			data-disabled={disabled || undefined}
-			data-active={isActive || undefined}
+			// Why list rows only: a grid row carries `aria-selected` and `aria-disabled`.
+			data-selected={!isGrid && selected ? "" : undefined}
+			data-disabled={!isGrid && disabled ? "" : undefined}
+			data-highlighted={isActive ? "" : undefined}
 			role={isGrid ? "row" : "listitem"}
 			aria-selected={isGrid ? selected : undefined}
 			aria-disabled={isGrid && disabled ? true : props["aria-disabled"]}
@@ -835,13 +838,13 @@ const Item = ({
 			className={cx(
 				listItemClassName,
 				!disabled &&
-					"hover:bg-active-menu-item hover:data-[state=selected]:bg-active-selected-menu-item",
+					"hover:bg-active-menu-item hover:aria-selected:bg-active-selected-menu-item hover:data-selected:bg-active-selected-menu-item",
 				// List rows convey keyboard focus with the same tint as hover (matching
 				// the grid's active row) rather than a focus ring on the inner control:
 				// the control suppresses its own outline and the row lights up instead.
 				!isGrid &&
 					!disabled &&
-					"has-focus-visible:bg-active-menu-item has-focus-visible:data-[state=selected]:bg-active-selected-menu-item",
+					"has-focus-visible:bg-active-menu-item has-focus-visible:data-selected:bg-active-selected-menu-item",
 				className,
 			)}
 			style={placement ? { ...style, ...placement.style } : style}

@@ -303,8 +303,8 @@ function UserDialog({ onClose, scenario, userId }: UserOverlayProps) {
 		>
 			<Dialog.Content preferredWidth="max-w-xl">
 				{/* Dialog.Header is a single flex row: Title + CloseIconButton only.
-				    The description lives at the top of the Body (Radix wires
-				    aria-describedby from anywhere inside Content). */}
+				    The description lives at the top of the Body (the dialog names a
+				    Description anywhere inside Content in aria-describedby). */}
 				<Dialog.Header>
 					<Dialog.Title>User details</Dialog.Title>
 					<Dialog.CloseIconButton />

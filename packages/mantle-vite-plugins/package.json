@@ -1,6 +1,6 @@
 {
   "name": "@ngrok/mantle-vite-plugins",
-  "version": "1.2.10",
+  "version": "1.2.11",
   "description": "Vite plugins for @ngrok/mantle.",
   "keywords": [
     "mantle",
@@ -62,7 +62,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "@ngrok/mantle": "*",
+    "@ngrok/mantle": ">=0.96.0",
     "vite": "^8.3.0"
   },
   "peerDependenciesMeta": {

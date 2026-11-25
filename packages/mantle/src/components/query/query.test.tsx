@@ -122,13 +122,20 @@ function renderQuery({
 }
 
 /** Renders the compound over a grammar that another system executes. */
-function renderRemoteQuery(grammar: ReturnType<typeof defineRemoteFilterGrammar>) {
-	render(
-		<Query.Root grammar={grammar} value="" onValueChange={() => {}}>
+/** A remote grammar's field under a `useState`, so a test can type into it. */
+function RemoteQuery({ grammar }: { grammar: ReturnType<typeof defineRemoteFilterGrammar> }) {
+	const [value, setValue] = useState("");
+
+	return (
+		<Query.Root grammar={grammar} value={value} onValueChange={setValue}>
 			<Query.Input aria-label="Search" placeholder="Search" />
 			<QueryContent />
-		</Query.Root>,
+		</Query.Root>
 	);
+}
+
+function renderRemoteQuery(grammar: ReturnType<typeof defineRemoteFilterGrammar>) {
+	render(<RemoteQuery grammar={grammar} />);
 	return screen.getByRole<HTMLInputElement>("combobox", { name: "Search" });
 }
 
@@ -1402,6 +1409,85 @@ describe("Query.Content", () => {
 
 		expect(input).toHaveAccessibleDescription(/key:value narrows the search/);
 		expect(input).not.toHaveAccessibleDescription(/excludes/);
+	});
+
+	test("adds comparisons, prefixes, and groups to the legend only when the grammar has them", async () => {
+		const input = renderRemoteQuery(
+			defineRemoteFilterGrammar({
+				syntax: "full",
+				keys: [
+					{ key: "replicas", description: "Replica count", type: "number" },
+					{ key: "name", description: "Name", type: "text" },
+				],
+			}),
+		);
+
+		input.focus();
+		await screen.findByRole("listbox");
+
+		expect(input).toHaveAccessibleDescription(/key:>n compares/);
+		expect(input).toHaveAccessibleDescription(/key:a\* starts with/);
+		expect(input).toHaveAccessibleDescription(/\(a OR b\) groups/);
+	});
+
+	test("leaves comparisons and prefixes out of the legend of a grammar with no typed keys", async () => {
+		const { input } = renderQuery();
+
+		input.focus();
+		await screen.findByRole("listbox");
+
+		expect(input).toHaveAccessibleDescription(/\(a OR b\) groups/);
+		expect(input).not.toHaveAccessibleDescription(/compares|starts with/);
+	});
+
+	test("says what a number, date, or duration key takes when its value matches no row", async () => {
+		const input = renderRemoteQuery(
+			defineRemoteFilterGrammar({
+				keys: [
+					{ key: "replicas", description: "Replica count", type: "number" },
+					{ key: "created", description: "When it was created", type: "date" },
+				],
+			}),
+		);
+
+		input.focus();
+		type(input, "replicas:3");
+		expect(
+			await screen.findByText("Replica count. Takes a number, as in >3 or 2..5."),
+		).toBeInTheDocument();
+
+		type(input, "created:2026");
+		expect(
+			await screen.findByText(
+				"When it was created. Takes a date or a time back from now, as in >7d or 2026-01-31.",
+			),
+		).toBeInTheDocument();
+	});
+
+	test("gives only examples and a legend rule that the key's operators accept", async () => {
+		const input = renderRemoteQuery(
+			defineRemoteFilterGrammar({
+				syntax: "full",
+				keys: [{ key: "n", description: "Count", type: "number", operators: ["lte"] }],
+			}),
+		);
+
+		input.focus();
+		type(input, "n:x");
+		expect(await screen.findByText("Count. Takes a number, as in <=3.")).toBeInTheDocument();
+		expect(input).toHaveAccessibleDescription(/key:<=n compares/);
+	});
+
+	test("ends the sentence when a number key takes no operator", async () => {
+		const input = renderRemoteQuery(
+			defineRemoteFilterGrammar({
+				keys: [{ key: "n", description: "Count", type: "number", operators: [] }],
+			}),
+		);
+
+		input.focus();
+		type(input, "n:x");
+		expect(await screen.findByText("Count. Takes a number.")).toBeInTheDocument();
 	});
 
 	test("leaves exclusions out of the legend when no key can exclude", async () => {

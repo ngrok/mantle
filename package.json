@@ -6,7 +6,7 @@
   "scripts": {
     "build": "turbo run build",
     "check:agent-docs": "node ./scripts/check-agent-docs.ts",
-    "check:bundle-budget": "pnpm -F @ngrok/mantle run check:bundle-budget",
+    "report:bundle-size": "pnpm -F @ngrok/mantle run report:bundle-size",
     "check:changed": "node ./scripts/check-changed.ts",
     "check:css-selectors": "node ./scripts/check-css-selectors.ts",
     "check:dist": "pnpm -F @ngrok/mantle run check:dist",
@@ -16,6 +16,7 @@
     "serve": "turbo run serve",
     "clean": "turbo run clean",
     "clean:node_modules": "node ./scripts/clean-node-modules.js",
+    "eval:agents": "node ./scripts/agent-eval/run.ts",
     "fmt:check": "oxfmt --check",
     "fmt": "oxfmt --write",
     "lint:fix": "oxlint --type-aware --ignore-pattern=.claude/worktrees --fix",
@@ -31,7 +32,7 @@
     "tailwind:fix": "node ./scripts/tailwind-canonical.ts --write",
     "prepare": "husky",
     "changeset": "changeset",
-    "changeset:version": "changeset version",
+    "changeset:version": "changeset version && node ./scripts/stamp-migrations.ts",
     "changeset:publish": "turbo run build --filter=@ngrok/mantle --filter=@ngrok/mantle-vite-plugins --filter=@ngrok/mantle-server-syntax-highlighter && changeset publish",
     "migrate": "node ./scripts/migrate.ts"
   },
@@ -43,7 +44,7 @@
     "@tailwindcss/oxide": "catalog:",
     "@types/node": "catalog:",
     "husky": "9.1.7",
-    "lint-staged": "17.6.1",
+    "lint-staged": "17.6.2",
     "oxc-parser": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "1.94.0",
@@ -56,5 +57,5 @@
   "engines": {
     "node": "^26.0.0"
   },
-  "packageManager": "pnpm@12.21.0"
+  "packageManager": "pnpm@12.23.0"
 }

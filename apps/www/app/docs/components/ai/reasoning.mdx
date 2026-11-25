@@ -1,0 +1,128 @@
+---
+title: Reasoning
+description: A model's reasoning in a chat answer, folded under a label that reads "Thinking…" while it streams.
+category: AI
+aliases: [thinking, chain of thought, reasoning summary, ai reasoning, thought process]
+---
+
+import { PageHeader } from "~/components/page-header";
+import { Example } from "~/components/example";
+
+<PageHeader id="reasoning">Reasoning</PageHeader>
+
+A model's reasoning in a chat answer, folded under a label that reads "Thinking…" while it streams. It starts closed, so the answer stays what the reader sees first.
+
+<Example name="components/ai/reasoning/overview" title="Reasoning example">
+
+```tsx
+import { Reasoning } from "@ngrok/mantle/reasoning";
+
+const reasoning =
+	"The person asks which endpoints have no traffic policy. I should list the endpoints, read the policy on each, and name the ones with none.";
+
+function AnswerReasoning() {
+	return (
+		<>
+			<Reasoning.Root className="w-full max-w-2xl">
+				<Reasoning.Trigger>Thought for 4 seconds</Reasoning.Trigger>
+				<Reasoning.Content>{reasoning}</Reasoning.Content>
+			</Reasoning.Root>
+		</>
+	);
+}
+```
+
+</Example>
+
+## When to use
+
+- Show the reasoning a model wrote before its answer, inside a chat message.
+- Use [Tool Call](/components/ai/tool-call) for a tool the model called.
+- Use [Work](/components/ai/work) to fold every step of one answer under one "Show work" toggle.
+- Prefer [Accordion](/components/data-display/accordion) for titled sections that are not part of a chat answer.
+
+## While it streams
+
+Set `streaming` on `Reasoning.Root` while the model writes its reasoning. `Reasoning.Trigger` then reads "Thinking…" and pulses, with no motion when the reader prefers reduced motion. After that it shows its children, such as "Thought for 4 seconds", or "Reasoning" when it has none.
+
+<Example name="components/ai/reasoning/streaming" title="Reasoning streaming example">
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Reasoning } from "@ngrok/mantle/reasoning";
+import { useState } from "react";
+
+const reasoning =
+	"The person asks which endpoints have no traffic policy. I should list the endpoints, read the policy on each, and name the ones with none.";
+
+function StreamingReasoning() {
+	const [streaming, setStreaming] = useState(true);
+
+	return (
+		<div className="flex flex-col items-center gap-4">
+			<Reasoning.Root streaming={streaming} className="w-full max-w-2xl">
+				<Reasoning.Trigger>Thought for 4 seconds</Reasoning.Trigger>
+				<Reasoning.Content>{reasoning}</Reasoning.Content>
+			</Reasoning.Root>
+			<Button
+				type="button"
+				appearance="outlined"
+				intent="neutral"
+				onClick={() => setStreaming(!streaming)}
+			>
+				{streaming ? "Finish thinking" : "Think again"}
+			</Button>
+		</div>
+	);
+}
+```
+
+</Example>
+
+## Composition
+
+```text showLineNumbers=false
+Reasoning.Root
+├── Reasoning.Trigger
+└── Reasoning.Content
+```
+
+## Polymorphism
+
+No part takes `asChild`. Each one renders more than one element, or an element beside its children.
+
+## Translation
+
+`Reasoning.Trigger` renders a caret beside its label. The label sits in a `display: contents` wrapper, `data-slot="reasoning-trigger-label"`, so a page that a browser translates survives the change from "Thinking…".
+
+## API Reference
+
+### Reasoning.Root
+
+The reasoning disclosure. It starts closed.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop         | Type      | Default | Description                                                               |
+| ------------ | --------- | ------- | ------------------------------------------------------------------------- |
+| `streaming?` | `boolean` | `false` | True while the model writes its reasoning. The trigger reads "Thinking…". |
+
+| Data Attribute   | Value                     | Description                                  |
+| ---------------- | ------------------------- | -------------------------------------------- |
+| `data-streaming` | present while `streaming` | Presence-only. Style with `data-streaming:`. |
+
+### Reasoning.Trigger
+
+The disclosure label reads "Thinking…" and pulses while streaming, then shows its children or "Reasoning" when empty.
+
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes) except `type`.
+
+| Data Attribute                        | Value          | Description                                       |
+| ------------------------------------- | -------------- | ------------------------------------------------- |
+| `data-slot="reasoning-trigger-label"` | on the wrapper | The `display: contents` wrapper around the label. |
+
+### Reasoning.Content
+
+The model's summary, as plain text or Markdown in muted type. Find-in-page reaches it while it is closed.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).

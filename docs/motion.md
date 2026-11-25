@@ -51,10 +51,13 @@ explains nothing is noise. Leave it out.
   error stays, on focus, or on blur. The shake is never the only error signal: the border, `aria-invalid`, and
   the error message stay. A blocked action calls `shakeElement` (`utils/shake.ts`) on an element that
   composes `motion-safe:data-shake:animate-shake`; no component keeps its own shake keyframes.
-- **A Radix overlay** keeps keyframes (`animate-in`, `animate-out`): Radix unmounts on `animationend` and ignores
-  transitions, and a transition needs `forceMount`, which keeps each closed overlay in the DOM. A positioner
-  around the content holds `animate-exit-hold` so Radix waits for the exit. The hold matches while no open
-  content is inside it, not while closed content is, so a shorter content exit cannot cancel it.
+- **A native `<dialog>`** (`Dialog`, `AlertDialog`, `Sheet`) keeps keyframes (`animate-in`, `animate-out`).
+  `data-open` starts the enter, and `data-closing` starts the exit, which plays before `close()`. Not
+  `not-data-open:`: an invoker command opens the `<dialog>` before hydration, with no `data-open`, and that
+  open must not play the exit.
+- **A float** (`Popover`, `DropdownMenu`, `Tooltip`, `HoverCard`) fades and scales in from `@starting-style`,
+  and out when `data-open` goes away. It stays mounted for the exit. Chromium keeps it in the top layer for the
+  exit (`overlay`); Firefox and Safari hide it at once.
 - **An edge panel** (`Sheet`, `Sandbar`) slides its full size from the screen edge.
 - **A chart's enter reveal** runs 600ms on the `ease-out-strong` curve. It answers no input: it plays once, when
   the chart first comes into view. Each bar grows for 300ms, and the bars start one after another in category
@@ -78,6 +81,13 @@ value with a comment that names the token.
 - `DataTable` expand and collapse: `starting:` for the enter, a FLIP slide of the rows below, and an exit that
   fades the rows while the rows below slide over them.
 - `Sidebar`: a width transition on `ease-out-strong`.
+- `CodeBlock` folds (`mantle.css`, `fold-runtime.ts`): each line of the fold eases its height and opacity, and
+  `display` changes at the end of a close. The runtime marks only the lines a toggle changed, so a block that
+  loads does not animate.
+- `AppLayout.Content` and `AppLayout.SidePanel` (`mantle.css`, `app-layout-card`): a view transition class. A
+  card and a panel with the same `view-transition-name` morph into each other in 300ms on `ease-out-strong`.
+  The group clips at the card's radius, and each snapshot keeps its own width, so text does not stretch.
+  `useScrollAnchor` puts the new home's scroll position in place before the browser snapshots it.
 - `ThemeSwitcher` and every `setTheme` call (`theme/swap-theme.ts`): a view transition that animates `clip-path` on `::view-transition-new(root)` with the Web
   Animations API. While a view transition runs, the browser sends each click to `<html>`, so the switcher
   ends the transition on a click and sends the click to the element under the pointer.

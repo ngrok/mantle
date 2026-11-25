@@ -732,7 +732,6 @@ const ChartRootPrimitive = ({
 		validatedRef.current = { data, signature };
 	});
 
-	const latchState = engaged ? "engaged" : "dormant";
 	const DataTable = readout?.DataTable ?? ChartDataTable;
 	return (
 		<div
@@ -793,7 +792,7 @@ const ChartRootPrimitive = ({
 			// Why after the spread: the latch is the Root's own state, and a wider
 			// props object must not carry a stale value past it. Only an interactive
 			// chart has an overlay to focus, so only it carries the latch.
-			data-state={interactive ? latchState : undefined}
+			data-engaged={interactive && engaged ? "" : undefined}
 		>
 			<ChartContext.Provider value={context}>
 				<div

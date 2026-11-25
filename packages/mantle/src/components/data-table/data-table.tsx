@@ -496,6 +496,12 @@ type DataTableProps<TFeatures extends TableFeatures, TData extends RowData> = Co
  * any sorting / filtering / pagination state. The wrapper components read
  * from it.
  *
+ * Tradeoff: with 2 to 24 header cells, the table lays out as a CSS grid. When
+ * the table is the first item on a page, VoiceOver in Safari starts on the
+ * first header cell, not on the table. WebKit puts each grid cell on its own
+ * text line, and no CSS changes this. With content before the table, VoiceOver
+ * reads it the same as a table with `display: table`.
+ *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableroot
  *
  * @example
@@ -770,20 +776,11 @@ type DataTableHeaderProps<
 > = ComponentProps<typeof Table.Header> & {
 	/**
 	 * The TanStack Table column this cell heads (`props.column` in `header`).
-	 * When the column is sorted, the cell carries `aria-sort`. When the
-	 * column's `meta.width` is `"fit"`, the cell carries `data-column-width="fit"`.
+	 * When the column is sorted, the cell carries `aria-sort`. The column's
+	 * `meta.width` becomes the cell's `width`.
 	 */
 	column?: Column<TFeatures, TData, TValue>;
 } & WithDataSlot;
-
-/**
- * Sizes a `"fit"` column to its content. In `table-auto`, a cell width is a
- * minimum, so `w-px` shrinks the column to its min-content width, and
- * `whitespace-nowrap` makes that width the full content width.
- */
-// Why plain utilities, not `data-[column-width=fit]:` variants: `cx` merges a
-// plain utility with the consumer's `className`, so a consumer class still wins.
-const fitColumnClassName = "w-px whitespace-nowrap";
 
 /**
  * The `aria-sort` value for a column's current sort state. `undefined` when the
@@ -829,7 +826,7 @@ function resolveAriaSort<
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"data-table-header table-header"` | On the `<th>`, joined ahead of `Table.Header`'s own slot. |
- * | `data-column-width` | `"fit"` | Present when the `column` prop's `meta.width` is `"fit"`. The header does not wrap its content, and the column shrinks to fit it. |
+ * | `data-column-width` | `"fit"` \| `"wrap"` | The `column` prop's `meta.width`, when set. `"wrap"` lets the header wrap. |
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableheader
  *
@@ -860,13 +857,9 @@ function Header<TFeatures extends TableFeatures, TData extends RowData, TValue e
 		return (
 			<Table.Header
 				aria-sort={resolveAriaSort(column)}
-				data-column-width={width}
 				data-slot={joinDataSlot(dataSlot, "data-table-header")}
-				className={cx(
-					"has-data-table-header-action:px-0",
-					width === "fit" && fitColumnClassName,
-					className,
-				)}
+				className={cx("has-data-table-header-action:px-0", className)}
+				width={width}
 				{...props}
 			>
 				{children}
@@ -900,8 +893,7 @@ type DataTableCellProps<
 > = ComponentProps<typeof Table.Cell> & {
 	/**
 	 * The TanStack Table column this cell belongs to (`props.column` in `cell`).
-	 * When the column's `meta.width` is `"fit"`, the cell carries
-	 * `data-column-width="fit"`.
+	 * The column's `meta.width` becomes the cell's `width`.
 	 */
 	column?: Column<TFeatures, TData, TValue>;
 } & WithDataSlot;
@@ -917,7 +909,7 @@ type DataTableCellProps<
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"data-table-cell table-cell"` | On the `<td>`, joined ahead of `Table.Cell`'s own slot. |
- * | `data-column-width` | `"fit"` | Present when the `column` prop's `meta.width` is `"fit"`. The cell does not wrap its content, and the column shrinks to fit it. |
+ * | `data-column-width` | `"fit"` \| `"wrap"` | The `column` prop's `meta.width`, when set. `"fit"` never truncates the value; `"wrap"` lets it wrap. |
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatablecell
  *
@@ -940,9 +932,9 @@ function Cell<TFeatures extends TableFeatures, TData extends RowData, TValue ext
 	const width = resolveColumnWidth(column?.columnDef.meta);
 	return (
 		<Table.Cell
-			data-column-width={width}
 			data-slot={joinDataSlot(dataSlot, "data-table-cell")}
-			className={cx(width === "fit" && fitColumnClassName, className)}
+			className={className}
+			width={width}
 			{...props}
 		/>
 	);
@@ -1392,7 +1384,9 @@ function EmptyRow({ "data-slot": dataSlot, children, ...props }: DataTableEmptyR
 
 	return (
 		<Table.Row data-slot={joinDataSlot(dataSlot, "data-table-empty-row")} {...props}>
-			<Table.Cell colSpan={numberOfColumns}>{children}</Table.Cell>
+			<Table.Cell colSpan={numberOfColumns} width="wrap">
+				{children}
+			</Table.Cell>
 		</Table.Row>
 	);
 }
@@ -1496,6 +1490,7 @@ function ActionCell({
 				className,
 			)}
 			onClick={sandboxedOnClick}
+			width="fit"
 			{...props}
 		>
 			<StickyColIndicator />
@@ -1656,11 +1651,11 @@ function ControlCell({
 		<Table.Cell
 			data-slot={joinDataSlot(dataSlot, "data-table-control-cell")}
 			// `align-top` and the one-line label below put the control beside the
-			// first line of a multi-line row. `px-0` lets `w-9` fit the toggle. The
+			// first line of a multi-line row. `px-0` lets `w-9` fit the toggle, and `min-w-9` keeps the grid column that wide. The
 			// pointer cursor shows only while a padding click has an enabled control
 			// to click; an empty cell keeps the row's cursor.
 			className={cx(
-				"w-9 px-0 align-top has-[button:enabled,input:enabled]:cursor-pointer",
+				"w-9 min-w-9 px-0 align-top content-start has-[button:enabled,input:enabled]:cursor-pointer",
 				className,
 			)}
 			onClick={(event) => {
@@ -1686,6 +1681,7 @@ function ControlCell({
 					isForwarding.current = false;
 				}
 			}}
+			width="fit"
 			{...props}
 		>
 			<span
@@ -1740,7 +1736,7 @@ function ExpandHeader({
 			// `Table.Header` carries horizontal padding; zero it (and center) so the column is
 			// actually as narrow as `w-9` and aligns with the icon toggle in the cells
 			// below it. A consumer `className` still wins via tailwind-merge.
-			className={cx("w-9 px-0 text-center", className)}
+			className={cx("w-9 min-w-9 px-0 text-center", className)}
 			{...props}
 		>
 			{children ?? <span className="sr-only">Row details</span>}
@@ -2033,6 +2029,7 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
 				// Opaque card surface (so scrolled content never shows through a sticky
 				// column) with neutral body typography (Table.Cell defaults to mono).
 				className="bg-card font-sans text-body"
+				width="wrap"
 			>
 				{children}
 			</Table.Cell>

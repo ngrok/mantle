@@ -6,10 +6,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AssistantAcrossRoutesDemo } from "~/features/assistant-across-routes-demo";
 
 // Why a stub: happy-dom has no View Transitions. It runs the update at once,
-// the way react-router falls back in a browser without them, and the count is
-// the only trace of which navigations asked for one.
-const startViewTransition = vi.fn<(update: () => void) => ViewTransition>((update) => {
-	update();
+// the way React falls back in a browser without them, and the count is the
+// only trace of which navigations asked for one. React passes an options
+// object with the update in it.
+const startViewTransition = vi.fn<
+	(update: (() => void) | { update: () => void }) => ViewTransition
+>((update) => {
+	if (typeof update === "function") {
+		update();
+	} else {
+		update.update();
+	}
 	return {
 		finished: Promise.resolve(),
 		ready: Promise.resolve(),
@@ -68,12 +75,12 @@ function renderDemo() {
 	);
 }
 
-/** The desktop sidebar's `data-state`, which `Sidebar.Nav` stamps around the `nav`. */
-function sidebarState() {
+/** Whether the desktop sidebar is expanded: `Sidebar.Nav` stamps `data-expanded` around the `nav`. */
+function isSidebarExpanded() {
 	return screen
 		.getByRole("navigation", { name: "Main" })
-		.closest("[data-state]")
-		?.getAttribute("data-state");
+		.closest('[data-slot~="sidebar-nav"]')
+		?.hasAttribute("data-expanded");
 }
 
 describe("AssistantAcrossRoutesDemo", () => {
@@ -83,13 +90,13 @@ describe("AssistantAcrossRoutesDemo", () => {
 		renderDemo();
 
 		// Why expanded here: the assistant route renders no panel beside the page.
-		expect(sidebarState()).toBe("expanded");
+		expect(isSidebarExpanded()).toBe(true);
 
 		await user.click(screen.getByRole("link", { name: "Endpoints" }));
-		expect(sidebarState()).toBe("collapsed");
+		expect(isSidebarExpanded()).toBe(false);
 
 		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
-		expect(sidebarState()).toBe("expanded");
+		expect(isSidebarExpanded()).toBe(true);
 	});
 
 	it("renders the conversation in main on the assistant route and in the panel elsewhere", async () => {

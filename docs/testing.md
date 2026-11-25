@@ -2,12 +2,13 @@
 
 Read this file before you add or change a test anywhere in the monorepo. [COMPONENT_SPEC.md §8](../COMPONENT_SPEC.md#8-tests) adds the minimums for a component.
 
-- Runner: Vitest. Two modes: happy-dom (default, no per-file Playwright startup) and real-browser Chromium via Playwright.
+- Runner: Vitest. Two modes: happy-dom (default, no per-file Playwright startup) and real-browser Chromium via Playwright. Mantle adds a third project, `consumer`, that runs in plain jsdom with no shims, as a consumer's suite does.
 - Chromium starts with its sandbox on, in the browser project and in the `apps/www/bench` scripts. On Ubuntu 23.10 and later, AppArmor blocks the user namespaces that the sandbox needs, and Chromium does not start. Run `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`, or add an AppArmor profile for the Playwright Chromium. The `browser-test` CI job runs the `sysctl` command.
 - Libraries: `@testing-library/react`, `@testing-library/dom`, `@testing-library/jest-dom`
 - File naming, colocated with source:
   - happy-dom: `*.test.{ts,tsx}`
   - browser: `*.browser.test.{ts,tsx}`
+  - consumer (mantle only): `*.consumer.test.{ts,tsx}`. Use only `getByRole` and `user.*`. jsdom has no popover API, `matchMedia`, observers, or pointer capture, so a failure here is a crash a consumer would hit. Guard the call in the part; never add a shim (COMPONENT_SPEC.md §8).
 - No `*.test.*` under `app/routes/`. React Router treats that as route modules. Put route-behavior tests under the owning `app/features/*` area.
 - Business logic MUST be thoroughly tested, including edge cases (transformations, validation, conditional rendering, state machines, parsing/formatting).
 - Every bug fix adds a regression test that fails before the fix and passes after, unless genuinely infeasible (document why in the PR).
@@ -73,7 +74,7 @@ A test must pay for its upkeep. Before you add one, answer three questions: whic
 - An entry in a lookup that mantle owns is its own case. Each key of a `Record<Union, string>` or a `cva` variant map selects its own output, so only a test per key catches a permuted table (`toast.test.tsx`'s intent tables are the reference).
 - Test shared logic where it lives, once. A wrapper, a variant, or a consumer asserts only what it adds. `useIsBelowBreakpoint` owns the media-query read, so `sidebar.test.tsx` mocks it and pins only the mobile swap. An `apps/www` demo test pins the demo's own copy and wiring; the part's ARIA, keyboard contract, and slots are tested once, in `packages/mantle`.
 - A `test.each` table holds only the rows no dedicated test covers.
-- Pin a third-party library once per option you set. Do not enumerate its output table: every Radix `data-state` value, every `Intl` format output, every TanStack Table sort order.
+- Pin a third-party library once per option you set. Do not enumerate its output table: every `Intl` format output, every TanStack Table sort order.
 - Do not test a type-level fact at runtime. `typeof x === "function"`, `Array.isArray` on a declared array, and a `Record<Union, string>` completeness loop are the typechecker's job.
 - Do not assert static copy that no branch or lookup produces. In `apps/www`, a heading test needs a condition that can change the heading. A part's `data-slot` and role are API, so a render that pins them is a contract and not static copy.
 - Delete debug probes and tombstones. A test named for the session that found a bug pins nothing a kept test does not. Nor does a test whose only assertion is that a removed control is absent.
@@ -87,7 +88,7 @@ If a component owns an event handler, a controlled prop, or a documented keyboar
 
 Rendering a component with `defaultValue`/`open` hardcoded and checking attributes does not test an interactive component; it tests its initial markup. `readOnly` and `disabled` guards, controlled-vs-uncontrolled paths, dismissal, and sort/expand/select cycles all need a real event.
 
-Test mantle's own logic: its wiring, guards, prop plumbing, and ARIA setup. Do not re-test Radix or Ariakit internals.
+Test mantle's own logic: its wiring, guards, prop plumbing, and ARIA setup. Do not re-test the internals of a dependency, such as TanStack Table or react-day-picker.
 
 ## Mock the environment, not the tree
 

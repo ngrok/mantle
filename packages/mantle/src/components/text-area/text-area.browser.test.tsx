@@ -6,8 +6,9 @@ import { TextArea } from "./text-area.js";
 
 /**
  * Mirrors the CSS Tailwind 4 emits for the utilities `TextArea` uses for its
- * `appearance="monospaced"` variant and its `data-drag-over` state, paired with
- * the `data-drag-over` custom variant registered in `mantle.css`. We inline it
+ * `appearance="monospaced"` variant, its height utilities, and its
+ * `data-drag-over` state, paired with
+ * Tailwind's built-in `data-drag-over:` presence variant. We inline it
  * instead of importing the full mantle stylesheet so the test stays hermetic
  * and doesn't require a Tailwind build step in the test pipeline.
  *
@@ -27,7 +28,12 @@ const STYLE = `
 @layer utilities {
 	.font-sans { font-family: ui-sans-serif, sans-serif; }
 	.font-mono { font-family: ui-monospace, monospace; }
-	.data-drag-over\\:border-dashed[data-drag-over="true"] { border-style: dashed; }
+	.field-sizing-content { field-sizing: content; }
+	.max-h-60 { max-height: 15rem; }
+	.min-h-24 { min-height: 6rem; }
+	[class~="[--_text-area-min:calc(var(--_text-area-rows)*1lh+(--spacing(4)))]"] { --_text-area-min: calc(var(--_text-area-rows) * 1lh + 1rem); }
+	[class~="min-h-(--_text-area-min)"] { min-height: var(--_text-area-min); }
+	.data-drag-over\\:border-dashed[data-drag-over] { border-style: dashed; }
 }
 `;
 
@@ -82,4 +88,47 @@ describe("TextArea drag-over styling", () => {
 		fireEvent.dragLeave(textArea);
 		expect(getComputedStyle(textArea).borderStyle).not.toBe("dashed");
 	});
+});
+
+describe("TextArea height", () => {
+	// Why: the test page has no preflight, so the browser's padding, border, and box sizing would change each height.
+	const style = { border: 0, boxSizing: "border-box", lineHeight: "20px", padding: 0 } as const;
+	const height = (name: string) =>
+		screen.getByRole("textbox", { name }).getBoundingClientRect().height;
+
+	test("rows sets the minimum height, and a field without a valid rows is at least 6rem tall", () => {
+		render(
+			<>
+				<TextArea aria-label="Feedback" style={style} />
+				<TextArea aria-label="Zero rows" rows={0} style={style} />
+				<TextArea aria-label="Not a number" rows={Number.NaN} style={style} />
+				<TextArea aria-label="Prompt" rows={3} style={style} />
+			</>,
+		);
+
+		expect(height("Feedback")).toBe(96);
+		expect(height("Zero rows")).toBe(96);
+		expect(height("Not a number")).toBe(96);
+		// Three 20px lines and the 16px padding and border that the minimum height adds.
+		expect(height("Prompt")).toBe(76);
+	});
+
+	test.skipIf(!CSS.supports("field-sizing", "content"))(
+		"the field grows with its text past rows and stops at 15rem",
+		() => {
+			render(
+				<>
+					<TextArea aria-label="Three lines" rows={1} defaultValue={"1\n2\n3"} style={style} />
+					<TextArea
+						aria-label="Many lines"
+						defaultValue={Array.from({ length: 20 }, (_, index) => index).join("\n")}
+						style={style}
+					/>
+				</>,
+			);
+
+			expect(height("Three lines")).toBe(60);
+			expect(height("Many lines")).toBe(240);
+		},
+	);
 });

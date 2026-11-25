@@ -1,6 +1,6 @@
 ---
 title: Segmented Control
-description: A row of segments that switches between a few short options, like a view or an environment. A raised thumb slides to the checked segment.
+description: A row of segments that switches between a few short options, like a view or an environment. A tinted thumb slides to the checked segment.
 aliases: [segmented button, view switcher, toggle group, button group radio]
 ---
 
@@ -8,7 +8,7 @@ import { Example } from "~/components/example";
 
 # Segmented Control
 
-A row of segments that switches between a few short options, like a view or an environment. A raised thumb slides to the checked segment.
+A row of segments that switches between a few short options, like a view or an environment. A tinted thumb slides to the checked segment.
 
 <Example name="components/forms/segmented-control/overview" title="Segmented Control example">
 
@@ -28,7 +28,7 @@ import { SegmentedControl } from "@ngrok/mantle/segmented-control";
 
 ## When to use
 
-- Switch between a few short options, like a view or an environment, in one row.
+- Switch between a few short options in one compact, inline row, such as a view, an environment, or a filter.
 - Prefer [`RadioGroup`](/components/forms/radio-group) for a form field whose options need a description, or stack in a column.
 - Prefer [`Tabs`](/components/navigation/tabs) when each option shows its own panel of content.
 - Prefer [`Select`](/components/forms/select) when the set is long, or the row has little space.
@@ -63,7 +63,7 @@ function ControlledExample() {
 
 ## Icon segments
 
-A segment can hold only an icon. Give each one its name in `sr-only` text, so a screen reader announces it.
+A segment can hold only an icon. Give each one its name in `sr-only` text, so a screen reader announces it. A segment whose children are an icon and `sr-only` text is square, like an [IconButton](/components/actions/icon-button). Set `w-fit` on the root, so the segments do not grow to fill the row.
 
 <Example name="components/forms/segmented-control/icon-segments" title="Segmented Control icon segments example">
 
@@ -82,6 +82,186 @@ import { SquaresFourIcon } from "@phosphor-icons/react/SquaresFour";
 		<span className="sr-only">Grid</span>
 	</SegmentedControl.Item>
 </SegmentedControl.Root>;
+```
+
+</Example>
+
+## Size
+
+Set `size` on `SegmentedControl.Root` to set the height of the whole control, default `md`. The scale is the one [Button](/components/actions/button), [IconButton](/components/actions/icon-button), and [SplitButton](/components/actions/split-button) use: `xs`, `sm`, `md`, `lg`, and `xl`. A control lines up with buttons of the same size in a toolbar. At `xs`, the labels are `text-xs`, so they have room inside the 16px thumb. Use a `size-4` icon at `xs` and `sm`, and a `size-5` icon from `md` up, as in an `IconButton`. A `Button` with `appearance="link"` has no box, so it has no height to match. The items do not accept `size`, so the items of one control always share one height.
+
+<Example name="components/forms/segmented-control/size" title="Segmented Control size example">
+
+```tsx
+import { IconButton } from "@ngrok/mantle/button";
+import { Field } from "@ngrok/mantle/field";
+import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
+import { ListIcon } from "@phosphor-icons/react/List";
+import { SquaresFourIcon } from "@phosphor-icons/react/SquaresFour";
+
+<div className="flex flex-wrap items-start justify-center gap-6">
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size xs</Field.Legend>
+		<div className="flex items-center gap-2">
+			<SegmentedControl.Root aria-label="Event view, size xs" defaultValue="headers" size="xs">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<SegmentedControl.Root
+				aria-label="Layout, size xs"
+				defaultValue="list"
+				size="xs"
+				className="w-fit"
+			>
+				<SegmentedControl.Item value="list">
+					<ListIcon aria-hidden className="size-4" />
+					<span className="sr-only">List</span>
+				</SegmentedControl.Item>
+				<SegmentedControl.Item value="grid">
+					<SquaresFourIcon aria-hidden className="size-4" />
+					<span className="sr-only">Grid</span>
+				</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="xs"
+				label="Copy event"
+				icon={<CopyIcon />}
+			/>
+		</div>
+	</Field.Set>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size sm</Field.Legend>
+		<div className="flex items-center gap-2">
+			<SegmentedControl.Root aria-label="Event view, size sm" defaultValue="headers" size="sm">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<SegmentedControl.Root
+				aria-label="Layout, size sm"
+				defaultValue="list"
+				size="sm"
+				className="w-fit"
+			>
+				<SegmentedControl.Item value="list">
+					<ListIcon aria-hidden className="size-4" />
+					<span className="sr-only">List</span>
+				</SegmentedControl.Item>
+				<SegmentedControl.Item value="grid">
+					<SquaresFourIcon aria-hidden className="size-4" />
+					<span className="sr-only">Grid</span>
+				</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="sm"
+				label="Copy event"
+				icon={<CopyIcon />}
+			/>
+		</div>
+	</Field.Set>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size md (default)</Field.Legend>
+		<div className="flex items-center gap-2">
+			<SegmentedControl.Root aria-label="Event view, size md" defaultValue="headers" size="md">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<SegmentedControl.Root
+				aria-label="Layout, size md"
+				defaultValue="list"
+				size="md"
+				className="w-fit"
+			>
+				<SegmentedControl.Item value="list">
+					<ListIcon aria-hidden className="size-5" />
+					<span className="sr-only">List</span>
+				</SegmentedControl.Item>
+				<SegmentedControl.Item value="grid">
+					<SquaresFourIcon aria-hidden className="size-5" />
+					<span className="sr-only">Grid</span>
+				</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="md"
+				label="Copy event"
+				icon={<CopyIcon />}
+			/>
+		</div>
+	</Field.Set>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size lg</Field.Legend>
+		<div className="flex items-center gap-2">
+			<SegmentedControl.Root aria-label="Event view, size lg" defaultValue="headers" size="lg">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<SegmentedControl.Root
+				aria-label="Layout, size lg"
+				defaultValue="list"
+				size="lg"
+				className="w-fit"
+			>
+				<SegmentedControl.Item value="list">
+					<ListIcon aria-hidden className="size-5" />
+					<span className="sr-only">List</span>
+				</SegmentedControl.Item>
+				<SegmentedControl.Item value="grid">
+					<SquaresFourIcon aria-hidden className="size-5" />
+					<span className="sr-only">Grid</span>
+				</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="lg"
+				label="Copy event"
+				icon={<CopyIcon />}
+			/>
+		</div>
+	</Field.Set>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Size xl</Field.Legend>
+		<div className="flex items-center gap-2">
+			<SegmentedControl.Root aria-label="Event view, size xl" defaultValue="headers" size="xl">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<SegmentedControl.Root
+				aria-label="Layout, size xl"
+				defaultValue="list"
+				size="xl"
+				className="w-fit"
+			>
+				<SegmentedControl.Item value="list">
+					<ListIcon aria-hidden className="size-5" />
+					<span className="sr-only">List</span>
+				</SegmentedControl.Item>
+				<SegmentedControl.Item value="grid">
+					<SquaresFourIcon aria-hidden className="size-5" />
+					<span className="sr-only">Grid</span>
+				</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="xl"
+				label="Copy event"
+				icon={<CopyIcon />}
+			/>
+		</div>
+	</Field.Set>
+</div>;
 ```
 
 </Example>
@@ -187,10 +367,17 @@ The same props as [`RadioGroup.Root`](/components/forms/radio-group#radiogroupro
 | `form?`          | `string`                  |         | The `id` of the form the radios belong to.                  |
 | `aria-label?`    | `string`                  |         | The name of the control. Set it, or set `aria-labelledby`.  |
 
-| Data Attribute  | Value                 | Description                                   |
-| :-------------- | :-------------------- | :-------------------------------------------- |
-| `data-slot`     | `"segmented-control"` | The control.                                  |
-| `data-dragging` | present during a drag | The thumb follows the pointer. Presence-only. |
+It also takes:
+
+| Prop    | Type                                           | Default | Description                                                                 |
+| :------ | :--------------------------------------------- | :------ | :-------------------------------------------------------------------------- |
+| `size?` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | `"md"`  | The height of the control: 24px, 28px, 36px, 40px, or 48px, as on `Button`. |
+
+| Data Attribute  | Value                                          | Description                                   |
+| :-------------- | :--------------------------------------------- | :-------------------------------------------- |
+| `data-slot`     | `"segmented-control"`                          | The control.                                  |
+| `data-size`     | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop.                              |
+| `data-dragging` | present during a drag                          | The thumb follows the pointer. Presence-only. |
 
 ### SegmentedControl.Item
 

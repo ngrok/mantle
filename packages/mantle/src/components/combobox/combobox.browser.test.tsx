@@ -1,9 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import axe from "axe-core";
 import { useState } from "react";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, onTestFinished, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import * as Dialog from "../dialog/dialog-parts.js";
+import * as Popover from "../popover/popover-parts.js";
 import * as Combobox from "./combobox-parts.js";
 
 const domains = ["acme.ngrok.app", "acme.ngrok.dev", "acme.ngrok.io", "zeta.ngrok.app"];
@@ -38,6 +39,23 @@ const DomainCombobox = ({
 	);
 };
 
+/** The positioned popup box that holds the listbox and the footer. */
+const popupOf = (listbox: HTMLElement): HTMLElement => {
+	const popup = listbox.closest<HTMLElement>('[data-slot="combobox-popup"]');
+	if (popup == null) {
+		throw new Error("The listbox has no popup box.");
+	}
+	return popup;
+};
+
+/** Loads the compiled classes of combobox.tsx, so the box caps the listbox and the listbox scrolls. */
+const injectComboboxCss = async (options?: { theme?: boolean }) => {
+	const style = document.createElement("style");
+	style.textContent = await commands.tailwindCss("./combobox.tsx", options);
+	document.head.append(style);
+	onTestFinished(() => style.remove());
+};
+
 const activeOption = (owner: HTMLElement) => {
 	const id = owner.getAttribute("aria-activedescendant");
 	return id == null ? null : document.getElementById(id);
@@ -57,11 +75,12 @@ const axeViolations = async () => {
 
 describe("Combobox keyboard, focus, and ARIA contract", () => {
 	test("a list that CSS caps below the space above sits right above its input", async () => {
+		await injectComboboxCss();
 		const fruits = Array.from({ length: 50 }, (_, index) => `Fruit ${index}`);
 		render(
 			<Combobox.Root>
 				<Combobox.Input aria-label="Fruit" style={{ position: "fixed", bottom: 40 }} />
-				<Combobox.Content style={{ maxHeight: 100, overflowY: "auto" }}>
+				<Combobox.Content style={{ maxHeight: 100 }}>
 					{fruits.map((fruit) => (
 						<Combobox.Item key={fruit} value={fruit} />
 					))}
@@ -71,16 +90,17 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		const input = screen.getByRole("combobox", { name: "Fruit" });
 		await userEvent.click(input);
 		const listbox = await screen.findByRole("listbox");
-		const gap = input.getBoundingClientRect().top - listbox.getBoundingClientRect().bottom;
+		const gap = input.getBoundingClientRect().top - popupOf(listbox).getBoundingClientRect().bottom;
 		expect(gap).toBeCloseTo(8, 0);
 	});
 
 	test("a scrolled list keeps its scroll position", async () => {
+		await injectComboboxCss();
 		const fruits = Array.from({ length: 80 }, (_, index) => `Fruit ${index}`);
 		render(
 			<Combobox.Root>
 				<Combobox.Input aria-label="Fruit" />
-				<Combobox.Content style={{ maxHeight: "var(--available-height)", overflowY: "auto" }}>
+				<Combobox.Content>
 					{fruits.map((fruit) => (
 						<Combobox.Item key={fruit} value={fruit} />
 					))}
@@ -89,28 +109,23 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		);
 		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
 		const listbox = await screen.findByRole("listbox");
+		const popup = popupOf(listbox);
 		listbox.scrollTop = 300;
 		// Why: a new input width places the list again, which measures it. Each
 		// placement writes `data-side`, so its return marks the placement's end.
-		delete listbox.dataset.side;
+		delete popup.dataset.side;
 		const input = screen.getByRole("combobox", { name: "Fruit" });
 		input.style.width = `${input.offsetWidth + 1}px`;
-		await expect.poll(() => listbox.dataset.side).toBe("bottom");
+		await expect.poll(() => popup.dataset.side).toBe("bottom");
 		expect(listbox.scrollTop).toBe(300);
 	});
 	test("a list taller than both sides opens above a low input inside the viewport", async () => {
+		await injectComboboxCss();
 		const fruits = Array.from({ length: 60 }, (_, index) => `Fruit ${index}`);
 		render(
 			<Combobox.Root>
 				<Combobox.Input aria-label="Fruit" style={{ position: "fixed", bottom: 40 }} />
-				{/* Why the style: this page loads no Tailwind, and the real classes cap the list and size its box the same way. */}
-				<Combobox.Content
-					style={{
-						maxHeight: "var(--available-height)",
-						overflowY: "auto",
-						boxSizing: "border-box",
-					}}
-				>
+				<Combobox.Content>
 					{fruits.map((fruit) => (
 						<Combobox.Item key={fruit} value={fruit} />
 					))}
@@ -119,9 +134,155 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		);
 		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
 		const listbox = await screen.findByRole("listbox");
-		expect(listbox).toHaveAttribute("data-side", "top");
-		expect(listbox.getBoundingClientRect().top).toBeGreaterThanOrEqual(8);
+		expect(popupOf(listbox)).toHaveAttribute("data-side", "top");
+		expect(popupOf(listbox).getBoundingClientRect().top).toBeGreaterThanOrEqual(8);
 	});
+	test("the typed match keeps the option text width and the option name, and shows a line", async () => {
+		// Why the theme: without it, `--color-accent-600` is unset and the line draws nothing,
+		// and a type-scale weight compiles to nothing.
+		await injectComboboxCss({ theme: true });
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Domain" />
+				<Combobox.Content>
+					<Combobox.Item value="https://acme.ngrok.app">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Domain" });
+		await userEvent.click(input);
+		const option = await screen.findByRole("option", { name: "https://acme.ngrok.app" });
+		const slice = (selector: string) => {
+			const element = option.querySelector(selector);
+			if (element == null) {
+				throw new Error(`The option has no ${selector} slice.`);
+			}
+			return element;
+		};
+		// Why a range: the value span grows to fill the row, and the range measures only its text.
+		const textWidth = () => {
+			const text = document.createRange();
+			text.selectNodeContents(slice('[data-slot="combobox-item-value"]'));
+			return text.getBoundingClientRect().width;
+		};
+		// Why the computed font too: the test fonts have no 500 face, so a medium weight
+		// draws at 400 here and keeps the width. Roobert in the product draws it wider.
+		const glyphs = (selector: string) => {
+			const style = getComputedStyle(slice(selector));
+			return [style.font, style.letterSpacing, style.fontVariationSettings];
+		};
+		const plainWidth = textWidth();
+		const plainGlyphs = glyphs("[data-autocomplete-value]");
+
+		await userEvent.type(input, "https://");
+		expect(slice("[data-user-value]")).toHaveTextContent("https://");
+		// Why close and not equal: the cut between slices can drop a kerning pair, under 0.05px.
+		expect(textWidth()).toBeCloseTo(plainWidth, 1);
+		expect(glyphs("[data-user-value]")).toEqual(plainGlyphs);
+		expect(glyphs("[data-autocomplete-value]")).toEqual(plainGlyphs);
+		// Why a poll: the line transitions in.
+		const drawsLine = (selector: string) => {
+			const style = getComputedStyle(slice(selector));
+			return (
+				style.backgroundImage.startsWith("linear-gradient") &&
+				style.backgroundSize === "100% 2px" &&
+				style.backgroundPositionY === "100%"
+			);
+		};
+		await expect.poll(() => drawsLine("[data-user-value]")).toBe(true);
+		expect(option).toHaveAccessibleName("https://acme.ngrok.app");
+
+		// Why the old match keeps its own span: its line must stay on the same text while it transitions out.
+		const match = slice("[data-user-value]");
+		await userEvent.type(input, "x");
+		expect(match.textContent).toBe("https://");
+		expect(match).not.toHaveAttribute("data-user-value");
+		await expect.poll(() => getComputedStyle(match).backgroundSize).toBe("0px 2px");
+		// Why one span after the exit: one text run keeps the kerning across the old cut, as before typing.
+		await expect
+			.poll(() => option.querySelectorAll('[data-slot="combobox-item-value"] > span').length)
+			.toBe(1);
+		expect(textWidth()).toBeCloseTo(plainWidth, 1);
+	});
+
+	test("the match line transitions in and out, resumes on Backspace, and holds still with reduced motion", async () => {
+		await injectComboboxCss({ theme: true });
+		onTestFinished(() =>
+			commands.emulateMedia({ reducedMotion: "no-preference", forcedColors: "none" }),
+		);
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Domain" />
+				<Combobox.Content>
+					<Combobox.Item value="https://acme.ngrok.app">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Domain" });
+		await userEvent.click(input);
+		const option = await screen.findByRole("option", { name: "https://acme.ngrok.app" });
+		/** How far the line sits below its resting place, in px: 0 at rest, 2 out of view. */
+		const sunk = (element: Element) => {
+			const y = getComputedStyle(element).backgroundPositionY;
+			return y === "100%" ? 0 : Number.parseFloat(/\+ ([\d.e-]+)px/.exec(y)?.[1] ?? "NaN");
+		};
+		const positionTransition = (element: Element) =>
+			element
+				.getAnimations()
+				.find(
+					(animation): animation is CSSTransition =>
+						animation instanceof CSSTransition &&
+						animation.transitionProperty === "background-position-y",
+				);
+
+		await userEvent.type(input, "https");
+		const match = option.querySelector("[data-user-value]");
+		if (match == null) {
+			throw new Error("The option has no match.");
+		}
+		// The line enters with a transition, not a jump.
+		expect(positionTransition(match)).toBeDefined();
+		await expect.poll(() => sunk(match)).toBe(0);
+
+		// Halfway through the exit, a Backspace retargets from where the line is, not from out of view.
+		await userEvent.type(input, "x");
+		const exit = positionTransition(match);
+		if (exit == null) {
+			throw new Error("The line has no exit transition.");
+		}
+		exit.pause();
+		exit.currentTime = 40;
+		const midway = sunk(match);
+		expect(midway).toBeGreaterThan(0);
+		expect(midway).toBeLessThan(2);
+		// The line sinks at its full width; it does not vanish first.
+		expect(getComputedStyle(match).backgroundSize).toBe("100% 2px");
+		await userEvent.keyboard("{Backspace}");
+		const back = positionTransition(match);
+		back?.pause();
+		expect(back).toBeDefined();
+		expect(sunk(match)).toBeCloseTo(midway, 1);
+		back?.finish();
+
+		// Reduced motion: each state shows at once, with no transition.
+		await commands.emulateMedia({ reducedMotion: "reduce" });
+		await userEvent.type(input, "x");
+		expect(match.getAnimations()).toHaveLength(0);
+		expect(getComputedStyle(match).backgroundSize).toBe("0px 2px");
+		await userEvent.keyboard("{Backspace}");
+		expect(match.getAnimations()).toHaveLength(0);
+		expect(getComputedStyle(match).backgroundSize).toBe("100% 2px");
+		expect(sunk(match)).toBe(0);
+
+		// Forced colors removes the gradient, so the match falls back to an underline.
+		await commands.emulateMedia({ forcedColors: "active" });
+		expect(getComputedStyle(match).textDecorationLine).toBe("underline");
+	});
+
 	test("typing filters and highlights the first match; arrows move; Enter fills the input", async () => {
 		const onPick = vi.fn<(value: string) => void>();
 		render(<DomainCombobox onPick={onPick} />);
@@ -290,5 +451,565 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		await userEvent.click(screen.getByRole("combobox", { name: "Domain" }));
 		await userEvent.keyboard("acme");
 		expect(await axeViolations()).toEqual([]);
+	});
+
+	test("a footer sits after the listbox: Tab reaches it, the list stays open, and axe finds no violation", async () => {
+		render(
+			<>
+				<label htmlFor="release">Release</label>
+				<Combobox.Root>
+					<Combobox.Input id="release" />
+					<Combobox.Content>
+						<Combobox.Item value="v1.2.0" />
+						<Combobox.Item value="v1.1.0" />
+						<Combobox.ContentFooter>
+							<button type="button">Load more</button>
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>
+				<button type="button">Next field</button>
+			</>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}");
+		const loadMore = screen.getByRole("button", { name: "Load more" });
+		expect(loadMore).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		expect(await axeViolations()).toEqual([]);
+
+		await userEvent.keyboard("{Tab}");
+		expect(screen.getByRole("button", { name: "Next field" })).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "false");
+	});
+
+	test("a footer control that turns disabled returns focus to the input and keeps the list open", async () => {
+		const LoadMore = () => {
+			const [loading, setLoading] = useState(false);
+			return (
+				<Combobox.Root>
+					<Combobox.Input aria-label="Release" />
+					<Combobox.Content>
+						<Combobox.Item value="v1.2.0" />
+						<Combobox.ContentFooter>
+							<button type="button" disabled={loading} onClick={() => setLoading(true)}>
+								Load more
+							</button>
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>
+			);
+		};
+		render(<LoadMore />);
+		const input = screen.getByRole("combobox", { name: "Release" });
+
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}{Enter}");
+
+		expect(screen.getByRole("button", { name: "Load more" })).toBeDisabled();
+		await expect.poll(() => document.activeElement).toBe(input);
+		expect(input).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("a footer control that unmounts while it has focus returns focus to the input", async () => {
+		const LoadMore = () => {
+			const [done, setDone] = useState(false);
+			return (
+				<Combobox.Root>
+					<Combobox.Input aria-label="Release" />
+					<Combobox.Content>
+						<Combobox.Item value="v1.2.0" />
+						<Combobox.ContentFooter>
+							{!done && (
+								<button type="button" onClick={() => setDone(true)}>
+									Load more
+								</button>
+							)}
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>
+			);
+		};
+		render(<LoadMore />);
+		const input = screen.getByRole("combobox", { name: "Release" });
+
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}{Enter}");
+
+		expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
+		await expect.poll(() => document.activeElement).toBe(input);
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		await userEvent.keyboard("{Escape}");
+		expect(input).toHaveAttribute("aria-expanded", "false");
+	});
+
+	test("a press on a footer button runs it and keeps focus on the input; a footer text field takes focus", async () => {
+		const onLoadMore = vi.fn<() => void>();
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Release" />
+				<Combobox.Content>
+					<Combobox.Item value="v1.2.0" />
+					<Combobox.ContentFooter>
+						<button type="button" onClick={onLoadMore}>
+							Load more
+						</button>
+						<input aria-label="Tag filter" />
+					</Combobox.ContentFooter>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+
+		await userEvent.click(input);
+		await userEvent.click(screen.getByRole("button", { name: "Load more" }));
+		expect(onLoadMore).toHaveBeenCalledTimes(1);
+		expect(input).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+
+		await userEvent.click(screen.getByRole("textbox", { name: "Tag filter" }));
+		expect(screen.getByRole("textbox", { name: "Tag filter" })).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("a pick by pointer while focus is in the footer returns focus to the input", async () => {
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Release" />
+				<Combobox.Content>
+					<Combobox.Item value="v1.2.0" />
+					<Combobox.ContentFooter>
+						<button type="button">Load more</button>
+					</Combobox.ContentFooter>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}");
+		await userEvent.click(screen.getByRole("option", { name: "v1.2.0" }));
+
+		expect(input).toHaveValue("v1.2.0");
+		expect(input).toHaveAttribute("aria-expanded", "false");
+		expect(input).toHaveFocus();
+	});
+
+	test("a click on a control outside the open list runs that control", async () => {
+		const onSubmit = vi.fn<(event: SubmitEvent) => void>((event) => event.preventDefault());
+		render(
+			<form
+				ref={(form) => {
+					form?.addEventListener("submit", onSubmit);
+				}}
+			>
+				<DomainCombobox autoSelect={false} />
+				<button type="submit">Save</button>
+			</form>,
+		);
+		const input = screen.getByRole("combobox", { name: "Domain" });
+
+		await userEvent.click(input);
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+		expect(onSubmit).toHaveBeenCalledTimes(1);
+		expect(input).toHaveAttribute("aria-expanded", "false");
+	});
+
+	test("a wider Content is not clipped by the popup", async () => {
+		await injectComboboxCss();
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Fruit" style={{ width: 200 }} />
+				<Combobox.Content style={{ width: 384 }}>
+					<Combobox.Item value="Apple" />
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+
+		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+		const listbox = await screen.findByRole("listbox");
+
+		const popup = popupOf(listbox).getBoundingClientRect();
+		expect(popup.width).toBeGreaterThan(384);
+		expect(popup.right).toBeGreaterThanOrEqual(listbox.getBoundingClientRect().right);
+	});
+	test("with no footer, the highlighted option shows inside the scrolled listbox", async () => {
+		await injectComboboxCss();
+		const fruits = Array.from({ length: 30 }, (_, index) => `Fruit ${index}`);
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Fruit" style={{ marginTop: 48 }} />
+				<Combobox.Content style={{ maxHeight: 120 }}>
+					{fruits.map((fruit) => (
+						<Combobox.Item key={fruit} value={fruit} />
+					))}
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Fruit" });
+		await userEvent.click(input);
+		const listbox = await screen.findByRole("listbox");
+		await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
+		const option = activeOption(input);
+		expect(option).not.toBeNull();
+		const list = listbox.getBoundingClientRect();
+		const rect = option?.getBoundingClientRect();
+		expect(rect?.top).toBeGreaterThanOrEqual(list.top - 1);
+		expect(rect?.bottom).toBeLessThanOrEqual(list.bottom + 1);
+	});
+
+	test("a list that grows after it opens moves to the side with more room", async () => {
+		await injectComboboxCss();
+		const Growing = () => {
+			const [count, setCount] = useState(1);
+			return (
+				<Combobox.Root onInputValueChange={() => setCount(40)}>
+					<Combobox.Input aria-label="Fruit" style={{ position: "fixed", bottom: 120 }} />
+					<Combobox.Content>
+						{Array.from({ length: count }, (_, index) => (
+							<Combobox.Item key={index} value={`Fruit ${index}`} />
+						))}
+					</Combobox.Content>
+				</Combobox.Root>
+			);
+		};
+		render(<Growing />);
+		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+		const listbox = await screen.findByRole("listbox");
+		expect(popupOf(listbox)).toHaveAttribute("data-side", "bottom");
+		await userEvent.keyboard("F");
+		await expect.poll(() => popupOf(listbox).dataset.side).toBe("top");
+	});
+
+	test("a footer never makes the popup wider than its input", async () => {
+		await injectComboboxCss();
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Release" style={{ width: 160 }} />
+				<Combobox.Content>
+					<Combobox.Item value="v1.2.0" />
+					<Combobox.ContentFooter>
+						<button type="button">Load more</button>
+						<input aria-label="Tag filter" />
+					</Combobox.ContentFooter>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+		await userEvent.click(input);
+		const listbox = await screen.findByRole("listbox");
+		// Why against the listbox: the listbox takes the input's width, and the footer takes the popup's.
+		const footer = screen.getByRole("button", { name: "Load more" }).parentElement;
+		expect(footer?.getBoundingClientRect().width).toBeCloseTo(
+			listbox.getBoundingClientRect().width,
+			0,
+		);
+	});
+
+	test("inside a Popover, Escape from a footer control closes only the list", async () => {
+		render(
+			<Popover.Root defaultOpen>
+				<Popover.Trigger>Filters</Popover.Trigger>
+				<Popover.Content>
+					<Combobox.Root>
+						<Combobox.Input aria-label="Release" />
+						<Combobox.Content>
+							<Combobox.Item value="v1.2.0" />
+							<Combobox.ContentFooter>
+								<button type="button">Load more</button>
+							</Combobox.ContentFooter>
+						</Combobox.Content>
+					</Combobox.Root>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		const input = await screen.findByRole("combobox", { name: "Release" });
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}");
+		expect(screen.getByRole("button", { name: "Load more" })).toHaveFocus();
+		await userEvent.keyboard("{Escape}");
+
+		expect(input).toHaveAttribute("aria-expanded", "false");
+		expect(input).toHaveFocus();
+		expect(screen.getByRole("button", { name: "Filters" })).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+	});
+
+	test("an Escape that an input method composes in a footer text field keeps the list open", async () => {
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Release" />
+				<Combobox.Content>
+					<Combobox.Item value="v1.2.0" />
+					<Combobox.ContentFooter>
+						<input aria-label="Tag filter" />
+					</Combobox.ContentFooter>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+		await userEvent.click(input);
+		const field = screen.getByRole("textbox", { name: "Tag filter" });
+		await userEvent.click(field);
+		field.dispatchEvent(
+			new KeyboardEvent("keydown", {
+				key: "Escape",
+				isComposing: true,
+				bubbles: true,
+				cancelable: true,
+			}),
+		);
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		expect(field).toHaveFocus();
+	});
+
+	test("Content's onBlur can cancel the close when focus leaves the footer", async () => {
+		render(
+			<>
+				<Combobox.Root>
+					<Combobox.Input aria-label="Release" />
+					<Combobox.Content onBlur={(event) => event.preventDefault()}>
+						<Combobox.Item value="v1.2.0" />
+						<Combobox.ContentFooter>
+							<button type="button">Load more</button>
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>
+				<button type="button">Elsewhere</button>
+			</>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}");
+		await userEvent.click(screen.getByRole("button", { name: "Elsewhere" }));
+		expect(screen.getByRole("button", { name: "Elsewhere" })).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+	});
+	test("inside a Dialog, a composing Escape in the input or a footer field keeps the dialog open", async () => {
+		render(
+			<Dialog.Root defaultOpen>
+				<Dialog.Content>
+					<Dialog.Title>Settings</Dialog.Title>
+					<Combobox.Root>
+						<Combobox.Input aria-label="Release" />
+						<Combobox.Content>
+							<Combobox.Item value="v1.2.0" />
+							<Combobox.ContentFooter>
+								<input aria-label="Tag filter" />
+							</Combobox.ContentFooter>
+						</Combobox.Content>
+					</Combobox.Root>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		const composingEscape = () =>
+			new KeyboardEvent("keydown", {
+				key: "Escape",
+				isComposing: true,
+				bubbles: true,
+				cancelable: true,
+			});
+		const input = screen.getByRole("combobox", { name: "Release" });
+		await userEvent.click(input);
+		input.dispatchEvent(composingEscape());
+		expect(screen.getByRole("dialog", { name: "Settings" })).toBeInTheDocument();
+
+		const field = screen.getByRole("textbox", { name: "Tag filter" });
+		await userEvent.click(field);
+		field.dispatchEvent(composingEscape());
+		expect(screen.getByRole("dialog", { name: "Settings" })).toBeInTheDocument();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("Content's onBlur can cancel the close when Tab leaves the footer", async () => {
+		render(
+			<>
+				<Combobox.Root>
+					<Combobox.Input aria-label="Release" />
+					<Combobox.Content onBlur={(event) => event.preventDefault()}>
+						<Combobox.Item value="v1.2.0" />
+						<Combobox.ContentFooter>
+							<button type="button">Load more</button>
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>
+				<button type="button">Next field</button>
+			</>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}{Tab}");
+		expect(screen.getByRole("button", { name: "Next field" })).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("an asChild list that is replaced while open still moves to the side with more room", async () => {
+		await injectComboboxCss();
+		const Replaced = () => {
+			const [count, setCount] = useState(1);
+			return (
+				<Combobox.Root onInputValueChange={() => setCount(40)}>
+					<Combobox.Input aria-label="Fruit" style={{ position: "fixed", bottom: 120 }} />
+					<Combobox.Content asChild>
+						<section key={count}>
+							{Array.from({ length: count }, (_, index) => (
+								<Combobox.Item key={index} value={`Fruit ${index}`} />
+							))}
+						</section>
+					</Combobox.Content>
+				</Combobox.Root>
+			);
+		};
+		render(<Replaced />);
+		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+		const popup = popupOf(await screen.findByRole("listbox"));
+		expect(popup).toHaveAttribute("data-side", "bottom");
+		await userEvent.keyboard("F");
+		await expect.poll(() => popup.dataset.side).toBe("top");
+	});
+	test("a Tab into the input opens the list as a click does; focus from script, a pick, and Escape do not", async () => {
+		render(
+			<>
+				<button type="button">Before</button>
+				<DomainCombobox />
+			</>,
+		);
+		const input = screen.getByRole("combobox", { name: "Domain" });
+		input.focus();
+		expect(input).toHaveAttribute("aria-expanded", "false");
+		screen.getByRole("button", { name: "Before" }).focus();
+
+		await userEvent.keyboard("{Tab}");
+		expect(input).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		expect(activeOption(input)).toHaveTextContent("acme.ngrok.app");
+
+		await userEvent.keyboard("{Escape}");
+		expect(input).toHaveAttribute("aria-expanded", "false");
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+		await userEvent.keyboard("{Tab}");
+		expect(input).toHaveAttribute("aria-expanded", "true");
+
+		await userEvent.keyboard("{Enter}");
+		expect(input).toHaveValue("acme.ngrok.app");
+		expect(input).toHaveAttribute("aria-expanded", "false");
+	});
+
+	test.each([
+		["a link", {}],
+		// Why: `Slot` lets the child's own prop win, also an unset one that a link component forwards.
+		["a link that forwards an unset tabIndex", { tabIndex: undefined }],
+	])("Tab from the last field closes the list, with %s option", async (_, linkProps) => {
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Links" />
+				<Combobox.Content>
+					<Combobox.Item value="Dashboard" asChild>
+						<a href="#dashboard" {...linkProps}>
+							Dashboard
+						</a>
+					</Combobox.Item>
+					<Combobox.Item value="Settings" asChild>
+						<a href="#settings" {...linkProps}>
+							Settings
+						</a>
+					</Combobox.Item>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Links" });
+		await userEvent.click(input);
+		expect(input).toHaveAttribute("aria-expanded", "true");
+
+		await userEvent.keyboard("{Tab}");
+		expect(input).toHaveAttribute("aria-expanded", "false");
+		expect(screen.queryByRole("option")).toBeNull();
+	});
+
+	test("Shift+Tab from the footer back to the input keeps the list open", async () => {
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Release" />
+				<Combobox.Content>
+					<Combobox.Item value="v1.2.0" />
+					<Combobox.ContentFooter>
+						<button type="button">Load more</button>
+					</Combobox.ContentFooter>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}");
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+		expect(input).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		await userEvent.keyboard("{Escape}");
+		expect(input).toHaveAttribute("aria-expanded", "false");
+	});
+	test("a Tab that the input's onKeyDown cancels opens nothing; an Option+Tab entry opens the list", async () => {
+		render(
+			<>
+				<Combobox.Root>
+					<Combobox.Input
+						aria-label="Release"
+						onKeyDown={(event) => {
+							if (event.key === "Tab") {
+								event.preventDefault();
+							}
+						}}
+					/>
+					<Combobox.Content>
+						<Combobox.Item value="v1.2.0" />
+					</Combobox.Content>
+				</Combobox.Root>
+				<Combobox.Root>
+					<Combobox.Input aria-label="Region" />
+					<Combobox.Content>
+						<Combobox.Item value="us-east-1" />
+					</Combobox.Content>
+				</Combobox.Root>
+			</>,
+		);
+		const release = screen.getByRole("combobox", { name: "Release" });
+		release.focus();
+		await userEvent.keyboard("{Tab}");
+		expect(release).toHaveFocus();
+		expect(release).toHaveAttribute("aria-expanded", "false");
+
+		// Why a dispatched keyup: only Safari moves focus on Option+Tab, and its keyup lands on the field.
+		const region = screen.getByRole("combobox", { name: "Region" });
+		region.focus();
+		region.dispatchEvent(new KeyboardEvent("keyup", { key: "Tab", altKey: true, bubbles: true }));
+		await expect.poll(() => region.getAttribute("aria-expanded")).toBe("true");
+	});
+	test("a long picked text keeps the input one line, with an ellipsis", async () => {
+		await injectComboboxCss();
+		const long = "Grace Hopper, Rear Admiral, United States Navy, inventor of the first compiler";
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Owner" style={{ width: 160 }} />
+				<Combobox.Content>
+					<Combobox.Item value="usr_7f">
+						<span aria-hidden="true">GH</span>
+						{long}
+					</Combobox.Item>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Owner" });
+		const { height, width } = input.getBoundingClientRect();
+		await userEvent.click(input);
+		await userEvent.click(screen.getByRole("option", { name: long }));
+
+		expect(input).toHaveValue(long);
+		expect(input.getBoundingClientRect().height).toBe(height);
+		expect(input.getBoundingClientRect().width).toBe(width);
+		expect(getComputedStyle(input).textOverflow).toBe("ellipsis");
 	});
 });

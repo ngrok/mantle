@@ -1,7 +1,8 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, FocusEventHandler } from "react";
-import { createRef, useEffect, useState } from "react";
+import { createRef, useEffect, useLayoutEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
@@ -577,21 +578,19 @@ describe("AppLayout.SidePanel", () => {
 		const trigger = screen.getByRole("button", { name: "Toggle side panel" });
 		const panel = screen.getByTestId("panel");
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
-		expect(trigger).toHaveAttribute("data-state", "closed");
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(panel).toHaveAttribute("inert");
 
 		await user.click(trigger);
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
-		expect(trigger).toHaveAttribute("data-state", "open");
-		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).toHaveAttribute("data-open");
 		expect(panel).not.toHaveAttribute("inert");
 		// Why assert the uncontrolled call: the cookie recipe writes from it.
 		expect(onOpenChange).toHaveBeenNthCalledWith(1, true);
 
 		await user.click(trigger);
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(panel).toHaveAttribute("inert");
 		expect(onOpenChange).toHaveBeenNthCalledWith(2, false);
 		expect(onOpenChange).toHaveBeenCalledTimes(2);
@@ -619,9 +618,9 @@ describe("AppLayout.SidePanel", () => {
 		await user.type(screen.getByRole("textbox", { name: "Draft" }), "hello");
 		const trigger = screen.getByRole("button", { name: "Toggle side panel" });
 		await user.click(trigger);
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 		await user.click(trigger);
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 		expect(screen.getByRole("textbox", { name: "Draft" })).toHaveValue("hello");
 	});
 
@@ -632,7 +631,7 @@ describe("AppLayout.SidePanel", () => {
 			</AppLayout.SidePanelRoot>,
 		);
 		const panel = screen.getByTestId("panel");
-		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).toHaveAttribute("data-open");
 		expect(panel).not.toHaveAttribute("inert");
 	});
 
@@ -663,7 +662,7 @@ describe("AppLayout.SidePanel", () => {
 		await user.click(screen.getByRole("button", { name: "Toggle side panel" }));
 		expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
 		// controlled: the parent did not update `open`, so the panel stays open
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 	});
 
 	test("the trigger respects event.defaultPrevented from the consumer onClick", async () => {
@@ -679,7 +678,7 @@ describe("AppLayout.SidePanel", () => {
 		);
 		await user.click(screen.getByRole("button", { name: "Toggle side panel" }));
 		expect(onOpenChange).not.toHaveBeenCalled();
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 	});
 
 	test("the trigger renders a small ghost neutral IconButton with its label as the tooltip", async () => {
@@ -789,7 +788,7 @@ describe("AppLayout.SidePanel", () => {
 		);
 		// Why: a closed panel is `inert`, so focus left inside it falls to <body>.
 		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveFocus();
 		expect(screen.getByRole("button", { name: "Close the assistant" })).not.toHaveFocus();
 	});
@@ -814,7 +813,7 @@ describe("AppLayout.SidePanel", () => {
 			</TooltipProvider>,
 		);
 		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 		expect(screen.getByRole("button", { name: "Mobile toggle" })).toHaveFocus();
 	});
 
@@ -872,7 +871,7 @@ describe("AppLayout.SidePanel", () => {
 			</TooltipProvider>,
 		);
 		await user.click(screen.getByRole("button", { name: "dismiss" }));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 		expect(document.body).toHaveFocus();
 		expect(screen.getByRole("button", { name: "Toggle the assistant" })).not.toHaveFocus();
 	});
@@ -884,7 +883,7 @@ describe("AppLayout.SidePanel", () => {
 		// Why rerender: the parent flips `open` itself (a shortcut, a route effect,
 		// a cross-tab sync), so no trigger click and no `setOpen` call precedes the close.
 		rerender(controlledShell(false));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveFocus();
 	});
 
@@ -934,11 +933,11 @@ describe("AppLayout.SidePanel", () => {
 		expect(onBlur).toHaveBeenCalledTimes(1);
 	});
 
-	test("stamps id, data-state, and inert after a wider props object", () => {
+	test("stamps id, data-open, and inert after a wider props object", () => {
 		// Why: a consumer value for any of these would break the trigger's
 		// `aria-controls`, desync the collapse from the root, or leave a closed
 		// panel in the tab order.
-		const consumerProps = { id: "mine", "data-state": "open", inert: false };
+		const consumerProps = { id: "mine", "data-open": "", inert: false };
 		render(
 			<AppLayout.SidePanelRoot>
 				<AppLayout.SidePanel data-testid="panel" {...consumerProps}>
@@ -948,7 +947,7 @@ describe("AppLayout.SidePanel", () => {
 		);
 		const panel = screen.getByTestId("panel");
 		expect(panel.id).not.toBe("mine");
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(panel).toHaveAttribute("inert");
 	});
 
@@ -975,7 +974,8 @@ describe("AppLayout.SidePanel", () => {
 				<AppLayout.SidePanel>conversation</AppLayout.SidePanel>
 			</AppLayout.SidePanelRoot>,
 		);
-		expect(html).toContain('data-state="closed"');
+		// The class list names the attribute in its variants, so match the stamp itself.
+		expect(html).not.toContain('data-open=""');
 		expect(html).toContain("inert");
 		// The class list names the attribute in its gate, so match the stamp itself.
 		expect(html).not.toContain('data-hydrated=""');
@@ -1067,7 +1067,7 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		);
 		screen.getByRole("button", { name: "send" }).focus();
 		await user.keyboard("{Escape}");
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveFocus();
 	});
 
@@ -1082,7 +1082,7 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		);
 		screen.getByRole("button", { name: "send" }).focus();
 		await user.keyboard("{Escape}");
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 	});
 
 	test("Escape inside an open combobox in a floating panel closes the popup only", async () => {
@@ -1104,9 +1104,9 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		await screen.findByRole("option", { name: "Apple" });
 		await user.keyboard("{Escape}");
 		expect(screen.queryByRole("option", { name: "Apple" })).not.toBeInTheDocument();
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 		await user.keyboard("{Escape}");
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 	});
 
 	test("a consumer onKeyDown that prevents the default keeps Escape from closing the panel", async () => {
@@ -1126,16 +1126,239 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		);
 		screen.getByRole("button", { name: "send" }).focus();
 		await user.keyboard("{Escape}");
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 	});
 
-	test("a covering panel makes the row's other children inert and moves focus inside", () => {
+	test("a covering panel open on mount makes the row's other children inert and leaves focus on the page", () => {
 		mockMatchMedia({ [coverQuery]: true });
 		render(coveringShell());
 		expect(screen.getByTestId("sidebar")).toHaveAttribute("inert");
 		expect(screen.getByTestId("card")).toHaveAttribute("inert");
 		expect(screen.getByTestId("panel")).not.toHaveAttribute("inert");
+		expect(document.body).toHaveFocus();
+	});
+
+	test("focus in a popup portaled out of a covering panel open on mount stays there", () => {
+		mockMatchMedia({ [coverQuery]: true });
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.Workspace>
+					<AppLayout.Content />
+					<AppLayout.SidePanel aria-label="Assistant">
+						<button type="button">send</button>
+						{createPortal(<button type="button">popup</button>, document.body)}
+					</AppLayout.SidePanel>
+				</AppLayout.Workspace>
+			</AppLayout.SidePanelRoot>,
+		);
+		const popup = screen.getByRole("button", { name: "popup" });
+		act(() => {
+			popup.focus();
+		});
+		expect(popup).toHaveFocus();
+	});
+
+	test("a panel open on mount that a resize covers moves focus in from the card", () => {
+		const media = mockMatchMedia({ [coverQuery]: false });
+		render(coveringShell());
+		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
+		trigger.focus();
+		act(() => {
+			media.setMatches(coverQuery, true);
+		});
+		expect(screen.getByTestId("card")).toHaveAttribute("inert");
 		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
+	});
+
+	/** Server-render the covering shell, focus one of its buttons, then hydrate it. */
+	function hydrateWithFocusOn(name: string) {
+		const container = document.createElement("div");
+		document.body.append(container);
+		container.innerHTML = renderToString(coveringShell());
+		const button = Array.from(container.querySelectorAll("button")).find(
+			(candidate) =>
+				candidate.textContent === name || candidate.getAttribute("aria-label") === name,
+		);
+		button?.focus();
+		render(coveringShell(), { container, hydrate: true });
+		return button;
+	}
+
+	test("hydration at a phone width moves no focus into the panel", async () => {
+		mockMatchMedia({ [coverQuery]: true });
+		hydrateWithFocusOn("Toggle the assistant");
+		await waitFor(() => {
+			expect(screen.getByTestId("panel")).toHaveAttribute("data-hydrated");
+		});
+		expect(screen.getByTestId("card")).toHaveAttribute("inert");
+		// Why not the toggle: a browser drops focus from an `inert` control.
+		expect(screen.getByTestId("panel")).not.toContainElement(document.activeElement as HTMLElement);
+	});
+
+	test("focus inside a covering panel before hydration arms the trap", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		const send = hydrateWithFocusOn("send");
+		expect(send).toHaveFocus();
+		await user.tab();
+		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
+	});
+
+	test("a controlled panel open on mount that a parent closes and reopens moves focus inside", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		function ControlledPanel() {
+			const [open, setOpen] = useState(true);
+			return (
+				<AppLayout.SidePanelRoot open={open} onOpenChange={setOpen}>
+					<button type="button" onClick={() => setOpen(!open)}>
+						outside toggle
+					</button>
+					<AppLayout.Workspace>
+						<AppLayout.Content />
+						<AppLayout.SidePanel aria-label="Assistant">
+							<button type="button">close</button>
+						</AppLayout.SidePanel>
+					</AppLayout.Workspace>
+				</AppLayout.SidePanelRoot>
+			);
+		}
+		render(<ControlledPanel />);
+		const toggle = screen.getByRole("button", { name: "outside toggle" });
+		await user.click(toggle);
+		expect(toggle).toHaveFocus();
+		await user.click(toggle);
+		expect(screen.getByRole("button", { name: "close" })).toHaveFocus();
+	});
+
+	const stopFocus: FocusEventHandler = (event) => {
+		event.stopPropagation();
+	};
+	test.each([
+		["onFocus", { onFocus: stopFocus }],
+		["onFocusCapture", { onFocusCapture: stopFocus }],
+	] as const)("focus that a child's %s stops still arms the trap", async (_, handlers) => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.Workspace>
+					<AppLayout.Content />
+					<AppLayout.SidePanel aria-label="Assistant">
+						<button type="button">close</button>
+						<button type="button" {...handlers}>
+							send
+						</button>
+					</AppLayout.SidePanel>
+				</AppLayout.Workspace>
+				<button type="button">after</button>
+			</AppLayout.SidePanelRoot>,
+		);
+		act(() => {
+			screen.getByRole("button", { name: "send" }).focus();
+		});
+		await user.tab();
+		expect(screen.getByRole("button", { name: "close" })).toHaveFocus();
+	});
+
+	test("focus a parent moves in during the mount commit arms the trap", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		function FocusOnMount() {
+			useLayoutEffect(() => {
+				screen.getByRole("button", { name: "send" }).focus();
+			}, []);
+			return (
+				<AppLayout.SidePanelRoot defaultOpen>
+					<AppLayout.Workspace>
+						<AppLayout.Content />
+						<AppLayout.SidePanel aria-label="Assistant">
+							<button type="button">close</button>
+							<button type="button">send</button>
+						</AppLayout.SidePanel>
+					</AppLayout.Workspace>
+					<button type="button">after</button>
+				</AppLayout.SidePanelRoot>
+			);
+		}
+		render(<FocusOnMount />);
+		await user.tab();
+		expect(screen.getByRole("button", { name: "close" })).toHaveFocus();
+	});
+
+	test("a forwarded undefined tabIndex keeps the waiting cover a tab stop", () => {
+		mockMatchMedia({ [coverQuery]: true });
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.Workspace>
+					<AppLayout.Content />
+					<AppLayout.SidePanel aria-label="Assistant" data-testid="panel" tabIndex={undefined} />
+				</AppLayout.Workspace>
+			</AppLayout.SidePanelRoot>,
+		);
+		expect(screen.getByTestId("panel")).toHaveAttribute("tabindex", "0");
+	});
+
+	test("a covering panel that mounts when the reader opens it moves focus inside", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		function LazyPanel() {
+			const [open, setOpen] = useState(false);
+			return (
+				<AppLayout.SidePanelRoot open={open} onOpenChange={setOpen}>
+					<button type="button" onClick={() => setOpen(true)}>
+						open
+					</button>
+					<AppLayout.Workspace>
+						<AppLayout.Content data-testid="card" />
+						{open && (
+							<AppLayout.SidePanel aria-label="Assistant">
+								<button type="button">close</button>
+							</AppLayout.SidePanel>
+						)}
+					</AppLayout.Workspace>
+				</AppLayout.SidePanelRoot>
+			);
+		}
+		render(<LazyPanel />);
+		await user.click(screen.getByRole("button", { name: "open" }));
+		expect(screen.getByRole("button", { name: "close" })).toHaveFocus();
+	});
+
+	test("a covering panel the reader opens moves focus inside", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot>
+					<AppLayout.Workspace>
+						<AppLayout.Content data-testid="card">
+							<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+						</AppLayout.Content>
+						<AppLayout.SidePanel aria-label="Assistant">
+							<AppLayout.SidePanelHeader>
+								<AppLayout.SidePanelTrigger label="Close the assistant" />
+							</AppLayout.SidePanelHeader>
+						</AppLayout.SidePanel>
+					</AppLayout.Workspace>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		await user.click(screen.getByRole("button", { name: "Toggle the assistant" }));
+		expect(screen.getByTestId("card")).toHaveAttribute("inert");
+		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
+	});
+
+	test("a covering panel open on mount traps Tab once focus enters it", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		render(coveringShell());
+		// Why focus by hand: happy-dom's tab order ignores `inert`; the browser test tabs in.
+		act(() => {
+			screen.getByRole("button", { name: "Close the assistant" }).focus();
+		});
+		await user.tab({ shift: true });
+		expect(screen.getByRole("button", { name: "send" })).toHaveFocus();
 	});
 
 	test("Tab wraps inside a covering panel", async () => {
@@ -1232,9 +1455,9 @@ describe("useSidePanel", () => {
 			</AppLayout.SidePanelRoot>,
 		);
 		await user.click(screen.getByRole("button", { name: "open it" }));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 		await user.click(screen.getByRole("button", { name: "dismiss" }));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 	});
 
 	/** The trigger and the panel under the `TooltipProvider` the trigger needs. */
@@ -1272,7 +1495,7 @@ describe("useSidePanel", () => {
 		}
 		render(<Page />);
 		await user.click(screen.getByRole("button", { name: "Toggle side panel" }));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 	});
 
 	test("a parent rerender with a new inline onOpenChange keeps the context value's identity", () => {
@@ -1339,9 +1562,11 @@ describe("useSidePanel", () => {
 });
 
 describe.each([
-	["SidePanelHeader", AppLayout.SidePanelHeader, "app-layout-side-panel-header"],
-	["SidePanelBody", AppLayout.SidePanelBody, "app-layout-side-panel-body"],
-	["SidePanelFooter", AppLayout.SidePanelFooter, "app-layout-side-panel-footer"],
+	// Why both slots: each part renders the matching `Panel` part, and the
+	// `app-layout-side-panel-*` slot stays for the selectors that read it.
+	["SidePanelHeader", AppLayout.SidePanelHeader, "app-layout-side-panel-header panel-header"],
+	["SidePanelBody", AppLayout.SidePanelBody, "app-layout-side-panel-body panel-body"],
+	["SidePanelFooter", AppLayout.SidePanelFooter, "app-layout-side-panel-footer panel-footer"],
 ] as const)("AppLayout.%s", (_name, Part, slot) => {
 	test(`renders a div stamped data-slot ${slot} with its children and no landmark`, () => {
 		render(<Part data-testid="part">conversation</Part>);

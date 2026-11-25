@@ -133,7 +133,10 @@ export function TableOfContents({ entries }: { entries: Array<TocEntry> }) {
 	return (
 		<nav
 			aria-label="Table of contents"
-			className="sticky top-15 flex max-h-[calc(100vh-3.75rem)] w-40 flex-col pt-4"
+			// Why wider than its 10rem aside: the nav grows into the side margin of the
+			// `PageContainer` frame, up to 15rem, so long API names fit and the content
+			// column keeps its width. An entry that still does not fit wraps.
+			className="sticky top-15 flex max-h-[calc(100vh-3.75rem)] w-[min(15rem,calc(10rem+max(0px,(100vw-var(--page-max-width))/2)))] flex-col pt-4"
 		>
 			<p className="mb-3 text-xs font-medium uppercase tracking-wider font-mono">On this page</p>
 			<div className="scroll-fade-y scrollbar min-h-0 flex-1 overflow-y-auto pb-4">
@@ -162,7 +165,7 @@ export function TableOfContents({ entries }: { entries: Array<TocEntry> }) {
 									// implicitly clips horizontal overflow, so any negative-margin
 									// extension gets cut off. Padding compensates so content text
 									// position stays the same as the previous 1px-bar layout.
-									"relative -ml-px block border-l-[3px] py-1 text-xs leading-snug transition-colors",
+									"relative -ml-px block border-l-[3px] py-1 text-xs leading-snug wrap-break-word transition-colors",
 									// Focus ring is a pseudo-element offset past the 3px bar so the
 									// active/gray left edge stays visible through the focused area.
 									"focus:outline-hidden",

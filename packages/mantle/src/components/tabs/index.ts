@@ -11,7 +11,8 @@ import * as TabsParts from "./tabs-parts.js";
  * Layered sections of content, called tab panels, that show one at a time.
  *
  * @useWhen Switch between peer views of related content in one place, with one view visible at a
- * time.
+ * time. Use `HeadlessTabs` to keep the tab state and behavior under your own custom markup and
+ * styling.
  *
  * @siblings
  * - `Accordion`: several sections stack, and each one expands in place.
@@ -76,10 +77,10 @@ const Tabs = TabsParts;
  * ```tsx
  * <HeadlessTabs.Root defaultValue="api" className="flex flex-col gap-6">
  *   <HeadlessTabs.List aria-label="Use cases" className="grid grid-cols-2">
- *     <HeadlessTabs.Trigger value="api" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="api" className="p-6 aria-selected:bg-card-hover">
  *       API gateway
  *     </HeadlessTabs.Trigger>
- *     <HeadlessTabs.Trigger value="webhooks" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="webhooks" className="p-6 aria-selected:bg-card-hover">
  *       Webhooks
  *     </HeadlessTabs.Trigger>
  *   </HeadlessTabs.List>

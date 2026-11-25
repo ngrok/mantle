@@ -121,7 +121,7 @@ function PlanPicker() {
 					</div>
 				))}
 			</div>
-			<Card.Root className="bg-card-hover rounded-xl shadow-inner">
+			<Card.Root className="bg-card-hover shadow-inner">
 				<Card.Body className="space-y-3">
 					<p className="text-strong text-sm font-medium">Wait, is any of this real?</p>
 					<p className="text-body text-sm">

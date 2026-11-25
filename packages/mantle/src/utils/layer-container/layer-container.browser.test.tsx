@@ -18,8 +18,8 @@ import { makeToast, Toaster } from "../../components/toast/toast.js";
  * Cross-file spelling pin: browser tests load no Tailwind, so this restates
  * the CSS the layering utilities, `Toaster`, and `Sandbar` emit (`fixed`,
  * `z-50`, `z-60`, `z-70`, `pointer-events-*`, insets).
- * Radix mirrors each float content's computed z-index onto its popper wrapper,
- * so `.z-50` here engages the real stacking mechanism. If a component's tier
+ * Each float carries its tier class on its own element, so `.z-50` here
+ * engages the real stacking mechanism. If a component's tier
  * class changes, `layer-container.test.tsx`'s tier test catches the class; if
  * these pinned values stop matching Tailwind's output, the paint-order
  * assertions here go stale together, so change both deliberately.
@@ -218,7 +218,7 @@ describe("paint order across layer tiers", () => {
 					floatContent.closest("[data-slot='popover-content']") ?? floatContent
 				).getBoundingClientRect();
 				const triggerRect = trigger.getBoundingClientRect();
-				// Radix places the content below the trigger with `sideOffset` 4.
+				// `Popover` places the content below the trigger with `sideOffset` 4.
 				// A broken containing block lands it far away (typically at the
 				// viewport origin, offset by the content's own height).
 				expect(Math.abs(contentRect.top - triggerRect.bottom)).toBeLessThan(24);
@@ -260,7 +260,7 @@ describe("covered-float focus", () => {
 	 */
 	const EXIT_STYLE = `
 @keyframes exit-hold { to { opacity: 0.5; } }
-[data-slot="dialog-content"][data-state="closed"] { animation: exit-hold 300ms; }
+[data-slot="dialog-content"][data-closing] { animation: exit-hold 300ms; }
 `;
 
 	function CloseDialogThenOpenFloat() {
@@ -306,7 +306,7 @@ describe("covered-float focus", () => {
 			await user.click(screen.getByRole("button", { name: "Close and open" }));
 
 			// The closing dialog must still be modal, or this test proves nothing.
-			expect(document.querySelector("dialog:modal")).toHaveAttribute("data-state", "closed");
+			expect(document.querySelector("dialog:modal")).not.toHaveAttribute("data-open");
 			await waitFor(() => {
 				expect(screen.getByRole("button", { name: "Float button" })).toHaveFocus();
 			});

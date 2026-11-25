@@ -11,7 +11,8 @@ description: The @ngrok/mantle-vite-plugins package. mantleSourcesPlugin trims m
   components your bundle contains. On an app that renders `Badge` alone, that's 71 KB of CSS
   instead of 181 KB.
 - [`mantleThemePrunePlugin`](#mantlethemepruneplugin) removes the theme CSS your build doesn't
-  read. On a marketing page, mantle's CSS drops from 128.6 KB to 104.1 KB.
+  read. On a marketing page, mantle's CSS drops from 128.6 KB to 104.1 KB. `mantleSourcesPlugin`
+  runs it for you.
 - [`mantlePhosphorPrunePlugin`](#mantlephosphorpruneplugin) removes the Phosphor icon weights
   your build never renders. On a marketing page, Phosphor's icon data drops from 42.1 KB to
   9.6 KB gzipped.
@@ -65,6 +66,9 @@ export default defineConfig({
 });
 ```
 
+The plugin also runs [`mantleThemePrunePlugin`](#mantlethemepruneplugin), so you don't add it
+yourself. Pass `themePrune: false` to turn it off.
+
 Keep the CSS from the [Stylesheet](/#stylesheet) recipe as it is. The plugin rewrites that
 `source-all.css` import, so the import must sit in a CSS file Vite processes, next to `mantle.css`.
 
@@ -116,6 +120,7 @@ The error names the files and one of two causes:
 | `include`       | `string[]`          | `[]`      | Other packages whose files the plugin lists too, when the bundle reaches them. A component package that sets Tailwind classes on mantle parts needs its own files scanned, because Tailwind skips `node_modules`. `include: ["@acme/ui"]` lists the files of that package the bundle contains. |
 | `verbose`       | `boolean`           | `false`   | Whether to print every listed path, relative to the CSS file.                                                                                                                                                                                                                                  |
 | `idleTimeoutMs` | `number`            | `15000`   | How many milliseconds the CSS waits with no module event before it lists the files parsed so far. When one module, such as a `?worker` sub-build, takes longer, raise it. `Infinity` waits for events only. A file that loads after the wait still shows up in the bundle check.               |
+| `themePrune`    | `boolean`           | `true`    | Whether the build also runs [`mantleThemePrunePlugin`](#mantlethemepruneplugin). Pass `false` when a file outside the stylesheet reads palette stops that the stylesheet doesn't, such as CSS another app serves.                                                                              |
 
 ### Limits
 
@@ -145,17 +150,17 @@ long theme selector, once per token.
 
 ### Setup
 
-Add the plugin next to the Tailwind plugin. Its position in the array doesn't matter, and it
-works with or without `mantleSourcesPlugin`.
+[`mantleSourcesPlugin`](#mantlesourcesplugin) runs this plugin for you. Add it on its own only
+when your build doesn't use `mantleSourcesPlugin`. Its position in the array doesn't matter.
 
 ```ts
 // vite.config.ts
-import { mantleSourcesPlugin, mantleThemePrunePlugin } from "@ngrok/mantle-vite-plugins";
+import { mantleThemePrunePlugin } from "@ngrok/mantle-vite-plugins";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-	plugins: [tailwindcss(), mantleSourcesPlugin(), mantleThemePrunePlugin()],
+	plugins: [tailwindcss(), mantleThemePrunePlugin()],
 });
 ```
 
@@ -180,6 +185,12 @@ Vite 8.3.8, mantle 0.94.1, Tailwind 4.3.5, and `mantleSourcesPlugin`.
   a dependency Tailwind doesn't scan, a separate stylesheet, or CSS another app serves. The build
   warns when another file of the build reads such a stop. Name the stop in a file the stylesheet
   scans to keep it, such as with `@source inline("bg-pink-300")`.
+- The build can't warn about CSS outside the build, such as CSS another app or a CDN serves, a
+  stylesheet that Vite inlines as a data URL, or a stop name that code builds at runtime, such as
+  `` `var(--color-${hue}-300)` ``. Name each such stop with `@source inline(…)`, or pass
+  `themePrune: false` to `mantleSourcesPlugin`.
+- The `blue` stops that mantle's light theme declares follow the same rule. If the stylesheet
+  doesn't read one of them, it loses its light value too.
 - Why only the same stylesheet: Vite fixes the stylesheet's hashed file name before the plugin
   runs. A result that depended on other files could change under the same cached URL.
 - The warning is conservative. In a build with several mantle stylesheets, it warns about a stop

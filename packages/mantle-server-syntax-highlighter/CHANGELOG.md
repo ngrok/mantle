@@ -1,5 +1,11 @@
 # @ngrok/mantle-server-syntax-highlighter
 
+## 1.1.24
+
+### Patch Changes
+
+- [#1863](https://github.com/ngrok/mantle/pull/1863) [`745cdce`](https://github.com/ngrok/mantle/commit/745cdce10a7d7f75b1676eca582522f58a3df6c8) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Update dependencies within the 6h minimum release age.
+
 ## 1.1.23
 
 ### Patch Changes

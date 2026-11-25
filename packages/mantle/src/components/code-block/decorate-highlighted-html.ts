@@ -29,10 +29,6 @@ function splitHighlightedHtmlIntoLines(html: string): string[] {
 	return shikiLines;
 }
 
-/** Inline caret SVG used by the fold toggle button. Mirrors `CaretDown` from Phosphor at a small size. */
-const FOLD_CARET_SVG =
-	'<svg class="mantle-code-fold-caret" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M3.22 5.97a.75.75 0 0 1 1.06 0L8 9.69l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L3.22 7.03a.75.75 0 0 1 0-1.06Z"/></svg>';
-
 /**
  * Encodes public fold IDs for safe HTML attribute storage and for the
  * runtime's space-separated region sets. Built-in strategies use numeric
@@ -58,19 +54,23 @@ type DecorateHighlightedHtmlInput = {
 	highlightLines?: (LineRange | number)[] | undefined;
 	html: string;
 	lineNumberStart?: number | undefined;
+	/**
+	 * @deprecated It has no effect. `CodeBlock.Code` shows line numbers from its
+	 * `data-mantle-line-numbers`, and `mantle.css` counts the lines with a CSS
+	 * counter.
+	 */
 	showLineNumbers?: boolean | undefined;
 };
 
 /**
- * Wraps each line of Shiki-highlighted HTML in Mantle's line-number, fold,
- * and line-highlight markup, producing the final HTML rendered by `CodeBlock.Code`.
+ * Wraps each line of Shiki-highlighted HTML in Mantle's line, fold, and
+ * line-highlight markup, producing the final HTML rendered by `CodeBlock.Code`.
  */
 function decorateHighlightedHtml({
 	foldableRanges,
 	highlightLines,
 	html,
 	lineNumberStart = 1,
-	showLineNumbers = false,
 }: DecorateHighlightedHtmlInput): string {
 	const highlightedLineNumbers = resolveLineNumbers(...(highlightLines ?? []));
 	const lines = splitHighlightedHtmlIntoLines(html);
@@ -82,12 +82,18 @@ function decorateHighlightedHtml({
 	// code), independent of `lineNumberStart` which only affects display.
 	const openerIdByBufferLine = new Map<number, string>();
 	const regionsByBufferLine = new Map<number, string[]>();
+	// Why: a folded line is `display: none`, and CSS counts no such line. The
+	// line that closes a fold sets the line counter again, so the numbers after
+	// a fold stay right. Why from the `<pre>`'s start: the first line counts
+	// from it too, so the two never disagree.
+	const closerBufferLines = new Set<number>();
 	const hasFolds = foldableRanges != null && foldableRanges.length > 0;
 
 	if (hasFolds && foldableRanges != null) {
 		for (const range of foldableRanges) {
 			const encodedId = encodeFoldRegionId(range.id);
 			openerIdByBufferLine.set(range.startLine, encodedId);
+			closerBufferLines.add(range.endLine);
 			for (let bufferLine = range.startLine + 1; bufferLine < range.endLine; bufferLine += 1) {
 				let regions = regionsByBufferLine.get(bufferLine);
 				if (regions == null) {
@@ -120,15 +126,11 @@ function decorateHighlightedHtml({
 			openerId != null && "mantle-code-line-opener",
 		);
 
-		// Why aria-hidden: without it a screen reader reads "1 const x" on every
-		// line. The gutter is a visual aid; the code is the content.
-		const lineNumberHtml = showLineNumbers
-			? `<span class="mantle-code-line-number" data-slot="line-number" aria-hidden="true">${displayedLineNumber}</span>`
-			: "";
-
+		// Why no number element: `mantle.css` draws the number from a CSS
+		// counter in a pseudo-element, so the digits stay out of the text that
+		// copy, find, screen readers, and crawlers read.
 		let foldGutterHtml = "";
 		let foldRegionsAttribute = "";
-		let trailingEllipsisHtml = "";
 		if (hasFolds) {
 			// Opener lines render a real semantic <button> in the gutter.
 			// Non-opener lines reserve gutter space via CSS (opener lines are
@@ -136,9 +138,9 @@ function decorateHighlightedHtml({
 			// Skipping per-line spacer markup is what keeps HTML overhead near zero
 			// for large JSON blocks.
 			if (openerId != null) {
-				foldGutterHtml = `<button type="button" class="mantle-code-fold-toggle" data-slot="fold-toggle" data-fold-line="${openerId}" aria-expanded="true" aria-label="Toggle code folding">${FOLD_CARET_SVG}</button>`;
-				trailingEllipsisHtml =
-					'<span class="mantle-code-fold-ellipsis" data-slot="fold-ellipsis" aria-hidden="true">⋯</span>';
+				// Why no inline caret or ellipsis: `mantle.css` draws both, so each
+				// opener line carries no SVG and the `⋯` stays out of the text.
+				foldGutterHtml = `<button type="button" class="mantle-code-fold-toggle" data-fold-line="${openerId}" aria-expanded="true" aria-label="Toggle code folding"></button>`;
 			}
 
 			const regions = regionsByBufferLine.get(bufferLineNumber);
@@ -147,10 +149,23 @@ function decorateHighlightedHtml({
 			}
 		}
 
-		const renderedContent = line === "" ? " " : line;
-		const contentHtml = `<span class="mantle-code-line-content" data-slot="line-content">${renderedContent}${trailingEllipsisHtml}</span>`;
+		// Why a space: an empty line keeps its height, and each browser copies it as a blank line.
+		// Firefox copies from the newlines between lines, Chromium and WebKit from the line boxes,
+		// and only a space gives the same text in each.
+		const contentHtml = `<span class="mantle-code-line-content">${line === "" ? " " : line}</span>`;
 
-		output += `<span class="${lineClassName}" data-line-number="${displayedLineNumber}"${foldRegionsAttribute}>${lineNumberHtml}${foldGutterHtml}${contentHtml}</span>`;
+		// Why a newline between lines: lines break by CSS, so without it
+		// `textContent` (what crawlers and HTML-to-text tools read) runs every
+		// line together. `mantle.css` makes `<code>` a flex column, and a flex
+		// container renders no text run that is only white space, so the newline
+		// adds no line box, no element, and nothing to copied text.
+		if (i > 0) {
+			output += "\n";
+		}
+		const counterStyle = closerBufferLines.has(bufferLineNumber)
+			? ` style="counter-set:mantle-line calc(var(--mantle-line-number-start,1) + ${i})"`
+			: "";
+		output += `<span class="${lineClassName}" data-line-number="${displayedLineNumber}"${foldRegionsAttribute}${counterStyle}>${foldGutterHtml}${contentHtml}</span>`;
 	}
 	return output;
 }

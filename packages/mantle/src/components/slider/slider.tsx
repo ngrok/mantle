@@ -292,10 +292,10 @@ function Slider({
 				// for a mouse (the WCAG minimum target) and 44px for a finger, because it covers what
 				// sits beside the track.
 				"before:absolute before:top-1/2 before:left-1/2 before:-translate-1/2 before:size-[max(100%,--spacing(6))] pointer-coarse:before:size-[max(100%,--spacing(11))] data-disabled:before:pointer-events-none",
-				"data-orientation-vertical:h-full data-orientation-vertical:min-h-40 data-orientation-vertical:w-auto data-orientation-vertical:flex-col",
+				"data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-40 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
 				tickCount > 0 && "mb-3",
 				// Why a container: a value label at a thumb measures the slider's width to stay inside it.
-				hasValueLabel && "data-orientation-horizontal:@container",
+				hasValueLabel && "data-[orientation=horizontal]:@container",
 				className,
 			)}
 			style={$cssProperties({
@@ -313,18 +313,18 @@ function Slider({
 		>
 			<span
 				data-slot="slider-track"
-				className="bg-neutral-300 rounded-full relative grow overflow-hidden h-1.5 w-full group-data-orientation-vertical/slider:h-full group-data-orientation-vertical/slider:w-1.5"
+				className="bg-neutral-300 rounded-full relative grow overflow-hidden h-1.5 w-full group-data-[orientation=vertical]/slider:h-full group-data-[orientation=vertical]/slider:w-1.5"
 			>
 				<span
 					data-slot="slider-range"
 					className={clsx(
-						"absolute h-full select-none group-data-orientation-vertical/slider:h-auto group-data-orientation-vertical/slider:w-full",
+						"absolute h-full select-none group-data-[orientation=vertical]/slider:h-auto group-data-[orientation=vertical]/slider:w-full",
 						// Why `--_s` and `--_e`: the insets of the start and the end edge, as
 						// fractions of the track. `--_inv` swaps the ends of an inverted track.
 						"[--_a:clamp(0,(var(--_start)_-_var(--_min))/(var(--_max)_-_var(--_min)),1)] [--_b:clamp(0,(var(--_end)_-_var(--_min))/(var(--_max)_-_var(--_min)),1)]",
 						"[--_s:calc(var(--_inv)_*_(1_-_var(--_b))_+_(1_-_var(--_inv))_*_var(--_a))] [--_e:calc(var(--_inv)_*_var(--_a)_+_(1_-_var(--_inv))_*_(1_-_var(--_b)))]",
-						"group-data-orientation-horizontal/slider:inset-s-[calc(var(--_s)*100%)] group-data-orientation-horizontal/slider:inset-e-[calc(var(--_e)*100%)]",
-						"group-data-orientation-vertical/slider:bottom-[calc(var(--_s)*100%)] group-data-orientation-vertical/slider:top-[calc(var(--_e)*100%)]",
+						"group-data-[orientation=horizontal]/slider:inset-s-[calc(var(--_s)*100%)] group-data-[orientation=horizontal]/slider:inset-e-[calc(var(--_e)*100%)]",
+						"group-data-[orientation=vertical]/slider:bottom-[calc(var(--_s)*100%)] group-data-[orientation=vertical]/slider:top-[calc(var(--_e)*100%)]",
 						"group-data-track-press/slider:motion-safe:transition-[inset-inline-start,inset-inline-end,top,bottom] group-data-track-press/slider:motion-safe:duration-200 group-data-track-press/slider:motion-safe:ease-out-strong",
 						color,
 					)}
@@ -342,14 +342,14 @@ function Slider({
 						// Why `--_f`: the thumb's inset from the start edge, as a fraction of the
 						// track less one thumb, so the thumb stays inside the track.
 						"[--_f:calc(var(--_inv)_+_(1_-_var(--_inv)_*_2)_*_clamp(0,(var(--_value)_-_var(--_min))/(var(--_max)_-_var(--_min)),1))]",
-						"group-data-orientation-horizontal/slider:inset-s-[calc(var(--_f)*(100%-var(--slider-thumb-size)))]",
-						"group-data-orientation-vertical/slider:bottom-[calc(var(--_f)*(100%-var(--slider-thumb-size)))]",
+						"group-data-[orientation=horizontal]/slider:inset-s-[calc(var(--_f)*(100%-var(--slider-thumb-size)))]",
+						"group-data-[orientation=vertical]/slider:bottom-[calc(var(--_f)*(100%-var(--slider-thumb-size)))]",
 						// Why: a press on a thumb grabs that thumb. With more than one thumb, a hit
 						// area that is wider than the thumb along the track covers an adjacent
 						// thumb. A press beside a thumb then goes to the root, which moves the
 						// nearest thumb.
 						values.length > 1 &&
-							"group-data-orientation-horizontal/slider:after:w-full group-data-orientation-vertical/slider:after:h-full",
+							"group-data-[orientation=horizontal]/slider:after:w-full group-data-[orientation=vertical]/slider:after:h-full",
 						// Why the outline: forced-colors mode drops the ring's box shadow and paints the transparent outline.
 						"has-focus-visible:ring-3 has-focus-visible:ring-accent-500/20 has-focus-visible:outline-hidden",
 						// Why only on a press of the track: a drag and a key must move at once.
@@ -363,7 +363,7 @@ function Slider({
 						data-slot="slider-input"
 						// Why `z-1` and no `pointer-events: none`: the input sits above the hit area of its thumb, so a test finds the thumb by role and clicks it as it would a native input.
 						// Why the writing mode: Chromium reads a range input's orientation from it, not from `aria-orientation`.
-						className="absolute inset-0 z-1 m-0 size-full cursor-inherit appearance-none opacity-0 group-data-orientation-vertical/slider:[writing-mode:vertical-lr]"
+						className="absolute inset-0 z-1 m-0 size-full cursor-inherit appearance-none opacity-0 group-data-[orientation=vertical]/slider:[writing-mode:vertical-lr]"
 						aria-describedby={ariaDescribedBy}
 						aria-errormessage={ariaErrorMessage}
 						aria-invalid={ariaInvalid}
@@ -484,17 +484,17 @@ function SliderValue({
 				"group-data-track-press/slider:scale-100 group-data-track-press/slider:opacity-100 group-data-track-press/slider:motion-safe:duration-200",
 				placement === "thumb"
 					? [
-							"group-data-orientation-horizontal/slider:inset-s-1/2 group-data-orientation-horizontal/slider:bottom-full group-data-orientation-horizontal/slider:mb-2 group-data-orientation-horizontal/slider:origin-bottom",
+							"group-data-[orientation=horizontal]/slider:inset-s-1/2 group-data-[orientation=horizontal]/slider:bottom-full group-data-[orientation=horizontal]/slider:mb-2 group-data-[orientation=horizontal]/slider:origin-bottom",
 							// Why `--_c` and the clamp: `--_c` is the thumb's center from the slider's start edge. The
 							// label centers on the thumb, and at each end it stops at the slider's edge.
-							"group-data-orientation-horizontal/slider:[--_c:calc(var(--_f)*(100cqw-var(--slider-thumb-size))+var(--slider-thumb-size)/2)]",
-							"group-data-orientation-horizontal/slider:translate-x-[calc(var(--_dir)_*_clamp(-1_*_var(--_c),-50%,100cqw_-_var(--_c)_-_100%))]",
-							"group-data-orientation-vertical/slider:inset-e-full group-data-orientation-vertical/slider:top-1/2 group-data-orientation-vertical/slider:me-2 group-data-orientation-vertical/slider:-translate-y-1/2 group-data-orientation-vertical/slider:origin-right rtl:group-data-orientation-vertical/slider:origin-left",
+							"group-data-[orientation=horizontal]/slider:[--_c:calc(var(--_f)*(100cqw-var(--slider-thumb-size))+var(--slider-thumb-size)/2)]",
+							"group-data-[orientation=horizontal]/slider:translate-x-[calc(var(--_dir)_*_clamp(-1_*_var(--_c),-50%,100cqw_-_var(--_c)_-_100%))]",
+							"group-data-[orientation=vertical]/slider:inset-e-full group-data-[orientation=vertical]/slider:top-1/2 group-data-[orientation=vertical]/slider:me-2 group-data-[orientation=vertical]/slider:-translate-y-1/2 group-data-[orientation=vertical]/slider:origin-right rtl:group-data-[orientation=vertical]/slider:origin-left",
 						]
 					: [
 							"inset-s-1/2 origin-bottom translate-x-[calc(var(--_dir)*-50%)]",
-							"group-data-orientation-horizontal/slider:bottom-[calc(50%+var(--slider-thumb-size)/2+(--spacing(2)))]",
-							"group-data-orientation-vertical/slider:bottom-full group-data-orientation-vertical/slider:mb-2",
+							"group-data-[orientation=horizontal]/slider:bottom-[calc(50%+var(--slider-thumb-size)/2+(--spacing(2)))]",
+							"group-data-[orientation=vertical]/slider:bottom-full group-data-[orientation=vertical]/slider:mb-2",
 						],
 				className,
 			)}

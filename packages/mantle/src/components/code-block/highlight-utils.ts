@@ -85,6 +85,12 @@ export type {
 
 export {
 	//,
+	mantleShikiThemeName,
+	mantleShikiTokenColors,
+} from "./shiki-theme.js";
+
+export {
+	//,
 	parseCodeBlockHighlightLines,
 	parseCodeBlockLineNumberStart,
 	parseCodeBlockShowLineNumbers,
@@ -95,3 +101,8 @@ export {
 	normalizeValue,
 	tokenizeMetastring,
 } from "./resolve-pre-rendered-props.js";
+
+export {
+	//,
+	tokenClassForColor,
+} from "./token-classes.js";

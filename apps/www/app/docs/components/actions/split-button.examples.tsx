@@ -2,6 +2,8 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { FileTextIcon } from "@phosphor-icons/react/FileText";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 import { DownloadIcon } from "@phosphor-icons/react/Download";
+import { RocketLaunchIcon } from "@phosphor-icons/react/RocketLaunch";
+import { Field } from "@ngrok/mantle/field";
 import { Icon } from "@ngrok/mantle/icon";
 import { SplitButton } from "@ngrok/mantle/split-button";
 
@@ -32,26 +34,73 @@ export function OverviewExample() {
 /** The "Size" example on the Split Button docs page. */
 export function SizeExample() {
 	return (
-		<PreviewCanvas className="min-h-160 flex-col items-start gap-4">
-			<SplitButton.Root size="sm">
-				<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
-				<SplitButton.MenuTrigger label="Open create options" />
+		<PreviewCanvas className="min-h-160 items-start">
+			<div className="flex flex-wrap items-start justify-center gap-6">
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size xs</Field.Legend>
+					<SplitButton.Root size="xs">
+						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+						<SplitButton.MenuTrigger label="Open create options" />
+						<SplitButton.MenuContent>
+							<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+						</SplitButton.MenuContent>
+					</SplitButton.Root>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size sm</Field.Legend>
+					<SplitButton.Root size="sm">
+						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+						<SplitButton.MenuTrigger label="Open create options" />
+						<SplitButton.MenuContent>
+							<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+						</SplitButton.MenuContent>
+					</SplitButton.Root>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size md (default)</Field.Legend>
+					<SplitButton.Root size="md">
+						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+						<SplitButton.MenuTrigger label="Open create options" />
+						<SplitButton.MenuContent>
+							<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+						</SplitButton.MenuContent>
+					</SplitButton.Root>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size lg</Field.Legend>
+					<SplitButton.Root size="lg">
+						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+						<SplitButton.MenuTrigger label="Open create options" />
+						<SplitButton.MenuContent>
+							<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+						</SplitButton.MenuContent>
+					</SplitButton.Root>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="w-full text-center">Size xl</Field.Legend>
+					<SplitButton.Root size="xl">
+						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+						<SplitButton.MenuTrigger label="Open create options" />
+						<SplitButton.MenuContent>
+							<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+						</SplitButton.MenuContent>
+					</SplitButton.Root>
+				</Field.Set>
+			</div>
+		</PreviewCanvas>
+	);
+}
+
+/** The "Menu width" example on the Split Button docs page. */
+export function MenuWidthExample() {
+	return (
+		<PreviewCanvas className="min-h-160">
+			<SplitButton.Root>
+				<SplitButton.PrimaryAction icon={<RocketLaunchIcon />}>Deploy</SplitButton.PrimaryAction>
+				<SplitButton.MenuTrigger label="Open deploy options" />
 				<SplitButton.MenuContent>
-					<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
-				</SplitButton.MenuContent>
-			</SplitButton.Root>
-			<SplitButton.Root size="md">
-				<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
-				<SplitButton.MenuTrigger label="Open create options" />
-				<SplitButton.MenuContent>
-					<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
-				</SplitButton.MenuContent>
-			</SplitButton.Root>
-			<SplitButton.Root size="lg">
-				<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
-				<SplitButton.MenuTrigger label="Open create options" />
-				<SplitButton.MenuContent>
-					<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+					<SplitButton.MenuItem>Deploy to staging</SplitButton.MenuItem>
+					<SplitButton.MenuItem>Deploy to every production region</SplitButton.MenuItem>
 				</SplitButton.MenuContent>
 			</SplitButton.Root>
 		</PreviewCanvas>

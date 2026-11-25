@@ -24,23 +24,23 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'ngrok/mantle'
     steps:
-      - uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+      - uses: actions/create-github-app-token@v3.4.0
         id: generate-token
         with:
           client-id: ${{ secrets.RELEASE_BOT_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
 
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         # use version from package.json#packageManager field
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -51,7 +51,7 @@ jobs:
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
-        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        uses: changesets/action@v2.1.2
         with:
           # Why the input, not a GITHUB_TOKEN env var: action v2 reads only the
           # input, and the env var would silently fall back to the read-only
@@ -59,12 +59,25 @@ jobs:
           github-token: ${{ steps.generate-token.outputs.token }}
           publish-script: pnpm -w changeset:publish
           version-script: pnpm -w changeset:version
+          # Why not the action's releases: it sends the whole changelog entry, and GitHub
+          # rejects a release body past 125,000 characters after npm publish already ran.
+          # The next step cuts a large entry to fit and links the full notes.
+          create-github-releases: false
         env:
           NPM_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
 
+      - name: Create GitHub releases
+        # Why on each push, not only on `published`: after a partial publish the action fails,
+        # and a rerun publishes nothing new. The script releases each tagged version that has no release.
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: node ./scripts/github-releases.ts
+
       - name: Post to slack
-        if: steps.changesets.outputs.published == 'true'
+        # Why `!cancelled()`: the packages are on npm even when a release fails.
+        if: ${{ !cancelled() && steps.changesets.outputs.published == 'true' }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_PUBLISH_WEBHOOK_URL }}
           PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.published-packages }}

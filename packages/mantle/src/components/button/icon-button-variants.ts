@@ -1,5 +1,4 @@
-import { cva } from "class-variance-authority";
-import type { VariantProps } from "../../types/index.js";
+import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { ButtonSize } from "./sizes.js";
 
@@ -40,6 +39,58 @@ const baseIconButtonClasses = cx(
 );
 
 /**
+ * The classes of each appearance. Each carries the neutral tone outright,
+ * because that is the only tone `IconButton` draws.
+ */
+const appearanceClasses = {
+	filled:
+		"bg-filled-neutral text-neutral-50 focus-visible:border-transparent not-disabled:hover:bg-filled-neutral-hover border-transparent",
+	ghost:
+		"text-strong not-disabled:hover:bg-neutral-500/10 not-disabled:hover:text-strong border-transparent",
+	outlined:
+		"border-form bg-form text-strong focus-visible:border-accent-600 not-disabled:hover:border-neutral-400 not-disabled:hover:bg-form-hover not-disabled:hover:text-strong focus-visible:not-disabled:hover:border-accent-600 focus-visible:not-disabled:active:border-accent-600",
+} as const satisfies Record<IconButtonAppearance, string>;
+
+/** The box of each size. `2xs` also shrinks the icon. */
+const sizeClasses = {
+	"2xs": "size-5 [&_svg]:size-4",
+	xs: "size-6",
+	sm: "size-7",
+	md: "size-9",
+	lg: "size-10",
+	xl: "size-12",
+} as const satisfies Record<IconButtonSize, string>;
+
+/** The variant props that pick an `IconButton`'s classes. */
+type IconButtonVariants = {
+	/**
+	 * The visual style of the IconButton. Each appearance carries the neutral
+	 * tone outright, because that is the only tone `IconButton` draws.
+	 */
+	appearance?: IconButtonAppearance;
+	/**
+	 * The tone of the IconButton. One value, and it styles nothing: the
+	 * appearance classes already draw it. It stays so a call site
+	 * that names its tone, like `Calendar`'s nav buttons, keeps compiling.
+	 */
+	intent?: IconButtonIntent;
+	/**
+	 * Whether the button is in a loading state. `isLoading` replaces
+	 * the `icon` with a spinner.
+	 * It also disables user interaction with the button and sets `aria-disabled`.
+	 * @default false
+	 */
+	isLoading?: boolean;
+	/**
+	 * The size of the IconButton. Shared scale with
+	 * `Button` (same size name, same box height), plus `2xs`, which also
+	 * shrinks the icon.
+	 * @default "md"
+	 */
+	size?: IconButtonSize;
+};
+
+/**
  * Composes the className for an `IconButton` from its variant props. Lives in
  * its own module (rather than `icon-button.tsx`) so that components which only
  * need the classes (e.g. `Calendar`'s nav buttons) can import them without
@@ -50,58 +101,13 @@ const baseIconButtonClasses = cx(
  * const navButtonClasses = iconButtonVariants({ appearance: "ghost", intent: "neutral", size: "sm" });
  * ```
  */
-const iconButtonVariants = cva(baseIconButtonClasses, {
-	variants: {
-		/**
-		 * The visual style of the IconButton. Each appearance carries the neutral
-		 * tone outright, because that is the only tone `IconButton` draws.
-		 */
-		appearance: {
-			filled:
-				"bg-filled-neutral text-neutral-50 focus-visible:border-transparent not-disabled:hover:bg-filled-neutral-hover border-transparent",
-			ghost:
-				"text-strong not-disabled:hover:bg-neutral-500/10 not-disabled:hover:text-strong border-transparent",
-			outlined:
-				"border-form bg-form text-strong focus-visible:border-accent-600 not-disabled:hover:border-neutral-400 not-disabled:hover:bg-form-hover not-disabled:hover:text-strong focus-visible:not-disabled:hover:border-accent-600 focus-visible:not-disabled:active:border-accent-600",
-		} satisfies Record<IconButtonAppearance, string>,
-		/**
-		 * The tone of the IconButton. One value, and it styles nothing: the
-		 * appearance classes already draw it. The variant stays so a call site
-		 * that names its tone, like `Calendar`'s nav buttons, keeps compiling.
-		 */
-		intent: {
-			neutral: "",
-		} satisfies Record<IconButtonIntent, string>,
-		/**
-		 * Whether the button is in a loading state, default `false`. `isLoading` replaces
-		 * the `icon` with a spinner.
-		 * It also disables user interaction with the button and sets `aria-disabled`.
-		 */
-		isLoading: {
-			false: "",
-			true: "opacity-50",
-		},
-		/**
-		 * The size of the IconButton, default `"md"`. Shared scale with
-		 * `Button` (same size name, same box height), plus `2xs`, which also
-		 * shrinks the icon.
-		 */
-		size: {
-			"2xs": "size-5 [&_svg]:size-4",
-			xs: "size-6",
-			sm: "size-7",
-			md: "size-9",
-			lg: "size-10",
-			xl: "size-12",
-		} satisfies Record<IconButtonSize, string>,
-	},
-	defaultVariants: {
-		intent: "neutral",
-		size: "md",
-	},
-});
-
-type IconButtonVariants = VariantProps<typeof iconButtonVariants>;
+const iconButtonVariants = ({ appearance, isLoading, size = "md" }: IconButtonVariants): string =>
+	clsx(
+		baseIconButtonClasses,
+		appearance && appearanceClasses[appearance],
+		isLoading && "opacity-50",
+		sizeClasses[size],
+	);
 
 export {
 	//,

@@ -37,18 +37,18 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -68,7 +68,7 @@ jobs:
       # The fixer checks each cache file against the lockfile and the CSS it loads,
       # so a stale restore only costs a recompute.
       - name: Restore Tailwind Canonical Cache 💾
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache@v6.1.0
         with:
           path: .cache/tailwind-canonical
           key: tailwind-canonical-${{ hashFiles('pnpm-lock.yaml', 'packages/mantle/src/*.css') }}
@@ -98,13 +98,13 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Cache mise binary 🗃️
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache@v6.1.0
         with:
           path: ~/.local/bin/mise
           key: mise-${{ runner.os }}-${{ hashFiles('scripts/install-mise') }}
@@ -136,20 +136,24 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Why write: the bundle-size step posts its report as one pull request comment.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -161,9 +165,41 @@ jobs:
       - name: Build 🏗️
         run: pnpm run build
 
-      # Why after the build: the budget measures the published dist, after the React Compiler pass.
-      - name: Bundle Budget 📦
-        run: pnpm run check:bundle-budget
+      # Why after the build: the report measures the published dist, after the React Compiler pass.
+      # It fails only when an import with no render loads lazy code; a size never fails it.
+      - name: Bundle Size 📦
+        run: pnpm run report:bundle-size --json "$RUNNER_TEMP/head.json"
+
+      # Why the merge commit's first parent: CI builds the pull request merged into the
+      # current `main`, and `pull_request.base.sha` can be an older `main`.
+      - name: Bundle Size of the Base 📦
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: |
+          git fetch --depth=2 origin "$GITHUB_SHA"
+          git worktree add "$RUNNER_TEMP/base" "$GITHUB_SHA^1"
+          (cd "$RUNNER_TEMP/base" && pnpm install --frozen-lockfile && pnpm -F @ngrok/mantle run build)
+          pnpm run report:bundle-size --dist "$RUNNER_TEMP/base/packages/mantle/dist" --json "$RUNNER_TEMP/base.json"
+
+      - name: Bundle Size Report 📝
+        if: github.event_name == 'pull_request'
+        # Why: a fork's token cannot comment, and the report never blocks a merge.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          [ -f "$RUNNER_TEMP/base.json" ] || echo '{}' > "$RUNNER_TEMP/base.json"
+          node packages/mantle/scripts/bundle-size.ts --compare "$RUNNER_TEMP/base.json" --head "$RUNNER_TEMP/head.json" > "$RUNNER_TEMP/report.md"
+          printf '\n<!-- bundle-size-report -->\n' >> "$RUNNER_TEMP/report.md"
+          cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+          id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate --jq '.[] | select(.body | contains("<!-- bundle-size-report -->")) | .id' | head -n 1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@"$RUNNER_TEMP/report.md" > /dev/null
+          else
+            gh pr comment "$PR" --repo "$REPO" --body-file "$RUNNER_TEMP/report.md"
+          fi
 
       # Why: server rendering that externalizes @ngrok/mantle loads the dist in Node with no bundler.
       - name: Dist Loads in Node 🔁
@@ -174,18 +210,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -199,7 +235,7 @@ jobs:
 
   # Happy-dom/unit shards. `@ngrok/mantle` is the only package with browser-mode
   # tests, so each shard runs non-mantle tests normally and then runs Mantle's
-  # `unit` Vitest project explicitly. PLAYWRIGHT_WS_ENDPOINT is set to a dummy
+  # `unit` and `consumer` Vitest projects explicitly. PLAYWRIGHT_WS_ENDPOINT is set to a dummy
   # value so the root //#install:playwright turbo dependency no-ops on this path;
   # browser tests run in the separate `browser-test` job below.
   #
@@ -216,22 +252,22 @@ jobs:
         shard_total: [4]
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Compute Vitest cache key 🔑
         id: vitest-cache-key
-        uses: ./.github/actions/vitest-module-cache-key
+        uses: $/.github/actions/vitest-module-cache-key
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -246,7 +282,7 @@ jobs:
       # Restore after the install, because the cache is in node_modules. Only `warm-vitest-cache`
       # saves, because a cache that a PR run saves is visible only to that PR.
       - name: Restore Vitest module cache 💾
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@v6.1.0
         with:
           path: node_modules/.vitest-cache
           key: ${{ steps.vitest-cache-key.outputs.key }}
@@ -287,11 +323,11 @@ jobs:
             --concurrency="${TURBO_TEST_CONCURRENCY}" \
             --continue=always \
             --filter='@ngrok/mantle' \
-            -- --project=unit --shard="${{ matrix.shard }}/${{ matrix.shard_total }}" --maxWorkers="${TURBO_TEST_CONCURRENCY}" || mantle_status=$?
+            -- --project=unit --project=consumer --shard="${{ matrix.shard }}/${{ matrix.shard_total }}" --maxWorkers="${TURBO_TEST_CONCURRENCY}" || mantle_status=$?
 
           echo "non-mantle test status: ${non_mantle_status}"
           echo "mantle-vite-plugins test status: ${vite_plugins_status}"
-          echo "mantle unit test status: ${mantle_status}"
+          echo "mantle unit and consumer test status: ${mantle_status}"
 
           if [[ "${non_mantle_status}" -ne 0 || "${vite_plugins_status}" -ne 0 || "${mantle_status}" -ne 0 ]]; then
             exit 1
@@ -319,18 +355,18 @@ jobs:
       SHARD: ${{ matrix.shard }}
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -348,7 +384,7 @@ jobs:
 
       - name: Restore Playwright browser cache 🎭
         id: playwright-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache@v6.1.0
         with:
           path: ~/.cache/ms-playwright
           # Key on the Playwright version only, so the cached browser binaries
@@ -410,18 +446,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Compute Vitest cache key 🔑
         id: vitest-cache-key
-        uses: ./.github/actions/vitest-module-cache-key
+        uses: $/.github/actions/vitest-module-cache-key
 
       - name: Check Vitest module cache 💾
         id: vitest-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@v6.1.0
         with:
           path: node_modules/.vitest-cache
           key: ${{ steps.vitest-cache-key.outputs.key }}
@@ -430,12 +466,12 @@ jobs:
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
         if: steps.vitest-cache.outputs.cache-hit != 'true'
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
       - if: steps.vitest-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -457,13 +493,13 @@ jobs:
           pnpm exec turbo run test --cache=local:,remote: --continue=always --output-logs=errors-only \
             --filter='!@ngrok/mantle'
           pnpm exec turbo run test --cache=local:,remote: --continue=always --output-logs=errors-only \
-            --filter='@ngrok/mantle' -- --project=unit
+            --filter='@ngrok/mantle' -- --project=unit --project=consumer
 
       # Save only after a clean run, because a crash or a failed test can leave a partial cache.
       # The job stays green on a failure, because the `test` shards already test this commit.
       - name: Save Vitest module cache 💾
         if: steps.vitest-cache.outputs.cache-hit != 'true' && steps.transform.outcome == 'success'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/save@v6.1.0
         with:
           path: node_modules/.vitest-cache
           key: ${{ steps.vitest-cache-key.outputs.key }}

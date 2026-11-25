@@ -4,6 +4,7 @@ import { userEvent as browserUser } from "vitest/browser";
 import { type ReactNode, useState } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { commands } from "vitest/browser";
+import preflightCss from "tailwindcss/preflight.css?raw";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { installShakeStyle } from "../../test-utils/shake-style.js";
 import * as AlertDialog from "../alert-dialog/alert-dialog-parts.js";
@@ -13,9 +14,9 @@ import * as MultiSelect from "./multi-select-parts.js";
 
 /**
  * `userEvent.setup()` with the pre-interaction `pointer-events` assertion turned
- * off. In browser mode, Ariakit's popover/portal can momentarily compute
- * `pointer-events: none` while it mounts and animates, so user-event's default
- * check throws ("Unable to perform pointer interaction…") and flakes the
+ * off. When an Ariakit popover drove `MultiSelect`, it could compute
+ * `pointer-events: none` for a moment while it mounted, so user-event's default
+ * check threw ("Unable to perform pointer interaction…") and flaked the
  * click-driven tests in CI. None of the behaviors here rely on that CSS guard
  * (locked tags enforce their lock in the remove handler, not via `pointer-events`),
  * so disabling the check makes clicks deterministic without weakening intent.
@@ -75,6 +76,116 @@ describe("MultiSelect (browser)", () => {
 		}
 		return tagEl;
 	};
+
+	test.each(["ltr", "rtl"] as const)(
+		"selected tags and the trigger keep the 0.95.0 geometry and styles (%s)",
+		async (dir) => {
+			const style = document.createElement("style");
+			const css = await Promise.all(
+				["./multi-select.tsx", "../chip/chip.tsx", "./multi-select.browser.test.tsx"].map((file) =>
+					commands.tailwindCss(file, { theme: true }),
+				),
+			);
+			// Why preflight: the docs site and apps load it, and it resets the native button and svg boxes.
+			style.textContent = `${preflightCss}\n${css.join("\n")}`;
+			document.head.append(style);
+			const longValue = "Production API credentials for the primary billing account";
+			const values = [longValue, "apple"];
+			try {
+				render(
+					<>
+						<div className="w-50" dir={dir}>
+							<MultiSelect.Root value={values} onValueChange={() => {}}>
+								<MultiSelect.Trigger data-testid="current">
+									<MultiSelect.TagValues lockedValues={["apple"]} />
+								</MultiSelect.Trigger>
+							</MultiSelect.Root>
+						</div>
+						{/* The trigger and tag markup that @ngrok/mantle@0.95.0 shipped, as the reference. */}
+						<div className="w-50" dir={dir}>
+							<div
+								data-testid="released"
+								className="cursor-text select-none font-sans text-sm border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-data-[slot=multi-select-tag]:px-1"
+							>
+								<div className="contents">
+									{values.map((value) => (
+										<span
+											key={value}
+											data-slot="multi-select-tag"
+											className="cursor-default bg-neutral-500/10 border border-neutral-500/20 rounded-xs text-strong inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 text-sm font-normal"
+										>
+											{value}
+											<button
+												type="button"
+												className="cursor-pointer text-strong/40 hover:bg-neutral-500/15 hover:text-strong rounded-xs p-0.5"
+											>
+												<svg viewBox="0 0 256 256" className="size-4 shrink-0" />
+											</button>
+										</span>
+									))}
+								</div>
+							</div>
+						</div>
+					</>,
+				);
+
+				/** The box of each tag part, relative to the trigger, plus the styles a reader sees. */
+				const measure = (trigger: HTMLElement) => {
+					const origin = trigger.getBoundingClientRect();
+					const relative = (rect: DOMRect) => ({
+						left: rect.left - origin.left,
+						top: rect.top - origin.top,
+						width: rect.width,
+						height: rect.height,
+					});
+					const tags = [
+						...trigger.querySelectorAll<HTMLElement>('[data-slot~="multi-select-tag"]'),
+					];
+					return {
+						trigger: { width: origin.width, height: origin.height },
+						padding: getComputedStyle(trigger).padding,
+						tags: tags.map((tag, index) => {
+							const button = tag.querySelector("button");
+							const icon = tag.querySelector("svg");
+							const textNode = [...tag.querySelectorAll("*"), tag]
+								.flatMap((element) => [...element.childNodes])
+								.find(
+									(node) => node.nodeType === Node.TEXT_NODE && node.textContent === values[index],
+								);
+							if (button == null || icon == null || textNode == null) {
+								throw new Error("Expected a label, a remove button, and an icon");
+							}
+							const range = document.createRange();
+							range.selectNodeContents(textNode);
+							const tagStyle = getComputedStyle(tag);
+							return {
+								tag: relative(tag.getBoundingClientRect()),
+								text: relative(range.getBoundingClientRect()),
+								button: relative(button.getBoundingClientRect()),
+								icon: relative(icon.getBoundingClientRect()),
+								radius: [tagStyle.borderRadius, getComputedStyle(button).borderRadius],
+								colors: [tagStyle.backgroundColor, tagStyle.borderColor],
+								font: [
+									tagStyle.fontFamily,
+									tagStyle.fontSize,
+									tagStyle.fontWeight,
+									tagStyle.lineHeight,
+								],
+							};
+						}),
+					};
+				};
+
+				const current = measure(screen.getByTestId("current"));
+				expect(current.tags).toHaveLength(2);
+				// Why: the long value must wrap inside the trigger, as it did in 0.95.0.
+				expect(current.tags[0]?.tag.height).toBeGreaterThan(26);
+				expect(current).toEqual(measure(screen.getByTestId("released")));
+			} finally {
+				style.remove();
+			}
+		},
+	);
 
 	describe("popover lifecycle", () => {
 		const modalSubjects = [
@@ -260,9 +371,9 @@ describe("MultiSelect (browser)", () => {
 
 				unmount();
 
-				// Why wait a frame: with its body scroll lock on inside a modal, ariakit re-applies a
-				// stale body-style snapshot (the modal's transient `pointer-events: none`) in a
-				// microtask after unmount. A frame callback runs after that checkpoint, so the
+				// Why wait a frame: a body scroll lock can put back a stale body style, such as a
+				// modal's transient `pointer-events: none`, in a microtask after unmount, as the
+				// Ariakit popover did. A frame callback runs after that checkpoint, so the
 				// assertion reads the settled style.
 				await new Promise<void>((resolve) => {
 					requestAnimationFrame(() => {
@@ -639,7 +750,7 @@ describe("MultiSelect.Item label slot (browser)", () => {
 		expect(screen.getByTestId("row").parentElement).toBe(label);
 	});
 
-	test("with a footer, the list cues only its top edge", async () => {
+	test("with a footer, the listbox scrolls above it and the footer stays in view", async () => {
 		const style = document.createElement("style");
 		style.textContent = await commands.tailwindCss("./multi-select.tsx");
 		document.head.append(style);
@@ -657,16 +768,23 @@ describe("MultiSelect.Item label slot (browser)", () => {
 								Fruit {index}
 							</MultiSelect.Item>
 						))}
-						<MultiSelect.ContentFooter>Footer</MultiSelect.ContentFooter>
+						<MultiSelect.ContentFooter>
+							<button type="button">Upgrade</button>
+						</MultiSelect.ContentFooter>
 					</MultiSelect.Content>
 				</MultiSelect.Root>,
 			);
 			await user.click(screen.getByRole("combobox", { name: "Fruits" }));
 			const list = await screen.findByRole("listbox");
 			await waitFor(() => expect(list).toHaveAttribute("data-overflow-bottom"));
-			// Why: the sticky footer sits on the bottom edge, so a cue there would cover it.
-			expect(getComputedStyle(list, "::after").display).toBe("none");
-			expect(getComputedStyle(list, "::before").display).toBe("block");
+			const box = list.parentElement;
+			const footer = screen.getByRole("button", { name: "Upgrade" });
+			expect(box).not.toBeNull();
+			const boxRect = box?.getBoundingClientRect();
+			expect(footer.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+				list.getBoundingClientRect().bottom - 1,
+			);
+			expect(footer.getBoundingClientRect().bottom).toBeLessThanOrEqual((boxRect?.bottom ?? 0) + 1);
 		} finally {
 			style.remove();
 		}
@@ -699,5 +817,30 @@ describe("MultiSelect.Item label slot (browser)", () => {
 		} finally {
 			style.remove();
 		}
+	});
+	test("a Tab into the input opens the list; focus from script does not", async () => {
+		render(
+			<>
+				<button type="button">Before</button>
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.Input aria-label="Fruits" />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>
+			</>,
+		);
+		const input = screen.getByRole("combobox", { name: "Fruits" });
+		input.focus();
+		expect(input).toHaveAttribute("aria-expanded", "false");
+		screen.getByRole("button", { name: "Before" }).focus();
+
+		await browserUser.keyboard("{Tab}");
+
+		expect(input).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		expect(screen.getByRole("option", { name: "Apple" })).toBeInTheDocument();
 	});
 });

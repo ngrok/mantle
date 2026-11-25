@@ -7,7 +7,6 @@ import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
 import { WarningIcon } from "@phosphor-icons/react/Warning";
 import { WarningDiamondIcon } from "@phosphor-icons/react/WarningDiamond";
 import { XIcon } from "@phosphor-icons/react/X";
-import { cva } from "class-variance-authority";
 import type { ComponentProps, ReactNode, RefObject } from "react";
 import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import invariant from "tiny-invariant";
@@ -106,41 +105,26 @@ const AlertContextProvider = ({
 	return <AlertContext.Provider value={context}>{children}</AlertContext.Provider>;
 };
 
-const alertVariants = cva(
-	"relative flex w-full gap-1.5 rounded-md border p-2.5 text-sm font-sans",
-	{
-		variants: {
-			/**
-			 * The intent of the Alert: the status its color communicates to the user,
-			 * determining the color and styling of the Alert.
-			 */
-			intent: {
-				danger:
-					"border-danger-500/50 bg-danger-500/10 text-danger-700 [&_code]:bg-danger-500/10 [&_code]:border-danger-500/20 [&_code]:text-danger-900 [&_a:not([data-slot~=button])]:text-danger-700 [&_a:not([data-slot~=button])]:underline",
-				important:
-					"border-important-500/50 bg-important-500/10 text-important-700 [&_code]:bg-important-500/10 [&_code]:border-important-500/20 [&_code]:text-important-900 [&_a:not([data-slot~=button])]:text-important-700 [&_a:not([data-slot~=button])]:underline",
-				info: "border-info-500/50 bg-info-500/10 text-info-700 [&_code]:bg-info-500/10 [&_code]:border-info-500/20 [&_code]:text-info-900 [&_a:not([data-slot~=button])]:text-info-700 [&_a:not([data-slot~=button])]:underline",
-				// neutral: "border-neutral-500/50 bg-neutral-500/10 text-neutral-700",
-				success:
-					"border-success-500/50 bg-success-500/10 text-success-700 [&_code]:bg-success-500/10 [&_code]:border-success-500/20 [&_code]:text-success-900 [&_a:not([data-slot~=button])]:text-success-700 [&_a:not([data-slot~=button])]:underline",
-				warning:
-					"border-warning-500/50 bg-warning-500/10 text-warning-700 [&_code]:bg-warning-500/10 [&_code]:border-warning-500/20 [&_code]:text-warning-900 [&_a:not([data-slot~=button])]:text-warning-700 [&_a:not([data-slot~=button])]:underline",
-			} as const satisfies Record<AlertIntent, string>,
-			/**
-			 * Controls the visual style of the Alert.
-			 * - "default" keeps the standard rounded corners and borders.
-			 * - "banner" creates a banner-style alert with no rounded corners, sticky positioning, and no left/right borders.
-			 *
-			 * @default "default"
-			 */
-			appearance: {
-				// TODO: banner bg should color-mix with bg-popover per intent
-				banner: "border-x-0 border-t-0 rounded-none z-50 sticky",
-				default: "",
-			} as const satisfies Record<Appearance, string>,
-		},
-	},
-);
+/** The colors of each intent: the status the Alert's color communicates. */
+const intentClasses = {
+	danger:
+		"border-danger-500/50 bg-danger-500/10 text-danger-700 [&_code]:bg-danger-500/10 [&_code]:border-danger-500/20 [&_code]:text-danger-900 [&_a:not([data-slot~=button])]:text-danger-700 [&_a:not([data-slot~=button])]:underline",
+	important:
+		"border-important-500/50 bg-important-500/10 text-important-700 [&_code]:bg-important-500/10 [&_code]:border-important-500/20 [&_code]:text-important-900 [&_a:not([data-slot~=button])]:text-important-700 [&_a:not([data-slot~=button])]:underline",
+	info: "border-info-500/50 bg-info-500/10 text-info-700 [&_code]:bg-info-500/10 [&_code]:border-info-500/20 [&_code]:text-info-900 [&_a:not([data-slot~=button])]:text-info-700 [&_a:not([data-slot~=button])]:underline",
+	// neutral: "border-neutral-500/50 bg-neutral-500/10 text-neutral-700",
+	success:
+		"border-success-500/50 bg-success-500/10 text-success-700 [&_code]:bg-success-500/10 [&_code]:border-success-500/20 [&_code]:text-success-900 [&_a:not([data-slot~=button])]:text-success-700 [&_a:not([data-slot~=button])]:underline",
+	warning:
+		"border-warning-500/50 bg-warning-500/10 text-warning-700 [&_code]:bg-warning-500/10 [&_code]:border-warning-500/20 [&_code]:text-warning-900 [&_a:not([data-slot~=button])]:text-warning-700 [&_a:not([data-slot~=button])]:underline",
+} as const satisfies Record<AlertIntent, string>;
+
+/** "banner" has no rounded corners, sticks to the top, and has no left or right border. */
+const appearanceClasses = {
+	// TODO: banner bg should color-mix with bg-popover per intent
+	banner: "border-x-0 border-t-0 rounded-none z-50 sticky",
+	default: "",
+} as const satisfies Record<Appearance, string>;
 
 type AlertProps = ComponentProps<"div"> & {
 	/**
@@ -207,7 +191,9 @@ const Root = ({
 				ref={ref}
 				data-slot={joinDataSlot(dataSlot, "alert")}
 				className={cx(
-					alertVariants({ appearance, intent }),
+					"relative flex w-full gap-1.5 rounded-xl border p-2.5 text-sm font-sans",
+					intentClasses[intent],
+					appearanceClasses[appearance],
 					// Each trailing control reserves its own space: the root's right
 					// padding makes room for dismiss, and the content's padding makes
 					// room for expand. Dismiss stays rightmost, so expand moves left of
@@ -220,9 +206,9 @@ const Root = ({
 					"has-[[data-alert-dismiss][data-size=lg]]:[--alert-dismiss-room:--spacing(13)]",
 					"has-[[data-alert-dismiss][data-size=xl]]:[--alert-dismiss-room:--spacing(15)]",
 					"has-data-alert-dismiss:pr-(--alert-dismiss-room)",
-					"has-data-alert-dismiss:**:data-alert-expand:right-(--alert-dismiss-room)",
-					"has-data-alert-expand:**:data-[slot~=alert-content]:pr-16",
-					"md:has-data-alert-expand:**:data-[slot~=alert-content]:pr-24",
+					"has-data-alert-dismiss:[&_[data-alert-expand]]:right-(--alert-dismiss-room)",
+					"has-data-alert-expand:[&_[data-slot~=alert-content]]:pr-16",
+					"md:has-data-alert-expand:[&_[data-slot~=alert-content]]:pr-24",
 					className,
 				)}
 				style={$cssProperties({

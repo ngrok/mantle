@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, ReactNode } from "react";
 import { renderToString } from "react-dom/server";
@@ -30,9 +30,8 @@ describe("Tabs", () => {
 			},
 		);
 
-		// Why: `orientation` reaches the tablist through mantle's context, not
-		// Radix, and `aria-orientation` is what tells assistive tech and Radix's
-		// roving focus which arrow keys move between tabs.
+		// Why: `orientation` reaches the tablist through mantle's context, and
+		// `aria-orientation` tells assistive tech which arrow keys move between tabs.
 		test.each(["horizontal", "vertical"] as const)(
 			"flows orientation=%s to the root element and the tablist",
 			(orientation) => {
@@ -89,9 +88,8 @@ describe("Tabs", () => {
 			);
 		}
 
-		// Why mousedown: Radix activates a trigger on mousedown and moves focus to it
-		// in the same handler, and the focus activates it again. A controlled root
-		// re-renders after both, so the second call carries the same value.
+		// Why mousedown: `useTabs` focuses the tab on mousedown, then selects it. Its
+		// focus handler skips the pressed tab, so one press is one call.
 		test("fires once per activation on a controlled root", () => {
 			const onValueChange = vi.fn<(value: string) => void>();
 			render(<ControlledTabs onValueChange={onValueChange} />);
@@ -271,6 +269,94 @@ describe("Tabs", () => {
 			expect(screen.getByRole("tab", { name: "Tab B" })).toHaveFocus();
 			expect(screen.getByRole("tab", { name: "Tab B" })).toHaveAttribute("aria-selected", "true");
 			expect(scrollIntoView).toHaveBeenCalledTimes(2);
+		});
+
+		test("onKeyDown with preventDefault on the focused tab stops an arrow key", async () => {
+			const user = userEvent.setup();
+			const onValueChange = vi.fn<(value: string) => void>();
+			render(
+				<Tabs.Root defaultValue="a" onValueChange={onValueChange}>
+					<Tabs.List>
+						<Tabs.Trigger value="a" onKeyDown={(event) => event.preventDefault()}>
+							Tab A
+						</Tabs.Trigger>
+						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			await user.tab();
+			await user.keyboard("{ArrowRight}");
+
+			expect(screen.getByRole("tab", { name: "Tab A" })).toHaveFocus();
+			expect(screen.getByRole("tab", { name: "Tab A" })).toHaveAttribute("aria-selected", "true");
+			expect(onValueChange).not.toHaveBeenCalled();
+		});
+
+		test("an arrow key selects the next tab before focus reaches it", async () => {
+			const user = userEvent.setup();
+			const onValueChange = vi.fn<(value: string) => void>();
+			let selectedOnFocus: string | null = null;
+			render(
+				<Tabs.Root defaultValue="a" onValueChange={onValueChange}>
+					<Tabs.List>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger
+							value="b"
+							onFocus={(event) => {
+								selectedOnFocus = event.currentTarget.getAttribute("aria-selected");
+							}}
+						>
+							Tab B
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			await user.tab();
+			await user.keyboard("{ArrowRight}");
+
+			// Why: NVDA reads a tab on focus and again when its selection changes.
+			expect(selectedOnFocus).toBe("true");
+			expect(onValueChange).toHaveBeenCalledTimes(1);
+			expect(onValueChange).toHaveBeenLastCalledWith("b");
+		});
+
+		test("arrow keys move focus and raise no error with no scrollIntoView or matchMedia, as in jsdom", async () => {
+			const saved = Object.getOwnPropertyDescriptor(Element.prototype, "scrollIntoView");
+			Object.defineProperty(Element.prototype, "scrollIntoView", {
+				configurable: true,
+				value: undefined,
+			});
+			vi.stubGlobal("matchMedia", undefined);
+			const errors: unknown[] = [];
+			const onError = (event: ErrorEvent) => errors.push(event.error);
+			window.addEventListener("error", onError);
+			try {
+				const user = userEvent.setup();
+				render(
+					<Tabs.Root orientation="horizontal" defaultValue="a">
+						<Tabs.List>
+							<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+							<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>,
+				);
+
+				await user.tab();
+				await user.keyboard("{ArrowRight}");
+
+				expect(screen.getByRole("tab", { name: "Tab B" })).toHaveFocus();
+				expect(screen.getByRole("tab", { name: "Tab B" })).toHaveAttribute("aria-selected", "true");
+				expect(errors).toEqual([]);
+			} finally {
+				window.removeEventListener("error", onError);
+				if (saved == null) {
+					Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+				} else {
+					Object.defineProperty(Element.prototype, "scrollIntoView", saved);
+				}
+			}
 		});
 
 		test("keyboard focus in a vertical tablist does not scroll the trigger into view", async () => {
@@ -486,9 +572,9 @@ describe("Tabs", () => {
 	});
 
 	describe("Trigger", () => {
-		// Regression: a cloned `tabIndex: 0` won over Radix's roving `tabIndex`, so
+		// Regression: a cloned `tabIndex: 0` won over the roving `tabIndex`, so
 		// every asChild tab was a Tab stop instead of only the active one.
-		test("asChild keeps Radix's roving tabIndex so only the active tab is a Tab stop", async () => {
+		test("asChild keeps the roving tabIndex so only the active tab is a Tab stop", async () => {
 			const user = userEvent.setup();
 			render(
 				<>
@@ -786,10 +872,70 @@ describe("Tabs", () => {
 			expect(html).toContain("Panel B");
 			expect(html).not.toContain("Panel C");
 		});
+
+		// Why a consumer tabIndex: the panel forwards it, so the reveal cannot read
+		// the selected state from the panel's own `tabIndex`.
+		test.each([-1, 0])(
+			"a revealed panel with tabIndex={%i} selects its tab and stays shown",
+			async (tabIndex) => {
+				render(
+					<Tabs.Root defaultValue="a">
+						<Tabs.List>
+							<Tabs.Trigger value="a">A</Tabs.Trigger>
+							<Tabs.Trigger value="b">B</Tabs.Trigger>
+						</Tabs.List>
+						<Tabs.Content value="a">Panel A</Tabs.Content>
+						<Tabs.Content value="b" hiddenUntilFound tabIndex={tabIndex}>
+							Panel B
+						</Tabs.Content>
+					</Tabs.Root>,
+				);
+				const panel = screen.getByText("Panel B");
+				expect(panel).toHaveAttribute("hidden", "until-found");
+
+				// The browser removes `hidden` when find-in-page reaches the panel.
+				act(() => {
+					panel.removeAttribute("hidden");
+				});
+
+				await waitFor(() => {
+					expect(screen.getByRole("tab", { name: "B" })).toHaveAttribute("aria-selected", "true");
+				});
+				expect(panel).not.toHaveAttribute("hidden");
+			},
+		);
 	});
 });
 
 describe("HeadlessTabs", () => {
+	// Why a custom id: the reveal must not find the trigger by its generated id.
+	test("a revealed panel whose trigger has its own id selects the tab and stays shown", async () => {
+		render(
+			<HeadlessTabs.Root defaultValue="a">
+				<HeadlessTabs.List>
+					<HeadlessTabs.Trigger value="a">A</HeadlessTabs.Trigger>
+					<HeadlessTabs.Trigger value="b" id="custom-b">
+						B
+					</HeadlessTabs.Trigger>
+				</HeadlessTabs.List>
+				<HeadlessTabs.Content value="a">Panel A</HeadlessTabs.Content>
+				<HeadlessTabs.Content value="b" hiddenUntilFound>
+					Panel B
+				</HeadlessTabs.Content>
+			</HeadlessTabs.Root>,
+		);
+		const panel = screen.getByText("Panel B");
+
+		act(() => {
+			panel.removeAttribute("hidden");
+		});
+
+		await waitFor(() => {
+			expect(screen.getByRole("tab", { name: "B" })).toHaveAttribute("aria-selected", "true");
+		});
+		expect(panel).not.toHaveAttribute("hidden");
+	});
+
 	test("keeps the tabs keyboard and ARIA contract without the Tabs look", async () => {
 		const user = userEvent.setup();
 		const onValueChange = vi.fn<(value: string) => void>();

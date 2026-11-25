@@ -33,30 +33,23 @@ describe("decorateHighlightedHtml", () => {
 		expect(result).toContain("const y = 2;");
 	});
 
-	test("replaces empty lines with a space to preserve line height", () => {
+	test("gives an empty line one space, so it keeps its height and copies as a blank line", () => {
 		const html = shikiHtml(["line1", "", "line3"]);
 		const result = decorateHighlightedHtml({ html });
+		const container = document.createElement("div");
+		container.innerHTML = result;
 
-		expect(result).toContain('data-slot="line-content"> </span>');
+		expect(container.textContent).toBe("line1\n \nline3");
 	});
 
-	test("adds line numbers when showLineNumbers is true", () => {
+	test("carries line numbers in data-line-number, out of the text", () => {
 		const html = shikiHtml(["a", "b"]);
-		const result = decorateHighlightedHtml({ html, showLineNumbers: true });
+		const result = decorateHighlightedHtml({ html, lineNumberStart: 10 });
 
-		expect(result).toContain('class="mantle-code-line-number"');
-		expect(result).toContain('data-slot="line-number" aria-hidden="true">1</span>');
-		expect(result).toContain('data-slot="line-number" aria-hidden="true">2</span>');
-	});
-
-	test("respects lineNumberStart offset", () => {
-		const html = shikiHtml(["a", "b"]);
-		const result = decorateHighlightedHtml({ html, showLineNumbers: true, lineNumberStart: 10 });
-
-		expect(result).toContain('data-slot="line-number" aria-hidden="true">10</span>');
-		expect(result).toContain('data-slot="line-number" aria-hidden="true">11</span>');
+		// Why: CSS draws the number, so the text that copy and crawlers read is only the code.
 		expect(result).toContain('data-line-number="10"');
 		expect(result).toContain('data-line-number="11"');
+		expect(result.replace(/<[^>]+>/g, "")).toBe("a\nb");
 	});
 
 	test("highlights specified lines", () => {
@@ -66,13 +59,6 @@ describe("decorateHighlightedHtml", () => {
 		expect(classesForLine(result, 2)).toContain("mantle-code-line-highlighted");
 		expect(classesForLine(result, 1)).not.toContain("mantle-code-line-highlighted");
 		expect(classesForLine(result, 3)).not.toContain("mantle-code-line-highlighted");
-	});
-
-	test("omits line numbers when showLineNumbers is false", () => {
-		const html = shikiHtml(["a"]);
-		const result = decorateHighlightedHtml({ html, showLineNumbers: false });
-
-		expect(result).not.toContain("mantle-code-line-number");
 	});
 
 	test("strips trailing newlines from input", () => {
@@ -153,7 +139,6 @@ describe("decorateHighlightedHtml", () => {
 				html,
 				foldableRanges: [{ id: "1", startLine: 1, endLine: 3 }],
 				lineNumberStart: 100,
-				showLineNumbers: true,
 			});
 
 			// Displayed line numbers reflect lineNumberStart...
@@ -182,15 +167,16 @@ describe("decorateHighlightedHtml", () => {
 			expect(result.match(/mantle-code-line-opener/g) ?? []).toHaveLength(1);
 		});
 
-		test("renders a trailing ellipsis only on opener lines", () => {
+		test("marks only opener lines for the fold ellipsis", () => {
 			const html = shikiHtml(["[", "  1", "]"]);
 			const result = decorateHighlightedHtml({
 				html,
 				foldableRanges: [{ id: "1", startLine: 1, endLine: 3 }],
 			});
 
-			const ellipsisCount = (result.match(/class="mantle-code-fold-ellipsis"/g) ?? []).length;
-			expect(ellipsisCount).toBe(1);
+			// Why the class: CSS draws the ellipsis after an opener line's content.
+			expect(result.match(/mantle-code-line-opener/g)).toHaveLength(1);
+			expect(result).not.toContain("⋯");
 		});
 
 		test("nests parent regions on lines that belong to multiple folds", () => {

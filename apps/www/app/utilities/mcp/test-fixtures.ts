@@ -119,8 +119,9 @@ export function packageFilesFixture(version = "0.93.0"): PackageFiles {
 		[
 			"dist/button-AbC123.d.ts",
 			[
+				'import { ComponentProps } from "react";',
 				"/** The props of `Button`. */",
-				'type ButtonProps = { intent: "neutral" | "danger" };',
+				'type ButtonProps = ComponentProps<"button"> & { intent: "neutral" | "danger" };',
 				"/** Starts an action. */",
 				"declare const Button: (props: ButtonProps) => unknown;",
 				"export { ButtonProps as n, Button as t };",

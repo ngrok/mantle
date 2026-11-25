@@ -30,13 +30,20 @@ declare module "vitest/browser" {
 			colorScheme?: "light" | "dark";
 			reducedMotion?: "reduce" | "no-preference";
 			forcedColors?: "active" | "none";
+			/** Chromium only. `"none"` turns on touch emulation, which also sets `pointer: coarse`. */
+			hover?: "hover" | "none";
 		}) => Promise<void>;
 		/**
-		 * Compiles the Tailwind utilities that a source file uses, with the path
-		 * relative to the test file. Browser project only; the config registers
-		 * the command.
+		 * Compiles the Tailwind utilities that one or more source files use, with
+		 * paths relative to the test file. Browser project only; the config
+		 * registers the command. `theme` adds the first `@theme` block of
+		 * `mantle.css`. `mantleCss` compiles against all of `mantle.css`, with
+		 * the light and dark tokens.
 		 */
-		tailwindCss: (sourceFile: string) => Promise<string>;
+		tailwindCss: (
+			sourceFiles: string | readonly string[],
+			options?: { theme?: boolean; mantleCss?: boolean },
+		) => Promise<string>;
 	}
 }
 
@@ -50,8 +57,8 @@ if (canUseDOM() && "happyDOM" in window) {
 }
 
 // Why: Chromium computes `::before` and `::after` content, which can name an element
-// (`ThemeSwitcher`). Testing Library reads it only when told; happy-dom computes none.
-if (canUseDOM() && !("happyDOM" in window)) {
+// (`ThemeSwitcher`). Testing Library reads it only when told; happy-dom and jsdom compute none.
+if (canUseDOM() && !("happyDOM" in window) && !navigator.userAgent.includes("jsdom")) {
 	configure({ computedStyleSupportsPseudoElements: true });
 }
 

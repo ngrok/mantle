@@ -4,6 +4,7 @@ import path from "node:path";
 import { compile } from "@tailwindcss/node";
 import { Scanner } from "@tailwindcss/oxide";
 import { playwright, type PlaywrightProviderOptions } from "@vitest/browser-playwright";
+import type { CDPSession } from "playwright";
 import { configDefaults, defineConfig } from "vitest/config";
 import type { BrowserCommand } from "vitest/node";
 
@@ -59,20 +60,37 @@ type EmulatedMedia = {
 	colorScheme?: "light" | "dark";
 	reducedMotion?: "reduce" | "no-preference";
 	forcedColors?: "active" | "none";
+	/** Chromium only. `"none"` turns on touch emulation, which also sets `pointer: coarse`. */
+	hover?: "hover" | "none";
 };
 
 // Why a command: a media feature such as `prefers-reduced-motion` is a Playwright
 // page emulation, and no script inside the test iframe can set it.
 // Why wait on the frame: Firefox applies the emulation to the test iframe after
 // `emulateMedia` resolves, so a test that renders at once still reads the old value.
+// Why touch emulation for `hover`: Playwright's `emulateMedia` has no hover feature,
+// and Chromium ignores `hover` in `Emulation.setEmulatedMedia`. Why one session for
+// each page: the emulation belongs to the session that turned it on.
+const touchSessions = new WeakMap<object, CDPSession>();
 const emulateMedia: BrowserCommand<[options: EmulatedMedia]> = async (context, options) => {
-	await context.page.emulateMedia(options);
+	const { hover, ...playwrightOptions } = options;
+	await context.page.emulateMedia(playwrightOptions);
+	const frame = await context.frame();
+	if (hover != null) {
+		const session =
+			touchSessions.get(context.page) ?? (await context.page.context().newCDPSession(context.page));
+		touchSessions.set(context.page, session);
+		await session.send("Emulation.setTouchEmulationEnabled", {
+			enabled: hover === "none",
+			maxTouchPoints: 1,
+		});
+	}
 	const queries = Object.entries({
 		"prefers-color-scheme": options.colorScheme,
 		"prefers-reduced-motion": options.reducedMotion,
 		"forced-colors": options.forcedColors,
+		hover,
 	}).flatMap(([feature, value]) => (value == null ? [] : [`(${feature}: ${value})`]));
-	const frame = await context.frame();
 	await frame.waitForFunction((list) => list.every((query) => matchMedia(query).matches), queries);
 };
 
@@ -101,7 +119,7 @@ const mantleCustomVariants = async (): Promise<string> => {
 const mantleUtilities = async (): Promise<string> => {
 	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
 	const rules = css.match(
-		/^@utility (?:focus-ring|theme-switcher-name|otp-input-overlay|scroll-cue-y)[^{]*\{[\s\S]*?^\}/gm,
+		/^@utility (?:focus-ring|theme-switcher-name|otp-input-overlay|scroll-cue-y|combobox-match-line)[^{]*\{[\s\S]*?^\}/gm,
 	);
 	if (rules == null) {
 		throw new Error("mantle.css holds no focus-ring or theme-switcher-name utilities.");
@@ -129,6 +147,20 @@ const mantleAnimations = async (): Promise<string> => {
 	return `@theme inline {\n${rules.join("\n")}\n}`;
 };
 
+/**
+ * The first `@theme` block of `mantle.css`: the accent colors and the type
+ * scale. Without it, Tailwind compiles a class such as `decoration-accent-600`
+ * or `text-heading-sm` to nothing.
+ */
+const mantleTheme = async (): Promise<string> => {
+	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
+	const theme = /^@theme \{[\s\S]*?^\}/m.exec(css);
+	if (theme == null) {
+		throw new Error("mantle.css holds no @theme block.");
+	}
+	return theme[0];
+};
+
 /** The `ease-*` tokens of mantle's theme, so a test reads the curve that a component's class compiles to. */
 const mantleEasings = async (): Promise<string> => {
 	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
@@ -141,23 +173,38 @@ const mantleEasings = async (): Promise<string> => {
 
 // Why a command: a browser test asserts layout, so it needs the CSS that Tailwind
 // really compiles for a component. A hand-written copy keeps passing when Tailwind
-// drops a rule. The path is relative to the test file.
-const tailwindCss: BrowserCommand<[sourceFile: string]> = async ({ testPath }, sourceFile) => {
+// drops a rule. The paths are relative to the test file.
+// Why the theme is opt-in: older tests pin Tailwind's default colors.
+// Why `mantleCss`: a contrast test needs every light and dark token, so it compiles against all of mantle.css.
+// Why several sources: a part can take classes from another module, such as `IconButton`'s variants.
+const tailwindCss: BrowserCommand<
+	[sourceFiles: string | readonly string[], options?: { theme?: boolean; mantleCss?: boolean }]
+> = async ({ testPath }, sourceFiles, options) => {
 	if (testPath == null) {
 		throw new Error("tailwindCss runs only inside a test file.");
 	}
-	const file = path.resolve(path.dirname(testPath), sourceFile);
-	const content = await readFile(file, "utf8");
-	const candidates = new Scanner({ sources: [] })
-		.getCandidatesWithPositions({ content, extension: path.extname(file).slice(1) })
-		.map(({ candidate }) => candidate);
-	const compiler = await compile(
-		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${await mantleEasings()}\n${await mantleCustomVariants()}\n${await mantleUtilities()}\n${await mantleAnimations()}`,
-		{
-			base: import.meta.dirname,
-			onDependency: () => {},
-		},
+	const files = (typeof sourceFiles === "string" ? [sourceFiles] : sourceFiles).map((sourceFile) =>
+		path.resolve(path.dirname(testPath), sourceFile),
 	);
+	const candidates = (
+		await Promise.all(
+			files.map(async (file) =>
+				new Scanner({ sources: [] })
+					.getCandidatesWithPositions({
+						content: await readFile(file, "utf8"),
+						extension: path.extname(file).slice(1),
+					})
+					.map(({ candidate }) => candidate),
+			),
+		)
+	).flat();
+	const input = options?.mantleCss
+		? `@import "./src/mantle.css";`
+		: `@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${options?.theme ? await mantleTheme() : ""}\n${await mantleEasings()}\n${await mantleCustomVariants()}\n${await mantleUtilities()}\n${await mantleAnimations()}`;
+	const compiler = await compile(input, {
+		base: import.meta.dirname,
+		onDependency: () => {},
+	});
 	return compiler.build(candidates);
 };
 
@@ -229,15 +276,30 @@ export default defineConfig({
 					name: "unit",
 					environment: "happy-dom",
 					include: ["**/*.test.{ts,tsx}"],
-					exclude: [...configDefaults.exclude, "**/*.browser.test.{ts,tsx}"],
+					exclude: [
+						...configDefaults.exclude,
+						"**/*.browser.test.{ts,tsx}",
+						"**/*.consumer.test.{ts,tsx}",
+					],
 					// Why: the theme and chart tests import the shipped stylesheets with `?raw`, and
 					// without this Vitest hands them an empty module.
 					css: true,
-					// Why `isolate: false`: an isolated worker builds a new happy-dom and imports React,
-					// Radix, and the rest again for each file. The setup file reset keeps the files
+					// Why `isolate: false`: an isolated worker builds a new happy-dom and imports React
+					// and the rest again for each file. The setup file reset keeps the files
 					// independent in the shared worker.
 					isolate: false,
 					setupFiles: ["./vitest.setup-file-reset.ts"],
+				},
+			},
+			{
+				plugins: compilerPlugins,
+				test: {
+					// Why a jsdom project with no shims: a consumer's suite runs mantle in plain jsdom, which
+					// has no popover API, no `showModal()`, no observers, and no `matchMedia`. The unit
+					// project's happy-dom shims hide each of those paths.
+					name: "consumer",
+					environment: "jsdom",
+					include: ["**/*.consumer.test.{ts,tsx}"],
 				},
 			},
 			{
@@ -250,6 +312,10 @@ export default defineConfig({
 				test: {
 					name: "browser",
 					include: ["**/*.browser.test.{ts,tsx}"],
+					// Why: `VITEST_MAX_WORKERS` marks a small machine, such as an Amp orb. There, Chromium
+					// and the unit forks at the same time run out of memory, so this project starts after
+					// the unit project ends.
+					sequence: { groupOrder: process.env.VITEST_MAX_WORKERS ? 1 : 0 },
 					// Why a bench project: the `bench` test-context fixture refuses to run in a regular
 					// project, so this derives a `browser (chromium) (bench)` project that runs
 					// `*.browser.bench.ts` under `vitest run`. CI selects both with `--project='browser*'`.

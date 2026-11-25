@@ -17,16 +17,15 @@ describe("ProgressBar.Root", () => {
 		expect(bar.querySelector('[data-slot="progress-bar-indicator"]')).not.toBeNull();
 	});
 
-	test("states the percent in aria-valuetext and marks the bar loading, then complete at max", () => {
+	test("states the percent in aria-valuetext, then 100% at max", () => {
 		const { rerender } = render(
 			<ProgressBar.Root aria-label="Upload progress" value={50} max={200} />,
 		);
 		const bar = screen.getByRole("progressbar");
 		expect(bar).toHaveAttribute("aria-valuetext", "25%");
-		expect(bar).toHaveAttribute("data-state", "loading");
+		expect(bar).not.toHaveAttribute("data-indeterminate");
 		rerender(<ProgressBar.Root aria-label="Upload progress" value={200} max={200} />);
 		expect(bar).toHaveAttribute("aria-valuetext", "100%");
-		expect(bar).toHaveAttribute("data-state", "complete");
 	});
 
 	test("respects a custom max", () => {
@@ -36,11 +35,11 @@ describe("ProgressBar.Root", () => {
 		expect(bar).toHaveAttribute("aria-valuenow", "150");
 	});
 
-	test("omits aria-valuenow while indeterminate", () => {
+	test("omits aria-valuenow and marks data-indeterminate while indeterminate", () => {
 		render(<ProgressBar.Root aria-label="Upload progress" value="indeterminate" />);
 		const bar = screen.getByRole("progressbar");
 		expect(bar).not.toHaveAttribute("aria-valuenow");
-		expect(bar).toHaveAttribute("data-state", "indeterminate");
+		expect(bar).toHaveAttribute("data-indeterminate", "");
 	});
 
 	test("the indicator translates by the remaining fraction of max", () => {

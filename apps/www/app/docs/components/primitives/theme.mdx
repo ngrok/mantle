@@ -184,7 +184,12 @@ Every `setTheme` call that changes the applied theme runs the same swap as `Them
 ```tsx
 const [, setTheme] = useTheme();
 
-<Button type="button" onClick={(event) => setTheme("dark", { origin: event.currentTarget })}>
+<Button
+	type="button"
+	appearance="outlined"
+	intent="neutral"
+	onClick={(event) => setTheme("dark", { origin: event.currentTarget })}
+>
 	Use Dark theme
 </Button>;
 ```

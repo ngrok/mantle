@@ -61,9 +61,9 @@ const STYLE = `
 	.text-lg { font-size: var(--text-lg); line-height: var(--tw-leading, var(--text-lg--line-height)); }
 	.font-medium { font-weight: var(--font-weight-medium); }
 	.has-\\[\\.icon-button\\]\\:pr-4:has(:is(.icon-button)) { padding-right: calc(var(--spacing) * 4); }
-	.\\*\\:data-\\[slot\\~\\=dialog-description\\]\\:order-last > [data-slot~=dialog-description] { order: 9999; }
-	.\\*\\:data-\\[slot\\~\\=dialog-description\\]\\:basis-full > [data-slot~=dialog-description] { flex-basis: 100%; }
-	.\\*\\:data-\\[slot\\~\\=dialog-title\\]\\:flex-1 > [data-slot~=dialog-title] { flex: 1; }
+	.\\[\\&\\>\\[data-slot\\~\\=dialog-description\\]\\]\\:order-last > [data-slot~=dialog-description] { order: 9999; }
+	.\\[\\&\\>\\[data-slot\\~\\=dialog-description\\]\\]\\:basis-full > [data-slot~=dialog-description] { flex-basis: 100%; }
+	.\\[\\&\\>\\[data-slot\\~\\=dialog-title\\]\\]\\:flex-1 > [data-slot~=dialog-title] { flex: 1; }
 }
 `;
 
@@ -178,13 +178,13 @@ const EXIT_STYLE = `
 .motion-safe\\:not-has-\\[\\>\\[data-mantle-modal-content\\]\\[data-state\\=open\\]\\]\\:animate-exit-hold:not(:has( > [data-mantle-modal-content][data-state=open])) {
 	animation: exit-hold 150ms;
 }
-[data-slot~="dialog-content"][data-state="closed"] { animation: quick-exit 50ms; }
+[data-slot~="dialog-content"][data-closing] { animation: quick-exit 50ms; }
 `;
 
 describe("Dialog exit", () => {
 	test("unmounts the positioner when the content exit ends before the hold", async () => {
 		// Regression: the hold matched only while the closed content was in the DOM.
-		// The content left first, the browser cancelled the hold, and Radix kept the
+		// The content left first, the browser cancelled the hold, and Radix's `Presence` kept the
 		// empty positioner mounted over the page.
 		const exitStyle = document.createElement("style");
 		exitStyle.textContent = EXIT_STYLE;
@@ -306,5 +306,40 @@ describe("Dialog.Body", () => {
 
 		screen.getByRole("button", { name: "Before" }).focus();
 		await waitFor(() => expect(body).not.toHaveAttribute("tabindex"));
+	});
+
+	test("a scrolling body reports no ResizeObserver loop error while its dialog plays the exit", async () => {
+		// Regression: the body dropped its tab stop when the closed dialog hid it, and
+		// the observer then observed the body again inside the resize callback.
+		const exitStyle = document.createElement("style");
+		exitStyle.textContent = `@keyframes slow-exit { to { opacity: 0; } }
+[data-slot~="dialog-content"][data-closing] { animation: slow-exit 300ms; }`;
+		document.head.appendChild(exitStyle);
+		const errors: string[] = [];
+		const onError = (event: ErrorEvent) => errors.push(event.message);
+		window.addEventListener("error", onError);
+		try {
+			render(
+				<Dialog.Root defaultOpen>
+					<Dialog.Content>
+						<Dialog.Title>Exit</Dialog.Title>
+						<Dialog.Body data-testid="body" style={bodyStyle}>
+							{lines(10)}
+						</Dialog.Body>
+						<Dialog.Close>Close</Dialog.Close>
+					</Dialog.Content>
+				</Dialog.Root>,
+			);
+			const body = screen.getByTestId("body");
+			await waitFor(() => expect(body).toHaveAttribute("tabindex", "0"));
+
+			await userEvent.click(screen.getByRole("button", { name: "Close" }));
+
+			await waitFor(() => expect(screen.queryByTestId("body")).toBeNull());
+			expect(errors).toEqual([]);
+		} finally {
+			window.removeEventListener("error", onError);
+			exitStyle.remove();
+		}
 	});
 });

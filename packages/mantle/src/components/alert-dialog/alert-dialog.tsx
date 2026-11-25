@@ -181,11 +181,13 @@ type AlertDialogContentProps = Omit<
  * above the content. When multiple overlays are open, the most recently mounted
  * overlay renders on top.
  *
- * A modal alert dialog makes the rest of the page inert, so UI outside it
- * takes no input while it is open. mantle's `Toaster` and `Sandbar` move into
- * the open alert dialog, so they stay usable. With `modal={false}`, UI with the
- * `overlay-prompt` class takes clicks above the alert dialog: a click inside it
- * does not count as an outside click.
+ * A modal alert dialog makes the rest of the page inert. To keep app UI usable
+ * above it, such as a consent banner, wrap the UI in `OverlayPrompt`: while
+ * the alert dialog is open, it moves into the alert dialog, so it takes clicks and focus,
+ * and a press in it does not close the alert dialog. mantle's `Toaster` and
+ * `Sandbar` use it. With `modal={false}`, UI with the `overlay-prompt`
+ * class takes clicks above the alert dialog: a click inside it does not count as
+ * an outside click.
  *
  * A script can show its own popup in a frame on `<body>`, such as the 3-D
  * Secure challenge of a payment script. Set `modal={false}` on an alert dialog
@@ -254,8 +256,8 @@ const Content = ({
 			"max-h-full overflow-y-auto overscroll-none",
 			"outline-hidden focus-within:outline-hidden",
 			"p-6",
-			"border-dialog bg-dialog rounded-xl border shadow-lg duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
-			"data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95",
+			"border-dialog bg-dialog rounded-xl border shadow-lg duration-200 ease-out-strong data-closing:duration-150 motion-reduce:animate-none!",
+			"data-closing:animate-out data-closing:fade-out-0 data-closing:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
 			preferredWidth,
 			className,
 		)}
@@ -310,7 +312,7 @@ const Body = ({
 	return (
 		<Component
 			data-slot={joinDataSlot(dataSlot, "alert-dialog-body")}
-			className={cx("flex-1 space-y-4", className)}
+			className={cx("flex-1 between:mbe-4", className)}
 			ref={ref}
 			{...props}
 		/>
@@ -364,7 +366,7 @@ const Header = ({
 	return (
 		<Component
 			data-slot={joinDataSlot(dataSlot, "alert-dialog-header")}
-			className={cx("flex flex-col space-y-2 text-center sm:text-start", className)}
+			className={cx("flex flex-col between:mbe-2 text-center sm:text-start", className)}
 			ref={ref}
 			{...props}
 		/>
@@ -418,7 +420,7 @@ const Footer = ({
 	return (
 		<Component
 			data-slot={joinDataSlot(dataSlot, "alert-dialog-footer")}
-			className={cx("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}
+			className={cx("flex flex-col-reverse sm:flex-row sm:justify-end sm:between:me-2", className)}
 			ref={ref}
 			{...props}
 		/>

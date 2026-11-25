@@ -47,7 +47,6 @@ describe("mantleCodeRehypePlugin", () => {
 
 		const pre = getPreNode(tree);
 		expect(pre.properties.mantleShowLineNumbers).toBe("true");
-		expect(pre.properties.mantlePreHtml).toContain("mantle-code-line-number");
 	});
 
 	test("defaults showLineNumbers to false for single-line bash", async () => {
@@ -56,7 +55,6 @@ describe("mantleCodeRehypePlugin", () => {
 
 		const pre = getPreNode(tree);
 		expect(pre.properties.mantleShowLineNumbers).toBe("false");
-		expect(pre.properties.mantlePreHtml).not.toContain("mantle-code-line-number");
 	});
 
 	// Why multi-line shell: only this case shows the full code text, newlines
@@ -67,7 +65,6 @@ describe("mantleCodeRehypePlugin", () => {
 
 		const pre = getPreNode(tree);
 		expect(pre.properties.mantleShowLineNumbers).toBe("true");
-		expect(pre.properties.mantlePreHtml).toContain("mantle-code-line-number");
 	});
 
 	test("meta showLineNumbers=true overrides single-line shell default", async () => {
@@ -76,7 +73,6 @@ describe("mantleCodeRehypePlugin", () => {
 
 		const pre = getPreNode(tree);
 		expect(pre.properties.mantleShowLineNumbers).toBe("true");
-		expect(pre.properties.mantlePreHtml).toContain("mantle-code-line-number");
 	});
 
 	test("meta showLineNumbers=false overrides multi-line default", async () => {
@@ -89,7 +85,6 @@ describe("mantleCodeRehypePlugin", () => {
 
 		const pre = getPreNode(tree);
 		expect(pre.properties.mantleShowLineNumbers).toBe("false");
-		expect(pre.properties.mantlePreHtml).not.toContain("mantle-code-line-number");
 	});
 
 	test("property showLineNumbers overrides single-line shell default", async () => {

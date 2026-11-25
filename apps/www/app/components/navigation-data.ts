@@ -1,4 +1,5 @@
 import type { href } from "react-router";
+import migrationGuides from "virtual:migration-guides";
 
 type Route = Parameters<typeof href>[0];
 
@@ -9,13 +10,15 @@ type Route = Parameters<typeof href>[0];
  * `/components/<category-slug>/<component-slug>`.
  *
  * Categories describe what a component *is* in the UI (an action, a form
- * control, an overlay, …). Page/viewport structure primitives graduate to
+ * control, an overlay, …). AI is the one domain category: it holds the parts
+ * of an AI chat, so an app builds its assistant from one section. Page/viewport structure primitives graduate to
  * the top-level Layouts section instead. Membership tests (and their
  * precedence order for ambiguous components) live in
  * `decisions/2026-07-08-docs-information-architecture.md`.
  */
 export const componentCategories = [
 	"Actions",
+	"AI",
 	"Charts",
 	"Data Display",
 	"Feedback",
@@ -32,6 +35,7 @@ export type ComponentCategory = (typeof componentCategories)[number];
 /** URL segment for each component category. */
 export const componentCategorySlugs = {
 	Actions: "actions",
+	AI: "ai",
 	Charts: "charts",
 	"Data Display": "data-display",
 	Feedback: "feedback",
@@ -50,6 +54,16 @@ export const componentCategorySlugs = {
  */
 export const componentsByCategory = {
 	Actions: ["Button", "Icon Button", "Split Button"],
+	AI: [
+		"Attachment",
+		"Conversation",
+		"Conversation Outline",
+		"Message",
+		"Prompt Input",
+		"Reasoning",
+		"Tool Call",
+		"Work",
+	],
 	Charts: ["Area Chart", "Bar Chart", "Line Chart", "Scatter Plot"],
 	"Data Display": [
 		"Accordion",
@@ -64,6 +78,7 @@ export const componentsByCategory = {
 		"Icons",
 		"Kbd",
 		"List",
+		"Markdown",
 		"QR Code",
 		"Selectable List",
 		"Table",
@@ -82,6 +97,7 @@ export const componentsByCategory = {
 	],
 	Forms: [
 		"Checkbox",
+		"Chip",
 		"Choice",
 		"Combobox",
 		"Field",
@@ -113,6 +129,7 @@ export const componentsByCategory = {
 		"Browser Only",
 		"Live Region",
 		"Main",
+		"Overlay Prompt",
 		"SandboxedOnClick",
 		"Skip to Main Link",
 		"Slot",
@@ -122,7 +139,7 @@ export const componentsByCategory = {
 	// Structure: contains, divides, or arranges arbitrary content, unlike Data
 	// Display, which presents specific content. Page/viewport structure
 	// belongs to the top-level Layouts section, not here.
-	Structure: ["Card", "Media Object", "Separator", "Strata", "Well"],
+	Structure: ["Card", "Media Object", "Panel", "Separator", "Strata", "Well"],
 } as const satisfies Record<ComponentCategory, readonly string[]>;
 
 /** Display name of a production-ready component. */
@@ -156,6 +173,7 @@ export const prodReadyComponentRouteLookup = {
 	"Alert Dialog": "/components/overlays/alert-dialog",
 	Anchor: "/components/navigation/anchor",
 	"Area Chart": "/components/charts/area-chart",
+	Attachment: "/components/ai/attachment",
 	Avatar: "/components/data-display/avatar",
 	Badge: "/components/data-display/badge",
 	"Bar Chart": "/components/charts/bar-chart",
@@ -164,11 +182,14 @@ export const prodReadyComponentRouteLookup = {
 	Button: "/components/actions/button",
 	Card: "/components/structure/card",
 	Checkbox: "/components/forms/checkbox",
+	Chip: "/components/forms/chip",
 	Choice: "/components/forms/choice",
 	Code: "/components/data-display/code",
 	"Code Block": "/components/data-display/code-block",
 	Combobox: "/components/forms/combobox",
 	Command: "/components/navigation/command",
+	Conversation: "/components/ai/conversation",
+	"Conversation Outline": "/components/ai/conversation-outline",
 	"Data Table": "/components/data-display/data-table",
 	"Description List": "/components/data-display/description-list",
 	Dialog: "/components/overlays/dialog",
@@ -187,17 +208,23 @@ export const prodReadyComponentRouteLookup = {
 	List: "/components/data-display/list",
 	"Live Region": "/components/primitives/live-region",
 	Main: "/components/primitives/main",
+	Markdown: "/components/data-display/markdown",
 	"Media Object": "/components/structure/media-object",
+	Message: "/components/ai/message",
 	"Multi Select": "/components/forms/multi-select",
 	"OTP Input": "/components/forms/otp-input",
+	"Overlay Prompt": "/components/primitives/overlay-prompt",
 	Pagination: "/components/navigation/pagination",
+	Panel: "/components/structure/panel",
 	"Password Input": "/components/forms/password-input",
 	Popover: "/components/overlays/popover",
 	"Progress Bar": "/components/feedback/progress-bar",
 	"Progress Donut": "/components/feedback/progress-donut",
+	"Prompt Input": "/components/ai/prompt-input",
 	"QR Code": "/components/data-display/qr-code",
 	Query: "/components/forms/query",
 	"Radio Group": "/components/forms/radio-group",
+	Reasoning: "/components/ai/reasoning",
 	Sandbar: "/components/feedback/sandbar",
 	SandboxedOnClick: "/components/primitives/sandboxed-on-click",
 	"Scatter Plot": "/components/charts/scatter-plot",
@@ -220,11 +247,13 @@ export const prodReadyComponentRouteLookup = {
 	Theme: "/components/primitives/theme",
 	"Theme Switcher": "/components/forms/theme-switcher",
 	Toast: "/components/feedback/toast",
+	"Tool Call": "/components/ai/tool-call",
 	Tooltip: "/components/overlays/tooltip",
 	"Truncated Text": "/components/data-display/truncated-text",
 	Typography: "/components/data-display/typography",
 	"Visually Hidden": "/components/primitives/visually-hidden",
 	Well: "/components/structure/well",
+	Work: "/components/ai/work",
 } as const satisfies Record<ProdReadyComponent, Route>;
 
 /** Route lookup for preview component pages. */
@@ -272,6 +301,7 @@ export const basePages = [
 	//,
 	"Breakpoints",
 	"Colors",
+	"Design Principles",
 	"Focus Ring",
 	"Hit Area",
 	"Scroll Fade",
@@ -285,6 +315,7 @@ export const basePages = [
 export const baseRoutes = {
 	Breakpoints: "/base/breakpoints",
 	Colors: "/base/colors",
+	"Design Principles": "/base/design-principles",
 	"Focus Ring": "/base/focus-ring",
 	"Hit Area": "/base/hit-area",
 	"Scroll Fade": "/base/scroll-fade",
@@ -357,6 +388,7 @@ export const recipePages = [
 	"Assistant Across Routes",
 	"Breadcrumbs from Routes",
 	"Cancel and Submit Actions",
+	"Chat",
 	"Filter from a Value",
 	"Header Actions from Routes",
 	"List Page Loading States",
@@ -382,6 +414,7 @@ export const recipeRoutes = {
 	"Assistant Across Routes": "/recipes/assistant-across-routes",
 	"Breadcrumbs from Routes": "/recipes/breadcrumbs-from-routes",
 	"Cancel and Submit Actions": "/recipes/cancel-and-submit",
+	Chat: "/recipes/chat",
 	"Filter from a Value": "/recipes/filter-from-a-value",
 	"Header Actions from Routes": "/recipes/header-actions-from-routes",
 	"List Page Loading States": "/recipes/list-page-loading-states",
@@ -400,6 +433,7 @@ export const recipeDescriptions = {
 		"Derive a breadcrumb trail from the matched route chain with React Router route handles \u2014 derived state, so it is correct on the server and on the first frame, with no context and no effects.",
 	"Cancel and Submit Actions":
 		"Where a form's Cancel and submit buttons go: one actions row below its Strata sections of Field rows. Switch to a Sandbar when the form edits saved settings.",
+	Chat: "Compose the AI chat parts into a full assistant: a composer with files, a model picker, and dictation, a transcript that follows a streaming Markdown answer with its reasoning and tool calls, and stop, retry, an empty state, and a failure notice.",
 	"Filter from a Value":
 		"Turn a value in a table row into a Query filter with one click, and take it out with a second click. One pure function, toggleFacet, does the edit.",
 	"Header Actions from Routes":
@@ -424,268 +458,52 @@ export const recipeDescriptions = {
  */
 export type Migration = {
 	/**
-	 * The guide's publish-order number. A guide keeps its number forever, and no
-	 * later guide takes it. It is the four-digit prefix of `route` and of the
-	 * MDX file name.
+	 * The guide's publish-order number, or `null` before the guide ships. The
+	 * release stamps it into the guide's frontmatter, and a guide keeps it forever.
 	 */
-	number: number;
+	number: number | null;
 	/**
-	 * The URL slug without the number prefix. The guides shipped at
+	 * The URL slug without a number prefix. Guides 1 to 35 also shipped at
 	 * `/migrations/<slug>` before they carried a number, so this is the source
-	 * of each guide's legacy redirect.
+	 * of each one's legacy redirect.
 	 */
 	slug: string;
 	/** The short name the index page and the sidebar show. */
 	title: string;
 	/** The one-sentence summary the index page shows under the title. */
 	description: string;
-	/** The canonical docs route: `/migrations/<number>-<slug>`. */
-	route: Route;
+	/** The canonical docs route: `/migrations/<file name>`. */
+	route: `/migrations/${string}`;
 };
 
 /**
- * Zero-pad a migration number to the four digits its URL slug carries.
+ * Format a migration number as the four-digit badge text, or `Unreleased`
+ * before the guide ships.
  *
  * @example
  * formatMigrationNumber(6); // "0006"
+ * formatMigrationNumber(null); // "Unreleased"
  */
-export function formatMigrationNumber(number: number): string {
-	return String(number).padStart(4, "0");
+export function formatMigrationNumber(number: number | null): string {
+	return number == null ? "Unreleased" : String(number).padStart(4, "0");
 }
 
 /**
- * Migration guides in publish order, oldest first. Add a new guide at the end
- * with the next number. Its MDX file lives at
- * `app/docs/migrations/<number>-<slug>.mdx` and its slug is also listed in
- * `app/routes.ts`.
+ * Migration guides, one for each `app/docs/migrations/<name>.mdx`, read from
+ * its frontmatter. A new guide needs no entry here.
  */
-export const migrations = [
-	{
-		number: 1,
-		slug: "code-block-migration",
-		title: "CodeBlock",
-		description: "Migrate from PrismJS-powered code blocks to mantle's Shiki-powered CodeBlock.",
-		route: "/migrations/0001-code-block-migration",
-	},
-	{
-		number: 2,
-		slug: "data-table-action-header-migration",
-		title: "DataTable Action Column",
-		description:
-			"Switch a pinned action column's header to DataTable.ActionHeader so it stays aligned on horizontal scroll.",
-		route: "/migrations/0002-data-table-action-header-migration",
-	},
-	{
-		number: 3,
-		slug: "dialog-footer-dom-order-migration",
-		title: "Dialog.Footer DOM Order",
-		description:
-			"Dialog.Footer now renders children in DOM order. Reverse footer children to preserve their layout.",
-		route: "/migrations/0003-dialog-footer-dom-order-migration",
-	},
-	{
-		number: 4,
-		slug: "priority-to-intent-migration",
-		title: "Priority → Intent",
-		description:
-			"priority is now intent across Button, Alert, AlertDialog, and Toast. Button and IconButton also require explicit appearance and intent.",
-		route: "/migrations/0004-priority-to-intent-migration",
-	},
-	{
-		number: 5,
-		slug: "field-item-owns-control-id-migration",
-		title: "Field.Item Control Id",
-		description:
-			"Field.Item owns the control id: move a child id to Field.Item, drop htmlFor from Field.Label, and update PasswordInput toggle selectors.",
-		route: "/migrations/0005-field-item-owns-control-id-migration",
-	},
-	{
-		number: 6,
-		slug: "data-table-tanstack-v9-migration",
-		title: "DataTable TanStack Table v9",
-		description:
-			"Move a DataTable from TanStack Table v8 to v9: useTable with a features object, columnHelper.columns, sortFn, and table.state.",
-		route: "/migrations/0006-data-table-tanstack-v9-migration",
-	},
-	{
-		number: 7,
-		slug: "app-layout-header-slots-migration",
-		title: "App Layout Header Slots",
-		description:
-			"Compose AppLayout.Header from its three slots, let AppLayout.Body be the main landmark, and render the header in every route instead of the shell.",
-		route: "/migrations/0007-app-layout-header-slots-migration",
-	},
-	{
-		number: 8,
-		slug: "tabs-separator-migration",
-		title: "Tabs Separator",
-		description:
-			"Tabs.List no longer draws a border: compose Tabs.Separator after the list, delete hideBorder, and set --tabs-gap instead of a gap-* class on Tabs.Root.",
-		route: "/migrations/0008-tabs-separator-migration",
-	},
-	{
-		number: 9,
-		slug: "chart-root-mode-migration",
-		title: "Chart Root Mode",
-		description:
-			'The chart Roots take mode in place of the decorative boolean: rewrite decorative to mode="decorative", and move sparklines to mode="static".',
-		route: "/migrations/0009-chart-root-mode-migration",
-	},
-	{
-		number: 10,
-		slug: "button-icon-swap-migration",
-		title: "Button Icon Swap",
-		description:
-			"The Button and IconButton icon now sits inside a span. Replace a [&>svg] selector on the button with [&_svg], or size the icon element itself.",
-		route: "/migrations/0010-button-icon-swap-migration",
-	},
-	{
-		number: 11,
-		slug: "eliminate-high-contrast-migration",
-		title: "Eliminate High Contrast",
-		description:
-			"The high-contrast themes, stylesheets, and variants are gone, MantleStyleSheets takes only darkCssUrl, and ThemeSwitcher is one light/dark toggle.",
-		route: "/migrations/0011-eliminate-high-contrast-migration",
-	},
-	{
-		number: 12,
-		slug: "single-stylesheet-migration",
-		title: "Single Stylesheet",
-		description:
-			"mantle.css holds both themes, so mantle-dark.css, MantleStyleSheets, and mantleStyleSheetUrls are gone.",
-		route: "/migrations/0012-single-stylesheet-migration",
-	},
-	{
-		number: 13,
-		slug: "chart-svg-renderer-migration",
-		title: "Chart SVG Renderer",
-		description:
-			"Bar, Line, and Area charts paint an svg instead of a canvas. Update selectors and tests that read the canvas.",
-		route: "/migrations/0013-chart-svg-renderer-migration",
-	},
-	{
-		number: 14,
-		slug: "chart-named-colors-migration",
-		title: "Chart Named Colors",
-		description:
-			"Every chart series names its color with a mantle color name, the same names Badge takes. The chart-1 to chart-8 tokens, chart-other, and seriesSlot are gone, and color is required.",
-		route: "/migrations/0014-chart-named-colors-migration",
-	},
-	{
-		number: 15,
-		slug: "segmented-control-migration",
-		title: "Segmented Control",
-		description:
-			"RadioGroup.ButtonGroup and RadioGroup.Button are gone. Use SegmentedControl.Root and SegmentedControl.Item from @ngrok/mantle/segmented-control.",
-		route: "/migrations/0015-segmented-control-migration",
-	},
-	{
-		number: 16,
-		slug: "side-panel-lane-collapsed-migration",
-		title: "Side Panel Lane Collapsed",
-		description:
-			"The theme token --container-side-panel-lane-icon-rail is now --container-side-panel-lane-collapsed. Rename it where you set it or read it.",
-		route: "/migrations/0016-side-panel-lane-collapsed-migration",
-	},
-	{
-		number: 17,
-		slug: "select-owned-behavior-migration",
-		title: "Select Owned Behavior",
-		description:
-			"Select no longer uses Radix Select. Select.Content drops its positioning props and Radix handlers, and the --radix-select-* CSS variables are gone.",
-		route: "/migrations/0017-select-owned-behavior-migration",
-	},
-	{
-		number: 18,
-		slug: "combobox-owned-behavior-migration",
-		title: "Combobox Owned Behavior",
-		description:
-			"Combobox no longer uses Ariakit. Its parts take a fixed set of props, Combobox.Content portals, and the highlighted item carries data-highlighted.",
-		route: "/migrations/0018-combobox-owned-behavior-migration",
-	},
-	{
-		number: 19,
-		slug: "multi-select-owned-behavior-migration",
-		title: "MultiSelect Owned Behavior",
-		description:
-			"MultiSelect no longer uses Ariakit. Its parts take a fixed set of props, the list portals into the layer container, and the highlighted item carries data-highlighted.",
-		route: "/migrations/0019-multi-select-owned-behavior-migration",
-	},
-	{
-		number: 20,
-		slug: "native-floats-migration",
-		title: "Native Floats",
-		description:
-			"Popover, Tooltip, and HoverCard are native popovers in the top layer. The Radix positioning props, Popover.Root modal, and HoverCard.Portal are gone, and --anchor-width and --available-height replace the Radix CSS variables.",
-		route: "/migrations/0020-native-floats-migration",
-	},
-	{
-		number: 21,
-		slug: "native-radio-group-migration",
-		title: "Native Radio Group",
-		description:
-			"RadioGroup and SegmentedControl items are now a label around a native radio. Style item state with has-[>input:checked], has-[>input:disabled], and has-[>input:focus-visible] in place of aria-checked, aria-disabled, and focus-visible.",
-		route: "/migrations/0021-native-radio-group-migration",
-	},
-	{
-		number: 22,
-		slug: "alert-center-server-render-migration",
-		title: "Alert Center Server Render",
-		description:
-			"AlertCenter items now render their children on the server, and the top item shows in the server HTML. Gate items and children that only the browser can decide with useIsHydrated, and prefetch the alert data in the root loader.",
-		route: "/migrations/0022-alert-center-server-render-migration",
-	},
-	{
-		number: 23,
-		slug: "tabs-owned-behavior-migration",
-		title: "Tabs Owned Behavior",
-		description:
-			"Tabs and the CodeBlock tabs no longer use Radix. A Radix Tabs part inside a mantle Tabs.Root has no context and throws. Use Tabs.Trigger instead.",
-		route: "/migrations/0023-tabs-owned-behavior-migration",
-	},
-	{
-		number: 24,
-		slug: "command-owned-behavior-migration",
-		title: "Command Owned Behavior",
-		description:
-			"Command no longer uses cmdk. Its parts drop the cmdk-* attributes for data-slot, a filtered item stays mounted with hidden, and groups sort by their best match.",
-		route: "/migrations/0024-command-owned-behavior-migration",
-	},
-	{
-		number: 25,
-		slug: "stone-palette-migration",
-		title: "Stone Palette",
-		description:
-			"mantle.css no longer has the stone palette, so stone classes make no CSS. Use gray, or set the stone stops you need in your own @theme block.",
-		route: "/migrations/0025-stone-palette-migration",
-	},
-	{
-		number: 26,
-		slug: "native-dropdown-menu-migration",
-		title: "Native Dropdown Menu",
-		description:
-			"DropdownMenu is built on native popovers in the top layer. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a menu is not modal by default.",
-		route: "/migrations/0026-native-dropdown-menu-migration",
-	},
-	{
-		number: 27,
-		slug: "native-dialog-migration",
-		title: "Native Dialog",
-		description:
-			"Dialog, AlertDialog, and Sheet render the browser's modal <dialog> in place of Radix Dialog. Set modal={false} on an overlay that holds a third-party frame, and read the backdrop and the panel from their new elements.",
-		route: "/migrations/0027-native-dialog-migration",
-	},
-	{
-		number: 28,
-		slug: "native-slider-migration",
-		title: "Native Slider",
-		description:
-			"Each Slider thumb is now a native range input inside the thumb span. Target the input for focus, keys, ids, and test queries, and expect a disabled slider to submit no value.",
-		route: "/migrations/0028-native-slider-migration",
-	},
-] as const satisfies readonly Migration[];
+export const migrations: readonly Migration[] = migrationGuides.map((guide) => ({
+	number: guide.number,
+	slug: guide.name.replace(/^\d{4}-/, ""),
+	title: guide.title.replace(/ Migration$/, ""),
+	description: guide.description,
+	route: `/migrations/${guide.name}`,
+}));
 
-/** Migration guides, newest first: the order the index page and the sidebar show. */
+/**
+ * Migration guides, newest first: the order the index page and the sidebar
+ * show. Unreleased guides come first, in file-name order.
+ */
 export const migrationsNewestFirst: readonly Migration[] = migrations.toSorted(
-	(a, b) => b.number - a.number,
+	(a, b) => (b.number ?? Number.MAX_SAFE_INTEGER) - (a.number ?? Number.MAX_SAFE_INTEGER),
 );

@@ -3,7 +3,12 @@
   "cacheMaxAge": "7d",
   "agentGuidance": false,
   "globalDependencies": [".nvmrc"],
-  "globalPassThroughEnv": ["CI", "DISABLE_HEADLESS", "PLAYWRIGHT_WS_ENDPOINT"],
+  "globalPassThroughEnv": [
+    "CI",
+    "DISABLE_HEADLESS",
+    "PLAYWRIGHT_WS_ENDPOINT",
+    "VITEST_MAX_WORKERS"
+  ],
   "tasks": {
     "build": {
       "cache": true,
@@ -48,7 +53,9 @@
         "scripts/**",
         "packages/mantle/migrations/**",
         "apps/www/app/docs/migrations/**",
-        ".changeset/*.md"
+        ".changeset/*.md",
+        "packages/mantle/package.json",
+        "packages/mantle/CHANGELOG.md"
       ]
     },
     "test": {

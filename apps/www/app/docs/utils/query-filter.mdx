@@ -1,6 +1,6 @@
 ---
 title: query-filter
-description: The query-filter language from @ngrok/mantle/query-filter. A grammar contract, a total parser, a matcher, suggestions, and highlight segments.
+description: The query-filter language from @ngrok/mantle/query-filter. A grammar contract, typed keys and operators, a total parser, an expression tree, a matcher, suggestions, and highlight segments.
 ---
 
 # query-filter
@@ -16,12 +16,16 @@ import {
 	filterItemsByTokens,
 	findTokenAtCaret,
 	formatFacet,
+	getEffectiveNegations,
 	getFilterKeyDefinition,
+	getFilterOperators,
 	getFilterSuggestions,
 	getFilterSyntax,
+	getFilterValueType,
 	getHighlightSegments,
 	getValueCandidates,
 	isCaretInFacetValue,
+	parseFilterExpression,
 	parseFilterQuery,
 	queryUsesQualifiers,
 	quoteFilterValue,
@@ -31,28 +35,38 @@ import {
 } from "@ngrok/mantle/query-filter";
 
 import type {
+	FilterComparison,
+	FilterExpression,
 	FilterGrammar,
 	FilterKeyDefinition,
 	FilterMatchContext,
+	FilterOperand,
+	FilterOperator,
 	FilterSuggestion,
 	FilterSuggestions,
 	FilterSyntax,
 	FilterToken,
 	FilterValueDefinition,
+	FilterValueType,
 	HighlightSegment,
 } from "@ngrok/mantle/query-filter";
 ```
 
 ## The language
 
-| You write           | It means                                                            |
-| ------------------- | ------------------------------------------------------------------- |
-| `acme`              | Items whose search text contains `acme`.                            |
-| `is:shared`         | Items that the `is` key's matcher accepts for `shared`.             |
-| `-is:shared`        | Items that the matcher rejects for `shared`.                        |
-| `is:shared,private` | Either value. A `prose` key keeps the comma as text.                |
-| `a OR b`            | Either group. `AND` (or nothing) joins tokens.                      |
-| `"staging api"`     | One term with a space. `\"` and `\\` write a quote and a backslash. |
+| You write                   | It means                                                                  |
+| --------------------------- | ------------------------------------------------------------------------- |
+| `acme`                      | Items whose search text contains `acme`.                                  |
+| `is:shared`                 | Items that the `is` key's matcher accepts for `shared`.                   |
+| `-is:shared`, `!is:shared`  | Items that the matcher rejects for `shared`.                              |
+| `NOT is:shared`             | The same exclusion, as a word.                                            |
+| `is:shared,private`         | Either value. A `prose` key keeps the comma as text.                      |
+| `a OR b`, `a \|\| b`        | Either group. `AND`, `&&`, or nothing joins tokens.                       |
+| `(is:shared OR is:new) api` | A group, which runs before the tokens beside it.                          |
+| `"staging api"`             | One term with a space. `\"` and `\\` write a quote and a backslash.       |
+| `members:>3`, `name:api*`   | A comparison on a typed key. See [Typed keys](#typed-keys-and-operators). |
+
+`OR` binds looser than `AND`, and both bind looser than `NOT`. Only the bare, capitalized words are operators: a lowercase `or` or a quoted `"NOT"` is a search term. A `(` opens a group at the start of a token, and a `)` closes the open group. Inside a group, quote a value that holds a `)`.
 
 Keys, values, and their aliases match without regard to case, and never fuzzily. A key the grammar doesn't know stays free text, so a pasted `https://api.example.com` searches for that URL. A value an enumerated key doesn't know matches no item.
 
@@ -91,6 +105,55 @@ const projectFilterGrammar: FilterGrammar<Project> = {
 - A matcher that compares a date against the clock reads `context.now`, never `Date.now()`. Pass `{ now }` from a ticking state hook, so a memoized filter re-runs as time passes.
 - `negatable: false` on a key removes its `-key:` suggestion and paints a typed `-` as invalid. A typed `-key:value` on that key matches no items.
 
+## Typed keys and operators
+
+Give a key a `type` and a `getValue`, and the engine parses the value, checks the operator, and compares the field for you. The query writes the operator before the value, so each filter stays one token.
+
+```ts
+import { type FilterGrammar } from "@ngrok/mantle/query-filter";
+
+type Deployment = { name: string; replicas: number; createdAt: number; canary: boolean };
+
+const deploymentFilterGrammar: FilterGrammar<Deployment> = {
+	keys: [
+		{ key: "name", description: "The name", type: "text", getValue: (item) => item.name },
+		{
+			key: "replicas",
+			description: "The replica count",
+			type: "number",
+			getValue: (item) => item.replicas,
+		},
+		{
+			key: "created",
+			description: "When it was created",
+			type: "date",
+			getValue: (item) => item.createdAt,
+		},
+		{ key: "canary", description: "A canary", type: "boolean", getValue: (item) => item.canary },
+	],
+	getSearchText: (item) => item.name,
+};
+```
+
+| Type         | You write                                         | It means                                                      |
+| ------------ | ------------------------------------------------- | ------------------------------------------------------------- |
+| `"text"`     | `name:api`, `name:=api`, `name:api*`, `name:*api` | Contains, is exactly, starts with, ends with.                 |
+| `"number"`   | `replicas:3`, `replicas:>3`, `replicas:<=3`       | Equals, more than, at most. `>=` and `<` work too.            |
+| `"number"`   | `replicas:2..5`                                   | From 2 to 5, both ends included.                              |
+| `"date"`     | `created:2026-01-31`, `created:<2026-01-31`       | On that UTC day, before it. A date and time works too.        |
+| `"date"`     | `created:>7d`                                     | After 7 days ago. A duration counts back from the clock.      |
+| `"duration"` | `uptime:>90s`, `uptime:1h30m`                     | Longer than 90 seconds. Units: `ms`, `s`, `m`, `h`, `d`, `w`. |
+| `"boolean"`  | `canary:true`                                     | The field is `true`.                                          |
+| `"enum"`     | `state:live`                                      | One of the key's `values`.                                    |
+
+- Set `operators` to list only what your executor runs, such as `operators: ["gt", "gte"]`. Any other operator paints as invalid and matches no item. A `"text"` key without `"contains"` reads a plain value as exact.
+- Operator characters inside quotes are text: `name:"api*"` contains `api*`.
+- A value that doesn't parse for its type, such as `replicas:many`, paints as invalid and matches no item.
+- For a `"date"` key, `getValue` can return a `Date`, epoch milliseconds, or an ISO 8601 string. Milliseconds compare fastest.
+- A key with `matches` instead of `type` reads its value as written, with no operators.
+
+The suggestions offer the comparisons of an empty number, date, or duration value, recent windows such as `>7d` for a date, and the exact, prefix, and suffix forms of a word typed into a text key.
+
 ## Filter items
 
 `filterItemsByQuery` keeps the input order. An empty query returns the same array, so a memoized list keeps its identity.
@@ -115,6 +178,9 @@ The engine caches the search text per item and per items array. Treat items as i
 
 - `"qualifiers"` (the default) reads only bare `key:value` tokens. Quotes, `-`, `OR`, and commas stay text. A value with a space can't be written, so `defineRemoteFilterGrammar` drops it, and drops an alias with a space too. Values often come from a server, so the grammar never throws on one.
 - `"conjunction"` reads one AND group of exclusions, comma lists, and quotes. A bare term paints as invalid, because the executor can't run it.
+- `"full"` reads the whole language: free text, `OR`, `NOT`, and groups.
+
+Typed keys work here too: declare `type` and `operators`, and leave out `getValue`.
 
 ```ts
 import { defineRemoteFilterGrammar } from "@ngrok/mantle/query-filter";
@@ -139,10 +205,38 @@ parseFilterQuery(projectFilterGrammar, "is:shared -acme");
 //     { kind: "text", text: "acme", negated: true, … }]
 ```
 
-- `formatFacet({ key, value, negated })` writes a qualifier in its canonical form, with quotes where the value needs them.
+- `formatFacet({ key, value, negated, grammar })` writes a qualifier in its canonical form, with quotes where the value needs them. Pass `grammar` for a `"qualifiers"` grammar, which reads quotes as text.
+- `getEffectiveNegations(tokens)` reads whether each token excludes in effect: by its own `-` or `!`, by each `NOT` before it, and by each negated group around it. Read it, not `token.negated`, to show whether a filter is on.
 - `toggleFacet({ grammar, query, facet })` adds a qualifier, or takes it out when the query has it. The [Filter from a value](/recipes/filter-from-a-value) recipe uses it for a value a person selects in a table row.
 - `queryUsesQualifiers(grammar, query)` reports whether a query holds a qualifier. Use it to pick the advice in a filtered-empty state.
 - `getFilterSuggestions` and `getHighlightSegments` are what `Query` renders. Use them to build your own field.
+
+## Compile the query for a server
+
+`parseFilterExpression` returns the query as a tree of `and`, `or`, `not`, `facet`, and `text` nodes. Walk it to write the query language of your backend, such as a CEL expression or a filter message. The tree is the contract: mantle ships no compiler.
+
+```ts
+import { type FilterExpression, parseFilterExpression } from "@ngrok/mantle/query-filter";
+
+parseFilterExpression(deploymentFilterGrammar, "(name:api* OR replicas:>3) -canary:true");
+// => { kind: "and", children: [
+//      { kind: "or", children: [
+//        { kind: "facet", key: "name", comparison: { operator: "starts-with", operand: { type: "text", value: "api" } }, … },
+//        { kind: "facet", key: "replicas", comparison: { operator: "gt", operand: { type: "number", value: 3 } }, … },
+//      ] },
+//      { kind: "not", child: { kind: "facet", key: "canary", … } },
+//    ] }
+```
+
+The tree comes normalized, so a compiler handles few shapes:
+
+- A comma list is an `or` of one `facet` node for each value.
+- A `not` node wraps one `facet` or `text` node. `NOT (a OR b)` arrives as `a` and `b`, each negated.
+- `{ kind: "and", children: [] }` matches every item, and `{ kind: "or", children: [] }` matches none. They stand for a filter nothing can satisfy, such as an unknown value, and for its exclusion. A whole query that excludes a key with `negatable: false` arrives as `{ kind: "or", children: [] }`. A qualifier still being typed, such as `is:`, drops out of its group, and a query of nothing else arrives as `{ kind: "and", children: [] }`.
+- A `"date"` operand is an ISO 8601 string: a date alone means that whole UTC day. A `"duration"` operand is milliseconds; on a date key, it counts back from now.
+- A `"range"` keeps `from` and `to` in the order they were written, and `replicas:5..2` keeps the same items as `replicas:2..5`. Use the smaller bound as the lower bound. On a date key, resolve a duration bound to a date first.
+
+It returns `null` when the query asks nothing, so send no filter at all.
 
 ## Natural language search
 
@@ -152,7 +246,7 @@ parseFilterQuery(projectFilterGrammar, "is:shared -acme");
 Two helpers connect the language to a model. Neither one calls a model: your server owns the request.
 
 - `describeFilterGrammar(grammar)` describes the keys, the allowed values, and the syntax rules as plain data. Send it to the model with the person's words.
-- `checkFilterQuery(grammar, query)` returns the unknown keys, the unknown values, and the exclusions a key can't do. Check the model's query before you show it, so an invented filter never empties the list.
+- `checkFilterQuery(grammar, query)` returns the unknown keys, the unknown values, the values that don't parse for their type, the operators a key doesn't accept, and the exclusions a key can't do. Check the model's query before you show it, so an invented filter never empties the list.
 
 ```ts
 import { checkFilterQuery, describeFilterGrammar } from "@ngrok/mantle/query-filter";

@@ -1,7 +1,7 @@
 import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { createRef, useState } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -444,21 +444,20 @@ describe("Select", () => {
 
 			const trigger = screen.getByRole("combobox");
 			expect(trigger).toHaveAttribute("data-placeholder", "");
-			expect(trigger).toHaveAttribute("data-state", "closed");
-			expect(trigger).not.toHaveAttribute("data-disabled");
+			expect(trigger).toHaveAttribute("aria-expanded", "false");
+			expect(trigger).toBeEnabled();
 
 			await user.click(trigger);
 
-			expect(trigger).toHaveAttribute("data-state", "open");
+			expect(trigger).toHaveAttribute("aria-expanded", "true");
 			const listbox = await screen.findByRole("listbox");
-			expect(listbox).toHaveAttribute("data-state", "open");
+			expect(listbox).toHaveAttribute("data-open");
 			expect(listbox).toHaveAttribute("data-side", "bottom");
-			expect(listbox).toHaveAttribute("data-align", "start");
 
 			await user.click(screen.getByRole("option", { name: "Apple" }));
 
 			expect(trigger).not.toHaveAttribute("data-placeholder");
-			expect(trigger).toHaveAttribute("data-state", "closed");
+			expect(trigger).toHaveAttribute("aria-expanded", "false");
 
 			render(
 				<Select.Root disabled>
@@ -470,7 +469,65 @@ describe("Select", () => {
 					</Select.Content>
 				</Select.Root>,
 			);
-			expect(screen.getByTestId("disabled")).toHaveAttribute("data-disabled", "");
+			expect(screen.getByTestId("disabled")).toBeDisabled();
+		});
+
+		// Red if a disabled item runs its onClick, or reports its label: a scripted or assistive
+		// click then blanks the trigger of a select whose items a component of your own renders.
+		test("a disabled item ignores a scripted click and keeps the trigger label", async () => {
+			const user = userEvent.setup();
+			const onClick = vi.fn<() => void>();
+			const DomainItem = ({ domain, inUse }: { domain: string; inUse?: boolean }) => (
+				<Select.Item value={domain} disabled={inUse} onClick={onClick}>
+					{domain}
+				</Select.Item>
+			);
+			render(
+				<Select.Root defaultValue="a.ngrok.app">
+					<Select.Trigger aria-label="Domain">
+						<Select.Value placeholder="Pick a domain" />
+					</Select.Trigger>
+					<Select.Content>
+						<DomainItem domain="a.ngrok.app" />
+						<DomainItem domain="b.ngrok.app" inUse />
+					</Select.Content>
+				</Select.Root>,
+			);
+			const trigger = screen.getByRole("combobox", { name: "Domain" });
+
+			await user.click(trigger);
+			(await screen.findByRole("option", { name: "b.ngrok.app" })).click();
+			await user.keyboard("{Escape}");
+
+			expect(onClick).toHaveBeenCalledTimes(0);
+			expect(trigger).toHaveTextContent("a.ngrok.app");
+		});
+
+		// Why: `Slot` runs a child's own `onClickCapture` before a guard on the item.
+		test("a disabled asChild link runs no handler of its own and does not navigate", async () => {
+			const user = userEvent.setup();
+			const onLinkClick = vi.fn<() => void>();
+			render(
+				<Select.Root defaultValue="apple">
+					<Select.Trigger aria-label="Fruit">
+						<Select.Value />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+						<Select.Item value="docs" disabled asChild>
+							<a href="#docs" onClick={onLinkClick} onClickCapture={onLinkClick}>
+								Docs
+							</a>
+						</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			await user.click(screen.getByRole("combobox", { name: "Fruit" }));
+
+			expect(fireEvent.click(await screen.findByRole("option", { name: "Docs" }))).toBe(false);
+			expect(onLinkClick).toHaveBeenCalledTimes(0);
+			expect(screen.getByRole("combobox", { name: "Fruit" })).toHaveTextContent("Apple");
 		});
 
 		test("documented item data attributes follow selection, keyboard highlight, and disabled", async () => {
@@ -495,10 +552,14 @@ describe("Select", () => {
 			const apple = await screen.findByRole("option", { name: "Apple" });
 			const banana = screen.getByRole("option", { name: "Banana" });
 			const cherry = screen.getByRole("option", { name: "Cherry" });
-			expect(apple).toHaveAttribute("data-state", "checked");
-			expect(banana).toHaveAttribute("data-state", "unchecked");
-			expect(cherry).toHaveAttribute("data-disabled", "");
-			expect(banana).not.toHaveAttribute("data-disabled");
+			expect(apple).toHaveAttribute("aria-selected", "true");
+			expect(banana).toHaveAttribute("aria-selected", "false");
+			expect(cherry).toHaveAttribute("aria-disabled", "true");
+			expect(banana).not.toHaveAttribute("aria-disabled");
+			for (const option of [apple, banana, cherry]) {
+				expect(option).not.toHaveAttribute("data-state");
+				expect(option).not.toHaveAttribute("data-disabled");
+			}
 			// The list opens with the selected item highlighted.
 			expect(apple).toHaveAttribute("data-highlighted", "");
 			expect(banana).not.toHaveAttribute("data-highlighted");
@@ -882,7 +943,7 @@ describe("Select", () => {
 			expect(option).toHaveClass("mine", "theirs");
 			expect(option).toHaveAttribute("data-testid", "custom");
 			expect(option).toHaveAttribute("data-slot", "select-item");
-			expect(option).toHaveAttribute("data-state", "checked");
+			expect(option).toHaveAttribute("aria-selected", "true");
 			expect(ref.current).toBe(option);
 
 			const label = option.querySelector('[data-slot="select-item-label"]');
@@ -1049,6 +1110,37 @@ describe("Select", () => {
 
 			expect(screen.queryAllByRole("option", { hidden: true })).toHaveLength(0);
 			expect(trigger).toHaveTextContent("Banana");
+		});
+
+		// Red if a Ctrl-click on another link item reports its label: the selection stays, so the
+		// trigger of an item that a wrapper component renders goes blank.
+		test("a Ctrl-click on another link item keeps the trigger's label for the selected item", async () => {
+			const user = userEvent.setup();
+			const Page = ({ value, children }: { value: string; children: ReactNode }) => (
+				<Select.Item value={value} asChild>
+					<a href={`#${value}`}>{children}</a>
+				</Select.Item>
+			);
+			render(
+				<Select.Root defaultValue="docs">
+					<Select.Trigger>
+						<Select.Value placeholder="Pick a page" />
+					</Select.Trigger>
+					<Select.Content>
+						<Page value="docs">Docs</Page>
+						<Page value="blog">Blog</Page>
+					</Select.Content>
+				</Select.Root>,
+			);
+			const trigger = screen.getByRole("combobox");
+			await user.click(trigger);
+
+			expect(
+				fireEvent.click(await screen.findByRole("option", { name: "Blog" }), { ctrlKey: true }),
+			).toBe(true);
+			await user.keyboard("{Escape}");
+
+			expect(trigger).toHaveTextContent("Docs");
 		});
 
 		test("the trigger names the highlighted option while open, even after a Content that mounts first, and keeps no consumer value", async () => {
@@ -1332,5 +1424,90 @@ describe("Select", () => {
 		});
 		container.remove();
 		consoleError.mockRestore();
+	});
+});
+
+describe("Select.Item function child", () => {
+	test("renders the returned element as the option, with the label span and check inside, and reports the highlight", async () => {
+		const user = userEvent.setup();
+		const onClick = vi.fn<() => void>();
+		const renderItem = (value: string, label: string) => (
+			<Select.Item value={value} textValue={label} onClick={onClick}>
+				{(props, { highlighted }) => (
+					<a {...props} href={`#${value}`} data-row-highlighted={String(highlighted)}>
+						{label}
+					</a>
+				)}
+			</Select.Item>
+		);
+		render(
+			<Select.Root defaultValue="apple">
+				<Select.Trigger aria-label="Fruit">
+					<Select.Value />
+				</Select.Trigger>
+				<Select.Content>
+					{renderItem("apple", "Apple")}
+					{renderItem("banana", "Banana")}
+				</Select.Content>
+			</Select.Root>,
+		);
+
+		await user.click(screen.getByRole("combobox", { name: "Fruit" }));
+		const apple = await screen.findByRole("option", { name: "Apple" });
+		const banana = screen.getByRole("option", { name: "Banana" });
+		expect(apple.tagName).toBe("A");
+		expect(apple.querySelector("[data-slot=select-item-label]")).toHaveTextContent("Apple");
+		expect(apple).toHaveAttribute("data-row-highlighted", "true");
+		expect(banana).toHaveAttribute("data-row-highlighted", "false");
+
+		await user.keyboard("{ArrowDown}");
+
+		expect(banana).toHaveAttribute("data-row-highlighted", "true");
+		expect(apple).toHaveAttribute("data-row-highlighted", "false");
+
+		await user.click(banana);
+
+		expect(onClick).toHaveBeenCalledTimes(1);
+		expect(screen.getByRole("combobox", { name: "Fruit" })).toHaveTextContent("Banana");
+	});
+
+	test("Select.Value shows the item's textValue in the server HTML", () => {
+		const html = renderToString(
+			<Select.Root defaultValue="apple">
+				<Select.Trigger aria-label="Fruit">
+					<Select.Value placeholder="Pick a fruit" />
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="apple" textValue="Apple">
+						{(props) => <div {...props}>Apple</div>}
+					</Select.Item>
+				</Select.Content>
+			</Select.Root>,
+		);
+		const container = document.createElement("div");
+		container.innerHTML = html;
+
+		expect(container.querySelector("[data-slot=select-item-label]")).toHaveTextContent("Apple");
+	});
+
+	test("a wrapper that omits a prop passes a function child, and Select.Value falls back to the value", () => {
+		const Item = (props: Omit<ComponentProps<typeof Select.Item>, "icon">) => (
+			<Select.Item {...props} />
+		);
+		const html = renderToString(
+			<Select.Root defaultValue="apple">
+				<Select.Trigger aria-label="Fruit">
+					<Select.Value placeholder="Pick a fruit" />
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="apple">{(props) => <div {...props}>Apple</div>}</Select.Item>
+					<Item value="banana">{(props) => <div {...props}>Banana</div>}</Item>
+				</Select.Content>
+			</Select.Root>,
+		);
+		const container = document.createElement("div");
+		container.innerHTML = html;
+
+		expect(container.querySelector("[data-slot=select-item-label]")).toHaveTextContent("apple");
 	});
 });

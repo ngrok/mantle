@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { selectorProblems } from "./check-css-selectors.ts";
+import { customDataVariants, selectorProblems } from "./check-css-selectors.ts";
+import { fixHint, universalHint } from "./oxlint-rules/no-structural-combinator.js";
 
 describe("selectorProblems", () => {
 	it("flags a structural pseudo-class before a combinator, with its line", () => {
 		const css = ".a { color: red; }\n\n.table > tr:last-child > *,\n.b {\n\tborder: 0;\n}\n";
 
 		expect(selectorProblems(css)).toEqual([
-			{ line: 3, selector: ".table > tr:last-child > *, .b" },
+			{ line: 3, selector: ".table > tr:last-child > *, .b", hint: fixHint },
 		]);
 	});
 
@@ -23,6 +24,26 @@ describe("selectorProblems", () => {
 			".a:first-child {\n\t& > b { color: red; }\n\t.c { color: red; }\n\t&:hover { color: red; }\n}\n.d > e:last-child {\n\t& f { color: red; }\n}\n";
 
 		expect(selectorProblems(css).map((problem) => problem.line)).toEqual([2, 3, 7]);
+	});
+
+	it("flags a universal subject after a sibling combinator or only attribute anchors", () => {
+		const css =
+			".a + * { color: red; }\n.b > tr ~ tr > * { color: red; }\n[data-state] > * { color: red; }\n.c > * { color: red; }\n.d + [data-slot=x] { color: red; }\n[data-x] .e > * { color: red; }\n@utility u {\n\t:root[data-theme] &::after { color: red; }\n}\n";
+
+		expect(selectorProblems(css).map((problem) => problem.line)).toEqual([1, 2, 3]);
+	});
+
+	it("names each fix a selector needs, and reads a nested rule and a tag anchor", () => {
+		const css =
+			".a { & + * { color: red; } }\n.b > tr:last-child + * { color: red; }\nbutton[data-x] > * { color: red; }\n.c + .d { & > * { color: red; } }\n[data-y] > * > * { color: red; }\n.e\\+f > * { color: red; }\n.g + *:not(.h) { color: red; }\n";
+
+		expect(selectorProblems(css)).toEqual([
+			{ line: 1, selector: "& + *", hint: universalHint },
+			{ line: 2, selector: ".b > tr:last-child + *", hint: `${fixHint} ${universalHint}` },
+			{ line: 4, selector: "& > *", hint: universalHint },
+			{ line: 5, selector: "[data-y] > * > *", hint: universalHint },
+			{ line: 7, selector: ".g + *:not(.h)", hint: universalHint },
+		]);
 	});
 
 	it("reads past an escaped quote", () => {
@@ -42,6 +63,24 @@ describe("selectorProblems", () => {
 		const css =
 			"/* structural-selector-ok: the subtree is one icon. */\n.a:first-child > svg { color: red; }\n/* structural-selector-ok: */\n.b:first-child > svg { color: red; }\n";
 
-		expect(selectorProblems(css)).toEqual([{ line: 4, selector: ".b:first-child > svg" }]);
+		expect(selectorProblems(css)).toEqual([
+			{ line: 4, selector: ".b:first-child > svg", hint: fixHint },
+		]);
+	});
+});
+
+describe("customDataVariants", () => {
+	it("flags a data-* custom variant and leaves other custom variants alone", () => {
+		const css =
+			"@custom-variant dark (&:where(.dark, .dark *));\n@custom-variant data-side-start (&[data-side=start]);\n";
+
+		expect(customDataVariants(css)).toEqual([2]);
+	});
+
+	it("skips a commented-out variant and finds one split across lines", () => {
+		const css =
+			"/*\n@custom-variant data-open (&[data-open]);\n*/\n@custom-variant\n  data-side-start (&[data-side=start]);\n";
+
+		expect(customDataVariants(css)).toEqual([4]);
 	});
 });

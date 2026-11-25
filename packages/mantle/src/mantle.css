@@ -314,14 +314,6 @@ in a plain stylesheet (a third-party widget override) resolves to nothing.
 			translate: 0;
 		}
 	}
-	/* Keeps a portal positioner mounted while its content plays the exit. Radix waits for an
-	   animation on the portal child itself, and these keyframes change nothing on screen. */
-	--animate-exit-hold: exit-hold 150ms;
-	@keyframes exit-hold {
-		to {
-			opacity: 1;
-		}
-	}
 	/* The narrowest workspace row that holds the expanded sidebar (13rem), the content card at
 	   the side panel's floor (21rem), the panel itself (21rem), and the three gutters (1.5rem).
 	   Below it `AppLayout.SidePanel` floats over the card, so the page is never narrower than
@@ -1363,32 +1355,13 @@ MARK: CUSTOM VARIANTS
 @custom-variant aria-invalid (&[aria-invalid="true"]);
 @custom-variant aria-unchecked (&[aria-checked="false"]);
 
-@custom-variant data-active-item (&[data-active-item~="true"]);
-@custom-variant data-disabled (&[data-disabled]);
-@custom-variant data-drag-over (&[data-drag-over="true"]);
-@custom-variant data-highlighted (&[data-highlighted]);
-@custom-variant data-orientation-horizontal (&[data-orientation="horizontal"]);
-@custom-variant data-orientation-vertical (&[data-orientation="vertical"]);
-@custom-variant data-side-bottom (&[data-side="bottom"]);
-@custom-variant data-side-left (&[data-side="left"]);
-@custom-variant data-side-right (&[data-side="right"]);
-@custom-variant data-side-top (&[data-side="top"]);
-@custom-variant data-state-active (&[data-state~=active]);
-@custom-variant data-state-checked (&[data-state~=checked]);
-@custom-variant data-state-closed (&[data-state~=closed]);
-@custom-variant data-state-idle (&[data-state~=idle]);
-@custom-variant data-state-inactive (&[data-state~=inactive]);
-@custom-variant data-state-indeterminate (&[data-state~=indeterminate]);
-@custom-variant data-state-open (&[data-state~=open]);
-@custom-variant data-state-pending (&[data-state~=pending]);
-@custom-variant data-state-selected (&[data-state~=selected]);
-@custom-variant data-state-submitting (&[data-state~=submitting]);
-@custom-variant data-state-unchecked (&[data-state~=unchecked]);
-@custom-variant data-validation-error (&[data-validation="error"]);
-@custom-variant data-validation-success (&[data-validation="success"]);
-@custom-variant data-validation-warning (&[data-validation="warning"]);
-
 @custom-variant where (:where(&));
+/*
+ * Each child of the element except the last, at zero specificity, as Tailwind's
+ * `space-*` and `divide-*` match. Why not those: they put the class inside
+ * `:where()`, so Chromium tries the rule on each element of the page.
+ */
+@custom-variant between (:where(&) > :where(:not(:last-child)));
 
 @custom-variant hover-hover {
 	@media (hover: hover) {
@@ -1407,6 +1380,21 @@ MARK: CUSTOM VARIANTS
 }
 
 @layer base {
+	/*
+	 * A border with no color class draws in the separator color. Tailwind v4
+	 * leaves it `currentColor`, so a bare `border-b` is black in light and
+	 * white in dark. Any `border-*` color utility, such as `border-current`,
+	 * still wins: utilities come after this layer. The selector list matches
+	 * the preflight rule that sets `border: 0 solid`.
+	 */
+	*,
+	::after,
+	::before,
+	::backdrop,
+	::file-selector-button {
+		border-color: var(--color-separator);
+	}
+
 	body {
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
@@ -1423,10 +1411,9 @@ MARK: CUSTOM VARIANTS
 
 	/*
 	 * An open modal `Dialog`, `AlertDialog`, `Sheet`, or mobile `Sidebar.Nav`
-	 * locks page scroll on `<body>`, as Radix did: the browser applies the
-	 * `overflow` of `<body>` to the viewport. Why not the root too: a page
-	 * whose `<body>` has `h-full` would lose its scroll position. The dialog
-	 * marks the root as it
+	 * locks page scroll on `<body>`: the browser applies the `overflow` of
+	 * `<body>` to the viewport. Why not the root too: a page whose `<body>` has
+	 * `h-full` would lose its scroll position. The dialog marks the root as it
 	 * opens and measures the width of the scrollbar that goes, so the page does
 	 * not shift. `!important` beats an overflow utility on `<body>`.
 	 *
@@ -1440,15 +1427,14 @@ MARK: CUSTOM VARIANTS
 	}
 
 	/*
-	 * The native radio of a `RadioGroup` or `SegmentedControl` item covers the
-	 * item, over its content. The controls in the content sit over the radio, so
-	 * they keep their own clicks. Why the base layer and `:where()`: a position
-	 * or z-index utility on the control wins. The list matches
-	 * `CONTENT_CONTROL_SELECTOR` in `radio-group/primitive.tsx`, but for
-	 * `label`: a title label would cover the radio, and a click on it checks
-	 * the radio anyway.
+	 * The controls in a `RadioGroup`, `SegmentedControl`, or `CheckboxGroup`
+	 * item sit over the native input that covers the item, so they keep their
+	 * own clicks. The list matches `CONTENT_CONTROL_SELECTOR` in
+	 * `utils/interactive-target.ts`, but for `label`, which toggles the input.
+	 *
+	 * Why the base layer and `:where()`: a position or z-index utility on the control wins.
 	 */
-	:where(.radio-item-content)
+	:where(.covered-item-content)
 		:where(
 			a[href],
 			button,
@@ -1599,6 +1585,54 @@ MARK: UTILITIES
 		font-weight: 100 !important;
 		font-stretch: ultra-condensed !important;
 		font-optical-sizing: none !important;
+	}
+}
+
+/*
+ * The line under the typed match of `Combobox.ItemValue`. A background draws
+ * it, because a background's size and position can transition, and a
+ * keystroke retargets a running transition. The line has at least 3:1
+ * contrast on each row background.
+ * - When a match appears, its line grows from the left and rises 2px.
+ * - When the match goes away, its span keeps its text, and the line sinks 2px
+ *   below the box at its full width. The width resets out of view.
+ * - As the match grows or shrinks, the line follows its text with no motion.
+ * `ease-out-strong` is cubic-bezier(0.23, 1, 0.32, 1).
+ */
+@utility combobox-match-line {
+	& > span {
+		padding-bottom: 2px;
+		background: linear-gradient(var(--color-accent-600), var(--color-accent-600)) 0
+			calc(100% + 2px) / 0 2px no-repeat;
+		transition-property: background-size, background-position;
+		transition-duration: 0s, 150ms;
+		transition-delay: 150ms, 0s;
+		transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+	}
+
+	& > [data-user-value] {
+		background-size: 100% 2px;
+		background-position: 0 100%;
+		transition-duration: 200ms;
+		transition-delay: 0s;
+
+		@starting-style {
+			background-size: 0 2px;
+			background-position: 0 calc(100% + 2px);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		& > span {
+			transition-property: none;
+		}
+	}
+
+	/* Forced colors removes a gradient, so the match falls back to an underline. */
+	@media (forced-colors: active) {
+		& > [data-user-value] {
+			text-decoration: underline;
+		}
 	}
 }
 
@@ -1961,6 +1995,16 @@ at `:root` (same reason as the palette-alias rule in MARK: INVERT THEME).
 	}
 }
 
+/*
+ * Why a flex column: the highlighter puts a newline between line elements so
+ * `textContent` keeps the line breaks. A flex container renders no text run
+ * that is only white space, so those newlines add no empty lines.
+ */
+pre[data-slot~="code-block-code"][data-syntax-highlighted] > code {
+	display: flex;
+	flex-direction: column;
+}
+
 .mantle-code-line {
 	display: flex;
 	align-items: flex-start;
@@ -1972,43 +2016,99 @@ at `:root` (same reason as the palette-alias rule in MARK: INVERT THEME).
 	display: none;
 }
 
+/*
+ * The fold motion, the same as `Accordion`: the line's height and opacity
+ * change together on the strong ease-out, and `display` changes at the end of
+ * a close. Why `1lh`: a code line does not wrap, so one line height is its
+ * height, and each browser can animate it; `height: auto` animates only with
+ * `interpolate-size`, which only Chromium has. Why the transition only on
+ * `[data-fold-hidden]`: the runtime sets it on the lines that a toggle changed,
+ * and clears `"false"` when the open ends, so a block that loads does not
+ * animate. A line past the first 50 of a toggle has `data-fold-instant` and
+ * changes at once. Why `clip`: the text stays inside the line as it grows or shrinks,
+ * and the sticky gutter keeps its scroll container. The duration is
+ * `FOLD_MOTION_MS` in `fold-runtime.ts`.
+ */
+@media (prefers-reduced-motion: no-preference) {
+	/* Why `min-height: 0`: a flex item does not shrink below its content without it. */
+	.mantle-code-line[data-fold-regions] {
+		height: 1lh;
+		min-height: 0;
+	}
+
+	.mantle-code-line[data-fold-hidden]:not([data-fold-instant]) {
+		overflow-y: clip;
+		transition:
+			height 200ms cubic-bezier(0.23, 1, 0.32, 1),
+			opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
+			display 200ms allow-discrete;
+	}
+
+	.mantle-code-line[data-fold-hidden="true"] {
+		height: 0;
+		opacity: 0;
+	}
+
+	@starting-style {
+		.mantle-code-line[data-fold-hidden="false"]:not([data-fold-instant]) {
+			height: 0;
+			opacity: 0;
+		}
+	}
+}
+
 .mantle-code-line-highlighted {
 	background-color: var(--mantle-code-line-highlight-bg);
 }
 
 /*
- * Why sticky: only the code scrolls; the line numbers stay pinned to the
- * inline-start edge of the scrollport. `z-index: 1` also scopes the
- * backdrop pseudo-element below, so its `z-index: -1` stays inside this
- * stacking context instead of dropping under the code text.
+ * Why a counter, not `attr(data-line-number)`: a counter costs less to
+ * resolve, and a 29-block answer recalculated its styles 12% slower with
+ * `attr()`. A line that closes a fold sets the counter again (see
+ * `decorateHighlightedHtml`), because a folded line is not counted.
  */
-.mantle-code-line-number {
+pre[data-mantle-line-numbers="true"] > code {
+	counter-reset: mantle-line calc(var(--mantle-line-number-start, 1) - 1);
+}
+
+pre[data-mantle-line-numbers="true"] .mantle-code-line {
+	counter-increment: mantle-line;
+}
+
+/*
+ * The line number. Why a pseudo-element of the line, drawn from a counter:
+ * the digits stay out of the DOM text, so copy, find in
+ * page, screen readers, and crawlers read only the code. The alternative text
+ * after `/` is empty for the same reason.
+ *
+ * Why sticky: only the code scrolls; the numbers stay pinned to the inline-start
+ * edge of the scrollport. The background is the opaque gutter backdrop. It
+ * spans the number column plus its gap, and the fold gutter on fold-enabled
+ * blocks (`--_gutter-overhang`); the negative margin gives that fold gutter back
+ * to the toggle, which paints above it.
+ */
+pre[data-mantle-line-numbers="true"] .mantle-code-line::before {
+	/* Why two: a browser without alternative text in `content` drops the second and keeps the first. */
+	content: counter(mantle-line);
+	content: counter(mantle-line) / "";
 	position: sticky;
 	left: 0;
 	z-index: 1;
 	display: block;
 	flex-shrink: 0;
+	box-sizing: content-box;
 	width: var(--mantle-code-line-number-width);
-	margin-right: var(--mantle-code-line-number-gap);
+	padding-right: var(--_gutter-overhang, var(--mantle-code-line-number-gap));
+	margin-right: calc(
+		var(--mantle-code-line-number-gap) - var(--_gutter-overhang, var(--mantle-code-line-number-gap))
+	);
 	user-select: none;
 	text-align: right;
 	color: var(--mantle-code-line-number-color);
-}
-
-/*
- * The opaque gutter backdrop. Scrolled code slides under the pinned numbers,
- * so this masks it across the whole gutter band: the number column plus its
- * gap, and the fold gutter on fold-enabled blocks (`--_gutter-overhang`).
- */
-.mantle-code-line-number::before {
-	content: "";
-	position: absolute;
-	inset: 0 calc(-1 * var(--_gutter-overhang, var(--mantle-code-line-number-gap))) 0 0;
-	z-index: -1;
 	background-color: var(--background-color-base);
 }
 
-pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-number::before {
+pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) {
 	--_gutter-overhang: calc(
 		var(--mantle-code-line-number-gap) + var(--mantle-code-fold-gutter-width) +
 			var(--mantle-code-fold-gutter-gap)
@@ -2017,10 +2117,9 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line
 
 /*
  * Re-add the line-highlight tint over the opaque backdrop, so a highlighted
- * line's gutter matches its content, with the same look the translucent line
- * background painted before the backdrop covered it.
+ * line's gutter matches its content.
  */
-.mantle-code-line-highlighted .mantle-code-line-number::before {
+.mantle-code-line-highlighted::before {
 	background-image: linear-gradient(
 		var(--mantle-code-line-highlight-bg),
 		var(--mantle-code-line-highlight-bg)
@@ -2085,7 +2184,7 @@ pre[data-mantle-line-numbers="true"] .mantle-code-fold-toggle {
  * Why `--tw-leading`: this rule is in no layer, so it wins over a `leading-*`
  * class from the consumer. That class sets `--tw-leading`, and it stays first.
  */
-pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
+pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) {
 	line-height: var(--tw-leading, var(--mantle-code-fold-line-height));
 }
 
@@ -2103,13 +2202,34 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
 	z-index: 2;
 }
 
-.mantle-code-fold-caret {
+/* Why a mask: the caret is drawn by CSS, so no opener line carries an inline SVG. */
+.mantle-code-fold-toggle::after {
+	content: "";
 	width: 0.75rem;
 	height: 0.75rem;
-	transition: transform 120ms ease;
+	background-color: currentColor;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M3.22 5.97a.75.75 0 0 1 1.06 0L8 9.69l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L3.22 7.03a.75.75 0 0 1 0-1.06Z'/%3E%3C/svg%3E")
+		center / contain no-repeat;
 }
 
-.mantle-code-fold-toggle[aria-expanded="false"] .mantle-code-fold-caret {
+/*
+ * Why: forced colors paint a background in the canvas color, which hides the
+ * masked caret. The caret takes the system color of button text.
+ */
+@media (forced-colors: active) {
+	.mantle-code-fold-toggle::after {
+		forced-color-adjust: none;
+		background-color: ButtonText;
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.mantle-code-fold-toggle::after {
+		transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+	}
+}
+
+.mantle-code-fold-toggle[aria-expanded="false"]::after {
 	transform: rotate(-90deg);
 }
 
@@ -2123,10 +2243,10 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
  * with line count) with a flat class match, while keeping HTML payload tiny:
  * only the sparse opener lines carry an extra class.
  */
-pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-content {
+pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-content {
 	margin-left: calc(var(--mantle-code-fold-gutter-width) + var(--mantle-code-fold-gutter-gap));
 }
-pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
+pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle)
 	.mantle-code-line-opener
 	> .mantle-code-line-content {
 	margin-left: 0;
@@ -2134,7 +2254,10 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 
 /* No color-mix fallbacks in this block: see the note at the top of this file. */
 @supports (color: color-mix(in lab, red, red)) or (not (color: color-mix(in lab, red, red))) {
-	.mantle-code-fold-ellipsis {
+	/* Why a pseudo-element: the `⋯` stays out of the DOM text and, with empty alternative text, out of the accessibility tree. */
+	.mantle-code-line-opener > .mantle-code-line-content::after {
+		content: "⋯";
+		content: "⋯" / "";
 		display: none;
 		margin-left: 0.25rem;
 		padding: 0 0.375rem;
@@ -2146,7 +2269,7 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 }
 
 .mantle-code-line:has(> .mantle-code-fold-toggle[aria-expanded="false"])
-	.mantle-code-fold-ellipsis {
+	> .mantle-code-line-content::after {
 	display: inline;
 }
 
@@ -2154,6 +2277,177 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 	display: block;
 	min-width: 0;
 	flex: 1 1 auto;
+}
+
+/*
+ * The prose styles of `Markdown`. Why `@layer components`: a utility class on
+ * an element that a `components` override renders wins over these rules. Why
+ * `:where()`: the scope adds no specificity, so each rule weighs one element.
+ */
+@layer components {
+	/* structural-selector-ok: the child combinators test only the parent and the previous sibling, so the cost is constant. */
+	:where([data-slot~="markdown"]) > * + * {
+		margin-block-start: 1em;
+	}
+
+	:where([data-slot~="markdown"]) h1,
+	:where([data-slot~="markdown"]) h2,
+	:where([data-slot~="markdown"]) h3,
+	:where([data-slot~="markdown"]) h4,
+	:where([data-slot~="markdown"]) h5,
+	:where([data-slot~="markdown"]) h6 {
+		color: var(--text-color-strong);
+		font-family: var(--font-heading);
+		text-wrap: balance;
+	}
+
+	:where([data-slot~="markdown"]) * + h1,
+	:where([data-slot~="markdown"]) * + h2,
+	:where([data-slot~="markdown"]) * + h3,
+	:where([data-slot~="markdown"]) * + h4,
+	:where([data-slot~="markdown"]) * + h5,
+	:where([data-slot~="markdown"]) * + h6 {
+		margin-block-start: 1.5em;
+	}
+
+	/* structural-selector-ok: the previous sibling must be a heading, so the test on most elements stops at one sibling. */
+	:where([data-slot~="markdown"]) :is(h1, h2, h3, h4, h5, h6) + * {
+		margin-block-start: 0.5em;
+	}
+
+	:where([data-slot~="markdown"]) h1 {
+		font-size: var(--text-heading-2xl);
+		line-height: var(--text-heading-2xl--line-height);
+		font-weight: var(--text-heading-2xl--font-weight);
+	}
+
+	:where([data-slot~="markdown"]) h2 {
+		font-size: var(--text-heading-xl);
+		line-height: var(--text-heading-xl--line-height);
+		font-weight: var(--text-heading-xl--font-weight);
+	}
+
+	:where([data-slot~="markdown"]) h3 {
+		font-size: var(--text-heading-lg);
+		line-height: var(--text-heading-lg--line-height);
+		font-weight: var(--text-heading-lg--font-weight);
+	}
+
+	:where([data-slot~="markdown"]) h4,
+	:where([data-slot~="markdown"]) h5,
+	:where([data-slot~="markdown"]) h6 {
+		font-size: var(--text-heading-base);
+		line-height: var(--text-heading-base--line-height);
+		font-weight: var(--text-heading-base--font-weight);
+	}
+
+	:where([data-slot~="markdown"]) strong,
+	:where([data-slot~="markdown"]) b {
+		color: var(--text-color-strong);
+		font-weight: 600;
+	}
+
+	:where([data-slot~="markdown"]) ul {
+		list-style-type: disc;
+		padding-inline-start: 1.5em;
+	}
+
+	:where([data-slot~="markdown"]) ol {
+		list-style-type: decimal;
+		padding-inline-start: 1.5em;
+	}
+
+	:where([data-slot~="markdown"]) li + li,
+	:where([data-slot~="markdown"]) li > :is(ul, ol, p + *) {
+		margin-block-start: 0.25em;
+	}
+
+	:where([data-slot~="markdown"]) li::marker {
+		color: var(--text-color-muted);
+	}
+
+	:where([data-slot~="markdown"]) li[data-task] {
+		list-style-type: none;
+	}
+
+	:where([data-slot~="markdown"]) li[data-task] > input {
+		margin-inline: -1.375em 0.375em;
+		vertical-align: -0.125em;
+	}
+
+	:where([data-slot~="markdown"]) blockquote {
+		border-inline-start: 0.25rem solid var(--border-color-base);
+		padding-inline-start: 1em;
+		color: var(--text-color-muted);
+	}
+
+	:where([data-slot~="markdown"]) hr {
+		border: 0;
+		border-block-start: 1px solid var(--border-color-base);
+		margin-block: 1.5em;
+	}
+
+	/* The same look as mantle's `Code`. No color-mix fallbacks: see the note at the top of this file. */
+	:where([data-slot~="markdown"]) :not(pre) > code {
+		border: 1px solid transparent;
+		border-radius: var(--radius-md);
+		padding-inline: 0.25em;
+		font-family: var(--font-mono);
+		font-size: 0.8em;
+	}
+
+	@supports (color: color-mix(in lab, red, red)) or (not (color: color-mix(in lab, red, red))) {
+		:where([data-slot~="markdown"]) :not(pre) > code {
+			border-color: --alpha(var(--color-gray-500) / 15%);
+			background-color: --alpha(var(--color-gray-500) / 5%);
+		}
+	}
+
+	:where([data-slot~="markdown"]) img {
+		max-width: 100%;
+		height: auto;
+	}
+
+	:where([data-slot~="markdown"]) > pre {
+		overflow-x: auto;
+		font-family: var(--font-mono);
+	}
+
+	/* The caret at the end of the streamed text: after the last paragraph, heading, or list item. */
+	/* structural-selector-ok: only a streaming Markdown element sets the attribute, and the child combinators keep each test inside it. */
+	:where([data-slot~="markdown"][data-streaming])
+		> :not(:has(+ *)):is(p, h1, h2, h3, h4, h5, h6)::after,
+	:where([data-slot~="markdown"][data-streaming])
+		> :not(:has(+ *)):is(ul, ol)
+		> li:not(:has(+ *)):not(:has(> p, > ul, > ol))::after,
+	:where([data-slot~="markdown"][data-streaming])
+		> :not(:has(+ *)):is(ul, ol)
+		> li:not(:has(+ *))
+		> p:not(:has(+ *))::after,
+	:where([data-slot~="markdown"][data-streaming])
+		> blockquote:not(:has(+ *))
+		> p:not(:has(+ *))::after {
+		content: "";
+		display: inline-block;
+		width: 0.5em;
+		height: 1em;
+		margin-inline-start: 0.125em;
+		vertical-align: -0.125em;
+		background-color: currentColor;
+		opacity: 0.6;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		/* A block fades in when it starts to stream. `ease-out-strong` is cubic-bezier(0.23, 1, 0.32, 1). */
+		/* structural-selector-ok: the child combinator tests only the parent, and only a streamed Markdown element sets the attribute. */
+		:where([data-slot~="markdown"][data-streamed]) > * {
+			transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1);
+
+			@starting-style {
+				opacity: 0;
+			}
+		}
+	}
 }
 
 /*
@@ -2188,6 +2482,68 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 }
 
 /*
+ * Token colors. The highlighter writes these short classes (see
+ * `token-classes.ts`) in place of an inline style on every token. Each rule
+ * holds the exact color expression the style held.
+ */
+/*
+ * Why: runs in the foreground color carry no span, so they inherit it from
+ * here. Plain-text languages get no theme colors from Shiki and keep the
+ * inherited text color, as before.
+ */
+pre[data-slot~="code-block-code"][data-syntax-highlighted]:not(
+		[data-lang="text"],
+		[data-lang="txt"],
+		[data-lang="plain"],
+		[data-lang="plaintext"]
+	)
+	> code {
+	color: var(--shiki-foreground);
+}
+pre[data-slot~="code-block-code"] .tc {
+	color: var(--shiki-token-comment);
+}
+pre[data-slot~="code-block-code"] .tn {
+	color: var(--shiki-token-constant);
+}
+pre[data-slot~="code-block-code"] .ts {
+	color: var(--shiki-token-string);
+}
+pre[data-slot~="code-block-code"] .tx {
+	color: var(--shiki-token-string-expression);
+}
+pre[data-slot~="code-block-code"] .tk {
+	color: var(--shiki-token-keyword);
+}
+pre[data-slot~="code-block-code"] .tf {
+	color: var(--shiki-token-function);
+}
+pre[data-slot~="code-block-code"] .tp {
+	color: var(--shiki-token-parameter);
+}
+pre[data-slot~="code-block-code"] .tu {
+	color: var(--shiki-token-punctuation);
+}
+pre[data-slot~="code-block-code"] .tt {
+	color: var(--shiki-token-type, var(--shiki-token-function));
+}
+pre[data-slot~="code-block-code"] .tv {
+	color: var(--shiki-token-variable, var(--shiki-foreground));
+}
+pre[data-slot~="code-block-code"] .to {
+	color: var(--shiki-token-operator, var(--shiki-token-keyword));
+}
+pre[data-slot~="code-block-code"] .ta {
+	color: var(--shiki-token-attribute, var(--shiki-token-constant));
+}
+pre[data-slot~="code-block-code"] .tr {
+	color: var(--shiki-token-property, var(--shiki-token-function));
+}
+pre[data-slot~="code-block-code"] .te {
+	color: var(--shiki-token-escape, var(--shiki-token-constant));
+}
+
+/*
  * The theme swap that `ThemeSwitcher` starts. The new theme grows in a circle
  * from the button over the old one, so neither snapshot fades or blends: the
  * default crossfade adds the two images together inside the circle.
@@ -2199,6 +2555,137 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 }
 
 /*
+ * The morph between `AppLayout.Content` and `AppLayout.SidePanel`. Both carry
+ * `view-transition-class: app-layout-card`, so a surface that is the page on
+ * one route and the panel on the others morphs between them once the app
+ * gives both the same `view-transition-name`. A class does nothing without a
+ * name, so an unnamed card never takes part.
+ *
+ * It is a page transition, so it runs for 300ms, on ease-out-strong. The frame
+ * clips its snapshots at the card's radius. Each snapshot keeps its own width
+ * at the frame's end edge: a 24rem panel stretched across the page reads as a
+ * zoom of blurred text, and the panel keeps its edge while the page grows out
+ * of it. Reduced motion makes it a cut.
+ */
+::view-transition-group(*.app-layout-card),
+::view-transition-old(*.app-layout-card),
+::view-transition-new(*.app-layout-card) {
+	animation-duration: 300ms;
+	/* ease-out-strong: `@theme inline` emits no variable for the token. */
+	animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/*
+ * The frame draws the card's edge, and its snapshots sit 1px out under it, so
+ * each snapshot's own border is under the frame's.
+ */
+::view-transition-group(*.app-layout-card) {
+	box-sizing: border-box;
+	overflow: clip;
+	border: 1px solid var(--border-color-card-muted);
+	border-radius: var(--radius-xl, 0.75rem);
+}
+
+::view-transition-old(*.app-layout-card),
+::view-transition-new(*.app-layout-card) {
+	width: auto;
+	inset-block-start: -1px;
+	inset-inline-start: auto;
+	inset-inline-end: -1px;
+}
+
+/*
+ * When the page and the panel pair, the new snapshot is the card: an outline
+ * in the card's surface color fills the frame around it and covers its own
+ * border, and it stays opaque, so nothing behind shows through while the frame
+ * moves. The old snapshot sits on top without its border and fades out in
+ * 150ms, so two layouts of the same text do not show through each other.
+ *
+ * A card that enters or leaves alone is an only child, and it only fades, so
+ * no empty card stays behind. Why not `:not(:only-child)` on the paired rules:
+ * a view transition pseudo-element takes no `:not()`, and the browser drops
+ * the whole rule.
+ */
+@media (prefers-reduced-motion: no-preference) {
+	::view-transition-new(*.app-layout-card) {
+		border-radius: var(--radius-xl, 0.75rem);
+		outline: 100vmax solid var(--background-color-card);
+		outline-offset: -1px;
+		mix-blend-mode: normal;
+		animation: none;
+	}
+
+	::view-transition-old(*.app-layout-card) {
+		z-index: 1;
+		clip-path: inset(1px round calc(var(--radius-xl, 0.75rem) - 1px));
+		mix-blend-mode: normal;
+		animation: mantle-app-layout-card-fade-out 150ms cubic-bezier(0.23, 1, 0.32, 1) both;
+	}
+
+	::view-transition-new(*.app-layout-card):only-child {
+		outline: none;
+		animation: mantle-app-layout-card-fade-in 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
+	}
+
+	::view-transition-old(*.app-layout-card):only-child {
+		clip-path: none;
+		animation-duration: 300ms;
+	}
+}
+
+@keyframes mantle-app-layout-card-fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes mantle-app-layout-card-fade-out {
+	to {
+		opacity: 0;
+	}
+}
+
+/*
+ * A docked panel keeps its end gutter inside its box, so its snapshot would be
+ * wider than its card and the morph would show two end edges. While the panel
+ * takes part in a view transition, the gutter moves to the box's margin and
+ * the card fills the box. The card renders in the same place, and the snapshot
+ * is the card. Why `max-width`: a change to `flex-basis` would run the panel's
+ * slide. Why not in a theme swap: the panel does not take part, and a panel
+ * that is still sliding open would lose its gutter's width to the margin.
+ * Why not the panel's inline name: React clears it once the transition is
+ * ready, and the live new snapshot would grow back to the gutter.
+ */
+:root:active-view-transition:not([data-theme-transition])
+	[data-slot~="app-layout-side-panel"][data-open] {
+	max-width: var(--_side-panel-content-width);
+	margin-right: var(--_side-panel-content-inset);
+}
+
+:root:active-view-transition:not([data-theme-transition])
+	[data-slot~="app-layout-side-panel"][data-open]
+	> div {
+	right: 0;
+}
+
+/*
+ * Reduced motion is a cut. The old snapshot hides at once: another animation
+ * on the page can keep the transition running, and a still snapshot would
+ * show over the new one until it ends.
+ */
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*.app-layout-card),
+	::view-transition-old(*.app-layout-card),
+	::view-transition-new(*.app-layout-card) {
+		animation: none;
+	}
+
+	::view-transition-old(*.app-layout-card) {
+		opacity: 0;
+	}
+}
+
+/*
  * The new snapshot is live, so a color transition would fade inside the circle
  * while the rest of the page shows the new theme. The swap cancels those
  * transitions in script. On a page that holds many transitions it sets this
@@ -2206,6 +2693,7 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
  * swap does not use it on other pages. The icon of the switcher and each
  * `ThemeSwitcherIcon` keep their own swap.
  */
+/* structural-selector-ok: the rule must reach each element, and only a page with many transitions sets the attribute. */
 :root[data-theme-transition-many]
 	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-switcher-icon"] *),
 :root[data-theme-transition-many]
@@ -2223,11 +2711,11 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
  * surface that is open when it starts: a rule under the root attribute would
  * restyle every element that has a `data-slot`.
  */
+[data-slot~="dialog-content"][data-theme-transition][data-closing],
 :is(
-		[data-slot~="dialog-content"],
 		[data-slot~="dropdown-menu-content"],
 		[data-slot~="dropdown-menu-sub-content"]
-	)[data-theme-transition][data-state="closed"],
+	)[data-theme-transition]:not([data-open]),
 [data-slot~="dialog-positioner"][data-theme-transition],
 [data-slot~="dialog-positioner"][data-theme-transition]::backdrop {
 	animation: none !important;

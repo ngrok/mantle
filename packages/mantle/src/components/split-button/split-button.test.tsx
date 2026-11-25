@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import type { ComponentProps } from "react";
+import { createRef, type ComponentProps } from "react";
 import { describe, expect, test, vi } from "vitest";
 import * as SplitButton from "./split-button-parts.js";
 
@@ -194,23 +194,6 @@ describe("SplitButton", () => {
 		await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
 	});
 
-	test.each([
-		{ align: undefined, expected: "end" },
-		{ align: "start", expected: "start" },
-	] as const)("MenuContent align=$align places the menu at $expected", ({ align, expected }) => {
-		render(
-			<SplitButton.Root open>
-				<SplitButton.PrimaryAction>Save</SplitButton.PrimaryAction>
-				<SplitButton.MenuTrigger label="More save options" />
-				<SplitButton.MenuContent align={align}>
-					<SplitButton.MenuItem>Save as draft</SplitButton.MenuItem>
-				</SplitButton.MenuContent>
-			</SplitButton.Root>,
-		);
-
-		expect(screen.getByRole("menu")).toHaveAttribute("data-align", expected);
-	});
-
 	test("a consumer className on MenuItem overrides the part's gap", () => {
 		render(
 			<SplitButton.Root open>
@@ -247,6 +230,33 @@ describe("SplitButton", () => {
 		const icons = menuTrigger.querySelectorAll("svg");
 		expect(icons).toHaveLength(1);
 		expect(icons[0]).toBe(screen.getByTestId("custom-icon"));
+	});
+
+	test("a `ref` on Root receives the wrapping div", () => {
+		const ref = createRef<HTMLDivElement>();
+		const { container } = render(
+			<SplitButton.Root ref={ref}>
+				<SplitButton.PrimaryAction>Save</SplitButton.PrimaryAction>
+				<SplitButton.MenuTrigger label="More save options" />
+			</SplitButton.Root>,
+		);
+
+		expect(ref.current).toBe(container.querySelector('[data-slot="split-button"]'));
+	});
+
+	test("a `ref` on MenuContent receives the menu", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<SplitButton.Root open>
+				<SplitButton.PrimaryAction>Save</SplitButton.PrimaryAction>
+				<SplitButton.MenuTrigger label="More save options" />
+				<SplitButton.MenuContent ref={ref}>
+					<SplitButton.MenuItem>Save as draft</SplitButton.MenuItem>
+				</SplitButton.MenuContent>
+			</SplitButton.Root>,
+		);
+
+		expect(ref.current).toBe(screen.getByRole("menu"));
 	});
 
 	test("every part stamps its own data-slot in front of the part it wraps", async () => {

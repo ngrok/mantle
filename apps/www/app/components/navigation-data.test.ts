@@ -1,44 +1,31 @@
-import { existsSync } from "node:fs";
-import path from "node:path";
 import { expect, it } from "vitest";
 import { formatMigrationNumber, migrations, migrationsNewestFirst } from "./navigation-data";
 
-const migrationsDirectory = path.resolve(import.meta.dirname, "../docs/migrations");
-
-it("formatMigrationNumber zero-pads to four digits and leaves a wider number alone", () => {
+it("formatMigrationNumber zero-pads to four digits, leaves a wider number alone, and names an unreleased guide", () => {
 	expect(formatMigrationNumber(6)).toBe("0006");
 	expect(formatMigrationNumber(42)).toBe("0042");
 	expect(formatMigrationNumber(12345)).toBe("12345");
+	expect(formatMigrationNumber(null)).toBe("Unreleased");
 });
 
-it("numbers the guides from 1 with no gaps, in publish order", () => {
-	// Why the relation: `number` is the sidebar's React key and the badge text,
-	// and a guide keeps it forever. A reused or skipped number is a data error.
-	expect(migrations.map((migration) => migration.number)).toEqual(
-		migrations.map((_, index) => index + 1),
-	);
+it("reads each guide's short title, slug, and route from its file", () => {
+	expect(migrations.find((migration) => migration.number === 8)).toEqual({
+		number: 8,
+		slug: "tabs-separator-migration",
+		title: "Tabs Separator",
+		description: expect.stringContaining("Tabs.Separator"),
+		route: "/migrations/0008-tabs-separator-migration",
+	});
 });
 
-it("has an MDX file on disk for each migration guide's route", () => {
-	for (const migration of migrations) {
-		const file = path.join(migrationsDirectory, `${migration.route.split("/").pop()}.mdx`);
-		expect(existsSync(file), `${migration.title} at ${file}`).toBe(true);
-	}
-});
-
-it("routes each guide at its padded number and slug", () => {
-	// Why the relation: the migrations list renders `number` as the badge and
-	// `route` as the link, and both are hand-written literals.
-	for (const migration of migrations) {
-		expect(migration.route).toBe(
-			`/migrations/${formatMigrationNumber(migration.number)}-${migration.slug}`,
-		);
-	}
-});
-
-it("migrationsNewestFirst sorts the guides by number, highest first", () => {
+it("migrationsNewestFirst lists unreleased guides, then the rest by number, highest first", () => {
 	// Why not a literal list: a new guide must not need an edit here.
-	expect(migrationsNewestFirst.map((migration) => migration.number)).toEqual(
-		migrations.map((migration) => migration.number).toSorted((a, b) => b - a),
-	);
+	const numbers = migrationsNewestFirst.map((migration) => migration.number);
+	const released = numbers.filter((number) => number != null);
+
+	expect(numbers).toEqual([
+		...numbers.filter((number) => number == null),
+		...released.toSorted((a, b) => b - a),
+	]);
+	expect(numbers).toHaveLength(migrations.length);
 });

@@ -1,6 +1,7 @@
 ---
 title: Button Icon Swap Migration
 description: The Button and IconButton icon now sits inside a span. Replace a [&>svg] selector on the button with [&_svg], or size the icon element itself.
+number: 10
 introducedIn: "0.91.0"
 ---
 
@@ -41,6 +42,7 @@ Codemod: manual: the change is a Tailwind variant inside a class string, and a r
 <Button
 	type="button"
 	appearance="ghost"
+	intent="neutral"
 	icon={<PlusIcon />}
 	className="h-7 gap-1.5 px-2 text-xs [&>svg]:size-3.5"
 >
@@ -53,6 +55,7 @@ Codemod: manual: the change is a Tailwind variant inside a class string, and a r
 <Button
 	type="button"
 	appearance="ghost"
+	intent="neutral"
 	icon={<PlusIcon />}
 	className="h-7 gap-1.5 px-2 text-xs [&_svg]:size-3.5"
 >
@@ -67,6 +70,7 @@ Codemod: manual: the change is a Tailwind variant inside a class string, and a r
 <IconButton
 	type="button"
 	appearance="ghost"
+	intent="neutral"
 	label="Remove message"
 	icon={<TrashIcon />}
 	className="text-muted size-7 shrink-0 [&>svg]:size-3.5"
@@ -78,6 +82,7 @@ Codemod: manual: the change is a Tailwind variant inside a class string, and a r
 <IconButton
 	type="button"
 	appearance="ghost"
+	intent="neutral"
 	label="Remove message"
 	icon={<TrashIcon className="size-3.5" />}
 	className="text-muted size-7 shrink-0"

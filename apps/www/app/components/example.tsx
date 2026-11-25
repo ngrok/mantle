@@ -80,7 +80,7 @@ function Frame({ name, title, height }: FrameProps) {
 	return (
 		<div
 			className={cx(
-				"grid overflow-hidden rounded-lg border border-gray-300",
+				"grid overflow-hidden rounded-xl border border-gray-300",
 				height === "fixed" ? "h-160 grid-rows-[auto_minmax(0,1fr)]" : "grid-rows-[auto_auto]",
 			)}
 		>
@@ -265,9 +265,8 @@ export function Example({ name, title, height, children }: ExampleProps) {
 			</Tabs.List>
 			<Tabs.Content
 				value="preview"
-				// Radix leaves a force-mounted inactive panel visible, so hide it here.
+				// Keeps the preview mounted while the code shows. The inactive panel is `hidden`.
 				forceMount
-				className="data-[state=inactive]:hidden"
 			>
 				{frame}
 			</Tabs.Content>

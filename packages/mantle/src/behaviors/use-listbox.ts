@@ -1,7 +1,14 @@
 "use client";
 
 import { isValidElement, useCallback, useId, useInsertionEffect, useRef, useState } from "react";
-import type { HTMLAttributes, MouseEventHandler, ReactNode, RefCallback, RefObject } from "react";
+import type {
+	HTMLAttributes,
+	MouseEvent,
+	MouseEventHandler,
+	ReactNode,
+	RefCallback,
+	RefObject,
+} from "react";
 import { createStore } from "./store.js";
 import type { Store } from "./store.js";
 
@@ -341,7 +348,8 @@ const childId = ({
 	id,
 }: {
 	asChild: boolean;
-	children: ReactNode;
+	/** The option's children: an element under `asChild`, or content or a function child otherwise. */
+	children: unknown;
 	id: string | undefined;
 }): string | undefined =>
 	asChild && isValidElement<{ id?: string }>(children) ? (children.props.id ?? id) : id;
@@ -358,6 +366,20 @@ const childId = ({
  * return <div {...optionProps}>Apple</div>;
  * ```
  */
+/**
+ * Whether a click on an option opens its link in another tab or window: the
+ * option is a link, and the click has a modifier or a non-primary button. Such
+ * a click must not pick, so this page keeps its value.
+ *
+ * @example
+ * ```ts
+ * opensElsewhere(event); // => true for a Ctrl-click on `<a href>`
+ * ```
+ */
+const opensElsewhere = (event: MouseEvent<HTMLElement>) =>
+	event.currentTarget.matches("a[href]") &&
+	(event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey);
+
 const useOption = (
 	listbox: Listbox,
 	{
@@ -381,20 +403,20 @@ const useOption = (
 		optionProps: {
 			id,
 			role: "option",
+			// Why: focus stays on the owner, so an `asChild` link or button is no Tab stop.
+			tabIndex: -1,
 			"aria-selected": selected,
 			"aria-disabled": disabled || undefined,
 			"data-value": value,
 			"data-text-value": textValue,
-			"data-state": selected ? "checked" : "unchecked",
-			"data-disabled": disabled ? "" : undefined,
 			onPointerMove: (event: { currentTarget: HTMLElement }) => {
 				// Why not `activate`: a hover must not scroll a half-visible option.
 				if (!disabled) {
 					listbox.getStore().set({ activeId: event.currentTarget.id });
 				}
 			},
-			onClick: () => {
-				if (!disabled) {
+			onClick: (event: MouseEvent<HTMLElement>) => {
+				if (!disabled && !opensElsewhere(event)) {
 					listbox.select(value);
 				}
 			},
@@ -405,6 +427,7 @@ const useOption = (
 export {
 	//,
 	childId,
+	opensElsewhere,
 	findTarget,
 	getOptions,
 	scrollIntoList,

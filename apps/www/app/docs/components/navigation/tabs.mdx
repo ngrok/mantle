@@ -16,7 +16,7 @@ Layered sections of content, called tab panels, that show one at a time.
 import { Card } from "@ngrok/mantle/card";
 import { Tabs } from "@ngrok/mantle/tabs";
 
-<Tabs.Root orientation="horizontal" defaultValue="account" className="w-full max-w-100">
+<Tabs.Root defaultValue="account" className="w-full max-w-100">
 	<Tabs.List>
 		<Tabs.Trigger value="account">Account</Tabs.Trigger>
 		<Tabs.Trigger value="password">Password</Tabs.Trigger>
@@ -53,6 +53,60 @@ import { Tabs } from "@ngrok/mantle/tabs";
 - Prefer [`Accordion`](/components/data-display/accordion) when several sections stack, and each one expands in place.
 - Prefer [`RadioGroup`](/components/forms/radio-group) when the user picks a form value, not a view.
 
+## Appearance
+
+Set `appearance` on `Tabs.Root` to choose how the tabs look. The default, `classic`, draws a line along the edge of the active tab. `pill` fills the active tab with a tinted pill. Icons, badges, and disabled tabs work in either appearance, as do link tabs and the vertical orientation.
+
+<Example name="components/navigation/tabs/appearance" title="Tabs appearance example">
+
+```tsx
+import { Field } from "@ngrok/mantle/field";
+import { Icon } from "@ngrok/mantle/icon";
+import { Tabs } from "@ngrok/mantle/tabs";
+import { UserIcon } from "@phosphor-icons/react/User";
+
+<div className="flex flex-col items-center gap-8">
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Appearance classic (default)</Field.Legend>
+		<Tabs.Root defaultValue="account">
+			<Tabs.List aria-label="Settings, appearance classic">
+				<Tabs.Trigger value="account">
+					<Icon svg={<UserIcon />} />
+					Account
+				</Tabs.Trigger>
+				<Tabs.Trigger value="members">
+					Members
+					<Tabs.Badge>8</Tabs.Badge>
+				</Tabs.Trigger>
+				<Tabs.Trigger disabled value="billing">
+					Billing
+				</Tabs.Trigger>
+			</Tabs.List>
+		</Tabs.Root>
+	</Field.Set>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Appearance pill</Field.Legend>
+		<Tabs.Root appearance="pill" defaultValue="account">
+			<Tabs.List aria-label="Settings, appearance pill">
+				<Tabs.Trigger value="account">
+					<Icon svg={<UserIcon />} />
+					Account
+				</Tabs.Trigger>
+				<Tabs.Trigger value="members">
+					Members
+					<Tabs.Badge>8</Tabs.Badge>
+				</Tabs.Trigger>
+				<Tabs.Trigger disabled value="billing">
+					Billing
+				</Tabs.Trigger>
+			</Tabs.List>
+		</Tabs.Root>
+	</Field.Set>
+</div>;
+```
+
+</Example>
+
 ## Icons
 
 Put an `Icon` before the label in `Tabs.Trigger` to help the user scan the tabs.
@@ -64,7 +118,7 @@ import { Icon } from "@ngrok/mantle/icon";
 import { Tabs } from "@ngrok/mantle/tabs";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
 
-<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+<Tabs.Root defaultValue="tab-1">
 	<Tabs.List>
 		<Tabs.Trigger value="tab-1">
 			<Icon svg={<GlobeIcon />} />
@@ -96,7 +150,7 @@ import { Icon } from "@ngrok/mantle/icon";
 import { Tabs } from "@ngrok/mantle/tabs";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
 
-<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+<Tabs.Root defaultValue="tab-1">
 	<Tabs.List>
 		<Tabs.Trigger value="tab-1">
 			Tab title
@@ -127,7 +181,7 @@ Pass `disabled` to a `Tabs.Trigger` to stop the user from selecting that tab.
 ```tsx
 import { Tabs } from "@ngrok/mantle/tabs";
 
-<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+<Tabs.Root defaultValue="tab-1">
 	<Tabs.List>
 		<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
 		<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
@@ -142,11 +196,160 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 </Example>
 
+## Vertical orientation
+
+Set `orientation="vertical"` on `Tabs.Root` to stack the tabs beside the content. `Tabs.Separator` then runs beside the list, the full height of the root.
+
+<Example name="components/navigation/tabs/vertical-orientation" title="Tabs vertical orientation example">
+
+```tsx
+import { Tabs } from "@ngrok/mantle/tabs";
+
+<Tabs.Root orientation="vertical" defaultValue="account" className="max-w-xl">
+	<Tabs.List>
+		<Tabs.Trigger value="account">Account</Tabs.Trigger>
+		<Tabs.Trigger value="password">Password</Tabs.Trigger>
+	</Tabs.List>
+	<Tabs.Separator />
+	<Tabs.Content value="account">
+		<p className="text-muted">Make changes to your account here.</p>
+	</Tabs.Content>
+	<Tabs.Content value="password">
+		<p className="text-muted">Change your password here.</p>
+	</Tabs.Content>
+</Tabs.Root>;
+```
+
+</Example>
+
+## Separator
+
+`Tabs.List` draws no border of its own. Compose `Tabs.Separator` directly after it for the 1px hairline in the `separator` color: under the list when the root is horizontal, beside the list when the root is vertical. The separator is a sibling of the list and not a child, so it spans the root's full width and neither scrolls nor fades with the triggers.
+
+As the root's direct child, the separator pulls itself up by `--tabs-gap`, the root's gap, and sits flush against the list while the content keeps the gap. Inside a wrapper of your own (a page header that holds a title, badges, and the list), the offset stays off and the separator sits where the wrapper lays it out. To change the space between the list and the content, set `--tabs-gap` on `Tabs.Root`. A `gap-*` class changes the gap alone and leaves the separator's offset at `1rem`.
+
+The separator is decorative (`role="none"`). Pass `semantic` to render `role="separator"`.
+
+<Example name="components/navigation/tabs/separator" title="Tabs separator example">
+
+```tsx
+import { Field } from "@ngrok/mantle/field";
+import { Tabs } from "@ngrok/mantle/tabs";
+
+<div className="flex flex-col items-center gap-8">
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">With Tabs.Separator</Field.Legend>
+		<Tabs.Root defaultValue="tab-1">
+			<Tabs.List aria-label="Sections, with separator">
+				<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
+				<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
+				<Tabs.Trigger value="tab-3">Tab title</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Separator />
+		</Tabs.Root>
+	</Field.Set>
+	<Field.Set className="w-auto items-center">
+		<Field.Legend className="w-full text-center">Without Tabs.Separator</Field.Legend>
+		<Tabs.Root defaultValue="tab-1">
+			<Tabs.List aria-label="Sections, without separator">
+				<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
+				<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
+				<Tabs.Trigger value="tab-3">Tab title</Tabs.Trigger>
+			</Tabs.List>
+		</Tabs.Root>
+	</Field.Set>
+</div>;
+```
+
+</Example>
+
+## Horizontal overflow
+
+When there are too many tabs to fit the container, the list scrolls horizontally with scroll-position-aware fade shadows at the edges.
+
+<Example name="components/navigation/tabs/horizontal-overflow" title="Tabs horizontal overflow example">
+
+```tsx
+import { Tabs } from "@ngrok/mantle/tabs";
+
+<Tabs.Root defaultValue="getting-started" className="w-full max-w-2xl">
+	<Tabs.List>
+		<Tabs.Trigger value="getting-started">Getting started</Tabs.Trigger>
+		<Tabs.Trigger value="traffic-policy">Traffic Policy</Tabs.Trigger>
+		<Tabs.Trigger value="api-keys">API Keys</Tabs.Trigger>
+		<Tabs.Trigger value="usage">Usage</Tabs.Trigger>
+		<Tabs.Trigger value="settings">Settings</Tabs.Trigger>
+		<Tabs.Trigger value="logs">Logs</Tabs.Trigger>
+		<Tabs.Trigger value="analytics">Analytics</Tabs.Trigger>
+		<Tabs.Trigger value="integrations">Integrations</Tabs.Trigger>
+		<Tabs.Trigger value="domains">Domains</Tabs.Trigger>
+		<Tabs.Trigger value="team">Team</Tabs.Trigger>
+		<Tabs.Trigger value="security">Security</Tabs.Trigger>
+		<Tabs.Trigger value="notifications">Notifications</Tabs.Trigger>
+		<Tabs.Trigger value="certificates">Certificates</Tabs.Trigger>
+		<Tabs.Trigger value="permissions">Permissions</Tabs.Trigger>
+	</Tabs.List>
+	<Tabs.Separator />
+</Tabs.Root>;
+```
+
+</Example>
+
+## Stop arrow-key selection
+
+To keep the keyboard on a tab, for example while its panel has unsaved changes, call `preventDefault()` in the trigger's `onKeyDown`. The key then neither moves focus nor selects. A click still selects. The key goes to the tab that has focus, so put the handler on each tab the user can leave.
+
+Do not use `onFocus` with `preventDefault()` for this. An arrow key selects the next tab before it takes focus, so a focus handler runs too late to stop the selection.
+
+```tsx
+import { Tabs } from "@ngrok/mantle/tabs";
+import type { KeyboardEvent } from "react";
+
+const tabKeys = [
+	"ArrowLeft",
+	"ArrowRight",
+	"ArrowUp",
+	"ArrowDown",
+	"Home",
+	"End",
+	"PageUp",
+	"PageDown",
+];
+
+function SettingsTabs({ hasUnsavedChanges }: { hasUnsavedChanges: boolean }) {
+	const holdTab = (event: KeyboardEvent) => {
+		if (hasUnsavedChanges && tabKeys.includes(event.key)) {
+			event.preventDefault();
+		}
+	};
+
+	return (
+		<Tabs.Root defaultValue="profile">
+			<Tabs.List>
+				<Tabs.Trigger value="profile" onKeyDown={holdTab}>
+					Profile
+				</Tabs.Trigger>
+				<Tabs.Trigger value="billing" onKeyDown={holdTab}>
+					Billing
+				</Tabs.Trigger>
+			</Tabs.List>
+		</Tabs.Root>
+	);
+}
+```
+
 ## Find in page
 
-Pass `hiddenUntilFound` to a `Tabs.Content` to keep its text in the HTML while its tab is inactive. The panel renders `hidden="until-found"`, so the browser's find-in-page and a link to a fragment inside it reveal the text and activate its tab. Use it for pages that crawlers and agents read, such as install instructions. It implies `forceMount`.
+Pass `hiddenUntilFound` to a `Tabs.Content` to keep its text in the HTML while its tab is inactive. The panel renders `hidden="until-found"`, so the browser's find-in-page and a link to a fragment inside it reveal the text and activate its tab. It implies `forceMount`.
 
-Do not hide the panel with a `display: none` class, such as `data-[state=inactive]:hidden`: it blocks the search. A browser without `until-found` treats the panel as plain `hidden`.
+By default, only the active panel renders its children. That keeps an app page to the fewest DOM nodes. Add `hiddenUntilFound` to every panel on a page that search engines and AI crawlers read, such as a marketing page or install instructions:
+
+- Search engines see every panel. Google's [mobile-first indexing guide](https://developers.google.com/search/docs/crawling-indexing/mobile/mobile-sites-mobile-first-indexing) suggests moving content into tabs or accordions to save space instead of removing it. A plain inactive panel renders empty, so its text isn't on the page at all.
+- AI crawlers read it without JavaScript. Vercel [measured](https://vercel.com/blog/the-rise-of-the-ai-crawler) that GPTBot, ClaudeBot, and PerplexityBot don't run JavaScript, so they see only the server HTML. Each panel's text is in that HTML.
+
+After hydration, an inactive panel is also `aria-hidden`, so screen readers and `getByRole` queries see only the active panel. The server HTML leaves `aria-hidden` out, so a panel that the browser reveals before your scripts run stays readable.
+
+Do not hide the panel with a `display: none` class: it blocks the search. A browser without `until-found`, such as Safari before 26.2, treats the panel as plain `hidden`: the text stays in the HTML, and find-in-page skips it.
 
 <Example name="components/navigation/tabs/hidden-until-found" title="Tabs find in page example">
 
@@ -170,45 +373,6 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 </Example>
 
-## Vertical orientation
-
-Set `orientation="vertical"` on `Tabs.Root` to stack the tabs beside the content.
-
-<Example name="components/navigation/tabs/vertical-orientation" title="Tabs vertical orientation example">
-
-```tsx
-import { Card } from "@ngrok/mantle/card";
-import { Tabs } from "@ngrok/mantle/tabs";
-
-<Tabs.Root orientation="vertical" defaultValue="account" className="max-w-xl">
-	<Tabs.List>
-		<Tabs.Trigger value="account">Account</Tabs.Trigger>
-		<Tabs.Trigger value="password">Password</Tabs.Trigger>
-	</Tabs.List>
-	<Tabs.Separator />
-	<Tabs.Content value="account">
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Account</Card.Title>
-				<p className="text-muted">
-					Make changes to your account here. Click save when you're done.
-				</p>
-			</Card.Header>
-		</Card.Root>
-	</Tabs.Content>
-	<Tabs.Content value="password">
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Password</Card.Title>
-				<p className="text-muted">Change your password here. After saving, you'll be logged out.</p>
-			</Card.Header>
-		</Card.Root>
-	</Tabs.Content>
-</Tabs.Root>;
-```
-
-</Example>
-
 ## Composition
 
 Compose the parts of `Tabs` together to build your own:
@@ -225,7 +389,7 @@ Tabs.Root
 ## Polymorphism
 
 `Tabs.Trigger` accepts an `asChild` prop. When `true`, it composes the trigger styling and tab behavior onto its single child instead of rendering its own `<button>`. Use it to render each tab as a router link (a `react-router` `Link` here) so tabs drive client-side navigation while keeping the active-tab styling.
-A link tab activates on click, not on the press, so a press released off the link switches no tab and follows no link.
+A link tab activates on click, not on the press, so a press released off the link switches no tab and follows no link. To disable a link tab, put `disabled` on `Tabs.Trigger`, not on the link.
 
 `Tabs.Separator` accepts `asChild` too. When `true`, it composes the hairline's styling and attributes onto your own element instead of rendering its own `<div>`.
 
@@ -237,7 +401,7 @@ A link tab activates on click, not on the press, so a press released off the lin
 import { Tabs } from "@ngrok/mantle/tabs";
 import { Link, href } from "react-router";
 
-<Tabs.Root orientation="horizontal" defaultValue="colors">
+<Tabs.Root defaultValue="colors">
 	<Tabs.List>
 		<Tabs.Trigger value="colors" asChild>
 			<Link to={href("/base/colors")} target="_top">
@@ -249,7 +413,7 @@ import { Link, href } from "react-router";
 				Shadows
 			</Link>
 		</Tabs.Trigger>
-		<Tabs.Trigger value="typography" asChild>
+		<Tabs.Trigger value="typography" disabled asChild>
 			<Link to={href("/base/typography")} target="_top">
 				Typography
 			</Link>
@@ -261,336 +425,9 @@ import { Link, href } from "react-router";
 
 </Example>
 
-## Horizontal overflow
-
-When there are too many tabs to fit the container, the list scrolls horizontally with scroll-position-aware fade shadows at the edges.
-
-<Example name="components/navigation/tabs/horizontal-overflow" title="Tabs horizontal overflow example">
-
-```tsx
-import { Icon } from "@ngrok/mantle/icon";
-import { Tabs } from "@ngrok/mantle/tabs";
-import { ArrowsSplitIcon } from "@phosphor-icons/react/ArrowsSplit";
-import { BellIcon } from "@phosphor-icons/react/Bell";
-import { CertificateIcon } from "@phosphor-icons/react/Certificate";
-import { ChartBarIcon } from "@phosphor-icons/react/ChartBar";
-import { ChartLineIcon } from "@phosphor-icons/react/ChartLine";
-import { GearSixIcon } from "@phosphor-icons/react/GearSix";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
-import { KeyIcon } from "@phosphor-icons/react/Key";
-import { ListIcon } from "@phosphor-icons/react/List";
-import { LockIcon } from "@phosphor-icons/react/Lock";
-import { PlugIcon } from "@phosphor-icons/react/Plug";
-import { RocketLaunchIcon } from "@phosphor-icons/react/RocketLaunch";
-import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
-import { UserIcon } from "@phosphor-icons/react/User";
-
-<Tabs.Root orientation="horizontal" defaultValue="getting-started" className="w-full">
-	<Tabs.List>
-		<Tabs.Trigger value="getting-started">
-			<Icon svg={<RocketLaunchIcon />} />
-			Getting started
-		</Tabs.Trigger>
-		<Tabs.Trigger value="traffic-policy">
-			<Icon svg={<ArrowsSplitIcon />} />
-			Traffic Policy
-		</Tabs.Trigger>
-		<Tabs.Trigger value="api-keys">
-			<Icon svg={<KeyIcon />} />
-			API Keys
-		</Tabs.Trigger>
-		<Tabs.Trigger value="usage">
-			<Icon svg={<ChartBarIcon />} />
-			Usage
-		</Tabs.Trigger>
-		<Tabs.Trigger value="settings">
-			<Icon svg={<GearSixIcon />} />
-			Settings
-		</Tabs.Trigger>
-		<Tabs.Trigger value="logs">
-			<Icon svg={<ListIcon />} />
-			Logs
-		</Tabs.Trigger>
-		<Tabs.Trigger value="analytics">
-			<Icon svg={<ChartLineIcon />} />
-			Analytics
-		</Tabs.Trigger>
-		<Tabs.Trigger value="integrations">
-			<Icon svg={<PlugIcon />} />
-			Integrations
-		</Tabs.Trigger>
-		<Tabs.Trigger value="domains">
-			<Icon svg={<GlobeIcon />} />
-			Domains
-		</Tabs.Trigger>
-		<Tabs.Trigger value="team">
-			<Icon svg={<UserIcon />} />
-			Team
-		</Tabs.Trigger>
-		<Tabs.Trigger value="security">
-			<Icon svg={<ShieldCheckIcon />} />
-			Security
-		</Tabs.Trigger>
-		<Tabs.Trigger value="notifications">
-			<Icon svg={<BellIcon />} />
-			Notifications
-		</Tabs.Trigger>
-		<Tabs.Trigger value="certificates">
-			<Icon svg={<CertificateIcon />} />
-			Certificates
-		</Tabs.Trigger>
-		<Tabs.Trigger value="permissions">
-			<Icon svg={<LockIcon />} />
-			Permissions
-		</Tabs.Trigger>
-	</Tabs.List>
-	<Tabs.Separator />
-</Tabs.Root>;
-```
-
-</Example>
-
-## Pill appearance
-
-Use `appearance="pill"` to render each tab as a pill instead of the default classic underline style.
-
-<Example name="components/navigation/tabs/pill-appearance" title="Tabs pill appearance example">
-
-```tsx
-import { Card } from "@ngrok/mantle/card";
-import { Icon } from "@ngrok/mantle/icon";
-import { Tabs } from "@ngrok/mantle/tabs";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
-import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
-import { UserIcon } from "@phosphor-icons/react/User";
-import { Link, href } from "react-router";
-
-<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="colors">
-	<Tabs.List>
-		<Tabs.Trigger value="colors" asChild>
-			<Link to={href("/base/colors")} target="_top">Colors</Link>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="shadows" asChild>
-			<Link to={href("/base/shadows")} target="_top">Shadows</Link>
-		</Tabs.Trigger>
-		<Tabs.Trigger disabled value="tailwind-variants" asChild>
-			<Link to={href("/base/tailwind-variants")} target="_top">Tailwind Variants</Link>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="typography" asChild>
-			<Link to={href("/base/typography")} target="_top">Typography</Link>
-		</Tabs.Trigger>
-	</Tabs.List>
-</Tabs.Root>
-
-<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="tab-1">
-	<Tabs.List>
-		<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
-		<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
-		<Tabs.Trigger disabled value="tab-3">
-			Tab title
-		</Tabs.Trigger>
-		<Tabs.Trigger value="tab-4">Tab title</Tabs.Trigger>
-	</Tabs.List>
-</Tabs.Root>
-
-<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="tab-1">
-	<Tabs.List>
-		<Tabs.Trigger value="tab-1">
-			<Icon svg={<GlobeIcon />} />
-			Tab title
-		</Tabs.Trigger>
-		<Tabs.Trigger value="tab-2">
-			<Icon svg={<GlobeIcon />} />
-			Tab title
-		</Tabs.Trigger>
-		<Tabs.Trigger disabled value="tab-3">
-			<Icon svg={<GlobeIcon />} />
-			Tab title
-		</Tabs.Trigger>
-		<Tabs.Trigger value="tab-4">
-			<Icon svg={<GlobeIcon />} />
-			Tab title
-		</Tabs.Trigger>
-	</Tabs.List>
-</Tabs.Root>
-
-<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="tab-1">
-	<Tabs.List>
-		<Tabs.Trigger value="tab-1">
-			Tab title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="tab-2">
-			Tab title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-		<Tabs.Trigger disabled value="tab-3">
-			Tab title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="tab-4">
-			Tab title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-	</Tabs.List>
-</Tabs.Root>
-
-<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="tab-1">
-	<Tabs.List>
-		<Tabs.Trigger value="tab-1">
-			<Icon svg={<GlobeIcon />} />
-			Tab title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="tab-2">
-			<Icon svg={<GlobeIcon />} />
-			Tab title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-		<Tabs.Trigger disabled value="tab-3">
-			<Icon svg={<GlobeIcon />} />
-			Tab title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="tab-4">
-			<Icon svg={<GlobeIcon />} />
-			Tab title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-	</Tabs.List>
-</Tabs.Root>
-
-<Tabs.Root
-	appearance="pill"
-	orientation="horizontal"
-	defaultValue="account"
-	className="w-full max-w-100"
->
-	<Tabs.List>
-		<Tabs.Trigger value="account">
-			<Icon svg={<UserIcon />} />
-			Account
-			<Tabs.Badge>2</Tabs.Badge>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="password">
-			<Icon svg={<ShieldCheckIcon />} />
-			Password
-		</Tabs.Trigger>
-	</Tabs.List>
-	<Tabs.Content value="account">
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Account</Card.Title>
-				<p className="text-muted">
-					Make changes to your account here. Click save when you're done.
-				</p>
-			</Card.Header>
-		</Card.Root>
-	</Tabs.Content>
-	<Tabs.Content value="password">
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Password</Card.Title>
-				<p className="text-muted">
-					Change your password here. After saving, you'll be logged out.
-				</p>
-			</Card.Header>
-		</Card.Root>
-	</Tabs.Content>
-</Tabs.Root>
-
-<Tabs.Root
-	appearance="pill"
-	orientation="vertical"
-	defaultValue="account"
-	className="scrollbar max-w-xl -m-1 p-1 overflow-x-scroll"
->
-	<Tabs.List>
-		<Tabs.Trigger value="account">Account</Tabs.Trigger>
-		<Tabs.Trigger value="password">Password</Tabs.Trigger>
-		<Tabs.Trigger value="disabled-tab" disabled>
-			Disabled tab
-		</Tabs.Trigger>
-	</Tabs.List>
-	<Tabs.Content value="account">
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Account</Card.Title>
-				<p className="text-muted">
-					Make changes to your account here. Click save when you're done.
-				</p>
-			</Card.Header>
-		</Card.Root>
-	</Tabs.Content>
-	<Tabs.Content value="password">
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Password</Card.Title>
-				<p className="text-muted">
-					Change your password here. After saving, you'll be logged out.
-				</p>
-			</Card.Header>
-		</Card.Root>
-	</Tabs.Content>
-</Tabs.Root>
-```
-
-</Example>
-
-## Separator
-
-`Tabs.List` draws no border of its own. Compose `Tabs.Separator` directly after it for the 1px hairline in the `separator` color: under the list when the root is horizontal, beside the list when the root is vertical. The separator is a sibling of the list and not a child, so it spans the root's full width and neither scrolls nor fades with the triggers.
-
-As the root's direct child, the separator pulls itself up by `--tabs-gap`, the root's gap, and sits flush against the list while the content keeps the gap. Inside a wrapper of your own (a page header that holds a title, badges, and the list), the offset stays off and the separator sits where the wrapper lays it out. To change the space between the list and the content, set `--tabs-gap` on `Tabs.Root`. A `gap-*` class changes the gap alone and leaves the separator's offset at `1rem`.
-
-The separator is decorative (`role="none"`). Pass `semantic` to render `role="separator"`.
-
-<Example name="components/navigation/tabs/separator" title="Tabs separator example">
-
-```tsx
-import { Tabs } from "@ngrok/mantle/tabs";
-
-<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-	<Tabs.List>
-		<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
-		<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
-		<Tabs.Trigger value="tab-3">Tab title</Tabs.Trigger>
-	</Tabs.List>
-	<Tabs.Separator />
-</Tabs.Root>
-
-<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-	<Tabs.List>
-		<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
-		<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
-		<Tabs.Trigger value="tab-3">Tab title</Tabs.Trigger>
-	</Tabs.List>
-</Tabs.Root>
-
-<Tabs.Root orientation="vertical" defaultValue="tab-1" className="max-w-xl">
-	<Tabs.List>
-		<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
-		<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
-		<Tabs.Trigger value="tab-3">Tab title</Tabs.Trigger>
-	</Tabs.List>
-	<Tabs.Separator />
-	<Tabs.Content value="tab-1">
-		<p className="text-muted">The separator runs beside the list, the full height of the root.</p>
-	</Tabs.Content>
-	<Tabs.Content value="tab-2">
-		<p className="text-muted">Tab 2 content.</p>
-	</Tabs.Content>
-	<Tabs.Content value="tab-3">
-		<p className="text-muted">Tab 3 content.</p>
-	</Tabs.Content>
-</Tabs.Root>
-```
-
-</Example>
-
 ## Headless tabs
 
-Use `HeadlessTabs` when a page needs tabs in its own visual language, such as the large use-case cards on a marketing page. It has the same behavior as `Tabs` and no look of its own. Style each part with your own classes, and style the states with `data-state-active:` and `data-state-inactive:`.
+Use `HeadlessTabs` when a page needs tabs in its own visual language, such as the large use-case cards on a marketing page. It has the same behavior as `Tabs` and no look of its own. Style each part with your own classes, and style the states with `aria-selected:` and `not-aria-selected:`.
 
 `HeadlessTabs` keeps the keyboard and ARIA contract, `hiddenUntilFound`, the scroll of a keyboard-focused tab into view, and link tabs. The triggers and panels keep mantle's focus ring for keyboard focus, and a pointer press focuses a trigger without it. Add a `ring-focus-*` or `ring-*` class to change the ring's tone or width. `HeadlessTabs` has no `Separator` or `Badge`, and no `appearance` prop.
 
@@ -609,25 +446,25 @@ import { StackIcon } from "@phosphor-icons/react/Stack";
 		<HeadlessTabs.List aria-label="How it works" className="grid grid-cols-3 gap-1 p-2">
 			<HeadlessTabs.Trigger
 				value="front-door"
-				className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+				className="group text-body hover:bg-card-hover aria-selected:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
 			>
-				<Icon svg={<DoorOpenIcon />} className="size-6 group-data-state-active:text-accent-600" />
+				<Icon svg={<DoorOpenIcon />} className="size-6 group-aria-selected:text-accent-600" />
 				Create one front door
 			</HeadlessTabs.Trigger>
 			<HeadlessTabs.Trigger
 				value="agent"
-				className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+				className="group text-body hover:bg-card-hover aria-selected:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
 			>
-				<Icon svg={<StackIcon />} className="size-6 group-data-state-active:text-accent-600" />
+				<Icon svg={<StackIcon />} className="size-6 group-aria-selected:text-accent-600" />
 				Run the agent
 			</HeadlessTabs.Trigger>
 			<HeadlessTabs.Trigger
 				value="route"
-				className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+				className="group text-body hover:bg-card-hover aria-selected:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
 			>
 				<Icon
 					svg={<GlobeHemisphereWestIcon />}
-					className="size-6 group-data-state-active:text-accent-600"
+					className="size-6 group-aria-selected:text-accent-600"
 				/>
 				Route and authenticate
 			</HeadlessTabs.Trigger>
@@ -658,12 +495,22 @@ HeadlessTabs.Root
 └── HeadlessTabs.Content
 ```
 
+## Dragging the indicator
+
+The active indicator slides from the tab that was active to the new one on every change: a click, a key, a drag, or a new `value`. It changes its width on the way, and in a vertical list it moves down or up.
+
+Press the active tab and move along the list to drag the indicator with a mouse or a finger, in either appearance. On release, it slides to the nearest enabled tab, and that tab activates as a click would: its panel shows and `onValueChange` fires once. A tab the indicator passes over during the drag does not activate, so the panels do not flash. A flick carries the indicator further. A drag onto a link tab follows the link.
+
+On a touch screen, a swipe across the list drags the indicator only once the list is measured to fit. Before hydration, and when the list overflows, a swipe on the active tab scrolls the list, like a swipe anywhere else on it. A swipe that goes more across the list than along it does not start a drag, so the page still scrolls.
+
+With reduced motion, the indicator moves at once. The keyboard and screen reader contract does not change.
+
 ## Accessibility
 
 `Tabs` follows the [WAI-ARIA tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/): the list is a `role="tablist"`, each trigger is a `role="tab"` with `aria-selected` and `aria-controls`, and each content panel is a `role="tabpanel"` labelled by its tab.
 
 - **Tab** moves focus into the list and lands on the active tab. Only the active tab is a Tab stop, so the next **Tab** leaves the list. This holds for `asChild` triggers too, so a list of router links is one Tab stop, not one per link.
-- **ArrowLeft** / **ArrowRight** (or **ArrowUp** / **ArrowDown** when vertical) move focus between the enabled tabs and activate the focused tab. They wrap at the ends unless `Tabs.List` has `loop={false}`. In a right-to-left page, **ArrowLeft** moves to the next tab. **Home** and **End** jump to the first and last tab.
+- **ArrowLeft** / **ArrowRight** (or **ArrowUp** / **ArrowDown** when vertical) move focus between the enabled tabs and activate the focused tab. The tab is selected before it takes focus, so a screen reader reads it once. They wrap at the ends unless `Tabs.List` has `loop={false}`. In a right-to-left page, **ArrowLeft** moves to the next tab. **Home** and **End** (or **PageUp** and **PageDown**) jump to the first and last tab.
 - With `activationMode="manual"`, the arrows only move focus, and **Enter** or **Space** activates the focused tab.
 - The active tab is a Tab stop in the server HTML, so the keyboard reaches it before hydration. After hydration, a forward **Tab** enters on the active tab, or on the first enabled tab that can take focus. **Shift+Tab** comes back to the last focused tab, unless the selection changed after focus left.
 - A trigger shows the [focus ring](/base/focus-ring) for keyboard focus only. A horizontal list scrolls, so it carries `px-1 -mx-1 pt-1 -mt-1` (and `pb-1 -mb-1` for the pill appearance) to keep the ring inside its scroll box. See [Give the ring room](/base/focus-ring#give-the-ring-room).
@@ -675,11 +522,14 @@ HeadlessTabs.Root
 | Data Attribute     | Value                                                                                                                                         | Description                                                                                                    |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `data-slot`        | `"tabs"` \| `"tabs-list"` \| `"tabs-trigger"` \| `"tabs-trigger-label"` \| `"tabs-badge"` \| `"tabs-separator separator"` \| `"tabs-content"` | Names each part, plus the trigger's label wrapper. The separator carries `Separator`'s own slot after its own. |
-| `data-orientation` | `"horizontal"` \| `"vertical"`                                                                                                                | On the root, list, triggers, separator, and content.                                                           |
+| `data-orientation` | `"horizontal"` \| `"vertical"`                                                                                                                | On the root, list, and separator.                                                                              |
 | `data-appearance`  | `"classic"` \| `"pill"`                                                                                                                       | On the root. Descendant parts style against it.                                                                |
 | `data-separator`   | present                                                                                                                                       | Presence-only, on the separator. Set by the mantle `Separator`.                                                |
-| `data-state`       | `"active"` \| `"inactive"`                                                                                                                    | On each trigger and content panel.                                                                             |
-| `data-disabled`    | present when `disabled`                                                                                                                       | Presence-only, on a trigger.                                                                                   |
+| `aria-selected`    | `"true"` \| `"false"`                                                                                                                         | On each trigger. Whether the trigger's panel is shown. Style it with `aria-selected:`.                         |
+| `data-dragging`    | present during a drag                                                                                                                         | Presence-only, on the list. The indicator follows the pointer.                                                 |
+| `data-overflowing` | `"true"` \| `"false"`                                                                                                                         | On the list, once measured. `"true"` while the list scrolls.                                                   |
+| `data-thumb-over`  | present during a drag                                                                                                                         | Presence-only, on the trigger under the dragged indicator.                                                     |
+| `hidden`           | present while inactive                                                                                                                        | On each content panel. The browser hides the panel. `"until-found"` with `hiddenUntilFound`.                   |
 
 ## API Reference
 
@@ -729,10 +579,12 @@ The list draws no border of its own. Compose [`Tabs.Separator`](#tabsseparator) 
 
 #### Data attributes
 
-| Data Attribute     | Value                          | Description             |
-| ------------------ | ------------------------------ | ----------------------- |
-| `data-slot`        | `"tabs-list"`                  | On the tablist element. |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. |
+| Data Attribute     | Value                          | Description                                         |
+| ------------------ | ------------------------------ | --------------------------------------------------- |
+| `data-slot`        | `"tabs-list"`                  | On the tablist element.                             |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.                             |
+| `data-dragging`    | present during a drag          | The indicator follows the pointer. Presence-only.   |
+| `data-overflowing` | `"true"` \| `"false"`          | Set once measured. `"true"` while the list scrolls. |
 
 ### Tabs.Separator
 
@@ -775,33 +627,31 @@ An icon you pass as a child is now a grandchild of the trigger, so a `[&>svg]` c
 
 #### Data attributes
 
-| Data Attribute     | Value                          | Description                           |
-| ------------------ | ------------------------------ | ------------------------------------- |
-| `data-slot`        | `"tabs-trigger"`               | On the trigger element.               |
-| `data-slot`        | `"tabs-trigger-label"`         | On the `<span>` wrapping `children`.  |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.               |
-| `data-state`       | `"active"` \| `"inactive"`     | Whether the trigger's panel is shown. |
-| `data-disabled`    | present when `disabled`        | Presence-only.                        |
+| Data Attribute    | Value                  | Description                                                           |
+| ----------------- | ---------------------- | --------------------------------------------------------------------- |
+| `data-slot`       | `"tabs-trigger"`       | On the trigger element.                                               |
+| `data-slot`       | `"tabs-trigger-label"` | On the `<span>` wrapping `children`.                                  |
+| `aria-selected`   | `"true"` \| `"false"`  | Whether the trigger's panel is shown. Style it with `aria-selected:`. |
+| `data-thumb-over` | present during a drag  | The dragged indicator is over this trigger. Presence-only.            |
 
 ### Tabs.Content
 
 Contains the content associated with each trigger.
 
-| Prop                | Type      | Default | Description                                                                                                                                                                                          |
-| ------------------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `value`             | `string`  |         | A unique value that associates the content with a trigger.                                                                                                                                           |
-| `forceMount?`       | `true`    |         | Keeps the panel's children mounted while its tab is inactive. Hide an inactive panel yourself, such as with `data-[state=inactive]:hidden`.                                                          |
-| `hiddenUntilFound?` | `boolean` | `false` | Keeps the panel's children mounted as `hidden="until-found"` while its tab is inactive, so find-in-page reveals them and activates the tab. Implies `forceMount`. See [Find in page](#find-in-page). |
-| `asChild?`          | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the panel's attributes and behavior onto it.                                                                           |
-| `className?`        | `string`  |         | Additional CSS classes to apply to the content element.                                                                                                                                              |
+| Prop                | Type      | Default | Description                                                                                                                                                                                                                                                |
+| ------------------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`             | `string`  |         | A unique value that associates the content with a trigger.                                                                                                                                                                                                 |
+| `forceMount?`       | `true`    |         | Keeps the panel's children mounted while its tab is inactive. The inactive panel stays natively `hidden`.                                                                                                                                                  |
+| `hiddenUntilFound?` | `boolean` | `false` | Keeps the panel's children mounted as `hidden="until-found"` while its tab is inactive, so find-in-page reveals them and activates the tab. After hydration, the inactive panel is `aria-hidden`. Implies `forceMount`. See [Find in page](#find-in-page). |
+| `asChild?`          | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the panel's attributes and behavior onto it.                                                                                                                                 |
+| `className?`        | `string`  |         | Additional CSS classes to apply to the content element.                                                                                                                                                                                                    |
 
 #### Data attributes
 
-| Data Attribute     | Value                          | Description                 |
-| ------------------ | ------------------------------ | --------------------------- |
-| `data-slot`        | `"tabs-content"`               | On the panel element.       |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.     |
-| `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. |
+| Data Attribute | Value                  | Description                                                           |
+| -------------- | ---------------------- | --------------------------------------------------------------------- |
+| `data-slot`    | `"tabs-content"`       | On the panel element.                                                 |
+| `hidden`       | present while inactive | The browser hides the panel. `"until-found"` with `hiddenUntilFound`. |
 
 ### Tabs.Badge
 
@@ -846,12 +696,10 @@ The unstyled tab button. It takes the props of [`Tabs.Trigger`](#tabstrigger). I
 
 #### Data attributes
 
-| Data Attribute     | Value                          | Description                           |
-| ------------------ | ------------------------------ | ------------------------------------- |
-| `data-slot`        | `"tabs-trigger"`               | On the trigger element.               |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.               |
-| `data-state`       | `"active"` \| `"inactive"`     | Whether the trigger's panel is shown. |
-| `data-disabled`    | present when `disabled`        | Presence-only.                        |
+| Data Attribute  | Value                 | Description                                                           |
+| --------------- | --------------------- | --------------------------------------------------------------------- |
+| `data-slot`     | `"tabs-trigger"`      | On the trigger element.                                               |
+| `aria-selected` | `"true"` \| `"false"` | Whether the trigger's panel is shown. Style it with `aria-selected:`. |
 
 ### HeadlessTabs.Content
 
@@ -859,8 +707,7 @@ The unstyled tab panel. It takes the props of [`Tabs.Content`](#tabscontent). It
 
 #### Data attributes
 
-| Data Attribute     | Value                          | Description                 |
-| ------------------ | ------------------------------ | --------------------------- |
-| `data-slot`        | `"tabs-content"`               | On the panel element.       |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.     |
-| `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. |
+| Data Attribute | Value                  | Description                                                           |
+| -------------- | ---------------------- | --------------------------------------------------------------------- |
+| `data-slot`    | `"tabs-content"`       | On the panel element.                                                 |
+| `hidden`       | present while inactive | The browser hides the panel. `"until-found"` with `hiddenUntilFound`. |

@@ -1,6 +1,7 @@
 ---
 title: Native Dialog Migration
 description: Dialog, AlertDialog, and Sheet render the browser's modal <dialog> in place of Radix Dialog. Set modal={false} on an overlay that holds a third-party frame, and read the backdrop and the panel from their new elements.
+number: 27
 introducedIn: "0.95.0"
 ---
 
@@ -23,7 +24,7 @@ Codemod: manual: each step depends on what a dialog holds or on a selector or a 
 3. Search CSS, `className` strings, and `querySelector` calls for `dialog-overlay`, `sheet-overlay`, and `alert-dialog-overlay`. No element carries these slots now. Style the backdrop with `[data-slot~="dialog-positioner"]::backdrop` (or `sheet-positioner`, `alert-dialog-positioner`). Also search for `--removed-body-scroll-bar-size` and `data-scroll-locked`, which Radix's scroll lock wrote. An open modal marks `<html>` with `data-mantle-scroll-lock` and writes the width of the scrollbar it hides to `--mantle-scrollbar-width` on `<html>`. Read the width only under `[data-mantle-scroll-lock]` or in UI that shows only while the lock holds: the variable stays on `<html>` after the lock ends.
 4. Remove `<Dialog.Overlay />` and unwrap `<Dialog.Portal>`. Both still render (the overlay renders nothing and the portal renders its children), and both are deprecated.
 5. Where a Radix `forceMount` kept the content mounted while closed, pass `forceMount` to `Content`. Remove `forceMount` from `Dialog.Portal` and `Dialog.Overlay`.
-6. Where UI must take clicks above an open overlay with the `overlay-prompt` class, move that control into the overlay content. A modal `<dialog>` makes the rest of the page inert, `overlay-prompt` included. `Toaster` and `Sandbar` move into the open dialog by themselves.
+6. Where UI must take clicks above an open overlay with the `overlay-prompt` class, such as a consent banner, wrap it in [`OverlayPrompt`](/components/primitives/overlay-prompt). A modal `<dialog>` makes the rest of the page inert, `overlay-prompt` included, and `OverlayPrompt` moves its content into the open dialog. `Toaster` and `Sandbar` do this by themselves.
 7. In tests:
    - `getByRole("dialog")` (or `"alertdialog"`) returns the `<dialog>`. `className`, `data-*`, `ref`, and `data-appearance` from `Content` are on the panel inside it: `dialog.querySelector('[data-slot~="dialog-content"]')`.
    - The dialog closes after its exit animation: `await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())`.

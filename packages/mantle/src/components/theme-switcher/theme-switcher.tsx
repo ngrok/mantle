@@ -3,7 +3,8 @@
 import { CircleNotchIcon } from "@phosphor-icons/react/CircleNotch";
 import { MoonIcon } from "@phosphor-icons/react/Moon";
 import { SunIcon } from "@phosphor-icons/react/Sun";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ReactNode, RefCallback } from "react";
+import { useCallback } from "react";
 import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
 import { parseBooleanish } from "../../types/index.js";
 import type { WithStyleProps } from "../../types/with-style-props.js";
@@ -16,7 +17,9 @@ import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import { IconSwap } from "../icon/icon-swap.js";
 import { useForcedTheme, useSetTheme, useTheme } from "../theme/theme-provider.js";
 import type { Theme } from "../theme/themes.js";
-import { getToggledTheme } from "../theme/themes.js";
+import { getToggledTheme, isTheme } from "../theme/themes.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
+import { announce, mountSharedStatus } from "../../utils/shared-status.js";
 
 /**
  * The transition each icon of `AppliedThemeIcon` runs when the theme changes.
@@ -280,6 +283,77 @@ function ThemeDropdownMenuItem({ children, className, label, style }: ThemeDropd
 	);
 }
 
+/** The mounted switchers with no `label`, which take their name from `nameSwitchers`. */
+const namedSwitchers = new Set<HTMLButtonElement>();
+let stopNaming: (() => void) | undefined;
+
+/**
+ * Writes the default name, such as "Switch to dark theme", to the `aria-label`
+ * of each switcher with no `label`. It reads the theme on `<html>`, so a theme
+ * change renders nothing.
+ */
+function nameSwitchers() {
+	const stored = document.documentElement.dataset.theme;
+	const prefersDarkMode = window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+	const name = toggleLabel(
+		getToggledTheme({ theme: isTheme(stored) ? stored : "system", prefersDarkMode }),
+		{ prefersDarkMode },
+	);
+	for (const button of namedSwitchers) {
+		button.setAttribute("aria-label", name);
+	}
+}
+
+/**
+ * A ref callback that keeps the default name of a switcher current. One
+ * observer of `<html>` and one media query listener serve every switcher on
+ * the page.
+ *
+ * Why an `aria-label` and not only the CSS name: Testing Library, jsdom, and
+ * happy-dom do not read CSS generated content, so a test could not find the
+ * switcher by its role and name. The CSS name stays for the server HTML and a
+ * page with no JavaScript.
+ */
+const nameSwitcher: RefCallback<HTMLButtonElement> = (button) => {
+	if (button == null) {
+		return undefined;
+	}
+	namedSwitchers.add(button);
+	if (stopNaming == null) {
+		const html = new MutationObserver(nameSwitchers);
+		html.observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ["class", "data-theme", "data-applied-theme"],
+		});
+		const media = window.matchMedia?.("(prefers-color-scheme: dark)");
+		media?.addEventListener("change", nameSwitchers);
+		stopNaming = () => {
+			html.disconnect();
+			media?.removeEventListener("change", nameSwitchers);
+		};
+	}
+	nameSwitchers();
+	return () => {
+		namedSwitchers.delete(button);
+		button.removeAttribute("aria-label");
+		if (namedSwitchers.size === 0) {
+			stopNaming?.();
+			stopNaming = undefined;
+		}
+	};
+};
+
+/**
+ * Says the theme that a press shows, such as "Dark theme" or
+ * "Light theme (system default)".
+ */
+function themeMessage(theme: Theme, { prefersDarkMode }: { prefersDarkMode: boolean }) {
+	if (theme === "system") {
+		return prefersDarkMode ? "Dark theme (system default)" : "Light theme (system default)";
+	}
+	return theme === "dark" ? "Dark theme" : "Light theme";
+}
+
 /**
  * The props for the `ThemeSwitcher` component. Takes `IconButton`'s props,
  * except the parts the switcher owns: `icon` (the themed icon) and `intent`
@@ -301,9 +375,11 @@ type ThemeSwitcherProps = Omit<
 		appearance?: IconButtonAppearance;
 		/**
 		 * The accessible name of the button, rendered as its `aria-label`. When
-		 * omitted, CSS writes a name that says which theme the next click shows,
-		 * such as "Switch to dark theme" or "Switch to light theme (system
-		 * default)". Set it for localization.
+		 * omitted, the name says which theme the next click shows, such as
+		 * "Switch to dark theme" or "Switch to light theme (system default)".
+		 * CSS writes it in the server HTML, and an `aria-label` holds it after
+		 * mount, so a test finds the button by its role and name. Set it for
+		 * localization.
 		 */
 		label?: string;
 	};
@@ -358,6 +434,7 @@ function ThemeSwitcher({
 	isLoading = false,
 	label,
 	onClick,
+	ref,
 	size = "md",
 	type,
 	...props
@@ -365,6 +442,13 @@ function ThemeSwitcher({
 	const setTheme = useSetTheme();
 	const forcedTheme = useForcedTheme();
 	const ariaLabel = label ?? (forcedTheme != null ? "Theme set by this page" : undefined);
+	// Why a callback that changes with `ariaLabel`: React removes the attribute
+	// when `label` goes away, and the new ref then writes the default name again.
+	const defaultName = useCallback<RefCallback<HTMLButtonElement>>(
+		(button) => (ariaLabel == null ? nameSwitcher(button) : undefined),
+		[ariaLabel],
+	);
+	const composedRef = useComposedRefs(ref, defaultName, mountSharedStatus);
 	const disabled =
 		forcedTheme != null ||
 		parseBooleanish(disabledProp ?? isLoading) ||
@@ -378,17 +462,17 @@ function ThemeSwitcher({
 				className,
 			)}
 			data-appearance={appearance}
-			data-disabled={disabled ? "" : undefined}
 			data-icon-button
 			data-intent="neutral"
 			data-loading={isLoading ? "" : undefined}
 			data-size={size}
 			data-slot={joinDataSlot(dataSlot, "theme-switcher", "icon-button")}
 			{...props}
-			// Why after the spread, and none by default: CSS writes the name from the
-			// theme on `<html>`, and any `aria-label` would replace it.
+			// Why after the spread, and none by default: the server HTML takes its
+			// name from CSS, and `nameSwitcher` writes the default after mount.
 			aria-label={ariaLabel}
 			disabled={disabled}
+			ref={composedRef}
 			// oxlint-disable-next-line react/button-has-type -- `type` defaults to "button" at runtime via the `?? "button"` fallback; the static analyzer can't resolve that expression.
 			type={type ?? "button"}
 			onClick={(event) => {
@@ -396,10 +480,31 @@ function ThemeSwitcher({
 				if (!event.defaultPrevented) {
 					// Why read the OS preference here: the click is the only reader, so the
 					// switcher holds no media query list between clicks.
-					const prefersDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
-					setTheme((current) => getToggledTheme({ theme: current, prefersDarkMode }), {
-						origin: event.currentTarget,
-					});
+					const prefersDarkMode =
+						window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+					const button = event.currentTarget;
+					let first = true;
+					setTheme(
+						(current) => {
+							const next = getToggledTheme({ theme: current, prefersDarkMode });
+							// Why: a screen reader does not read a focused button again when its
+							// name changes, so the live region says what the press did. Why in
+							// the updater: the provider calls it last when it applies the theme,
+							// so rapid presses end on the theme that shows. Why `repeat` on the
+							// first call only: a new press must read even when the region holds
+							// its text, and the provider can call it again for the same press.
+							const message = themeMessage(next, { prefersDarkMode });
+							announce(button, message, { repeat: first });
+							first = false;
+							return next;
+						},
+						{ origin: event.currentTarget },
+					);
+					// Why here and not only in the observer: with no view transition,
+					// `<html>` changes during the click, and the observer renames the
+					// switcher one microtask later. A read right after the click must
+					// get the new name.
+					nameSwitchers();
 				}
 			}}
 		>

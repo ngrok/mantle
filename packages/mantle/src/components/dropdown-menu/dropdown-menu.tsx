@@ -23,6 +23,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
+import { disabledItemGuard } from "../../behaviors/compose-handlers.js";
 import { enterModal } from "../../behaviors/enter-modal.js";
 import { swallowOutsideClick } from "../../behaviors/swallow-outside-click.js";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
@@ -96,6 +97,18 @@ type MenuLevel = {
 };
 
 const MenuLevelContext = createContext<MenuLevel | null>(null);
+
+/**
+ * Finds, from the trigger, the element that `Content` places against and sizes
+ * `width="trigger"` by. Internal: `SplitButton` anchors its menu to the whole
+ * split button with it.
+ *
+ * Why a function of the trigger, not a ref: the float reads its anchor when
+ * the trigger attaches, which can be while a parent's ref is still detached.
+ */
+const ContentAnchorContext = createContext<((trigger: HTMLElement) => HTMLElement | null) | null>(
+	null,
+);
 
 function useMenuLevel(part: string): MenuLevel {
 	const level = useContext(MenuLevelContext);
@@ -214,7 +227,7 @@ function focusWithoutScroll(element: HTMLElement | null | undefined): void {
 /**
  * Moves keyboard focus to the first of `items` that takes it, and scrolls the
  * menu so the item shows. Why try each: an item that CSS hides, that is
- * `inert`, or that is a disabled button cannot take focus, as with Radix.
+ * `inert`, or that is a disabled button cannot take focus.
  */
 function focusFirst(items: readonly HTMLElement[]): boolean {
 	for (const item of items) {
@@ -356,7 +369,7 @@ function useMenuKeyboard(loop: boolean): {
 			const items = itemsOf(menu);
 			const current = items.indexOf(target);
 			const move = navigationOrder({ key: event.key, items, current, loop });
-			// Why not with a modifier: as with Radix, Shift or Ctrl with an arrow key is the page's.
+			// Why not with a modifier: Shift or Ctrl with an arrow key is the page's.
 			if (move != null) {
 				if (!event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
 					event.preventDefault();
@@ -389,7 +402,7 @@ function useMenuKeyboard(loop: boolean): {
 		return {
 			onMenuKeyDown,
 			isTyping: () => search.current !== "",
-			// Why: a menu that opens again starts a new search, as with Radix.
+			// Why: a menu that opens again starts a new search.
 			resetTyping: () => {
 				clearTimeout(searchTimer.current);
 				search.current = "";
@@ -556,6 +569,7 @@ const Trigger = ({
 	asChild = false,
 	"data-slot": dataSlot,
 	disabled,
+	onClick,
 	onKeyDown,
 	onPointerDown,
 	ref,
@@ -563,15 +577,15 @@ const Trigger = ({
 }: ComponentProps<"button"> & WithAsChild & WithDataSlot) => {
 	const state = useRootState("Trigger");
 	const composedRef = useComposedRefs(ref, state.setTrigger);
+	/** Whether a press on the trigger came before the next click, so the press toggled the menu. */
+	const pressed = useRef(false);
 	const Component = asChild ? Slot : "button";
 	return (
 		<Component
 			aria-controls={state.open ? state.contentId : undefined}
 			aria-expanded={state.open}
 			aria-haspopup="menu"
-			data-disabled={disabled ? "" : undefined}
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-trigger")}
-			data-state={state.open ? "open" : "closed"}
 			disabled={disabled}
 			id={state.triggerId}
 			ref={composedRef}
@@ -579,6 +593,7 @@ const Trigger = ({
 			type="button"
 			{...props}
 			onPointerDown={(event: PointerEvent<HTMLButtonElement>) => {
+				pressed.current = true;
 				onPointerDown?.(event);
 				if (event.defaultPrevented || disabled || event.button !== 0 || event.ctrlKey) {
 					return;
@@ -589,6 +604,19 @@ const Trigger = ({
 				if (!state.open) {
 					event.preventDefault();
 				}
+			}}
+			onClick={(event: MouseEvent<HTMLButtonElement>) => {
+				onClick?.(event);
+				// Why only a click with no press: a screen reader, a click on a
+				// `<label>`, or `element.click()` sends one. A press on the trigger and
+				// Enter or Space already toggled the menu in their own handlers.
+				const afterPress = pressed.current;
+				pressed.current = false;
+				if (event.defaultPrevented || disabled || afterPress) {
+					return;
+				}
+				state.setOpenFocus("first");
+				state.setOpen(!state.open);
 			}}
 			onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => {
 				onKeyDown?.(event);
@@ -639,7 +667,7 @@ const Group = ({
 		<Component
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-group")}
 			role="group"
-			className={cx("space-y-px", className)}
+			className={cx("between:mbe-px", className)}
 			{...props}
 		/>
 	);
@@ -790,7 +818,7 @@ const RadioGroup = ({
 			<Component
 				data-slot={joinDataSlot(dataSlot, "dropdown-menu-radio-group")}
 				role="group"
-				className={cx("space-y-px", className)}
+				className={cx("between:mbe-px", className)}
 				{...props}
 			/>
 		</RadioGroupContext.Provider>
@@ -812,14 +840,14 @@ type MenuPanelProps = ComponentProps<"div"> &
 	};
 
 const panelClassName =
-	"text-popover-foreground border-popover bg-popover flex flex-col min-w-32 max-h-(--available-height) rounded-md border shadow-xl outline-hidden font-sans";
+	"border-popover bg-popover flex flex-col min-w-32 max-h-(--available-height) rounded-md border shadow-xl outline-hidden font-sans";
 
 /**
  * How the element that scrolls a menu's items scrolls. Why `scroll-py-6`: a
  * focused item scrolls clear of the 1.5rem `scroll-cue-y` fade at each edge.
  */
 const scrollClassName =
-	"scrollbar-none [&::-webkit-scrollbar]:hidden min-h-0 overflow-auto overscroll-none scroll-py-6 p-1.25 space-y-px";
+	"scrollbar-none [&::-webkit-scrollbar]:hidden min-h-0 overflow-auto overscroll-none scroll-py-6 p-1.25 between:mbe-px";
 
 /**
  * Puts a menu panel's items in an element that scrolls them, with the
@@ -912,6 +940,7 @@ const Content = ({
 	...props
 }: DropdownMenuContentProps) => {
 	const state = useRootState("Content");
+	const anchorOf = useContext(ContentAnchorContext);
 	const menuRef = useRef<HTMLElement | null>(null);
 	const { isInSubmenuPath, setSubmenuPath, clearSubmenuPath } = useSubmenuPath();
 	/** How the last outside interaction left focus: where it landed (`keep`), or back to the trigger (`restore`). */
@@ -936,12 +965,15 @@ const Content = ({
 				if (!state.modal && press instanceof MouseEvent && press.button === 0 && !press.ctrlKey) {
 					// Why the check at the click: a controlled menu can refuse to close,
 					// and then the click lands.
-					swallowOutsideClick(() => menuRef.current?.dataset.state !== "open");
+					swallowOutsideClick(() => !menuRef.current?.hasAttribute("data-open"));
 				}
 			}
 			state.setOpen(false);
 		},
-		getAnchor: () => state.triggerRef.current,
+		getAnchor: () => {
+			const trigger = state.triggerRef.current;
+			return trigger == null ? null : (anchorOf?.(trigger) ?? trigger);
+		},
 		getInsideElements: () => [state.triggerRef.current],
 		dismissOnOutside: true,
 		dismissWhenCovered: true,
@@ -1027,10 +1059,13 @@ const Content = ({
 	// Why the layer container: a float opened from an item, such as a popover,
 	// portals into the menu, so it is inside the menu's inert boundary, outside
 	// press check, and focus. Why around the element: under `asChild`, a custom
-	// component can render items of its own, and they need the menu too.
+	// component can render items of its own, and they need the menu too. Why
+	// the anchor reset: a `DropdownMenu` inside this menu anchors to its own trigger.
 	const renderLevel = (inner: ReactNode) => (
 		<LayerContainerContext.Provider value={menu}>
-			<MenuLevelContext.Provider value={level}>{inner}</MenuLevelContext.Provider>
+			<MenuLevelContext.Provider value={level}>
+				<ContentAnchorContext.Provider value={null}>{inner}</ContentAnchorContext.Provider>
+			</MenuLevelContext.Provider>
 		</LayerContainerContext.Provider>
 	);
 	const Component = asChild ? Slot : "div";
@@ -1047,9 +1082,8 @@ const Content = ({
 					aria-orientation="vertical"
 					tabIndex={-1}
 					dir={state.dir}
-					data-align={align}
 					data-slot={joinDataSlot(dataSlot, "dropdown-menu-content")}
-					data-state={state.open ? "open" : "closed"}
+					data-open={state.open ? "" : undefined}
 					inert={!state.open}
 					className={cx(
 						floatClassName,
@@ -1060,6 +1094,7 @@ const Content = ({
 					)}
 					ref={composedRef}
 					{...props}
+					{...disabledItemGuard(props)}
 					onClick={(event: MouseEvent<HTMLDivElement>) => {
 						// Why: a click in the menu must not reach a clickable parent of the trigger.
 						event.stopPropagation();
@@ -1111,7 +1146,6 @@ function useItemBehavior({
 	};
 	return {
 		"aria-disabled": disabled ? true : undefined,
-		"data-disabled": disabled ? "" : undefined,
 		tabIndex: -1,
 		onFocus: (event: FocusEvent<HTMLDivElement>) => {
 			event.currentTarget.setAttribute("data-highlighted", "");
@@ -1209,7 +1243,10 @@ function withHandlers(
 type ItemProps = Omit<ComponentProps<"div">, "onSelect"> &
 	WithAsChild &
 	WithDataSlot & {
-		/** Whether the item is disabled. Keyboard focus skips it, and it does not select. */
+		/**
+		 * Whether the item is disabled. Keyboard focus skips it, it does not select, and
+		 * it runs no click handler.
+		 */
 		disabled?: boolean;
 		/** Runs when the user selects the item, by pointer or key. Call `event.preventDefault()` to keep the menu open. */
 		onSelect?: (event: Event) => void;
@@ -1373,12 +1410,11 @@ const SubTrigger = ({
 			aria-controls={sub.open ? sub.contentId : undefined}
 			id={sub.triggerId}
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-sub-trigger")}
-			data-state={sub.open ? "open" : "closed"}
 			data-text-value={textValue}
 			className={cx(
-				"focus:bg-accent data-state-open:bg-accent relative flex cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-9 text-sm outline-hidden",
-				"data-highlighted:bg-active-menu-item data-state-open:bg-active-menu-item",
-				"data-disabled:cursor-default data-disabled:opacity-50",
+				"relative flex cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-9 text-sm outline-hidden",
+				"data-highlighted:bg-active-menu-item aria-expanded:bg-active-menu-item",
+				"aria-disabled:cursor-default aria-disabled:opacity-50",
 				// Why slot-scoped: the label span makes a consumer's svg a grandchild, so
 				// a bare `[&>svg]` matches nothing. A `[&_svg]` would also resize the
 				// indicator this part renders.
@@ -1395,9 +1431,10 @@ const SubTrigger = ({
 				onPointerUp,
 				onClick: (event) => {
 					onClick?.(event);
-					// Why: a touch or a screen reader opens the submenu with a click.
+					// Why: a touch or a screen reader opens the submenu with a click. A
+					// click with no press, as a screen reader sends, moves focus into it.
 					if (!event.defaultPrevented && !disabled && !sub.open) {
-						sub.setOpenFocus("menu");
+						sub.setOpenFocus(event.detail === 0 ? "first" : "menu");
 						sub.setOpen(true);
 					}
 				},
@@ -1568,6 +1605,7 @@ const SubContent = ({
 		getInsideElements: () => [sub.triggerRef.current],
 		dismissOnOutside: true,
 		dismissWhenCovered: true,
+		overlapAnchor: true,
 		side: opensLeft ? "left" : "right",
 		align,
 		sideOffset,
@@ -1620,13 +1658,13 @@ const SubContent = ({
 					aria-orientation="vertical"
 					tabIndex={-1}
 					dir={root.dir}
-					data-align={align}
 					data-slot={joinDataSlot(dataSlot, "dropdown-menu-sub-content")}
-					data-state={sub.open ? "open" : "closed"}
+					data-open={sub.open ? "" : undefined}
 					inert={!sub.open}
 					className={cx(floatClassName, panelClassName, asChild && scrollClassName, className)}
 					ref={composedRef}
 					{...props}
+					{...disabledItemGuard(props)}
 					onClick={(event: MouseEvent<HTMLDivElement>) => {
 						event.stopPropagation();
 						onClick?.(event);
@@ -1705,8 +1743,7 @@ const Item = ({
 			className={cx(
 				"relative flex cursor-pointer select-none items-center rounded-md px-2 py-1.5 text-strong text-sm font-normal outline-hidden transition-colors",
 				"data-highlighted:bg-active-menu-item",
-				"focus:bg-accent focus:text-accent-foreground",
-				"data-disabled:cursor-default data-disabled:opacity-50",
+				"aria-disabled:cursor-default aria-disabled:opacity-50",
 				"[&>svg]:size-5 [&_svg]:shrink-0",
 				inset && "pl-8",
 				className,
@@ -1831,21 +1868,15 @@ const CheckboxItem = ({
 		slot: "dropdown-menu-checkbox-item",
 		checked: checked !== false,
 	});
-	let ariaChecked: boolean | "mixed" = checked === true;
-	let dataState = checked ? "checked" : "unchecked";
-	if (checked === "indeterminate") {
-		ariaChecked = "mixed";
-		dataState = "indeterminate";
-	}
+	const ariaChecked = checked === "indeterminate" ? "mixed" : checked;
 	return (
 		<Component
 			role="menuitemcheckbox"
 			aria-checked={ariaChecked}
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-checkbox-item")}
-			data-state={dataState}
 			data-text-value={textValue}
 			className={cx(
-				"text-strong data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 pl-2 pr-9 text-sm font-normal outline-hidden",
+				"text-strong aria-disabled:pointer-events-none aria-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 pl-2 pr-9 text-sm font-normal outline-hidden",
 				"data-highlighted:bg-active-menu-item",
 				"aria-checked:bg-selected-menu-item",
 				"data-highlighted:aria-checked:bg-active-selected-menu-item!",
@@ -1961,10 +1992,9 @@ const RadioItem = ({
 			role="menuitemradio"
 			aria-checked={checked}
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-radio-item")}
-			data-state={checked ? "checked" : "unchecked"}
 			data-text-value={textValue}
 			className={cx(
-				"text-strong data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 px-2 text-sm font-normal outline-none",
+				"text-strong aria-disabled:pointer-events-none aria-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 px-2 text-sm font-normal outline-none",
 				"data-highlighted:bg-active-menu-item",
 				"aria-checked:bg-selected-menu-item aria-checked:pr-9",
 				"data-highlighted:aria-checked:bg-active-selected-menu-item!",
@@ -2101,6 +2131,7 @@ export {
 	Root,
 	CheckboxItem,
 	Content,
+	ContentAnchorContext,
 	Group,
 	Item,
 	Label,

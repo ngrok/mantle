@@ -1,8 +1,10 @@
 import { Button } from "@ngrok/mantle/button";
-import { Checkbox, selectAllChecked } from "@ngrok/mantle/checkbox";
+import { Checkbox, CheckboxGroup, selectAllChecked } from "@ngrok/mantle/checkbox";
 import { Choice } from "@ngrok/mantle/choice";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { Icon } from "@ngrok/mantle/icon";
 import { Label } from "@ngrok/mantle/label";
+import { CheckIcon } from "@phosphor-icons/react/Check";
 import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { z } from "zod";
@@ -72,7 +74,7 @@ export function SelectAllExample() {
 				<Checkbox
 					aria-label="Select all rows"
 					checked={selectAllChecked({ allSelected, someSelected })}
-					onChange={(event) => setSelected(event.target.checked ? [...rows] : [])}
+					onCheckedChange={(checked) => setSelected(checked ? [...rows] : [])}
 				/>
 				Select all
 			</Label>
@@ -80,9 +82,9 @@ export function SelectAllExample() {
 				<Label key={row} className="flex items-center gap-2 pl-6">
 					<Checkbox
 						checked={selected.includes(row)}
-						onChange={(event) =>
+						onCheckedChange={(checked) =>
 							setSelected((prev) =>
-								event.target.checked ? [...prev, row] : prev.filter((value) => value !== row),
+								checked ? [...prev, row] : prev.filter((value) => value !== row),
 							)
 						}
 					/>
@@ -220,6 +222,67 @@ export function SelectAllHelperExample() {
 	return (
 		<PreviewCanvas className="w-full">
 			<SelectAllExample />
+		</PreviewCanvas>
+	);
+}
+
+/** The sources the "Cards" examples on the Checkbox docs page ask about. */
+const sources = [
+	{ value: "review-site", title: "Review site", description: "G2, Capterra" },
+	{ value: "ai-agent", title: "AI agent", description: "Claude, ChatGPT, etc." },
+	{ value: "colleague", title: "Friend or colleague", description: "Someone you work with" },
+	{ value: "search", title: "Search engine", description: "Google, Bing, etc." },
+];
+
+/** The "Cards" example on the Checkbox docs page. */
+export function CardsExample() {
+	return (
+		<PreviewCanvas>
+			<CheckboxGroup.Root
+				aria-label="How did you find us?"
+				className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2"
+				defaultValue={["review-site"]}
+				name="sources"
+			>
+				{sources.map((source) => (
+					<CheckboxGroup.Card key={source.value} className="flex gap-3" value={source.value}>
+						<CheckboxGroup.ItemContent>
+							<p className="text-strong font-medium">{source.title}</p>
+							<p className="text-muted mt-1">{source.description}</p>
+						</CheckboxGroup.ItemContent>
+						<CheckboxGroup.Indicator />
+					</CheckboxGroup.Card>
+				))}
+			</CheckboxGroup.Root>
+		</PreviewCanvas>
+	);
+}
+
+/** The "Checkmark indicator" example on the Checkbox docs page. */
+export function CheckmarkIndicatorExample() {
+	return (
+		<PreviewCanvas>
+			<CheckboxGroup.Root
+				aria-label="How did you find us?"
+				className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2"
+				defaultValue={["review-site"]}
+				name="sources"
+			>
+				{sources.map((source) => (
+					<CheckboxGroup.Card key={source.value} className="flex gap-3" value={source.value}>
+						<CheckboxGroup.ItemContent>
+							<p className="text-strong font-medium">{source.title}</p>
+							<p className="text-muted mt-1">{source.description}</p>
+						</CheckboxGroup.ItemContent>
+						<CheckboxGroup.Indicator>
+							<Icon
+								className="text-accent-600 invisible group-has-[>input:checked]/checkbox:visible"
+								svg={<CheckIcon weight="bold" />}
+							/>
+						</CheckboxGroup.Indicator>
+					</CheckboxGroup.Card>
+				))}
+			</CheckboxGroup.Root>
 		</PreviewCanvas>
 	);
 }

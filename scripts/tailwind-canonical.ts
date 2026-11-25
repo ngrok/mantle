@@ -31,7 +31,7 @@ export const SOURCE_EXTENSIONS = [".ts", ".tsx"] as const;
 export const CACHE_DIRECTORY = ".cache/tailwind-canonical";
 
 /** Bump when a rule in {@link canonicalForms} changes, so every cache file recomputes under the new rule. */
-const CACHE_RULES_VERSION = 5;
+const CACHE_RULES_VERSION = 6;
 
 /**
  * Below this many files the run stays on one thread.
@@ -488,12 +488,33 @@ export function canonicalForms(
 		if (
 			target == null ||
 			isTokenRewrite(source, target) ||
+			addsUnanchoredVariant(source, target) ||
 			dropsVariable(designSystem, candidate, canonical)
 		) {
 			return [candidate, candidate];
 		}
 		return [candidate, canonical];
 	});
+}
+
+/**
+ * Whether the canonical form adds a `*` or `**` variant.
+ *
+ * Why: Tailwind wraps those variants in `:is()`, as in `:is(.c > *)`. Chromium then
+ * tries the rule on each element of the page on each style pass, but it skips
+ * `[&>*]`'s `.c > *` at once outside `.c` (`mantle/no-unanchored-child-variant`).
+ *
+ * @example
+ * addsUnanchoredVariant(parse("[&_[data-slot=icon]]:p-1"), parse("**:data-[slot=icon]:p-1")); // => true
+ */
+function addsUnanchoredVariant(source: Candidate, target: Candidate): boolean {
+	return unanchoredVariantCount(target.variants) > unanchoredVariantCount(source.variants);
+}
+
+/** How many `*` and `**` variants a candidate has. */
+function unanchoredVariantCount(variants: readonly Variant[]): number {
+	return variants.filter((variant) => variant.kind === "static" && /^\*\*?$/.test(variant.root))
+		.length;
 }
 
 /**

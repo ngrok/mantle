@@ -1076,8 +1076,13 @@ custom control composes the same state from [`useSidePanel`](#usesidepanel).
   The page beneath stays usable. A panel in the lane is a docked pane and ignores `Escape`.
 - **Covering, the panel is modal.** The row's other children, the card and the sidebar, go `inert` while it
   is open, so nothing beneath it is clickable or read, and [`useFocusTrap`](/hooks#usefocustrap) wraps
-  `Tab` inside it and moves focus into it on open. The one `<aside>` stays mounted across the lane, the
-  float, and the cover, so a conversation keeps its DOM and the trap turns on and off with the viewport.
+  `Tab` inside it and moves focus into it on open. A panel that is open on mount (`defaultOpen` or a saved
+  cookie) still covers the card and keeps the row `inert`, but it does not take focus from the page: the
+  trap starts when focus first enters the panel, when a resize covers the card while it holds focus, or
+  when the reader opens it again. Until then the panel is a tab stop of its own, so a panel with no control
+  still takes `Tab` and `Escape`. The one `<aside>` stays
+  mounted across the lane, the float, and the cover, so a conversation keeps its DOM and the trap turns on
+  and off with the viewport.
 
 The panel keeps the card gutter on its top, end, and bottom edges and none on its start edge, so the card's
 own end margin is the gap between the two: one gutter wide, the same number as the inset from the window.
@@ -1095,7 +1100,11 @@ card.
 
 An assistant can also be a page of its own. [Assistant Across Routes](/recipes/assistant-across-routes)
 renders one conversation in `main` on the assistant's route and in this panel on every other route, with a
-View Transition between the two.
+View Transition between the two. `AppLayout.Content` and `AppLayout.SidePanel` both carry
+`view-transition-class: app-layout-card`, and `mantle.css` styles the morph between them: 300ms, one card
+that grows or shrinks from its start edge while the content keeps its end edge, clipped to the card's corners,
+with no stretched text, and a cut under reduced motion. A card that enters or leaves alone fades, with no surface behind it. The app only gives the two the
+same `view-transition-name`.
 
 <Example name="app-layout-side-panel" title="Side panel demo">
 
@@ -1301,7 +1310,7 @@ export default function Root({ loaderData }: Route.ComponentProps) {
 
 `defaultOpen` is correct here, **not** controlled `open`. The value is already available at the server
 render and the hydration render, so the uncontrolled state initializes to the right value once and stays
-there; the server HTML ships `data-state="closed"` or `"open"` directly, with zero flash.
+there; the server HTML ships `data-open`, or leaves it off, directly and with zero flash.
 
 `extractSidePanelStateCookie` returns `boolean | undefined` rather than `boolean` on purpose: a first-time
 visitor with no cookie is not the same as someone who closed the panel, so choose the default explicitly
@@ -2182,7 +2191,8 @@ export function Shell() {
   current breakpoint, or a disabled one, cannot take focus either, so a responsive header with one trigger
   per breakpoint lands on the visible one (see [Side panel](#side-panel)). Floating, the panel closes on
   `Escape`. Covering the card, it is modal: the card and the sidebar go `inert`, and a focus trap wraps `Tab`
-  inside it; the landmark keeps its name.
+  inside it once the reader opens it or moves focus into it; a panel open on mount does not take focus.
+  The landmark keeps its name.
 - `AppLayout.SidePanelTrigger` carries `aria-expanded` and `aria-controls` for the panel, and a tooltip
   with its label, since it is icon-only. Keep one outside the panel at every breakpoint, or a closed panel
   has no way back open.
@@ -2275,6 +2285,10 @@ over the card's `rounded-xl`.
 It is `relative`, so page content positioned with `absolute` resolves against the card instead of escaping to
 `AppLayout.Root` and painting across the sidebar.
 
+It carries `view-transition-class: app-layout-card`, the same as `AppLayout.SidePanel`. Give the card and the
+panel the same `view-transition-name`, and a navigation that swaps one for the other morphs between them. The
+class does nothing while the card has no name. See [Side panel](#side-panel).
+
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
 | Prop       | Type      | Default | Description                                                                                                              |
@@ -2288,7 +2302,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 ### AppLayout.Header
 
 The toolbar row at the top of the content card. Render it as `AppLayout.Content`'s **first child**
-(`border-card-muted flex h-14 shrink-0 items-center gap-2 border-b px-4`), and compose its three slots in
+(`border-separator flex h-14 shrink-0 items-center gap-2 border-b px-4`), and compose its three slots in
 order: [`AppLayout.HeaderStart`](#applayoutheaderstart) for the
 [`Sidebar.Trigger`](/components/navigation/sidebar#sidebartrigger),
 [`AppLayout.HeaderContent`](#applayoutheadercontent) for the [Breadcrumb](/components/navigation/breadcrumb)
@@ -2470,7 +2484,9 @@ away in every presentation: a floating panel slides, and a panel in the lane shr
 animation does. A floating panel is also an overlay: `Escape` closes it while focus is inside. A panel in
 the lane is a docked pane and ignores `Escape`. A covering panel is modal: the row's other children go
 `inert` while it is open, and [`useFocusTrap`](/hooks#usefocustrap) wraps `Tab` inside it and moves focus
-into it on open. The one `<aside>` stays mounted across the lane, the float, and the cover.
+into it on open. A panel open on mount stays modal but takes no focus until focus enters it, a resize
+covers the card while it holds focus, or the reader opens it again. Until then the panel is a tab stop of
+its own. The one `<aside>` stays mounted across the lane, the float, and the cover.
 
 It does not take `asChild`: the panel is a fixed two-element structure (the clip box and the inner column),
 so no single element could be swapped.
@@ -2490,7 +2506,7 @@ All props from [aside](https://developer.mozilla.org/en-US/docs/Web/HTML/Element
 
 | Data Attribute  | Value                             | Description                                                                                                                                                                |
 | --------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-state`    | `"open"` \| `"closed"`            | Mirrors the root's open state. The collapse and the transition key off it in CSS, and consumers style against it.                                                          |
+| `data-open`     | present while open                | Presence-only. Mirrors the root's open state. The collapse and the transition key off it in CSS, and consumers style against it.                                           |
 | `data-hydrated` | present one frame after hydration | Presence-only. The transition keys off its absence in CSS (`not-data-hydrated:transition-none`), so a state correction after the server render snaps instead of animating. |
 
 ### AppLayout.SidePanelTrigger
@@ -2515,22 +2531,20 @@ All props from [`IconButton`](/components/actions/icon-button#api-reference) exc
 | `onClick?`    | `MouseEventHandler<HTMLButtonElement>` |                                  | Runs before the toggle. Call `event.preventDefault()` to keep the panel where it is.                               |
 | `size?`       | `"xs" \| "sm" \| "md" \| "lg" \| "xl"` | `"sm"`                           | The size of the trigger. Small, so it sits level with the other `size="sm"` controls in an `AppLayout.Header` row. |
 
-| Data Attribute     | Value                                                     | Description                                                                                                                                                                                       |
-| ------------------ | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-state`       | `"open"` \| `"closed"`                                    | Mirrors the root's open state. Pairs with `aria-expanded`.                                                                                                                                        |
-| `data-slot`        | `"app-layout-side-panel-trigger icon-button"`             | On the button: the part's slot, joined ahead of `IconButton`'s own.                                                                                                                               |
-| `data-slot`        | `"app-layout-side-panel-trigger-tooltip tooltip-content"` | On the tooltip surface, not the button: the styling hook for the label popup this part renders, joined ahead of `Tooltip.Content`'s own slot.                                                     |
-| `data-appearance`  | `"filled"` \| `"ghost"` \| `"outlined"`                   | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`.                                                                                  |
-| `data-intent`      | `"neutral"`                                               | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`.                                                                                    |
-| `data-size`        | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`            | Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `"sm"`.                                                                                           |
-| `data-icon-button` | `"true"`                                                  | Read, not stamped: always present on the underlying `IconButton`.                                                                                                                                 |
-| `data-loading`     | present when `isLoading`                                  | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`.                                                                                                            |
-| `data-disabled`    | present when disabled                                     | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`, when it resolves disabled: `disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`. |
+| Data Attribute     | Value                                                     | Description                                                                                                                                   |
+| ------------------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`        | `"app-layout-side-panel-trigger icon-button"`             | On the button: the part's slot, joined ahead of `IconButton`'s own.                                                                           |
+| `data-slot`        | `"app-layout-side-panel-trigger-tooltip tooltip-content"` | On the tooltip surface, not the button: the styling hook for the label popup this part renders, joined ahead of `Tooltip.Content`'s own slot. |
+| `data-appearance`  | `"filled"` \| `"ghost"` \| `"outlined"`                   | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`.                              |
+| `data-intent`      | `"neutral"`                                               | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`.                                |
+| `data-size`        | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`            | Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `"sm"`.                                       |
+| `data-icon-button` | `"true"`                                                  | Read, not stamped: always present on the underlying `IconButton`.                                                                             |
+| `data-loading`     | present when `isLoading`                                  | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`.                                                        |
 
 ### AppLayout.SidePanelHeader
 
 The toolbar row at the top of the side panel, its **first child**:
-`border-card-muted flex shrink-0 items-center gap-2 border-b px-4`, on the same band as
+`border-separator flex shrink-0 items-center gap-2 border-b px-4`, on the same band as
 [`AppLayout.Header`](#applayoutheader). Standalone the band is `h-14`; with a `Sidebar.Header` in the shell
 it derives its height from `--sidebar-header-height` by the same formula, so the toolbar, this row, and the
 switcher row center on one line. Put the title first with `min-w-0 flex-1 truncate`, and the close control

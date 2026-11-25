@@ -2,7 +2,15 @@ import { describe, expect, test, vi } from "vitest";
 
 import { countItemsByQuery, filterItemsByQuery, filterItemsByTokens } from "./match.js";
 import { parseFilterQuery } from "./parse.js";
-import { testGrammar, testItems, type TestItem } from "./test-grammar.js";
+import {
+	testGrammar,
+	testItems,
+	testNow,
+	typedTestGrammar,
+	typedTestItems,
+	type TestDeployment,
+	type TestItem,
+} from "./test-grammar.js";
 
 /** Parses a query against the engine's own grammar. */
 function tokens(query: string) {
@@ -202,6 +210,255 @@ describe("filterItemsByQuery evaluation", () => {
 		expect(ids("*.", wildcardGrammar)).toEqual([]);
 		expect(ids("-*.", wildcardGrammar)).toHaveLength(3);
 		expect(ids("*.acme", wildcardGrammar)).toEqual(["p_api", "p_app"]);
+	});
+});
+
+describe("filterItemsByQuery with groups and NOT", () => {
+	/** Filters the shared fixture items and returns the matching names, in list order. */
+	function names(query: string) {
+		return filterItemsByQuery({ grammar: testGrammar, items: testItems, query }).map(
+			(item) => item.name,
+		);
+	}
+
+	test("runs a group before the tokens beside it", () => {
+		// Without the group, `-acme-api` binds to `app` alone, so `acme-api` comes back.
+		expect(names("(api OR app) -acme-api")).toEqual(["acme-app"]);
+		expect(names("api OR app -acme-api")).toEqual(["acme-api", "acme-app"]);
+	});
+
+	test("excludes with NOT and ! as it does with -", () => {
+		expect(names("NOT acme")).toEqual(["lovely-lemur"]);
+		expect(names("!acme")).toEqual(["lovely-lemur"]);
+		expect(names("NOT NOT acme")).toEqual(["acme-api", "acme-app"]);
+	});
+
+	test("negates a whole group", () => {
+		expect(names("-(acme api)")).toEqual(["acme-app", "lovely-lemur"]);
+		expect(names("NOT (api OR lemur)")).toEqual(["acme-app"]);
+	});
+
+	test("closes an unclosed group at the end of the query", () => {
+		expect(names("(api OR lemur")).toEqual(["acme-api", "lovely-lemur"]);
+	});
+
+	test("drops a qualifier still being typed, also inside a negated group", () => {
+		// Negation turns the group's AND into an OR, where a match-all stand-in would keep every item.
+		expect(names("NOT (is:shared name:)")).toEqual(["lovely-lemur"]);
+	});
+
+	test("calls a matcher as a method of its key", () => {
+		const grammar = {
+			keys: [
+				{
+					key: "name",
+					description: "The name",
+					matches(item: { name: string }, value: string) {
+						return item.name === value && this.key === "name";
+					},
+				},
+			],
+			getSearchText: (item: { name: string }) => item.name,
+		};
+		expect(
+			filterItemsByQuery({ grammar, items: [{ name: "api" }, { name: "web" }], query: "name:api" }),
+		).toEqual([{ name: "api" }]);
+	});
+});
+
+describe("filterItemsByQuery with typed keys", () => {
+	/** Filters the typed fixture items at the fixed test clock and returns their names. */
+	function names(query: string) {
+		return filterItemsByQuery({
+			grammar: typedTestGrammar,
+			items: typedTestItems,
+			query,
+			context: { now: testNow },
+		}).map((item) => item.name);
+	}
+
+	test("runs each text match mode without regard to case", () => {
+		expect(names("name:api")).toEqual(["api-gateway", "billing-api", "legacy-API"]);
+		expect(names("name:=WEB")).toEqual(["web"]);
+		expect(names("name:=api")).toEqual([]);
+		expect(names("name:api*")).toEqual(["api-gateway"]);
+		expect(names("name:*api")).toEqual(["billing-api", "legacy-API"]);
+		expect(names("name:*gate*")).toEqual(["api-gateway"]);
+	});
+
+	test("reads a quoted * or = as text, and a * outside the quotes as a wildcard", () => {
+		expect(names('name:"api*"')).toEqual([]);
+		expect(names('name:"=web"')).toEqual([]);
+		expect(names('name:"api"*')).toEqual(["api-gateway"]);
+		// An unclosed quote runs to the end, so its last * is text too.
+		expect(names('name:"api*')).toEqual([]);
+	});
+
+	test("matches nothing for an operator with no value after it", () => {
+		expect(names("name:*")).toEqual([]);
+		expect(names("name:=")).toEqual([]);
+		expect(names("replicas:>")).toEqual([]);
+	});
+
+	test("reads a plain value as exactly on a text key that does not accept contains", () => {
+		expect(names("region:us")).toEqual(["api-gateway"]);
+		expect(names("region:us*")).toEqual([]);
+	});
+
+	test("compares numbers on both sides of the boundary", () => {
+		expect(names("replicas:>3")).toEqual(["billing-api"]);
+		expect(names("replicas:>=3")).toEqual(["api-gateway", "billing-api"]);
+		expect(names("replicas:<3")).toEqual(["web", "legacy-API"]);
+		expect(names("replicas:<=3")).toEqual(["api-gateway", "web", "legacy-API"]);
+		expect(names("replicas:3")).toEqual(["api-gateway"]);
+		expect(names("replicas:=2.5")).toEqual(["legacy-API"]);
+	});
+
+	test("keeps both ends of a range, in either order", () => {
+		expect(names("replicas:2..3")).toEqual(["api-gateway", "legacy-API"]);
+		expect(names("replicas:3..2")).toEqual(["api-gateway", "legacy-API"]);
+		expect(names("replicas:-1..0")).toEqual(["web"]);
+	});
+
+	test("matches nothing for a value that does not parse for its type", () => {
+		expect(names("replicas:three")).toEqual([]);
+		expect(names("replicas:2..x")).toEqual([]);
+		expect(names("uptime:5")).toEqual([]);
+		expect(names("created:2026-02-30")).toEqual([]);
+		expect(names("canary:yes")).toEqual([]);
+		// A quoted `..` is text, not a range.
+		expect(names('replicas:"2..5"')).toEqual([]);
+		// A `..` between quoted operands is a range.
+		expect(names('replicas:"2".."3"')).toEqual(["api-gateway", "legacy-API"]);
+		// Too many digits overflow to Infinity.
+		expect(names(`replicas:${"9".repeat(309)}`)).toEqual([]);
+	});
+
+	test("reads a decimal duration as exactly the milliseconds it names", () => {
+		const items = [
+			{
+				name: "exact",
+				state: "live",
+				replicas: 1,
+				createdAt: 0,
+				uptime: 1001,
+				canary: false,
+				region: null,
+			},
+		] satisfies TestDeployment[];
+		const query = (q: string) =>
+			filterItemsByQuery({ grammar: typedTestGrammar, items, query: q }).map((item) => item.name);
+		expect(query("uptime:1.001s")).toEqual(["exact"]);
+		expect(query("uptime:1001ms")).toEqual(["exact"]);
+		expect(query("uptime:1s0.001s")).toEqual(["exact"]);
+		// Adding 0.1 and 0.2 as floats gives 0.30000000000000004.
+		const short: TestDeployment[] = [
+			{
+				name: "short",
+				state: "live",
+				replicas: 1,
+				createdAt: 0,
+				uptime: 0.3,
+				canary: false,
+				region: null,
+			},
+		];
+		expect(
+			filterItemsByQuery({ grammar: typedTestGrammar, items: short, query: "uptime:0.0001s0.2ms" }),
+		).toEqual(short);
+	});
+
+	test("reads a date alone as its whole UTC day", () => {
+		// `billing-api` was created 1 ms before 2026-01-01, and `web` at its first instant.
+		expect(names("created:2026-01-01")).toEqual(["web"]);
+		expect(names("created:<2026-01-01")).toEqual(["billing-api"]);
+		expect(names("created:>2026-01-01")).toEqual(["api-gateway", "legacy-API"]);
+		expect(names("created:>=2026-01-01")).toEqual(["api-gateway", "web", "legacy-API"]);
+		expect(names("created:<=2026-01-01")).toEqual(["web", "billing-api"]);
+		expect(names("created:2025-12-31..2026-01-01")).toEqual(["web", "billing-api"]);
+	});
+
+	test("ends a day before the next midnight", () => {
+		const nextMidnight = [
+			{
+				name: "next",
+				state: "live" as const,
+				replicas: 1,
+				createdAt: Date.UTC(2026, 0, 2),
+				uptime: 0,
+				canary: false,
+				region: null,
+			},
+		];
+		const count = (query: string) =>
+			filterItemsByQuery({ grammar: typedTestGrammar, items: nextMidnight, query }).length;
+
+		expect(count("created:<=2026-01-01")).toBe(0);
+		expect(count("created:2026-01-01")).toBe(0);
+		expect(count("created:2025-12-31..2026-01-01")).toBe(0);
+		expect(count("created:>2026-01-01")).toBe(1);
+	});
+
+	test("compares a date and time as one instant, its offset applied", () => {
+		expect(names("created:2026-01-01T01:00+01:00")).toEqual(["web"]);
+		expect(names("created:<2026-01-01T00:00Z")).toEqual(["billing-api"]);
+		// No offset means UTC, and the ISO string field of `legacy-API` sits on the boundary.
+		expect(names("created:>=2026-01-15T00:00")).toEqual(["api-gateway", "legacy-API"]);
+	});
+
+	test("counts a duration on a date key back from the clock", () => {
+		expect(names("created:>7d")).toEqual(["api-gateway"]);
+		expect(names("created:<7d")).toEqual(["web", "billing-api", "legacy-API"]);
+		expect(
+			filterItemsByQuery({
+				grammar: typedTestGrammar,
+				items: typedTestItems,
+				query: "created:>7d",
+				context: { now: Date.UTC(2026, 0, 20) },
+			}).map((item) => item.name),
+		).toEqual(["api-gateway", "legacy-API"]);
+	});
+
+	test("compares durations, compound units included", () => {
+		expect(names("uptime:>1h")).toEqual(["api-gateway", "legacy-API"]);
+		expect(names("uptime:90s")).toEqual(["web"]);
+		expect(names("uptime:1m30s")).toEqual(["web"]);
+		expect(names("uptime:<=0ms")).toEqual(["billing-api"]);
+	});
+
+	test("matches nothing for an operator the key does not accept", () => {
+		expect(names("latency:<1s")).toEqual([]);
+		expect(names("latency:>=90s")).toEqual(["api-gateway", "web", "legacy-API"]);
+	});
+
+	test("matches booleans and enum aliases", () => {
+		expect(names("canary:TRUE")).toEqual(["web"]);
+		expect(names("canary:false")).toEqual(["api-gateway", "billing-api", "legacy-API"]);
+		expect(names("state:running")).toEqual(["api-gateway", "billing-api", "legacy-API"]);
+		expect(names("state:=paused")).toEqual(["web"]);
+	});
+
+	test("ORs the comma members of a typed value, each with its own operator", () => {
+		expect(names("replicas:<1,>4")).toEqual(["web", "billing-api"]);
+	});
+
+	test("negates a comparison, and a missing field passes the negation", () => {
+		expect(names("-replicas:>3")).toEqual(["api-gateway", "web", "legacy-API"]);
+		expect(names("NOT replicas:>3")).toEqual(["api-gateway", "web", "legacy-API"]);
+		expect(names("!region:=us")).toEqual(["web", "billing-api", "legacy-API"]);
+	});
+
+	test("matches nothing for any negation of a key that cannot exclude", () => {
+		expect(names("-canary:true")).toEqual([]);
+		expect(names("NOT (canary:true OR name:web)")).toEqual([]);
+		// Negation turns this AND into an OR, which must not drop the forbidden half and run the rest.
+		expect(names("NOT (canary:true name:web)")).toEqual([]);
+		expect(names("NOT NOT canary:true")).toEqual(["web"]);
+	});
+
+	test("runs groups and negated groups of comparisons", () => {
+		expect(names("(replicas:0 OR replicas:5) -name:web")).toEqual(["billing-api"]);
+		expect(names("-(state:live replicas:>2)")).toEqual(["web"]);
 	});
 });
 

@@ -77,7 +77,7 @@ const navVisibilityClassName: Record<SidebarMobileBreakpoint, string> = {
  * default through tailwind-merge.
  */
 const desktopPanelClassName =
-	"group/sidebar-nav bg-base relative h-full w-(--sidebar-width,13rem) shrink-0 overflow-hidden data-[state=collapsed]:w-(--sidebar-width-icon,3.25rem) transition-[width] duration-200 ease-out-strong motion-reduce:transition-none not-data-hydrated:transition-none";
+	"group/sidebar-nav bg-base relative h-full w-(--sidebar-width,13rem) shrink-0 overflow-hidden not-data-expanded:w-(--sidebar-width-icon,3.25rem) transition-[width] duration-200 ease-out-strong motion-reduce:transition-none not-data-hydrated:transition-none";
 
 /**
  * The mobile panel: the surface of a native `Sheet` on the left, at
@@ -85,12 +85,12 @@ const desktopPanelClassName =
  */
 /**
  * The slide of the mobile sheet. It keys on the `<dialog>`: `[open]` for the
- * entry, `data-state` for the exit, which plays before the `<dialog>` closes.
- * Why not the panel's `data-state`: the server renders it as `"closed"`, and a
- * tap before hydration opens the sheet.
+ * entry, `data-closing` for the exit, which plays before the `<dialog>`
+ * closes. Why not `data-open`: a tap before hydration opens the sheet, with no
+ * `data-open`.
  */
 const slideClassName =
-	"transition-[translate] duration-200 ease-out-strong motion-reduce:transition-none group-data-[state=closed]/native-dialog:duration-150 group-data-[state=closed]/native-dialog:-translate-x-full starting:group-open/native-dialog:-translate-x-full";
+	"transition-[translate] duration-200 ease-out-strong motion-reduce:transition-none group-data-closing/native-dialog:duration-150 group-data-closing/native-dialog:-translate-x-full starting:group-open/native-dialog:-translate-x-full";
 
 const mobilePanelClassName = cx(
 	"group/sidebar-nav",
@@ -135,8 +135,8 @@ const collapseTransitionClassName =
  */
 type SidebarState = {
 	/**
-	 * Whether the desktop sidebar is expanded. Mirrored as
-	 * `data-state="expanded" | "collapsed"` on `Sidebar.Nav`. `false` while the
+	 * Whether the desktop sidebar is expanded. Mirrored as presence-only
+	 * `data-expanded` on `Sidebar.Nav`. `false` while the
 	 * sidebar yields its width to an open `AppLayout.SidePanel`.
 	 */
 	open: boolean;
@@ -553,7 +553,7 @@ const Root = ({
 				}
 				// Why a close renders now: the parts that read the state must not
 				// wait for the exit.
-				if (dialog.dataset.state === "closed") {
+				if (!dialog.hasAttribute("data-open")) {
 					setInternalOpenMobile(false);
 				}
 				return;
@@ -742,10 +742,11 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-state` | `"expanded"` \| `"collapsed"` | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to its icons; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`. |
+ * | `data-expanded` | present while expanded | Presence-only. On the desktop panel it mirrors the root's expanded state, and its absence drives the width collapse to its icons. The mobile sheet always has it. Descendant parts style off it with `group-data-expanded/sidebar-nav:` and `group-not-data-expanded/sidebar-nav:`. |
  * | `data-hydrated` | present one frame after hydration | Presence-only, desktop panel surface. The panel's pre-hydration visibility gate, its width transition, and descendant collapse transitions all key off its absence in CSS (`not-data-hydrated:`, `group-not-data-hydrated/sidebar-nav:`). The stamp waits one frame, so an SSR state correction paints first and snaps instead of animating on page load. |
  * | `data-mobile` | present in the mobile sheet | Presence-only. Marks the sheet presentation used below the root's `mobileBreakpoint`. |
- * | `data-state` | `"open"` \| `"closed"` | In the mobile sheet only, where the `<dialog>` owns the attribute: the sheet's open state, not the desktop expanded state. Consumers style against it too. |
+ * | `data-open` | present while the sheet is open | Presence-only, in the mobile sheet only: the sheet's open state, not the desktop expanded state. |
+ * | `data-closing` | present while the sheet's exit plays | Presence-only, in the mobile sheet only. Drives the slide-out. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarnav
  *
@@ -810,15 +811,17 @@ const Nav = ({
 	const { isMobile, mobileBreakpoint, navId, open, openMobile } = useSidebarContext("Nav");
 	const isHydrated = useIsHydratedAfterPaint();
 	const ariaLabel = ariaLabelProp ?? (ariaLabelledBy == null ? "Main" : undefined);
-	const desktopState = open ? "expanded" : "collapsed";
 	const navRef = useRef<HTMLElement>(null);
 
 	// Why: crossing up over the breakpoint must close an open sheet. The inline
-	// panel has no overlay marker, so the close leaves its `data-state` alone.
+	// panel has no overlay marker, so the close cannot reach it, and the sheet's
+	// `data-open` and `data-closing` are cleared here.
 	useLayoutEffect(() => {
 		const dialog = navRef.current?.closest("dialog");
 		if (!isMobile && dialog != null) {
 			moveDialog({ dialog, open: false });
+			navRef.current?.parentElement?.removeAttribute("data-open");
+			navRef.current?.parentElement?.removeAttribute("data-closing");
 		}
 	}, [isMobile]);
 
@@ -850,11 +853,12 @@ const Nav = ({
 				className,
 			)}
 			{...props}
-			// Why after the spread: a wider props object can carry `data-state` or
+			// Why after the spread: a wider props object can carry `data-expanded` or
 			// `data-hydrated` past the type, and a consumer value would desync the
-			// collapse from `open` or release the gate. In the sheet the
-			// `<dialog>` writes `data-state` itself, as `"open"` or `"closed"`.
-			data-state={isMobile ? "closed" : desktopState}
+			// collapse from `open` or release the gate. The sheet is always at full
+			// width, so its descendants never match the collapsed styles. In the
+			// sheet the `<dialog>` writes `data-open` itself.
+			data-expanded={isMobile || open ? "" : undefined}
 			data-mobile={isMobile ? "" : undefined}
 			// Why data-hydrated: the first-paint gates above and the descendants'
 			// collapse transitions key off this attribute in CSS, so an SSR state
@@ -949,7 +953,16 @@ const defaultTriggerIcon = <SidebarSimpleIcon />;
  * `aria-describedby`, and the chord is already announced by that control's
  * `aria-keyshortcuts`, so repeating it here would speak it twice.
  */
-const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNode }) => (
+const TooltipLabel = ({
+	label,
+	labelHidden = false,
+	shortcut,
+}: {
+	label: ReactNode;
+	/** Hides the label from assistive technology, for a label that already names the control. */
+	labelHidden?: boolean;
+	shortcut: ReactNode;
+}) => (
 	// Why always the row: an early return for a null `shortcut` made this
 	// component's root flip between a text node and an element, so React deleted
 	// the whole child list when a chord arrived. A translated label is reparented
@@ -961,7 +974,8 @@ const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNo
 		    element throws on a translated page. `contents` keeps the label a flex
 		    item of the row. */}
 		<span data-slot="sidebar-tooltip-label" className="contents">
-			{label}
+			{/* Why an inner span: WebKit ignores `aria-hidden` on a `display: contents` element. */}
+			{labelHidden ? <span aria-hidden>{label}</span> : label}
 		</span>
 		{shortcut != null && (
 			<span
@@ -1002,10 +1016,9 @@ const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNo
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-state` | `"expanded"` \| `"collapsed"` | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`. |
  * | `data-slot` | `"sidebar-trigger icon-button"` | On the button: the part's slot, joined ahead of `IconButton`'s own. |
  * | `data-slot` | `"sidebar-trigger-tooltip tooltip-content"` | On the tooltip surface, not the button: the styling hook for the label-and-chord popup this part renders, joined ahead of `Tooltip.Content`'s own slot. |
- * | `data-state` | `"delayed-open"` \| `"instant-open"` \| `"closed"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. |
+ * | `data-open` | present while open | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. |
  * | `data-side` | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. |
  * | `data-slot` | `"sidebar-tooltip-row"` | Inside that surface, on the flex row holding the label and the optional chord chips. Nested inside `Tooltip.Content`'s own `tooltip-label` div. Always present. |
  * | `data-slot` | `"sidebar-tooltip-label"` | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`, so the label stays a flex item of the row. |
@@ -1118,7 +1131,6 @@ const Trigger = ({
 					aria-expanded={expanded}
 					aria-keyshortcuts={keyboardShortcut ? platformChord : undefined}
 					data-slot={joinDataSlot(dataSlot, "sidebar-trigger")}
-					data-state={expanded ? "expanded" : "collapsed"}
 					icon={icon}
 					intent={intent}
 					label={label}
@@ -1133,7 +1145,9 @@ const Trigger = ({
 				/>
 			</Tooltip.Trigger>
 			<Tooltip.Content data-slot="sidebar-trigger-tooltip">
-				<TooltipLabel label={label} shortcut={hint} />
+				{/* Why hidden: the label is also the button's name, and the tooltip is its
+				    description, so a screen reader would say the label twice. */}
+				<TooltipLabel label={label} labelHidden shortcut={hint} />
 			</Tooltip.Content>
 		</Tooltip.Root>
 	);
@@ -1249,7 +1263,7 @@ const Header = ({
 				// trailing card gutter with its own margin, so trim the sidebar's
 				// own trailing inset to keep dividers and rows optically centered
 				// between the viewport edge and content card.
-				"group-data-[state=expanded]/sidebar-nav:pr-1",
+				"group-data-expanded/sidebar-nav:pr-1",
 				className,
 			)}
 			{...props}
@@ -1338,18 +1352,18 @@ const Body = ({
 				// makes focus-triggered scrolling land rows clear of the
 				// scroll-fade-y mask's 1.5rem fade zones, so a keyboard user's
 				// focus ring is never faded out mid-list.
-				"scrollbar scrollbar-gutter-stable scroll-fade-y flex-1 scroll-py-6 space-y-2 overflow-y-auto overflow-x-hidden px-3 pt-1.5 pb-4",
+				"scrollbar scrollbar-gutter-stable scroll-fade-y flex-1 scroll-py-6 between:mbe-2 overflow-y-auto overflow-x-hidden px-3 pt-1.5 pb-4",
 				// Match Header/Footer trailing geometry when expanded. The padding moves
 				// on the sidebar's clock, so the rows' available width never jumps.
-				"group-data-[state=expanded]/sidebar-nav:pr-1",
+				"group-data-expanded/sidebar-nav:pr-1",
 				"transition-[padding]",
 				collapseTransitionClassName,
 				// The collapsed sidebar is too narrow for a scrollbar: hide it (and drop
 				// the reserved gutter, which would off-center the icons) and let
 				// the scroll fade signal the overflow instead.
-				"group-data-[state=collapsed]/sidebar-nav:scrollbar-none",
-				"group-data-[state=collapsed]/sidebar-nav:scrollbar-gutter-auto",
-				"group-data-[state=collapsed]/sidebar-nav:[&::-webkit-scrollbar]:hidden",
+				"group-not-data-expanded/sidebar-nav:scrollbar-none",
+				"group-not-data-expanded/sidebar-nav:scrollbar-gutter-auto",
+				"group-not-data-expanded/sidebar-nav:[&::-webkit-scrollbar]:hidden",
 				className,
 			)}
 			{...props}
@@ -1434,7 +1448,7 @@ const Footer = ({
 			className={cx(
 				"shrink-0 px-3 pt-3 pb-3.5",
 				// Match Header/Body trailing geometry when expanded.
-				"group-data-[state=expanded]/sidebar-nav:pr-1",
+				"group-data-expanded/sidebar-nav:pr-1",
 				className,
 			)}
 			{...props}
@@ -1652,8 +1666,8 @@ const GroupLabel = ({
 				// its expanded position. Opacity keeps it in the accessibility tree, so
 				// lists stay named via aria-labelledby, and pointer-events-none keeps
 				// the invisible label from intercepting stray clicks.
-				"group-data-[state=collapsed]/sidebar-nav:opacity-0",
-				"group-data-[state=collapsed]/sidebar-nav:pointer-events-none",
+				"group-not-data-expanded/sidebar-nav:opacity-0",
+				"group-not-data-expanded/sidebar-nav:pointer-events-none",
 				"transition-opacity",
 				collapseTransitionClassName,
 				className,
@@ -1739,7 +1753,7 @@ const List = ({
 		<Comp
 			aria-labelledby={ariaLabelledBy ?? groupContext?.mountedLabelId ?? undefined}
 			data-slot={joinDataSlot(dataSlot, "sidebar-list")}
-			className={cx("mb-2 space-y-px", className)}
+			className={cx("mb-2 between:mbe-px", className)}
 			{...props}
 		>
 			{children}
@@ -1834,7 +1848,7 @@ const Item = ({
  * contract: a search row whose geometry drifts from the navigation rows below it
  * reads as a foreign control, and in the collapsed sidebar it has to be the
  * same 28px chip in the same column. Both parts add their own state styling on
- * top (`data-current` for a nav row, the revealed shortcut hint for search).
+ * top (`aria-current` for a nav row, the revealed shortcut hint for search).
  *
  * Why one string: `cx` caches a call by the identity of its string arguments.
  * An array argument skips that cache, and the call then joins and re-hashes a
@@ -1845,19 +1859,16 @@ const rowClassName = [
 	"text-body hover:text-strong hover:bg-neutral-500/10",
 	// A row composed as a menu or dialog trigger stays highlighted while the
 	// surface it opens is open, matching Sidebar.SwitcherTrigger.
-	"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
-	// Why `aria-expanded` too: inside `Sidebar.Tooltip` the tooltip trigger's
-	// own `data-state` replaces the menu trigger's, and it stamps no `aria-expanded`.
 	"aria-expanded:bg-neutral-500/15 aria-expanded:text-strong",
 	// In the collapsed sidebar the row returns to its original 28px square
 	// chip. ml-1 keeps body and footer icons aligned with their expanded
 	// position and the switcher indicators.
-	"group-data-[state=collapsed]/sidebar-nav:ml-1",
-	"group-data-[state=collapsed]/sidebar-nav:w-7",
-	"group-data-[state=collapsed]/sidebar-nav:p-1",
+	"group-not-data-expanded/sidebar-nav:ml-1",
+	"group-not-data-expanded/sidebar-nav:w-7",
+	"group-not-data-expanded/sidebar-nav:p-1",
 	// Why text-clip: the label clips with no ellipsis, so a collapse shows no
 	// shimmer of dots as the row narrows.
-	"group-data-[state=collapsed]/sidebar-nav:text-clip",
+	"group-not-data-expanded/sidebar-nav:text-clip",
 	// Why these three properties: the chip and the row trade width, padding,
 	// and margin, and the sidebar's width runs on the same clock, so the row grows
 	// with the sidebar instead of taking the row shape on the first frame. Colors
@@ -1869,8 +1880,8 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
 	WithAsChild &
 	WithDataSlot & {
 		/**
-		 * Marks this row as the current page: sets `aria-current="page"` and the
-		 * `data-current` styling state. Consumers control it from their router,
+		 * Marks this row as the current page: sets `aria-current="page"`, which
+		 * also drives the current-row styling. Consumers control it from their router,
 		 * e.g. `current={pathname === "/endpoints"}`.
 		 *
 		 * A composed child that sets `aria-current="page"` itself (react-router's
@@ -1883,10 +1894,10 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
 /**
  * The interactive row of a `Sidebar.Item`: a leading icon slot and a
  * truncating label. Renders a `<button>` by default; pass `asChild` to
- * compose with a router link. `current` sets `aria-current="page"` and the
- * `data-current` visual state.
+ * compose with a router link. `current` sets `aria-current="page"`, which
+ * drives the current-row styling.
  *
- * The current-row treatment follows either attribute, so a composed child that
+ * The current-row treatment follows `aria-current`, so a composed child that
  * marks itself as the current page gets it without `current`: a react-router
  * `NavLink` needs nothing but its `to`, since it already resolved the match the
  * parent would otherwise re-derive:
@@ -1904,7 +1915,7 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
  * count, a status dot) size themselves, so a row composed with
  * `DropdownMenu.Trigger asChild` can end in `<CaretDownIcon className="text-muted
  * ml-auto size-4 shrink-0" />`. That row stays highlighted while its menu is
- * open (`data-state="open"`, supplied by the trigger). Give that menu the same
+ * open (`aria-expanded="true"`, supplied by the trigger). Give that menu the same
  * width floor the switcher rows use, `className="min-w-(--sidebar-row-width)"`,
  * so it keeps the expanded row's width instead of shrinking to this row's 28px
  * collapsed chip (see `Sidebar.SwitcherTrigger` for the whole contract).
@@ -1913,9 +1924,8 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-current` | present when `current` | Presence-only, never `"false"`, since the `data-current:` variant matches the attribute's existence. Styles the current row. |
- * | `aria-current` | `"page"` when `current` | Set alongside `data-current`. The current-row styling follows *either*, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop. |
- * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. Inside `Sidebar.Tooltip` the tooltip's own `data-state` replaces this one, so the open highlight also keys on `aria-expanded`. |
+ * | `aria-current` | `"page"` when `current` | Styles the current row with `aria-[current=page]:`, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop. |
+ * | `aria-expanded` | `"true"` \| `"false"` | **Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaritembutton
  *
@@ -1983,24 +1993,18 @@ const ItemButton = ({
 	return (
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "sidebar-item-button")}
-			// Presence semantics: never render `data-current="false"`, because the
-			// `data-current:` variant matches the attribute's existence.
-			data-current={current ? "" : undefined}
 			aria-current={current ? "page" : undefined}
 			type={asChild ? type : (type ?? "button")}
 			className={cx(
 				rowClassName,
-				// The current row is styled from either source of the same truth.
-				// `current` sets both attributes, but a composed child can set
-				// `aria-current="page"` on its own (react-router's `NavLink` does),
-				// and then the router already knows what the parent would have had to
-				// re-derive with `useMatch` to pass `current`.
-				"data-current:bg-neutral-500/15 data-current:text-strong",
+				// The current row is styled from `aria-current`, so a composed child
+				// that sets `aria-current="page"` on its own (react-router's
+				// `NavLink` does) gets the same style as `current`.
 				"aria-[current=page]:bg-neutral-500/15 aria-[current=page]:text-strong",
 				// Only the leading icon is pinned to 20px: trailing visuals (a menu
 				// caret, a count, a status dot) size themselves, so composing one
 				// does not need an `!` override to escape this rule.
-				"[&>svg]:text-muted hover:[&>svg]:text-strong data-current:[&>svg]:text-strong aria-[current=page]:[&>svg]:text-strong [&>svg:first-child]:size-5 [&>svg]:shrink-0",
+				"[&>svg]:text-muted hover:[&>svg]:text-strong aria-[current=page]:[&>svg]:text-strong [&>svg:first-child]:size-5 [&>svg]:shrink-0",
 				className,
 			)}
 			{...props}
@@ -2091,7 +2095,7 @@ type SidebarSearchTriggerProps = ComponentProps<"button"> &
  * | `data-slot` | `"sidebar-search-trigger"` | On the row element. |
  * | `data-slot` | `"sidebar-search-trigger-label"` | On the `<span>` wrapping `children` on the default `button` path. Absent under `asChild`, which renders no sibling. Always `display: contents`, so your icon and label stay flex items of the row. |
  * | `data-slot` | `"sidebar-search-trigger-shortcut"` | On the chord chips. Always present on the default `button` path, and `display: none` while it is empty. Absent under `asChild`, where the props union forbids `shortcut`. Carries `translate="no"`: a chord is a key name, not prose. |
- * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped**: supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. The row stays highlighted while its palette is open. |
+ * | `aria-expanded` | `"true"` \| `"false"` | **Read, not stamped**: supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. The row stays highlighted while its palette is open. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger
  *
@@ -2189,7 +2193,7 @@ const SearchTrigger = ({
 					// The collapsed sidebar has room for the icon and nothing else, and the chord is
 					// already announced via aria-keyshortcuts, so drop the hint outright
 					// instead of letting it fight the 28px chip.
-					"group-data-[state=collapsed]/sidebar-nav:hidden",
+					"group-not-data-expanded/sidebar-nav:hidden",
 					// Quiet inline keys here rather than the standalone chips `Kbd`
 					// renders elsewhere.
 					"[&_kbd]:text-body [&_kbd]:h-5 [&_kbd]:min-w-5 [&_kbd]:bg-neutral-500/20 [&_kbd]:px-1 [&_kbd]:text-xs [&_kbd]:font-normal",
@@ -2239,7 +2243,7 @@ type SidebarSwitcherTriggerProps = ComponentProps<"button"> & WithAsChild & With
  * `Sidebar.Header` and the account/user row in `Sidebar.Footer`. A styled
  * button only: it is not wired to any state. Compose it with
  * `DropdownMenu.Trigger asChild` or `Dialog.Trigger asChild`, which supply
- * the open state (`data-state="open"` styling comes for free from those
+ * the open state (`aria-expanded` styling comes for free from those
  * primitives).
  *
  * Inside the collapsed sidebar, the row collapses to its **first child
@@ -2263,7 +2267,7 @@ type SidebarSwitcherTriggerProps = ComponentProps<"button"> & WithAsChild & With
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped**: supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. Inside `Sidebar.Tooltip` the tooltip's own `data-state` replaces this one, so the open highlight also keys on `aria-expanded`. |
+ * | `aria-expanded` | `"true"` \| `"false"` | **Read, not stamped**: supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarswitchertrigger
  *
@@ -2333,9 +2337,6 @@ const SwitcherTrigger = ({
 			type={asChild ? type : (type ?? "button")}
 			className={cx(
 				"text-body hover:text-strong hover:bg-neutral-500/10 flex w-full min-w-0 items-center gap-2 rounded-[0.625rem] py-1 pr-1.5 pl-1 text-left font-medium",
-				"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
-				// Why `aria-expanded` too: inside `Sidebar.Tooltip` the tooltip trigger's
-				// own `data-state` replaces the menu trigger's, and it stamps no `aria-expanded`.
 				"aria-expanded:bg-neutral-500/15 aria-expanded:text-strong",
 				"focus-visible:focus-ring",
 				// The leading account/product tile uses rounded-md (6px) and
@@ -2344,15 +2345,15 @@ const SwitcherTrigger = ({
 				// source components by default; the tighter padding keeps the
 				// switcher row at the same net 36px height while preserving
 				// prototype spacing on the trailing action icon.
-				"*:first:size-7",
+				"[&>:first-child]:size-7",
 				// In the collapsed sidebar only the leading visual (product
 				// icon, account avatar) stays visible; the rest goes sr-only:
 				// visually gone but still part of the button's accessible name.
 				// w-9 keeps the leading visual centered in the same 36px chip as
 				// the switcher row.
-				"group-data-[state=collapsed]/sidebar-nav:w-9",
-				"group-data-[state=collapsed]/sidebar-nav:p-1",
-				"group-data-[state=collapsed]/sidebar-nav:[&>:not(:first-child)]:sr-only",
+				"group-not-data-expanded/sidebar-nav:w-9",
+				"group-not-data-expanded/sidebar-nav:p-1",
+				"group-not-data-expanded/sidebar-nav:[&>:not(:first-child)]:sr-only",
 				// The chip and the row trade width and padding on the sidebar's clock, so
 				// the switcher grows with the sidebar instead of snapping to the row shape.
 				"transition-[width,padding]",
@@ -2428,7 +2429,7 @@ type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "childre
  *
  * It opens the way any tooltip does (the pointer entering the row, or focus
  * reaching it), and the sidebar state vetoes it: the expanded panel and the mobile
- * sheet keep the row at `data-state="closed"` with no `aria-describedby`, and
+ * sheet keep the tooltip closed with no `aria-describedby` on the row, and
  * toggling the sidebar dismisses whatever was showing, so collapsing the panel
  * cannot pop a label under a pointer that has already moved on.
  *
@@ -2453,13 +2454,11 @@ type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "childre
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"sidebar-tooltip tooltip-content"` | On the tooltip surface, with any forwarded chain ahead of it and `Tooltip.Content`'s own slot after it. |
- * | `data-state` | `"delayed-open"` \| `"instant-open"` \| `"closed"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. |
+ * | `data-open` | present while open | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. |
  * | `data-side` | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. The resolved side, `"right"` by default. |
- * | `data-align` | `"start"` \| `"center"` \| `"end"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. |
  * | `data-slot` | `"sidebar-tooltip-row"` | Inside that surface, on the flex row holding the label and the optional chord chips. Nested inside `Tooltip.Content`'s own `tooltip-label` div. Always present, so a chord that arrives later appends instead of replacing the label. |
  * | `data-slot` | `"sidebar-tooltip-label"` | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`, so the label stays a flex item of the row. |
  * | `data-slot` | `"sidebar-tooltip-shortcut"` | On the chord chips. Present only while `shortcut` holds something. Carries `translate="no"`: a chord is a key name, not prose. |
- * | `data-state` | `"delayed-open"` \| `"instant-open"` \| `"closed"` | On the wrapped row, from `Tooltip.Trigger`. `"closed"` outside the collapsed sidebar, where this part vetoes the open state. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartooltip
  *
@@ -2566,7 +2565,7 @@ const SidebarTooltip = ({
 		 * left to its own devices while the Content is unmounted latches open with
 		 * nothing to close it. Meanwhile it points the row's `aria-describedby` at
 		 * an id that is not in the document. Owning `open` keeps the expanded panel
-		 * and the mobile sheet at `data-state="closed"`, which is the truth.
+		 * and the mobile sheet closed, which is the truth.
 		 *
 		 * The Root itself stays mounted at every sidebar state: unmounting it would
 		 * unmount the Trigger with it, dropping focus off the row the user was on.
@@ -2674,7 +2673,7 @@ const SidebarSeparator = ({
 		data-slot={joinDataSlot(dataSlot, "sidebar-separator")}
 		className={cx(
 			"my-3",
-			"group-data-[state=collapsed]/sidebar-nav:w-9",
+			"group-not-data-expanded/sidebar-nav:w-9",
 			// The rule shortens to the chip's width on the sidebar's clock, with the rows.
 			"transition-[width]",
 			collapseTransitionClassName,

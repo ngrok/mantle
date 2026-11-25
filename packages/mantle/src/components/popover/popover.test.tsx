@@ -61,7 +61,7 @@ describe("Popover", () => {
 			expect(arrow).toHaveAttribute("aria-hidden", "true");
 		});
 
-		test("sizes the svg so Radix offsets the content by the arrow's real height", async () => {
+		test("sizes the svg so the float offsets the content by the arrow's real height", async () => {
 			const user = userEvent.setup();
 			render(
 				<Popover.Root>
@@ -74,7 +74,7 @@ describe("Popover", () => {
 
 			await user.click(screen.getByRole("button", { name: "Open" }));
 
-			// Radix measures the rendered arrow and adds its height to `sideOffset`, so a
+			// `trackFloat` measures the rendered arrow and adds its height to `sideOffset`, so a
 			// width/height that disagrees with the painted triangle detaches the tip.
 			const arrow = (await screen.findByRole("dialog")).querySelector(
 				"[data-slot='popover-arrow']",
@@ -128,6 +128,37 @@ describe("Popover", () => {
 			expect(arrow).toHaveAttribute("width", "20");
 			expect(arrow).toHaveAttribute("height", "10");
 		});
+	});
+
+	test("the content dialog takes its name from the trigger, unless it has its own", async () => {
+		const user = userEvent.setup();
+		render(
+			<>
+				<Popover.Root>
+					<Popover.Trigger>Filters</Popover.Trigger>
+					<Popover.Content>Pick filters</Popover.Content>
+				</Popover.Root>
+				<Popover.Root>
+					<Popover.Trigger>Share</Popover.Trigger>
+					<Popover.Content aria-label="Share settings">Share with</Popover.Content>
+				</Popover.Root>
+				<Popover.Root>
+					<Popover.Trigger asChild>
+						<button type="button" id="sort-trigger">
+							Sort
+						</button>
+					</Popover.Trigger>
+					<Popover.Content>Sort by</Popover.Content>
+				</Popover.Root>
+			</>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Filters" }));
+		expect(await screen.findByRole("dialog", { name: "Filters" })).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Share" }));
+		expect(await screen.findByRole("dialog", { name: "Share settings" })).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Sort" }));
+		expect(await screen.findByRole("dialog", { name: "Sort" })).toBeInTheDocument();
 	});
 
 	test("opens on trigger click and closes on Escape, returning focus to the trigger", async () => {

@@ -22,9 +22,9 @@ import { useEffect, useState } from "react";
  *   // A persisted-collapsed `open` snaps on load and animates on every later toggle.
  *   return (
  *     <div
- *       data-state={open ? "expanded" : "collapsed"}
+ *       data-expanded={open ? "" : undefined}
  *       data-hydrated={isHydrated ? "" : undefined}
- *       className="w-52 transition-[width] data-[state=collapsed]:w-13 not-data-hydrated:transition-none"
+ *       className="w-52 transition-[width] not-data-expanded:w-13 not-data-hydrated:transition-none"
  *     />
  *   );
  * }

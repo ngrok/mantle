@@ -22,9 +22,10 @@ describe("planChecks", () => {
 		expect(stepNames(["packages/AGENTS.md"])).toEqual(["fmt", "agent docs", "doc links", "prose"]);
 	});
 
-	it("typechecks and tests a changed docs page, which the www suite reads", () => {
+	it("checks a changed docs page for retired names, and typechecks and tests it, which the www suite reads", () => {
 		expect(stepNames(["apps/www/app/docs/components/button.mdx"])).toEqual([
 			"fmt",
+			"agent docs",
 			"prose",
 			"typecheck",
 			"test",
@@ -32,8 +33,28 @@ describe("planChecks", () => {
 	});
 
 	it("typechecks and tests a change to a package manifest, which compilation reads", () => {
-		expect(stepNames(["packages/mantle/package.json"])).toEqual(["fmt", "typecheck", "test"]);
+		expect(stepNames(["packages/mantle-vite-plugins/package.json"])).toEqual([
+			"fmt",
+			"typecheck",
+			"test",
+		]);
 	});
+
+	it("checks the agent docs when the mantle manifest changes, since its dependencies decide the library names docs may use", () => {
+		expect(stepNames(["packages/mantle/package.json"])).toEqual([
+			"fmt",
+			"agent docs",
+			"typecheck",
+			"test",
+		]);
+	});
+
+	it.each(["docs/motion.md", "scripts/check-agent-docs.ts"])(
+		"checks the agent docs when %s changes",
+		(file) => {
+			expect(stepNames([file])).toContain("agent docs");
+		},
+	);
 
 	it.each(["packages/mantle/src/mantle.css", "pnpm-lock.yaml", "scripts/tailwind-canonical.ts"])(
 		"checks the Tailwind classes of every file when %s changes",
@@ -162,6 +183,11 @@ describe("planChecks", () => {
 					"--deny-warnings",
 					"packages/mantle/src/components/button/button.tsx",
 				],
+			},
+			{
+				name: "agent docs",
+				command: "node",
+				args: ["./scripts/check-agent-docs.ts"],
 			},
 			{
 				name: "doc links",

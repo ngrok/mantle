@@ -2,11 +2,7 @@ import mdx from "@mdx-js/rollup";
 import { appServer } from "@ngrok/app-server/vite";
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
-import {
-	mantleCodeBlockPlugins,
-	mantleSourcesPlugin,
-	mantleThemePrunePlugin,
-} from "@ngrok/mantle-vite-plugins";
+import { mantleCodeBlockPlugins, mantleSourcesPlugin } from "@ngrok/mantle-vite-plugins";
 import path from "node:path";
 import rehypeSlug from "rehype-slug";
 import remarkFrontmatter from "remark-frontmatter";
@@ -21,6 +17,7 @@ import { mantleChangelogMdx } from "./vite-plugins/mantle-changelog-mdx.ts";
 import { exampleHeights } from "./vite-plugins/example-heights.ts";
 import { mdxDocComponentImports } from "./vite-plugins/mdx-doc-component-imports.ts";
 import { mdxGeneratedCode } from "./vite-plugins/mdx-generated-code.ts";
+import { migrationGuides } from "./vite-plugins/migration-guides.ts";
 import { opaqueOriginModuleCors } from "./vite-plugins/opaque-origin-module-cors.ts";
 import { rawMdxDocs } from "./vite-plugins/raw-mdx-docs.ts";
 import { rehypeMdxDocHandle } from "./vite-plugins/rehype-mdx-doc-handle.ts";
@@ -71,6 +68,7 @@ export default defineConfig(({ command }) => ({
 		...codeBlockPlugins.vitePlugins,
 		mdxGeneratedCode(path.resolve(import.meta.dirname, "app/docs")),
 		rawMdxDocs(path.resolve(import.meta.dirname, "app/docs")),
+		migrationGuides(path.resolve(import.meta.dirname, "app/docs/migrations")),
 		mdxDocComponentImports(path.resolve(import.meta.dirname, "app/docs")),
 		mantleChangelogMdx(path.resolve(import.meta.dirname, "../../packages/mantle/CHANGELOG.md")),
 		devtoolsJson(),
@@ -82,7 +80,6 @@ export default defineConfig(({ command }) => ({
 		// the neighbors outside the client graph, such as test files, from that broad scan. The
 		// plugin runs here to prove the graph walk and the bundle check on a real React Router build.
 		mantleSourcesPlugin(),
-		mantleThemePrunePlugin(),
 		mdx({
 			// Only treat `.mdx` files as MDX. `.md` is left alone so `?raw`
 			// imports of plain markdown stay raw: `@mdx-js/rollup`'s filter

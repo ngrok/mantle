@@ -1,4 +1,5 @@
 import { type RouteConfig, index, layout, route } from "@react-router/dev/routes";
+import { readdirSync } from "node:fs";
 
 function docRouteId(idPrefix: string, idPath: string) {
 	return `${idPrefix}-${idPath.replace(/\//g, "-")}`;
@@ -33,6 +34,7 @@ const docsPages = [
 	"for-ai-agents",
 	"base/breakpoints",
 	"base/colors",
+	"base/design-principles",
 	"base/focus-ring",
 	"base/hit-area",
 	"base/scroll-fade",
@@ -47,6 +49,15 @@ const docsPages = [
 	"components/actions/button",
 	"components/actions/icon-button",
 	"components/actions/split-button",
+	// ai
+	"components/ai/attachment",
+	"components/ai/conversation",
+	"components/ai/conversation-outline",
+	"components/ai/message",
+	"components/ai/prompt-input",
+	"components/ai/reasoning",
+	"components/ai/tool-call",
+	"components/ai/work",
 	// charts
 	"components/charts/area-chart",
 	"components/charts/bar-chart",
@@ -68,6 +79,7 @@ const docsPages = [
 	"components/data-display/icons",
 	"components/data-display/kbd",
 	"components/data-display/list",
+	"components/data-display/markdown",
 	"components/data-display/qr-code",
 	"components/data-display/selectable-list",
 	"components/data-display/table",
@@ -84,6 +96,7 @@ const docsPages = [
 	"components/feedback/toast",
 	// forms
 	"components/forms/checkbox",
+	"components/forms/chip",
 	"components/forms/choice",
 	"components/forms/combobox",
 	"components/forms/field",
@@ -123,6 +136,7 @@ const docsPages = [
 	"components/primitives/browser-only",
 	"components/primitives/live-region",
 	"components/primitives/main",
+	"components/primitives/overlay-prompt",
 	"components/primitives/sandboxed-on-click",
 	"components/primitives/skip-to-main-link",
 	"components/primitives/slot",
@@ -131,6 +145,7 @@ const docsPages = [
 	// structure
 	"components/structure/card",
 	"components/structure/media-object",
+	"components/structure/panel",
 	"components/structure/separator",
 	"components/structure/strata",
 	"components/structure/well",
@@ -158,6 +173,7 @@ const recipesPages = [
 	"assistant-across-routes",
 	"breadcrumbs-from-routes",
 	"cancel-and-submit",
+	"chat",
 	"filter-from-a-value",
 	"header-actions-from-routes",
 	"list-page-loading-states",
@@ -168,40 +184,12 @@ const recipesPages = [
 	"sparklines-in-a-list",
 ];
 
-// migrations section, in publish order. The four-digit prefix is the
-// guide's number. A guide keeps its number forever, and no later guide takes
-// it. Add a new guide with the next number, and add its entry to
-// `migrations` in app/components/navigation-data.ts.
-const migrationsPages = [
-	"0001-code-block-migration",
-	"0002-data-table-action-header-migration",
-	"0003-dialog-footer-dom-order-migration",
-	"0004-priority-to-intent-migration",
-	"0005-field-item-owns-control-id-migration",
-	"0006-data-table-tanstack-v9-migration",
-	"0007-app-layout-header-slots-migration",
-	"0008-tabs-separator-migration",
-	"0009-chart-root-mode-migration",
-	"0010-button-icon-swap-migration",
-	"0011-eliminate-high-contrast-migration",
-	"0012-single-stylesheet-migration",
-	"0013-chart-svg-renderer-migration",
-	"0014-chart-named-colors-migration",
-	"0015-segmented-control-migration",
-	"0016-side-panel-lane-collapsed-migration",
-	"0017-select-owned-behavior-migration",
-	"0018-combobox-owned-behavior-migration",
-	"0019-multi-select-owned-behavior-migration",
-	"0020-native-floats-migration",
-	"0021-native-radio-group-migration",
-	"0022-alert-center-server-render-migration",
-	"0023-tabs-owned-behavior-migration",
-	"0024-command-owned-behavior-migration",
-	"0025-stone-palette-migration",
-	"0026-native-dropdown-menu-migration",
-	"0027-native-dialog-migration",
-	"0028-native-slider-migration",
-];
+// migrations section: one route for each guide file, so a new guide needs no
+// entry here. The index and the sidebar order them by number.
+const migrationsPages = readdirSync(new URL("./docs/migrations", import.meta.url))
+	.filter((file) => file.endsWith(".mdx"))
+	.map((file) => file.replace(/\.mdx$/, ""))
+	.toSorted();
 
 export default [
 	route("robots.txt", "./routes/robots[.]txt.tsx", { id: "robots-txt" }),

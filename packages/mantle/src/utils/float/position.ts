@@ -87,8 +87,10 @@ function alignOnAxis({
 /**
  * Places a float of `size` next to `anchor`. It flips to the opposite side
  * when the preferred side does not fit and the opposite side does, or when
- * neither fits and the opposite side has more room, as Radix's `bestFit` did.
+ * neither fits and the opposite side has more room.
  * It shifts along the side to stay `VIEWPORT_PADDING` inside the viewport.
+ * With `overlapAnchor`, beside an anchor on screen, when neither side fits, it
+ * also moves over the anchor to stay inside the viewport.
  *
  * @example
  * ```ts
@@ -105,6 +107,7 @@ function alignOnAxis({
 function computePlacement({
 	align,
 	anchor,
+	overlapAnchor = false,
 	side,
 	sideOffset,
 	size,
@@ -112,6 +115,8 @@ function computePlacement({
 }: {
 	align: Align;
 	anchor: Box;
+	/** Beside the anchor, whether the float may cover the anchor to stay on screen, as a submenu covers its menu. */
+	overlapAnchor?: boolean;
 	side: Side;
 	sideOffset: number;
 	size: { width: number; height: number };
@@ -136,9 +141,25 @@ function computePlacement({
 			y: placedSide === "top" ? anchor.top - sideOffset - size.height : anchor.bottom + sideOffset,
 		};
 	}
+	const besideX =
+		placedSide === "left" ? anchor.left - sideOffset - size.width : anchor.right + sideOffset;
 	return {
 		side: placedSide,
-		x: placedSide === "left" ? anchor.left - sideOffset - size.width : anchor.right + sideOffset,
+		// Why the clamp: on a narrow screen a submenu can have room on neither side
+		// of its menu. It covers part of the menu, not leave the screen, as a native
+		// menu does. Why only while the anchor shows: a float follows an anchor that
+		// scrolls away.
+		x:
+			overlapAnchor &&
+			anchor.right > 0 &&
+			anchor.left < viewport.width &&
+			anchor.bottom > 0 &&
+			anchor.top < viewport.height
+				? Math.max(
+						VIEWPORT_PADDING,
+						Math.min(besideX, viewport.width - VIEWPORT_PADDING - size.width),
+					)
+				: besideX,
 		y: alignOnAxis({
 			align,
 			start: anchor.top,
@@ -321,10 +342,12 @@ function observeMove(element: HTMLElement, onMove: () => void): () => void {
  *
  * A float that scrolls, such as a list that `--available-height` caps, is
  * sized by its content height (`scrollHeight`), so it can still move to the
- * side with more room.
+ * side with more room. A float that scrolls a child instead marks that child
+ * with `data-float-scroll`.
  *
  * Each frame it writes on the float `data-side` (the side it resolved to),
- * `--anchor-width`, `--anchor-height`, `--available-height`, and a `transform-origin` at the
+ * `--anchor-width`, `--anchor-height`, `--available-width` (the viewport less
+ * its edge gaps), `--available-height`, and a `transform-origin` at the
  * anchor. A child with `data-float-arrow` moves to the edge that faces the
  * anchor and centers on the anchor.
  *
@@ -340,18 +363,21 @@ function trackFloat({
 	anchor,
 	dir,
 	floating,
+	overlapAnchor,
 	side,
 	sideOffset,
 }: {
 	align: Align;
 	anchor: HTMLElement;
+	/** Passed to `computePlacement`. */
+	overlapAnchor?: boolean;
 	/** The reading direction that `start` and `end` follow. Defaults to the anchor's direction. */
 	dir?: "ltr" | "rtl";
 	floating: HTMLElement;
 	side: Side;
 	sideOffset: number;
 }): () => void {
-	// Why: `start` and `end` follow the text direction, as they did with Radix.
+	// Why: `start` and `end` follow the text direction.
 	// Above or below the anchor in a right-to-left document, `start` is the right edge.
 	const align =
 		(side === "top" || side === "bottom") &&
@@ -366,12 +392,6 @@ function trackFloat({
 	// `left` and `top` start at that element. An open animation sets and clears
 	// the transform, so each placement looks again.
 	const inTopLayer = "togglePopover" in HTMLElement.prototype;
-	// Why only a float that scrolls: in one that does not, `scrollHeight` also
-	// counts an arrow that sticks out below it, which the gap already counts.
-	// Why only above or below: beside the anchor, the height only aligns the
-	// float, and the rendered height is the one to align.
-	const sizeByContent =
-		(side === "top" || side === "bottom") && getComputedStyle(floating).overflowY !== "visible";
 
 	/** The anchor box and viewport size of the last placement, to see a move. */
 	let placedFor = "";
@@ -398,20 +418,36 @@ function trackFloat({
 		};
 		// Why before the reads: a float sized by the anchor, such as a picker list,
 		// takes its final width and wrapped height in this placement.
-		floating.style.setProperty("--anchor-width", `${anchorBox.width}px`);
-		floating.style.setProperty("--anchor-height", `${anchorBox.height}px`);
-		const width = floating.offsetWidth;
-		const height = floating.offsetHeight;
-		const contentHeight = sizeByContent
-			? floating.scrollHeight + height - floating.clientHeight
-			: height;
 		const viewport = {
 			width: document.documentElement.clientWidth / zoom,
 			height: document.documentElement.clientHeight / zoom,
 		};
+		floating.style.setProperty("--anchor-width", `${anchorBox.width}px`);
+		floating.style.setProperty("--anchor-height", `${anchorBox.height}px`);
+		floating.style.setProperty(
+			"--available-width",
+			`${Math.max(viewport.width - 2 * VIEWPORT_PADDING, 0)}px`,
+		);
+		const width = floating.offsetWidth;
+		const height = floating.offsetHeight;
+		// Why a scroll child, found on each placement: a popup with a fixed part, such
+		// as a footer, scrolls an inner element marked `data-float-scroll`, which an
+		// `asChild` list can replace while the popup stays open.
+		const scroller =
+			floating.querySelector<HTMLElement>(":scope > [data-float-scroll]") ?? floating;
+		// Why only a float that scrolls: in one that does not, `scrollHeight` also
+		// counts an arrow that sticks out below it, which the gap already counts.
+		// Why only above or below: beside the anchor, the height only aligns the
+		// float, and the rendered height is the one to align.
+		const sizeByContent =
+			(side === "top" || side === "bottom") && getComputedStyle(scroller).overflowY !== "visible";
+		const contentHeight = sizeByContent
+			? scroller.scrollHeight + height - scroller.clientHeight
+			: height;
 		let placed = computePlacement({
 			align,
 			anchor: anchorBox,
+			overlapAnchor,
 			side,
 			sideOffset: gap,
 			size: { width, height: contentHeight },

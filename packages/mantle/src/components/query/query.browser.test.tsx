@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 import { useState } from "react";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { testGrammar } from "../../utils/query-filter/test-grammar.js";
 import * as Query from "./query-parts.js";
 
@@ -95,8 +95,8 @@ describe("Query in a browser", () => {
 		expect(onSubmit).toHaveBeenCalledOnce();
 	});
 
-	// Radix reports a mouse press outside the popover after the click, when the
-	// clear button is already gone. The popover must not read that as a dismiss.
+	// The clear button unmounts on its click. The popover must not read the
+	// press on it as a dismiss.
 	test("keeps the suggestions open after the clear button empties the query", async () => {
 		render(<Host />);
 		const input = page.getByRole("combobox", { name: "Filter projects" });
@@ -182,6 +182,88 @@ describe("Query in a browser", () => {
 
 			await expect.element(page.getByRole("combobox", { name: "Enabled" })).toHaveFocus();
 			expect(enabledHint).not.toBeVisible();
+		});
+
+		test.runIf(server.browser === "chromium")(
+			"hides on a device that cannot hover, and keeps the shortcut",
+			async () => {
+				await commands.emulateMedia({ hover: "none" });
+				try {
+					render(<ShortcutField label="Touch" />);
+
+					expect(document.querySelector('[data-slot~="query-input-shortcut"]')).not.toBeVisible();
+					await expect
+						.element(page.getByRole("combobox", { name: "Touch" }))
+						.toHaveAttribute("aria-keyshortcuts", "/");
+				} finally {
+					await commands.emulateMedia({ hover: "hover" });
+				}
+			},
+		);
+	});
+
+	describe("the popover height", () => {
+		let styleElement: HTMLStyleElement;
+		let viewport: [number, number];
+
+		// Why the compiled CSS: the cap is CSS. Why the box sizing: it comes from
+		// Tailwind's preflight in `mantle.css`, which the compiled CSS leaves out.
+		beforeAll(async () => {
+			styleElement = document.createElement("style");
+			styleElement.textContent = `${await commands.tailwindCss("./query.tsx")} *, ::before, ::after { box-sizing: border-box; }`;
+			document.head.appendChild(styleElement);
+			viewport = [window.innerWidth, window.innerHeight];
+		});
+
+		afterAll(async () => {
+			await page.viewport(...viewport);
+			styleElement.remove();
+		});
+
+		/** A field `top` pixels down the page, with a footer `footerHeight` pixels tall. */
+		function CappedField({ top, footerHeight }: { top: number; footerHeight: number }) {
+			return (
+				<div style={{ paddingTop: top }}>
+					<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+						<Query.Input aria-label="Filter projects" placeholder="Filter" />
+						<Query.Content>
+							<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+							<Query.Footer style={{ height: footerHeight }}>Footer</Query.Footer>
+						</Query.Content>
+					</Query.Root>
+				</div>
+			);
+		}
+
+		test("stays in a short viewport, and scrolls to its footer", async () => {
+			await page.viewport(800, 240);
+			render(<CappedField top={0} footerHeight={40} />);
+			await userEvent.click(page.getByRole("combobox", { name: "Filter projects" }));
+			const footer = page.getByText("Footer").element();
+			const content = footer.closest("[data-side]");
+			if (content == null) {
+				throw new Error("The footer has no popover around it.");
+			}
+
+			await expect
+				.poll(() => content.getBoundingClientRect().bottom)
+				.toBeLessThanOrEqual(window.innerHeight);
+			content.scrollTop = content.scrollHeight;
+			expect(footer.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+				content.getBoundingClientRect().bottom,
+			);
+		});
+
+		test("moves to the side with more room when its content grows while open", async () => {
+			await page.viewport(800, 1000);
+			const { rerender } = render(<CappedField top={560} footerHeight={40} />);
+			await userEvent.click(page.getByRole("combobox", { name: "Filter projects" }));
+			const content = page.getByText("Footer").element().closest("[data-side]");
+			await expect.poll(() => content?.getAttribute("data-side")).toBe("bottom");
+
+			rerender(<CappedField top={560} footerHeight={240} />);
+
+			await expect.poll(() => content?.getAttribute("data-side")).toBe("top");
 		});
 	});
 });

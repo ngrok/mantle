@@ -21,20 +21,16 @@ describe("jsonToShikiHtml", () => {
 		expect(html).not.toContain("&amp;");
 	});
 
-	test("colors object keys and string values with distinct token variables", () => {
+	test("colors object keys and string values with distinct token classes", () => {
 		const html = jsonToShikiHtml(JSON.stringify({ key: "value" }, null, 2));
 		// key → keyword, value → string-expression
-		expect(html).toContain('<span style="color:var(--shiki-token-keyword)">  "key"</span>');
-		expect(html).toContain(
-			'<span style="color:var(--shiki-token-string-expression)"> "value"</span>',
-		);
+		expect(html).toContain('<span class="tk">  "key"</span>');
+		expect(html).toContain('<span class="tx"> "value"</span>');
 	});
 
 	test("splits escape sequences inside strings into their own escape spans", () => {
 		const html = jsonToShikiHtml(JSON.stringify({ a: "x\ny" }, null, 2));
-		expect(html).toContain(
-			'<span style="color:var(--shiki-token-escape, var(--shiki-token-constant))">\\n</span>',
-		);
+		expect(html).toContain('<span class="te">\\n</span>');
 	});
 });
 
@@ -51,13 +47,13 @@ describe("jsonCodeBlockValue", () => {
 		const preHtml = value["~preHtml"];
 		expect(preHtml).toBeTypeOf("string");
 		expect(preHtml).toContain("mantle-code-line-content"); // ran through decorateHighlightedHtml
-		expect(preHtml).toContain("var(--shiki-token-keyword)"); // the key is highlighted
-		expect(preHtml).not.toContain("mantle-code-line-number"); // line numbers off by default
+		expect(preHtml).toContain('class="tk"'); // the key is highlighted
+		expect(value["~showLineNumbers"]).toBe(false); // line numbers off by default
 	});
 
-	test("includes line-number markup when showLineNumbers is true", () => {
+	test("turns line numbers on when showLineNumbers is true", () => {
 		const value = jsonCodeBlockValue({ id: "abc" }, { showLineNumbers: true });
-		expect(value["~preHtml"]).toContain("mantle-code-line-number");
+		expect(value["~showLineNumbers"]).toBe(true);
 	});
 
 	test("falls back to an empty string when the value is not JSON-serializable", () => {
@@ -127,11 +123,10 @@ describe("JSON fold parity", () => {
 	// the byte-for-byte "client folds === server/build folds" guarantee.
 	test.each(jsonFoldFixtures)(
 		"reconstructs the server's fold-decorated markup 1:1 ($name)",
-		({ code, html, showLineNumbers, lineNumberStart, highlightLines }) => {
+		({ code, html, lineNumberStart, highlightLines }) => {
 			const reconstructed = decorateHighlightedHtml({
 				html: jsonToShikiHtml(code),
 				foldableRanges: computeJsonFoldRanges(code),
-				showLineNumbers,
 				lineNumberStart,
 				highlightLines,
 			});
