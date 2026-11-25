@@ -20,7 +20,11 @@ Each option moves bytes between three places, and each place has a different cos
 
 ### Measurements
 
-All numbers are from one build on 2026-11-25: Tailwind 4.3.5, lightningcss at mantle's browser floor, and the scenarios of `packages/mantle/scripts/bundle-size.ts`. The build was the #1931 trial revision, which still had the `floating-surface` utility (see below). On the merged #1931, `dropdown-menu` is 16,540 B and `marketing-page` is 29,831 B; the other rows are equal.
+All numbers are from one build on 2026-11-25 of `fab2f632`, the #1931 trial revision, which still had the `floating-surface` utility (see below). On the merged #1931, `dropdown-menu` is 16,540 B and `marketing-page` is 29,831 B; the other rows are equal. The 1 × `Button` HTML row is from `20914b0b` (#1934), which renders the same outlined neutral `Button` as `821ce775`. Each run used one-off scripts that are not in the repo:
+
+- **JavaScript:** `pnpm -w run build -F @ngrok/mantle`, then `node packages/mantle/scripts/bundle-size.ts --dist packages/mantle/dist --json out.json`. For the second column, a script first replaced each string literal of three or more classes in `dist/*.js` with a short token.
+- **CSS:** `@tailwindcss/node` 4.3.5 compiled `src/mantle.css` with an `@source` for each scanned dist file. lightningcss 1.33 minified the result for Chrome 111, Safari 16.4, and Firefox 128. Sizes are minified bytes and Node `zlib` gzip at level 9.
+- **HTML:** `renderToStaticMarkup` of the dist components, gzipped with Node `zlib` at level 9, then again with each `class` value replaced by `x`.
 
 **JavaScript.** We replaced each class-list literal of three or more classes with a short token and measured the gzip again. Shorter lists, such as Button's `"h-9 px-3"`, stayed. So the savings below are samples, not a bound, and a page with fewer class strings saves less:
 
@@ -74,7 +78,7 @@ We removed the utility before the merge.
 2. **No co-located CSS and no CSS modules.** A precompiled sheet for each component holds declarations that a consumer's Tailwind build also emits when the consumer or another part uses the same utility. We did not measure that overlap. Co-located CSS also adds a second styling system, a CSS import for each entry, and a load-order rule against the consumer's Tailwind layers. It removes the same class-list bytes from the JavaScript as the samples above.
 3. **No broad move of class lists to `@utility`.** The JavaScript samples above save 1.0–2.1 KB gzip on a page. It adds up to 5.8 KB gzip (75 KB minified) of render-blocking CSS for `source-all.css` users. It also changes how consumer classes override mantle's, as the floating-surface trial showed.
 4. **A `@utility` in `mantle.css` is for a design-system style that many parts share**, such as `focus-ring` and `invert-theme`. It is not an alias for one component's class list.
-5. **The `className` contract:** a consumer's `className` goes last into `cx`. For each conflict that `cx` recognizes, `cx` removes mantle's class, so the consumer's class wins by the merge. For utilities that set more than one property, such as `truncate` against `overflow-visible`, `cx` keeps both and the CSS order decides. A change to a component's classes must not change either outcome.
+5. **The `className` contract:** a consumer's `className` goes last into `cx`. For each conflict that `cx` recognizes (the same class group, variants, and `!`), `cx` removes mantle's class, so the consumer's class wins by the merge. For utilities that set more than one property, such as `truncate` against `overflow-visible`, `cx` keeps both and the CSS order decides. A change to a component's classes must not change either outcome.
 
 ## Other levers
 
