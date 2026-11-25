@@ -26,6 +26,7 @@ beforeAll(async () => {
 		await commands.tailwindCss("../radio-group/primitive.tsx"),
 		await commands.tailwindCss("../button/icon-button-variants.ts"),
 		await commands.tailwindCss("../button/button.tsx"),
+		await commands.tailwindCss("./segmented-control.browser.test.tsx"),
 	].join("\n");
 	document.head.appendChild(styleElement);
 });
@@ -61,6 +62,30 @@ describe("SegmentedControl.Item", () => {
 });
 
 describe("SegmentedControl size", () => {
+	test("xs items with one-character labels keep their targets 24px apart", () => {
+		render(
+			<SegmentedControl.Root
+				aria-label="Decimal separator"
+				defaultValue="point"
+				size="xs"
+				className="w-fit"
+			>
+				<SegmentedControl.Item value="point" aria-label="Point">
+					.
+				</SegmentedControl.Item>
+				<SegmentedControl.Item value="comma" aria-label="Comma">
+					,
+				</SegmentedControl.Item>
+			</SegmentedControl.Root>,
+		);
+
+		const point = item("Point").getBoundingClientRect();
+		const comma = item("Comma").getBoundingClientRect();
+		expect(comma.left + comma.width / 2 - (point.left + point.width / 2)).toBeGreaterThanOrEqual(
+			24,
+		);
+	});
+
 	test.each(["xs", "sm", "md", "lg", "xl"] as const)(
 		"a %s control matches the height of an IconButton and the padding of a Button of the same size",
 		(size) => {
@@ -69,6 +94,17 @@ describe("SegmentedControl size", () => {
 					<SegmentedControl.Root aria-label="View" defaultValue="headers" size={size}>
 						<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
 						<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+					</SegmentedControl.Root>
+					{/* Why icon segments: a text line can give the track its height with no height class. */}
+					<SegmentedControl.Root aria-label="Layout" defaultValue="list" size={size}>
+						<SegmentedControl.Item value="list">
+							<svg aria-hidden width={16} height={16} />
+							<span className="sr-only">List</span>
+						</SegmentedControl.Item>
+						<SegmentedControl.Item value="grid">
+							<svg aria-hidden width={16} height={16} />
+							<span className="sr-only">Grid</span>
+						</SegmentedControl.Item>
 					</SegmentedControl.Root>
 					<IconButton appearance="ghost" intent="neutral" size={size} label="Copy" icon={<svg />} />
 					<Button appearance="outlined" intent="neutral" size={size}>
@@ -80,7 +116,10 @@ describe("SegmentedControl size", () => {
 			const control = screen.getByRole("radiogroup", { name: "View" });
 			const button = screen.getByRole("button", { name: "Copy" });
 			expect(control).toHaveAttribute("data-size", size);
-			expect(control.getBoundingClientRect().height).toBe(button.getBoundingClientRect().height);
+			const buttonHeight = button.getBoundingClientRect().height;
+			expect(control.getBoundingClientRect().height).toBe(buttonHeight);
+			const iconControl = screen.getByRole("radiogroup", { name: "Layout" });
+			expect(iconControl.getBoundingClientRect().height).toBe(buttonHeight);
 			const buttonPadding = getComputedStyle(
 				screen.getByRole("button", { name: "Save" }),
 			).paddingInlineStart;

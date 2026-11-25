@@ -30,9 +30,10 @@ const rootSizeClasses = {
 	xl: "h-12 rounded-[0.625rem] p-1",
 } as const satisfies Record<SegmentedControlSize, string>;
 
-// Why: the same horizontal padding as a `Button` of the same size.
+// Why: the same horizontal padding as a `Button` of the same size. Why `min-w-6` at
+// xs: a one-character item keeps its target 24px wide, as WCAG 2.5.8 asks.
 const itemSizeClasses = {
-	xs: "px-2",
+	xs: "min-w-6 px-2",
 	sm: "px-2.5",
 	md: "px-3",
 	lg: "px-3.5",
