@@ -1,6 +1,7 @@
 import { Attachment } from "@ngrok/mantle/attachment";
+import { Button } from "@ngrok/mantle/button";
+import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { PromptInput } from "@ngrok/mantle/prompt-input";
-import { Select } from "@ngrok/mantle/select";
 import { useEffect, useState } from "react";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
@@ -79,6 +80,12 @@ export function StopExample() {
 	);
 }
 
+const models = [
+	{ value: "claude-sonnet-5-5", label: "Claude Sonnet 5.5" },
+	{ value: "gpt-6-sol", label: "GPT-6 Sol" },
+	{ value: "gemini-4-hydrogen", label: "Gemini 4 Hydrogen" },
+];
+
 /** A composer with a model picker and a dictation toggle in its footer. */
 export function FooterControlsExample() {
 	const [draft, setDraft] = useState("");
@@ -104,19 +111,32 @@ export function FooterControlsExample() {
 					onChange={(event) => setDraft(event.target.value)}
 				/>
 				<PromptInput.Footer>
-					<Select.Root name="model" value={model} onValueChange={setModel}>
-						<Select.Trigger
-							aria-label="Model"
-							className="h-8 w-auto rounded-full border-transparent bg-transparent shadow-none hover:border-transparent"
-						>
-							<Select.Value />
-						</Select.Trigger>
-						<Select.Content>
-							<Select.Item value="claude-sonnet-5-5">Claude Sonnet 5.5</Select.Item>
-							<Select.Item value="gpt-6-sol">GPT-6 Sol</Select.Item>
-							<Select.Item value="gemini-4-hydrogen">Gemini 4 Hydrogen</Select.Item>
-						</Select.Content>
-					</Select.Root>
+					<input type="hidden" name="model" value={model} />
+					<DropdownMenu.Root>
+						<DropdownMenu.Trigger asChild>
+							<Button
+								type="button"
+								appearance="ghost"
+								intent="neutral"
+								size="sm"
+								className="min-w-0"
+							>
+								<span className="sr-only">Model: </span>
+								<span className="truncate">
+									{models.find((option) => option.value === model)?.label}
+								</span>
+							</Button>
+						</DropdownMenu.Trigger>
+						<DropdownMenu.Content side="top" align="start">
+							<DropdownMenu.RadioGroup value={model} onValueChange={setModel}>
+								{models.map((option) => (
+									<DropdownMenu.RadioItem key={option.value} value={option.value}>
+										<span className="whitespace-nowrap">{option.label}</span>
+									</DropdownMenu.RadioItem>
+								))}
+							</DropdownMenu.RadioGroup>
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
 					<PromptInput.Dictate />
 					<PromptInput.Submit />
 				</PromptInput.Footer>
