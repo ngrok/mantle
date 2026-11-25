@@ -2,7 +2,6 @@ import { Button, IconButton } from "@ngrok/mantle/button";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
 import { SegmentedControl } from "@ngrok/mantle/segmented-control";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { DownloadSimpleIcon } from "@phosphor-icons/react/DownloadSimple";
 import { ListIcon } from "@phosphor-icons/react/List";
 import { SquaresFourIcon } from "@phosphor-icons/react/SquaresFour";
 import { useForm } from "@tanstack/react-form";
@@ -126,9 +125,34 @@ export function SizeExample() {
 		<PreviewCanvas>
 			<div className="flex flex-wrap items-start justify-center gap-6">
 				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size xs</p>
+					<div className="flex items-center gap-2">
+						<SegmentedControl.Root
+							aria-label="Event view, size xs"
+							defaultValue="headers"
+							size="xs"
+						>
+							<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<IconButton
+							appearance="ghost"
+							intent="neutral"
+							size="xs"
+							label="Copy event"
+							icon={<CopyIcon />}
+						/>
+					</div>
+				</div>
+				<div>
 					<p className="mb-2 text-center font-mono text-xs">Size sm</p>
 					<div className="flex items-center gap-2">
-						<SegmentedControl.Root aria-label="Event view" defaultValue="headers" size="sm">
+						<SegmentedControl.Root
+							aria-label="Event view, size sm"
+							defaultValue="headers"
+							size="sm"
+						>
 							<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
 							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
 							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
@@ -140,22 +164,70 @@ export function SizeExample() {
 							label="Copy event"
 							icon={<CopyIcon />}
 						/>
-						<IconButton
-							appearance="ghost"
-							intent="neutral"
-							size="sm"
-							label="Download event"
-							icon={<DownloadSimpleIcon />}
-						/>
 					</div>
 				</div>
 				<div>
 					<p className="mb-2 text-center font-mono text-xs">Size md (default)</p>
-					<SegmentedControl.Root aria-label="Request view" defaultValue="headers" size="md">
-						<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
-						<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
-						<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
-					</SegmentedControl.Root>
+					<div className="flex items-center gap-2">
+						<SegmentedControl.Root
+							aria-label="Event view, size md"
+							defaultValue="headers"
+							size="md"
+						>
+							<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<IconButton
+							appearance="ghost"
+							intent="neutral"
+							size="md"
+							label="Copy event"
+							icon={<CopyIcon />}
+						/>
+					</div>
+				</div>
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size lg</p>
+					<div className="flex items-center gap-2">
+						<SegmentedControl.Root
+							aria-label="Event view, size lg"
+							defaultValue="headers"
+							size="lg"
+						>
+							<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<IconButton
+							appearance="ghost"
+							intent="neutral"
+							size="lg"
+							label="Copy event"
+							icon={<CopyIcon />}
+						/>
+					</div>
+				</div>
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size xl</p>
+					<div className="flex items-center gap-2">
+						<SegmentedControl.Root
+							aria-label="Event view, size xl"
+							defaultValue="headers"
+							size="xl"
+						>
+							<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<IconButton
+							appearance="ghost"
+							intent="neutral"
+							size="xl"
+							label="Copy event"
+							icon={<CopyIcon />}
+						/>
+					</div>
 				</div>
 			</div>
 		</PreviewCanvas>

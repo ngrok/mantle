@@ -88,7 +88,7 @@ import { SquaresFourIcon } from "@phosphor-icons/react/SquaresFour";
 
 ## Size
 
-Set `size` on `SegmentedControl.Root` to set the height of the whole control, default `md`. The scale is the one [Button](/components/actions/button) and [IconButton](/components/actions/icon-button) use, so a `size="sm"` control lines up with `size="sm"` buttons in a toolbar. A `Button` with `appearance="link"` has no box, so it has no height to match. The items do not accept `size`, so the items of one control always share one height.
+Set `size` on `SegmentedControl.Root` to set the height of the whole control, default `md`. The scale is the one [Button](/components/actions/button), [IconButton](/components/actions/icon-button), and [SplitButton](/components/actions/split-button) use: `xs`, `sm`, `md`, `lg`, and `xl`. A control lines up with buttons of the same size in a toolbar. A `Button` with `appearance="link"` has no box, so it has no height to match. The items do not accept `size`, so the items of one control always share one height.
 
 <Example name="components/forms/segmented-control/size" title="Segmented Control size example">
 
@@ -96,13 +96,29 @@ Set `size` on `SegmentedControl.Root` to set the height of the whole control, de
 import { IconButton } from "@ngrok/mantle/button";
 import { SegmentedControl } from "@ngrok/mantle/segmented-control";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { DownloadSimpleIcon } from "@phosphor-icons/react/DownloadSimple";
 
 <div className="flex flex-wrap items-start justify-center gap-6">
 	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size xs</p>
+		<div className="flex items-center gap-2">
+			<SegmentedControl.Root aria-label="Event view, size xs" defaultValue="headers" size="xs">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="xs"
+				label="Copy event"
+				icon={<CopyIcon />}
+			/>
+		</div>
+	</div>
+	<div>
 		<p className="mb-2 text-center font-mono text-xs">Size sm</p>
 		<div className="flex items-center gap-2">
-			<SegmentedControl.Root aria-label="Event view" defaultValue="headers" size="sm">
+			<SegmentedControl.Root aria-label="Event view, size sm" defaultValue="headers" size="sm">
 				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
 				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
 				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
@@ -114,22 +130,58 @@ import { DownloadSimpleIcon } from "@phosphor-icons/react/DownloadSimple";
 				label="Copy event"
 				icon={<CopyIcon />}
 			/>
-			<IconButton
-				appearance="ghost"
-				intent="neutral"
-				size="sm"
-				label="Download event"
-				icon={<DownloadSimpleIcon />}
-			/>
 		</div>
 	</div>
 	<div>
 		<p className="mb-2 text-center font-mono text-xs">Size md (default)</p>
-		<SegmentedControl.Root aria-label="Request view" defaultValue="headers" size="md">
-			<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
-			<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
-			<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
-		</SegmentedControl.Root>
+		<div className="flex items-center gap-2">
+			<SegmentedControl.Root aria-label="Event view, size md" defaultValue="headers" size="md">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="md"
+				label="Copy event"
+				icon={<CopyIcon />}
+			/>
+		</div>
+	</div>
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size lg</p>
+		<div className="flex items-center gap-2">
+			<SegmentedControl.Root aria-label="Event view, size lg" defaultValue="headers" size="lg">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="lg"
+				label="Copy event"
+				icon={<CopyIcon />}
+			/>
+		</div>
+	</div>
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size xl</p>
+		<div className="flex items-center gap-2">
+			<SegmentedControl.Root aria-label="Event view, size xl" defaultValue="headers" size="xl">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="xl"
+				label="Copy event"
+				icon={<CopyIcon />}
+			/>
+		</div>
 	</div>
 </div>;
 ```
@@ -239,15 +291,15 @@ The same props as [`RadioGroup.Root`](/components/forms/radio-group#radiogroupro
 
 It also takes:
 
-| Prop    | Type             | Default | Description                                                                                   |
-| :------ | :--------------- | :------ | :-------------------------------------------------------------------------------------------- |
-| `size?` | `"sm"` \| `"md"` | `"md"`  | The height of the control: `sm` is 1.75rem (28px) and `md` is 2.25rem (36px), as on `Button`. |
+| Prop    | Type                                           | Default | Description                                                                 |
+| :------ | :--------------------------------------------- | :------ | :-------------------------------------------------------------------------- |
+| `size?` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | `"md"`  | The height of the control: 24px, 28px, 36px, 40px, or 48px, as on `Button`. |
 
-| Data Attribute  | Value                 | Description                                   |
-| :-------------- | :-------------------- | :-------------------------------------------- |
-| `data-slot`     | `"segmented-control"` | The control.                                  |
-| `data-size`     | `"sm"` \| `"md"`      | The `size` prop.                              |
-| `data-dragging` | present during a drag | The thumb follows the pointer. Presence-only. |
+| Data Attribute  | Value                                          | Description                                   |
+| :-------------- | :--------------------------------------------- | :-------------------------------------------- |
+| `data-slot`     | `"segmented-control"`                          | The control.                                  |
+| `data-size`     | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop.                              |
+| `data-dragging` | present during a drag                          | The thumb follows the pointer. Presence-only. |
 
 ### SegmentedControl.Item
 

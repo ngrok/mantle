@@ -12,10 +12,10 @@ import * as RadioPrimitive from "../radio-group/primitive.js";
 import { useSegmentedThumb } from "./use-segmented-thumb.js";
 
 /**
- * The size of a `SegmentedControl`, on the button family's scale: a size
- * renders the same box height as a `Button` or `IconButton` of the same name.
+ * The size of a `SegmentedControl`: the button family's scale. A size renders
+ * the same box height as a `Button` or `IconButton` of the same name.
  */
-type SegmentedControlSize = Extract<ButtonSize, "sm" | "md">;
+type SegmentedControlSize = ButtonSize;
 
 /** The size of the `SegmentedControl.Root` around a part, or `null` outside one. */
 const SizeContext = createContext<SegmentedControlSize | null>(null);
@@ -23,13 +23,20 @@ const SizeContext = createContext<SegmentedControlSize | null>(null);
 // Why each track radius: it is the item radius (6px) plus the padding (2px or 4px).
 // The items and their focus rings then follow the track corner.
 const rootSizeClasses = {
+	xs: "h-6 rounded-lg p-0.5",
 	sm: "h-7 rounded-lg p-0.5",
 	md: "h-9 rounded-[0.625rem] p-1",
+	lg: "h-10 rounded-[0.625rem] p-1",
+	xl: "h-12 rounded-[0.625rem] p-1",
 } as const satisfies Record<SegmentedControlSize, string>;
 
+// Why: the same horizontal padding as a `Button` of the same size.
 const itemSizeClasses = {
+	xs: "px-2",
 	sm: "px-2.5",
 	md: "px-3",
+	lg: "px-3.5",
+	xl: "px-4",
 } as const satisfies Record<SegmentedControlSize, string>;
 
 /**
@@ -40,10 +47,11 @@ const itemSizeClasses = {
 type SegmentedControlRootProps = RadioPrimitive.RootProps & {
 	/**
 	 * The size of the control, default `"md"`. It sets the track height and
-	 * the padding of each item. `"sm"` is 1.75rem (28px) high, the height of a
-	 * `size="sm"` `IconButton` beside it, or of a `size="sm"` `Button` with any
-	 * `appearance` except `"link"`. The items do not accept
-	 * `size`, so the items of one control always share one height.
+	 * the padding of each item, on the button family's scale: `xs` 24px, `sm`
+	 * 28px, `md` 36px, `lg` 40px, and `xl` 48px. The control is as high as an
+	 * `IconButton` of the same size, or a `Button` with any `appearance` except
+	 * `"link"`. The items do not accept `size`, so the items of one control
+	 * always share one height.
 	 */
 	size?: SegmentedControlSize;
 };
@@ -68,7 +76,7 @@ type SegmentedControlItemProps = RadioPrimitive.ItemProps;
  *
  * | Data Attribute  | Value                 | Description                                         |
  * | --------------- | --------------------- | --------------------------------------------------- |
- * | `data-size`     | `"sm"` \| `"md"`      | The `size` prop.                                    |
+ * | `data-size`     | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop. |
  * | `data-dragging` | present during a drag | The thumb follows the pointer. Presence-only.       |
  *
  * @see https://mantle.ngrok.com/components/forms/segmented-control#segmentedcontrolroot

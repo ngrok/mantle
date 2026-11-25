@@ -61,7 +61,7 @@ describe("SegmentedControl.Item", () => {
 });
 
 describe("SegmentedControl size", () => {
-	test.each(["sm", "md"] as const)(
+	test.each(["xs", "sm", "md", "lg", "xl"] as const)(
 		"a %s control matches the height of an IconButton and the padding of a Button of the same size",
 		(size) => {
 			render(
