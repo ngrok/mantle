@@ -148,6 +148,11 @@
 			"types": "./dist/checkbox.d.ts",
 			"import": "./dist/checkbox.js"
 		},
+		"./chip": {
+			"@ngrok/src-live-types": "./src/components/chip/index.ts",
+			"types": "./dist/chip.d.ts",
+			"import": "./dist/chip.js"
+		},
 		"./choice": {
 			"@ngrok/src-live-types": "./src/components/choice/index.ts",
 			"types": "./dist/choice.d.ts",

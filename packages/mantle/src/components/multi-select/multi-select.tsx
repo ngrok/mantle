@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps, KeyboardEvent, PropsWithChildren, ReactNode } from "react";
-import { cloneElement, createContext, isValidElement, use, useId, useRef, useState } from "react";
+import { cloneElement, createContext, isValidElement, use, useId, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { composeHandlers, disabledItemGuard } from "../../behaviors/compose-handlers.js";
 import { useComboboxInput, useComboboxPopup } from "../../behaviors/use-combobox.js";
@@ -17,6 +17,7 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { hasPopoverApi } from "../../utils/float/use-float.js";
 import { shakeElement } from "../../utils/shake.js";
+import { TagChip } from "../chip/chip.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { LiveRegion } from "../live-region/live-region.js";
 import { parseValidation } from "../field/validation.js";
@@ -29,12 +30,6 @@ import type { OptionRender } from "../slot/option-slot.js";
 import invariant from "tiny-invariant";
 
 const EMPTY_ARRAY: readonly string[] = [];
-
-/** Phosphor's `Lock` (regular) and `X` (bold) paths, for the tag's remove button. */
-const LOCK_PATH =
-	"M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Zm-68-56a12,12,0,1,1-12-12A12,12,0,0,1,140,152Z";
-const X_PATH =
-	"M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z";
 
 /** Whether two arrays hold the same items in the same order. */
 const haveSameItems = (first: readonly string[], second: readonly string[]): boolean =>
@@ -153,7 +148,7 @@ const Trigger = ({
 	validation: _validation,
 	...props
 }: MultiSelectTriggerProps) => {
-	const { inputRef, listbox, open, setOpen, tags, triggerRef } = useMultiSelectContext();
+	const { inputRef, listbox, open, selected, setOpen, tags, triggerRef } = useMultiSelectContext();
 	// Why a hook: a new ref callback on each render would run the caller's callback ref again.
 	const composedRef = useComposedRefs(triggerRef, ref);
 	const inTag = (target: EventTarget) =>
@@ -172,9 +167,10 @@ const Trigger = ({
 				// carry the semantics.
 				role="presentation"
 				data-slot={joinDataSlot(dataSlot, "multi-select-trigger")}
+				data-has-selection={selected.length > 0 ? "" : undefined}
 				className={cx(
 					"cursor-text select-none font-sans text-sm",
-					"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-data-[slot=multi-select-tag]:px-1",
+					"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 data-has-selection:px-1 data-has-selection:py-0",
 					"has-focus-within:focus-ring has-aria-expanded:focus-ring",
 					"has-focus-within:border-accent-600 has-aria-expanded:border-accent-600",
 					"data-[validation=success]:border-success-600 data-[validation=success]:has-focus-within:border-success-600 data-[validation=success]:has-focus-within:ring-focus-success data-[validation=success]:has-aria-expanded:border-success-600 data-[validation=success]:has-aria-expanded:ring-focus-success",
@@ -189,7 +185,7 @@ const Trigger = ({
 					// input. Clicks on buttons, the input itself, or tag spans are handled by those elements.
 					if (
 						event.target instanceof HTMLElement &&
-						!event.target.closest("button, input, [data-slot='multi-select-tag']")
+						!event.target.closest('button, input, [data-slot~="multi-select-tag"]')
 					) {
 						event.preventDefault();
 						inputRef.current?.focus();
@@ -290,72 +286,27 @@ const Tag = ({
 	ref,
 	...props
 }: TagProps) => {
-	const internalRef = useRef<HTMLSpanElement | null>(null);
-	// Why a hook: the tags re-render on each keystroke, and a new ref callback would run the caller's callback ref again.
-	const composedRef = useComposedRefs(internalRef, ref);
-
 	return (
-		<span
-			ref={composedRef}
+		<TagChip
+			ref={ref}
 			role="listitem"
 			tabIndex={-1}
-			data-slot={joinDataSlot(dataSlot, "multi-select-tag")}
-			data-locked={locked || undefined}
+			data-slot={dataSlot}
+			size="sm"
+			locked={locked}
+			onRemove={() => onRemove?.()}
+			removeLabel={`Remove ${value}`}
+			removeButtonTabIndex={-1}
 			className={cx(
-				"cursor-default bg-neutral-500/10 border border-neutral-500/20 rounded-xs text-strong inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 text-sm font-normal motion-safe:data-shake:animate-shake",
+				"cursor-default text-sm font-normal",
 				"focus-visible:border-accent-600/50 focus-visible:ring-3 focus-visible:focus-ring",
 				className,
 			)}
-			onKeyDown={(event) => {
-				if (locked && (event.key === "Backspace" || event.key === "Delete")) {
-					event.preventDefault();
-					shakeElement(event.currentTarget);
-					return;
-				}
-				onKeyDown?.(event);
-			}}
+			onKeyDown={onKeyDown}
 			{...props}
 		>
 			{value}
-			<button
-				type="button"
-				aria-label={`Remove ${value}`}
-				tabIndex={-1}
-				aria-disabled={locked || undefined}
-				className={cx(
-					"cursor-pointer text-strong/40 hover:bg-neutral-500/15 hover:text-strong rounded-xs p-0.5",
-					"aria-disabled:cursor-default aria-disabled:hover:bg-transparent aria-disabled:hover:text-strong/40",
-				)}
-				onClick={(event) => {
-					// Prevent the click from bubbling to the trigger, which would reopen or refocus the combobox
-					event.stopPropagation();
-					if (locked) {
-						// Shake the tag to signal that removal is blocked
-						const tagElement = internalRef.current;
-						if (tagElement) {
-							shakeElement(tagElement);
-						}
-						return;
-					}
-					onRemove?.();
-				}}
-				onMouseDown={(event) => {
-					// Prevent the input from losing focus on click, which would close the popover before the remove fires
-					event.preventDefault();
-				}}
-			>
-				{/* Why inline svgs: one host element in place of four parts for each tag. */}
-				<svg
-					aria-hidden
-					data-slot="icon svg-only"
-					viewBox="0 0 256 256"
-					fill="currentColor"
-					className="size-4 shrink-0"
-				>
-					<path d={locked ? LOCK_PATH : X_PATH} />
-				</svg>
-			</button>
-		</span>
+		</TagChip>
 	);
 };
 

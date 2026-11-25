@@ -101,6 +101,7 @@ describe("MultiSelect", () => {
 		);
 		expect(screen.getByText("apple")).toBeInTheDocument();
 		expect(screen.getByText("banana")).toBeInTheDocument();
+		expect(getTagOption("apple")).toHaveAttribute("data-slot", "multi-select-tag");
 	});
 
 	test("hides placeholder when values are selected", () => {

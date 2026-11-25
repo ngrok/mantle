@@ -76,6 +76,31 @@ describe("MultiSelect (browser)", () => {
 		return tagEl;
 	};
 
+	test("selecting the first value keeps the trigger height", async () => {
+		const style = document.createElement("style");
+		// Why border-box: the browser test loads utilities without the site's Tailwind preflight.
+		style.textContent = `${await commands.tailwindCss("./multi-select.tsx")}\n${await commands.tailwindCss("../chip/chip.tsx")}\n*,*::before,*::after{box-sizing:border-box}`;
+		document.head.append(style);
+		try {
+			const user = setupUser();
+			render(<Subject />);
+			const input = screen.getByRole("combobox");
+			const trigger = input.closest<HTMLElement>('[data-slot~="multi-select-trigger"]');
+			if (trigger == null) {
+				throw new Error("Expected a MultiSelect trigger");
+			}
+			const height = trigger.getBoundingClientRect().height;
+			await user.click(input);
+			await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
+			await user.click(getListboxOption("Apple"));
+			expect(getTagOption("apple")).toHaveAttribute("data-slot", "multi-select-tag");
+			expect(getComputedStyle(trigger).paddingTop).toBe("0px");
+			expect(trigger.getBoundingClientRect().height).toBe(height);
+		} finally {
+			style.remove();
+		}
+	});
+
 	describe("popover lifecycle", () => {
 		const modalSubjects = [
 			{
