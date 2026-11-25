@@ -496,6 +496,12 @@ type DataTableProps<TFeatures extends TableFeatures, TData extends RowData> = Co
  * any sorting / filtering / pagination state. The wrapper components read
  * from it.
  *
+ * Tradeoff: with 2 to 24 header cells, the table lays out as a CSS grid. When
+ * the table is the first item on a page, VoiceOver in Safari starts on the
+ * first header cell, not on the table. WebKit puts each grid cell on its own
+ * text line, and no CSS changes this. With content before the table, VoiceOver
+ * reads it the same as a table with `display: table`.
+ *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableroot
  *
  * @example

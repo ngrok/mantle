@@ -740,6 +740,8 @@ columnHelper.accessor("url", {
 
 Each cell stays on one line, and every column gets an equal share of the table's spare width. A long value takes the width it needs. When the row is too narrow, the value truncates with an ellipsis, so every row keeps one height, and a table too narrow for its columns scrolls. A row checkbox or expand column and an action column stay as narrow as their controls. The browser sizes the columns in its own layout pass: no script measures them, and a width class on a cell does nothing. To give a column a least width, put `min-w-*` on its cells.
 
+The grid layout has one tradeoff with VoiceOver in Safari. When the table is the first item on a page, "move to top" lands on the first header cell, not on the table. WebKit puts each grid cell on its own text line, and no CSS changes this. VoiceOver still reads the table, its column and row counts, and each header. With content before the table, as on most pages, VoiceOver reads it the same as a table with `display: table`. NVDA reads it the same in both layouts.
+
 Set `meta.width` on a column to change this, and pass `column` to its `DataTable.Header` and to every `DataTable.Cell`:
 
 - `"fit"`: the column never truncates. Use it for a short value of one shape, such as a timestamp, a status, or a duration.

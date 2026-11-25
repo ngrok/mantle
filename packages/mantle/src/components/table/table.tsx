@@ -178,6 +178,12 @@ const Root = ({
  * The `<Table.Element>` is a structured way to display data in rows and columns. The API
  * matches the HTML `<table>` element 1:1.
  *
+ * Tradeoff: with 2 to 24 header cells, the table lays out as a CSS grid. When
+ * the table is the first item on a page, VoiceOver in Safari starts on the
+ * first header cell, not on the table. WebKit puts each grid cell on its own
+ * text line, and no CSS changes this. With content before the table, VoiceOver
+ * reads it the same as a table with `display: table`.
+ *
  * Permitted content in this order:
  * 1. optional: `<Table.Caption>`
  * 2. 0 or more: `<colgroup>` elements
