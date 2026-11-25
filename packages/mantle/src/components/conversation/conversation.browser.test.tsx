@@ -557,6 +557,44 @@ describe("Conversation", () => {
 		expect(link).toHaveFocus();
 	});
 
+	test("a moved, refocused message still hands focus on when it leaves", async () => {
+		const turns: Turn[] = ["a", "b", "c"].map((id) => ({ id, from: "assistant", text: id }));
+		const [a, b, c] = turns as [Turn, Turn, Turn];
+		const { rerender } = render(<Transcript turns={[a, b, c]} />);
+		await nextFrame();
+		message(1).focus();
+		rerender(<Transcript turns={[c, a, b]} />);
+		await nextFrame();
+		expect(message(2)).toHaveFocus();
+		rerender(<Transcript turns={[c, a]} />);
+		await waitFor(() => expect(message(-1)).toHaveFocus());
+	});
+
+	test("arrows skip an inert message", async () => {
+		render(
+			<Conversation.Root>
+				<Conversation.Viewport style={viewportStyle}>
+					<Conversation.Content aria-label="Conversation">
+						<Message.Root from="user">
+							<Message.Content>First</Message.Content>
+						</Message.Root>
+						<Message.Root from="assistant" inert>
+							<Message.Content>Second</Message.Content>
+						</Message.Root>
+						<Message.Root from="user">
+							<Message.Content>Third</Message.Content>
+						</Message.Root>
+					</Conversation.Content>
+				</Conversation.Viewport>
+			</Conversation.Root>,
+		);
+		await nextFrame();
+		const [first, , third] = document.querySelectorAll<HTMLElement>('[data-slot~="message"]');
+		first?.focus();
+		await browserUser.keyboard("{ArrowDown}");
+		expect(third).toHaveFocus();
+	});
+
 	test("a removed focused message hands focus to the new tab stop", async () => {
 		const answer: Turn = { id: "a1", from: "assistant", text: "Two have none." };
 		const { rerender } = render(<Transcript turns={[question, answer]} />);

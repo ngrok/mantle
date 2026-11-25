@@ -696,6 +696,11 @@ function rovingMessages(
 		}
 		const message = target.closest<HTMLElement>(MESSAGE_SELECTOR);
 		if (message == null || !viewport.contains(message)) {
+			// Why: focus on a control outside the messages must not let an old message pull focus back.
+			if (viewport.contains(target)) {
+				focusTarget = null;
+				focused = null;
+			}
 			return;
 		}
 		focusTarget = target;
@@ -716,7 +721,13 @@ function rovingMessages(
 		const blurred = event.target;
 		queueMicrotask(() => {
 			// Why the match: a restore can move focus before this runs, and that focus must stay tracked.
-			if (blurred instanceof Node && focusTarget === blurred && blurred.isConnected) {
+			// Why the active check: React refocuses a keyed message it moves, and that focus stays tracked.
+			if (
+				blurred instanceof Node &&
+				focusTarget === blurred &&
+				blurred.isConnected &&
+				document.activeElement !== blurred
+			) {
 				focusTarget = null;
 				focused = null;
 			}
@@ -767,7 +778,10 @@ function rovingMessages(
 		) {
 			// Why the filter: a hidden message cannot take focus, so the keys skip it. jsdom has no `checkVisibility`.
 			const list = messages().filter(
-				(message) => typeof message.checkVisibility !== "function" || message.checkVisibility(),
+				(message) =>
+					message.closest("[inert]") == null &&
+					(typeof message.checkVisibility !== "function" ||
+						message.checkVisibility({ visibilityProperty: true })),
 			);
 			const next = list[list.indexOf(target) + (event.key === "ArrowDown" ? 1 : -1)];
 			if (next == null) {
