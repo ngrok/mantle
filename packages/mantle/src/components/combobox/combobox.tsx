@@ -430,8 +430,10 @@ type ComboboxItemProps = Omit<ComponentProps<"div">, "children" | "value"> &
 		 * item as the element it returns, with the item's props and `{ highlighted }`:
 		 * spread `props` on that element.
 		 *
-		 * A pick writes the text the content shows into the input, without its
-		 * `aria-hidden` parts, so filter on that text. A preset `value` writes it too.
+		 * The input is a plain text input, so a pick puts only text in it, never
+		 * the content's elements. It writes the text the content shows, without its
+		 * `hidden` and `aria-hidden` parts, so filter on that text. A preset `value`
+		 * writes it too.
 		 */
 		children?: ReactNode | OptionRender;
 		/**

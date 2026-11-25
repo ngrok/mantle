@@ -341,7 +341,7 @@ All props of a `<div>`, plus:
 
 #### The text a pick writes
 
-A pick writes the text that the item's children show into the input, without their `hidden` and `aria-hidden` parts, such as a decorative icon or avatar. A preset `value` or `defaultValue`, and a form reset, write it too. `value` stays the picked value, so an item can pick an ID and show a name:
+`Combobox.Input` is a plain text input, so a pick puts only text in it, never the item's elements. An icon, an avatar, a badge, or other markup in the children stays in the list. A pick writes the text that the item's children show into the input, without their `hidden` and `aria-hidden` parts, such as a decorative icon or avatar. A preset `value` or `defaultValue`, and a form reset, write it too. `value` stays the picked value, so an item can pick an ID and show a name:
 
 ```tsx
 <Combobox.Item value="usr_7f">
