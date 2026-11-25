@@ -1,6 +1,5 @@
 "use client";
 
-import { cva } from "class-variance-authority";
 import type { ComponentProps, ReactNode } from "react";
 import { cloneElement, createContext, isValidElement, useContext, useRef } from "react";
 import type { Orientation } from "../../behaviors/use-tabs.js";
@@ -175,38 +174,22 @@ const Root = ({
 	</TabsAppearanceContext.Provider>
 );
 
-/**
- * Variants for the List component
- */
-const listVariants = cva("flex", {
-	variants: {
-		orientation: {
-			// Why `self-stretch`: the list spans the root plus its own `-mx-1`, so the
-			// `px-1` content box ends at the root's edges and the last trigger meets
-			// the separator. A `100%` width ends 8px short on the right.
-			horizontal:
-				"scroll-fade-x flex-row items-center overflow-x-auto overscroll-x-none self-stretch min-w-0 pt-1 -mt-1 px-1 -mx-1",
-			vertical: "flex-col items-end gap-3.5 self-stretch",
-		} as const satisfies Record<Orientation, string>,
-		appearance: {
-			classic: "",
-			pill: "",
-		} as const satisfies Record<Appearance, string>,
-	},
-	compoundVariants: [
-		{
-			orientation: "horizontal",
-			appearance: "pill",
-			// pb-1 -mb-1 gives the focus ring space below (ring-4 is box-shadow, clipped by overflow).
-			className: "gap-1 pb-1 -mb-1",
-		},
-		{
-			orientation: "horizontal",
-			appearance: "classic",
-			className: "gap-6",
-		},
-	],
-});
+/** The List classes of each orientation. */
+const listOrientationClasses = {
+	// Why `self-stretch`: the list spans the root plus its own `-mx-1`, so the
+	// `px-1` content box ends at the root's edges and the last trigger meets
+	// the separator. A `100%` width ends 8px short on the right.
+	horizontal:
+		"scroll-fade-x flex-row items-center overflow-x-auto overscroll-x-none self-stretch min-w-0 pt-1 -mt-1 px-1 -mx-1",
+	vertical: "flex-col items-end gap-3.5 self-stretch",
+} as const satisfies Record<Orientation, string>;
+
+/** The gap of a horizontal List in each appearance. A vertical list sets its own. */
+const horizontalListAppearanceClasses = {
+	classic: "gap-6",
+	// pb-1 -mb-1 gives the focus ring space below (ring-4 is box-shadow, clipped by overflow).
+	pill: "gap-1 pb-1 -mb-1",
+} as const satisfies Record<Appearance, string>;
 
 /**
  * Contains the triggers that are aligned along the edge of the active content.
@@ -253,7 +236,9 @@ const List = ({ className, ref, ...props }: HeadlessTabs.ListProps) => {
 	return (
 		<HeadlessTabs.List
 			className={cx(
-				listVariants({ orientation, appearance }),
+				"flex",
+				listOrientationClasses[orientation],
+				orientation === "horizontal" && horizontalListAppearanceClasses[appearance],
 				"data-dragging:cursor-grabbing",
 				className,
 			)}
@@ -341,76 +326,66 @@ const TabsSeparator = ({ className, "data-slot": dataSlot, ...props }: TabsSepar
 	);
 };
 
-/**
- * Variants for the Trigger component
- */
-const triggerVariants = cva(
-	cx(
-		"group/tab-trigger relative flex cursor-pointer select-none items-center gap-1 whitespace-nowrap py-3 text-sm font-medium text-gray-600",
-		"aria-disabled:cursor-default aria-disabled:opacity-50",
-		// Why slot-scoped: the label span makes a consumer's svg a grandchild, so a
-		// bare `[&>svg]` matches nothing. A `[&_svg]` would also size the glyph
-		// inside `Tabs.Badge`.
-		"[&>[data-slot=tabs-trigger-label]>svg]:shrink-0 [&>[data-slot=tabs-trigger-label]>svg]:size-5",
-		"not-aria-disabled:hover:text-gray-900",
-		// Why a pseudo-element of each trigger: the active trigger draws the indicator,
-		// so it costs no element and no render, and the server HTML shows it.
-		// `useSlidingThumb` slides it from the trigger that was active.
-		// Why no pointer events: a sliding indicator over a neighbor must not take its press.
-		"after:pointer-events-none after:absolute",
-		"aria-selected:not-in-data-dragging:text-strong not-aria-disabled:hover:aria-selected:text-strong",
-		// Why: during a drag, the label under the indicator is strong, and the active tab can be away from it.
-		"data-thumb-over:text-strong",
-		// Why: Chromium takes the touch action of a `display: contents` label under the finger as
-		// `auto`, and cancels a swipe on the text. The active tab's own box then takes the press.
-		"aria-selected:[&>[data-slot=tabs-trigger-label]]:pointer-events-none",
-		// Why: forced colors paint each background in the canvas color.
-		"forced-colors:after:forced-color-adjust-none",
-	),
-	{
-		variants: {
-			orientation: {
-				// Why `overflowing=false`: a touch swipe on the active tab drags the indicator only
-				// in a list measured to fit. Before the measure, and in a list that scrolls, it scrolls.
-				horizontal: cx(
-					"rounded-tl-md rounded-tr-md",
-					// Why only the active tab: an offset indicator on another tab would widen the scroll area.
-					"aria-selected:after:translate-x-(--_tabs-thumb-offset,0px)",
-					"aria-selected:in-[[role=tablist][data-overflowing=false]]:touch-pan-y aria-selected:in-[[role=tablist][data-overflowing=false]]:touch-pinch-zoom",
-				),
-				vertical: cx(
-					"rounded-bl-md rounded-tl-md pr-3",
-					"aria-selected:after:translate-y-(--_tabs-thumb-offset,0px)",
-					"aria-selected:in-[[role=tablist][data-overflowing=false]]:touch-pan-x aria-selected:in-[[role=tablist][data-overflowing=false]]:touch-pinch-zoom",
-				),
-			} as const satisfies Record<Orientation, string>,
-			appearance: {
-				classic: cx(
-					"after:z-0 aria-selected:after:bg-neutral-950",
-					"forced-colors:aria-selected:after:bg-[Highlight]",
-				),
-				pill: cx(
-					// Why isolate: the pill sits under the label and over the list.
-					"isolate rounded-full py-2 px-3",
-					"after:top-0 after:left-0 after:-z-1 after:size-full after:rounded-full aria-selected:after:bg-neutral-500/15",
-					"forced-colors:aria-selected:after:border-2 forced-colors:aria-selected:after:border-[Highlight]",
-				),
-			} as const satisfies Record<Appearance, string>,
-		},
-		compoundVariants: [
-			{
-				orientation: "horizontal",
-				appearance: "classic",
-				className: "after:bottom-0 after:left-0 after:h-0.75 after:w-full",
-			},
-			{
-				orientation: "vertical",
-				appearance: "classic",
-				className: "after:top-0 after:-right-px after:h-full after:w-0.75",
-			},
-		],
-	},
+/** The classes every Trigger shares. */
+const triggerClasses = cx(
+	"group/tab-trigger relative flex cursor-pointer select-none items-center gap-1 whitespace-nowrap py-3 text-sm font-medium text-gray-600",
+	"aria-disabled:cursor-default aria-disabled:opacity-50",
+	// Why slot-scoped: the label span makes a consumer's svg a grandchild, so a
+	// bare `[&>svg]` matches nothing. A `[&_svg]` would also size the glyph
+	// inside `Tabs.Badge`.
+	"[&>[data-slot=tabs-trigger-label]>svg]:shrink-0 [&>[data-slot=tabs-trigger-label]>svg]:size-5",
+	"not-aria-disabled:hover:text-gray-900",
+	// Why a pseudo-element of each trigger: the active trigger draws the indicator,
+	// so it costs no element and no render, and the server HTML shows it.
+	// `useSlidingThumb` slides it from the trigger that was active.
+	// Why no pointer events: a sliding indicator over a neighbor must not take its press.
+	"after:pointer-events-none after:absolute",
+	"aria-selected:not-in-data-dragging:text-strong not-aria-disabled:hover:aria-selected:text-strong",
+	// Why: during a drag, the label under the indicator is strong, and the active tab can be away from it.
+	"data-thumb-over:text-strong",
+	// Why: Chromium takes the touch action of a `display: contents` label under the finger as
+	// `auto`, and cancels a swipe on the text. The active tab's own box then takes the press.
+	"aria-selected:[&>[data-slot=tabs-trigger-label]]:pointer-events-none",
+	// Why: forced colors paint each background in the canvas color.
+	"forced-colors:after:forced-color-adjust-none",
 );
+
+/** The Trigger classes of each orientation. */
+const triggerOrientationClasses = {
+	// Why `overflowing=false`: a touch swipe on the active tab drags the indicator only
+	// in a list measured to fit. Before the measure, and in a list that scrolls, it scrolls.
+	horizontal: cx(
+		"rounded-tl-md rounded-tr-md",
+		// Why only the active tab: an offset indicator on another tab would widen the scroll area.
+		"aria-selected:after:translate-x-(--_tabs-thumb-offset,0px)",
+		"aria-selected:in-[[role=tablist][data-overflowing=false]]:touch-pan-y aria-selected:in-[[role=tablist][data-overflowing=false]]:touch-pinch-zoom",
+	),
+	vertical: cx(
+		"rounded-bl-md rounded-tl-md pr-3",
+		"aria-selected:after:translate-y-(--_tabs-thumb-offset,0px)",
+		"aria-selected:in-[[role=tablist][data-overflowing=false]]:touch-pan-x aria-selected:in-[[role=tablist][data-overflowing=false]]:touch-pinch-zoom",
+	),
+} as const satisfies Record<Orientation, string>;
+
+/** The Trigger classes of each appearance. */
+const triggerAppearanceClasses = {
+	classic: cx(
+		"after:z-0 aria-selected:after:bg-neutral-950",
+		"forced-colors:aria-selected:after:bg-[Highlight]",
+	),
+	pill: cx(
+		// Why isolate: the pill sits under the label and over the list.
+		"isolate rounded-full py-2 px-3",
+		"after:top-0 after:left-0 after:-z-1 after:size-full after:rounded-full aria-selected:after:bg-neutral-500/15",
+		"forced-colors:aria-selected:after:border-2 forced-colors:aria-selected:after:border-[Highlight]",
+	),
+} as const satisfies Record<Appearance, string>;
+
+/** Where the classic bar sits on a Trigger in each orientation. The pill fills the trigger. */
+const classicBarClasses = {
+	horizontal: "after:bottom-0 after:left-0 after:h-0.75 after:w-full",
+	vertical: "after:top-0 after:-right-px after:h-full after:w-0.75",
+} as const satisfies Record<Orientation, string>;
 
 /** Wraps a trigger's children in the label span that the variants style through. */
 const label = (children: ReactNode) => (
@@ -482,7 +457,13 @@ const Trigger = ({
 	return (
 		<HeadlessTabs.Trigger
 			asChild={asChild}
-			className={cx(triggerVariants({ orientation, appearance }), className)}
+			className={cx(
+				triggerClasses,
+				triggerOrientationClasses[orientation],
+				triggerAppearanceClasses[appearance],
+				appearance === "classic" && classicBarClasses[orientation],
+				className,
+			)}
 			{...props}
 			ref={useComposedRefs(ref, observeOverflow)}
 		>

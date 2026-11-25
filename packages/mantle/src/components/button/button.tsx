@@ -1,11 +1,9 @@
 import { CircleNotchIcon } from "@phosphor-icons/react/CircleNotch";
-import { cva } from "class-variance-authority";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
 import { Children, cloneElement, isValidElement } from "react";
 import invariant from "tiny-invariant";
 import { parseBooleanish } from "../../types/index.js";
 import type { WithAsChild } from "../../types/index.js";
-import type { VariantProps } from "../../types/variant-props.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -28,114 +26,61 @@ import type { ButtonSize } from "./sizes.js";
  */
 type ButtonAppearance = "filled" | "ghost" | "link" | "outlined";
 
-const buttonVariants = cva("", {
-	variants: {
-		/**
-		 * The visual style of the Button. The base classes carry the accent
-		 * tone; danger and neutral tones override via compoundVariants.
-		 */
-		appearance: {
-			filled:
-				"bg-filled-accent text-white not-disabled:hover:bg-filled-accent-hover border border-transparent text-sm font-medium",
-			ghost:
-				"text-accent-600 not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border border-transparent text-sm font-medium",
-			outlined:
-				"border-accent-600 bg-form text-accent-600 not-disabled:hover:border-accent-700 not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border text-sm font-medium",
-			link: "text-accent-600 not-disabled:hover:underline group/button-link border-transparent",
-		} satisfies Record<ButtonAppearance, string>,
-		/**
-		 * Whether the button is in a loading state, default `false`. Setting `isLoading`
-		 * replaces any `icon` with a spinner, or adds one when the button has no icon.
-		 * It also disables user interaction with the button and sets `disabled`.
-		 */
-		isLoading: {
-			false: "",
-			true: "opacity-50",
-		},
-		/**
-		 * The tone of the Button (the purpose its color communicates). The
-		 * accent tone is styled by the appearance base classes; danger and
-		 * neutral override via compoundVariants.
-		 */
-		intent: {
-			accent: "",
-			danger: "",
-			neutral: "",
-		} satisfies Record<ButtonIntent, string>,
-		/**
-		 * The size of the Button, controlling its box height and horizontal
-		 * padding, default `"md"`. Shared scale with `IconButton`: the same size
-		 * name renders the same box height. Has no effect when `appearance` is `"link"`:
-		 * link buttons inherit the surrounding typography and have no box to
-		 * size.
-		 */
-		size: {
-			xs: "",
-			sm: "",
-			md: "",
-			lg: "",
-			xl: "",
-		} satisfies Record<ButtonSize, string>,
+/**
+ * The classes of each appearance. They carry the accent tone; the danger and
+ * neutral tones override them with `intentClasses`.
+ */
+const appearanceClasses = {
+	filled:
+		"bg-filled-accent text-white not-disabled:hover:bg-filled-accent-hover border border-transparent text-sm font-medium",
+	ghost:
+		"text-accent-600 not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border border-transparent text-sm font-medium",
+	outlined:
+		"border-accent-600 bg-form text-accent-600 not-disabled:hover:border-accent-700 not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border text-sm font-medium",
+	link: "text-accent-600 not-disabled:hover:underline group/button-link border-transparent",
+} as const satisfies Record<ButtonAppearance, string>;
+
+/** The classes that the danger and neutral tones lay over each appearance's accent classes. */
+const intentClasses = {
+	filled: {
+		accent: "",
+		danger:
+			"bg-filled-danger focus-visible:ring-focus-danger not-disabled:hover:bg-filled-danger-hover border-transparent",
+		neutral:
+			"bg-filled-neutral not-disabled:hover:bg-filled-neutral-hover border-transparent focus-visible:border-transparent text-neutral-50",
 	},
-	defaultVariants: {
-		isLoading: false,
-		size: "md",
+	ghost: {
+		accent: "",
+		danger:
+			"text-danger-600 focus-visible:ring-focus-danger not-disabled:hover:bg-danger-500/10 not-disabled:hover:text-danger-700 border-transparent",
+		neutral:
+			"text-strong not-disabled:hover:bg-neutral-500/10 not-disabled:hover:text-strong border-transparent",
 	},
-	compoundVariants: [
-		// size controls box height + horizontal padding for every appearance except link
-		{ appearance: ["filled", "ghost", "outlined"], size: "xs", class: "h-6 px-2" },
-		{ appearance: ["filled", "ghost", "outlined"], size: "sm", class: "h-7 px-2.5" },
-		{ appearance: ["filled", "ghost", "outlined"], size: "md", class: "h-9 px-3" },
-		{ appearance: ["filled", "ghost", "outlined"], size: "lg", class: "h-10 px-3.5" },
-		{ appearance: ["filled", "ghost", "outlined"], size: "xl", class: "h-12 px-4" },
-		{
-			appearance: "ghost",
-			intent: "danger",
-			class:
-				"text-danger-600 focus-visible:ring-focus-danger not-disabled:hover:bg-danger-500/10 not-disabled:hover:text-danger-700 border-transparent",
-		},
-		{
-			appearance: "outlined",
-			intent: "danger",
-			class:
-				"border-danger-600 bg-form text-danger-600 focus-visible:ring-focus-danger not-disabled:hover:border-danger-700 not-disabled:hover:bg-danger-500/10 not-disabled:hover:text-danger-700",
-		},
-		{
-			appearance: "filled",
-			intent: "danger",
-			class:
-				"bg-filled-danger focus-visible:ring-focus-danger not-disabled:hover:bg-filled-danger-hover border-transparent",
-		},
-		{
-			appearance: "link",
-			intent: "danger",
-			class: "text-danger-600 focus-visible:ring-focus-danger",
-		},
-		{
-			appearance: "ghost",
-			intent: "neutral",
-			class:
-				"text-strong not-disabled:hover:bg-neutral-500/10 not-disabled:hover:text-strong border-transparent",
-		},
-		{
-			appearance: "outlined",
-			intent: "neutral",
-			class:
-				"border-form bg-form text-strong focus-visible:border-accent-600 not-disabled:hover:border-neutral-400 not-disabled:hover:bg-form-hover not-disabled:hover:text-strong focus-visible:not-disabled:hover:border-accent-600 focus-visible:not-disabled:active:border-accent-600",
-		},
-		{
-			appearance: "filled",
-			intent: "neutral",
-			class:
-				"bg-filled-neutral not-disabled:hover:bg-filled-neutral-hover border-transparent focus-visible:border-transparent text-neutral-50",
-		},
-		{
-			appearance: "link",
-			intent: "neutral",
-			class: "text-strong",
-		},
-	],
-});
+	outlined: {
+		accent: "",
+		danger:
+			"border-danger-600 bg-form text-danger-600 focus-visible:ring-focus-danger not-disabled:hover:border-danger-700 not-disabled:hover:bg-danger-500/10 not-disabled:hover:text-danger-700",
+		neutral:
+			"border-form bg-form text-strong focus-visible:border-accent-600 not-disabled:hover:border-neutral-400 not-disabled:hover:bg-form-hover not-disabled:hover:text-strong focus-visible:not-disabled:hover:border-accent-600 focus-visible:not-disabled:active:border-accent-600",
+	},
+	link: {
+		accent: "",
+		danger: "text-danger-600 focus-visible:ring-focus-danger",
+		neutral: "text-strong",
+	},
+} as const satisfies Record<ButtonAppearance, Record<ButtonIntent, string>>;
+
+/**
+ * The box height and horizontal padding of each size. A link has no box, so
+ * it takes none.
+ */
+const sizeClasses = {
+	xs: "h-6 px-2",
+	sm: "h-7 px-2.5",
+	md: "h-9 px-3",
+	lg: "h-10 px-3.5",
+	xl: "h-12 px-4",
+} as const satisfies Record<ButtonSize, string>;
 
 /**
  * When an icon is present (and the appearance is not "link"), the icon-side
@@ -158,13 +103,10 @@ const iconPaddingEnd = {
 	xl: "pe-3.5",
 } as const satisfies Record<ButtonSize, string>;
 
-type ButtonVariants = VariantProps<typeof buttonVariants>;
-
 /**
  * The props for the `Button` component.
  */
 type ButtonProps = ComponentProps<"button"> &
-	Omit<ButtonVariants, "appearance" | "intent"> &
 	WithAsChild & {
 		/**
 		 * The visual style of the Button. Required: there is no default, so
@@ -188,6 +130,22 @@ type ButtonProps = ComponentProps<"button"> &
 		 * - `"danger"`: a destructive or irreversible action
 		 */
 		intent: ButtonIntent;
+		/**
+		 * Whether the button is in a loading state. Setting `isLoading`
+		 * replaces any `icon` with a spinner, or adds one when the button has no icon.
+		 * It also disables user interaction with the button and sets `disabled`.
+		 * @default false
+		 */
+		isLoading?: boolean;
+		/**
+		 * The size of the Button, controlling its box height and horizontal
+		 * padding. Shared scale with `IconButton`: the same size
+		 * name renders the same box height. Has no effect when `appearance` is `"link"`:
+		 * link buttons inherit the surrounding typography and have no box to
+		 * size.
+		 * @default "md"
+		 */
+		size?: ButtonSize;
 		/**
 		 * An icon to render inside the button, beside the button's text
 		 * children. When `isLoading` is `true`, a spinner replaces the icon.
@@ -399,7 +357,11 @@ const Button = ({
 			"disabled:cursor-default disabled:opacity-50",
 			"aria-disabled:cursor-default aria-disabled:opacity-50",
 			"not-disabled:active:scale-97 ease-out transition-transform duration-150",
-			buttonVariants({ appearance, intent, isLoading, size }),
+			appearanceClasses[appearance],
+			isLoading && "opacity-50",
+			appearance !== "link" && sizeClasses[size],
+			// Why `?.`: a JavaScript caller can leave out `appearance`, and the button must still render.
+			intentClasses[appearance]?.[intent],
 			appearance !== "link" && "font-sans", // only enforce font-sans on non-link button appearances
 			hasSpecialIconPadding && iconPlacement === "start" && iconPaddingStart[size],
 			hasSpecialIconPadding && iconPlacement === "end" && iconPaddingEnd[size],
