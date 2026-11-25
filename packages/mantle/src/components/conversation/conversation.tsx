@@ -186,8 +186,8 @@ type ConversationViewportProps = ComponentProps<"div"> & WithAsChild & WithDataS
  * The region reserves the scrollbar's space on both sides, so centered
  * content lines up with a centered composer.
  *
- * The viewport is no tab stop and draws no focus ring: one message at a time
- * does, as in Claude's chat. Focus in a message scrolls the viewport by
+ * The viewport is no tab stop and draws no focus ring while it holds a
+ * message: one message at a time does, as in Claude's chat. Focus in a message scrolls the viewport by
  * keyboard, and Up and Down move between messages. See `Conversation.Content`.
  *
  * On mount it starts at the end, unless something already moved it, such as
@@ -294,6 +294,8 @@ function Viewport({
 				// Why no outline: a click in the blank space focuses the viewport, and the next key press
 				// would ring the whole transcript. The focused message draws the ring.
 				"scrollbar scrollbar-gutter-both scroll-fade-b min-h-0 flex-1 overflow-y-auto outline-none",
+				// Why the ring with no message: focus falls back to the viewport, and must still show.
+				"focus-visible:not-has-data-[slot~=message]:focus-ring",
 				className,
 			)}
 			{...props}

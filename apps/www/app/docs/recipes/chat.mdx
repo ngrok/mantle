@@ -50,7 +50,7 @@ The same chat fits a side panel beside the page it helps with. Switch either dem
 - **The model picker follows Amp's.** A quiet button names the model and its effort. Its menu lists each model on one line, with a provider icon, an optional [Badge](/components/data-display/badge), a muted description, and a check on the pick. Effort and the other models sit in submenus under a separator. The menu takes the width of its widest row, capped at 24rem and the screen, so a name never wraps and truncates only as a last resort. In a chat narrower than 24rem, as in the side panel or on a phone, the button drops the effort from view, and a screen reader still hears it. `send` and `retry` hand the model and the effort to `respond`. A menu holds no form value, so hidden inputs carry both for a form that posts.
 - **One panel look at every size.** The full page and the side panel share [Panel](/components/preview/panel)'s parts: `Panel.Header` for the header row, `Panel.Body` for the transcript, and `Panel.Footer` for the composer. In the side panel, `AppLayout.SidePanelHeader` renders `Panel.Header` and adds the swipe that closes it. `Panel.Body` does not scroll here: `Conversation.Viewport` scrolls, so it can follow the answer as it streams.
 - **The empty state is the first screen.** Before the first message, [Empty](/components/feedback/empty) offers starter prompts in place of the transcript. The composer stays put, so the draft never moves, and a pressed starter or Retry hands focus to the field.
-- **The transcript lines up with the composer.** The transcript and the composer share one centered column. The transcript's edges line up with the composer's buttons, so the bottom fade ends at the composer. The button that goes back to the newest message sits at the composer's right corner, not the window's.
+- **The transcript lines up with the composer.** The transcript and the composer share one centered column, at every width. The transcript sits one corner radius inside the composer, so the edge of a code block or a table meets the composer where its rounded corner ends, as in Amp. The bottom fade ends at the composer. The column and the composer reserve the scrollbar's space alike, so they line up with a classic scrollbar too. The button that goes back to the newest message sits at the composer's right corner, not the window's.
 - **The outline waits for a long chat.** From the third message the person sends, a [Conversation Outline](/components/ai/conversation-outline) button shows in the header, at every width. It lists their messages, and a press jumps to one. With fewer messages a scroll is faster, so the button stays hidden, and it renders before the header's other actions so they do not move. Each person's `Message.Root` takes its message `id` and `scroll-mt-4`, so a jump leaves room above it.
 - **Markdown streams as it arrives.** `Markdown` lexes only the unfinished block, renders at most once per frame, and renders a fence as a `CodeBlock` that highlights as the code arrives.
 
@@ -238,13 +238,10 @@ function ChatOutline({ messages }: { messages: ChatMessage[] }) {
  * no network. Ask anything with "fail" in it to see a failed answer.
  *
  * One gutter sets the layout at each width, as Amp does. The composer sits one
- * gutter in from the edge. The gutter is 0.75rem, and 1rem when the chat is
- * wider than 32rem. When it is narrower, as in a side panel or on a phone, the
- * composer sits in a footer below a border, as a sheet's footer does, and the
- * transcript sits 0.5rem further in, so its edges line up with the composer's
- * buttons. When it is wider, the transcript scrolls under the composer and
- * sits 1rem further in, the composer's corner radius, so the edge of a code
- * block or a table meets the composer where its corner ends.
+ * gutter in from the edge. The transcript sits 1rem further in, the composer's
+ * corner radius, so the edge of a code block or a table meets the composer
+ * where its corner ends. The gutter is 0.75rem, and 1rem when the chat is
+ * wider than 32rem.
  */
 function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 	const [draft, setDraft] = useState("");
@@ -303,7 +300,7 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 							<Conversation.Viewport>
 								<Conversation.Content
 									aria-label="Conversation with the assistant"
-									className="mx-auto w-full max-w-3xl px-[calc(var(--gutter)+(--spacing(2)))] py-6 @lg:px-[calc(var(--gutter)+(--spacing(4)))]"
+									className="mx-auto w-full max-w-3xl px-[calc(var(--gutter)+(--spacing(4)))] py-6"
 								>
 									{chat.messages.map((message) =>
 										message.from === "user" ? (
@@ -348,13 +345,19 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 							</Conversation.Viewport>
 						)}
 						{/* Why the column: the button sits just outside the transcript's right edge, not at the window's. */}
-						<div className="absolute inset-x-0 bottom-3 mx-auto max-w-3xl">
-							<Conversation.ScrollButton className="right-[calc(var(--gutter)+(--spacing(1.5)))] bottom-0 @lg:right-[calc(var(--gutter)+(--spacing(3.5)))]" />
+						{/* Why the gutters: the band reserves the scrollbar's space as the viewport does, so the column matches. */}
+						<div className="scrollbar-gutter-both pointer-events-none absolute inset-x-0 bottom-0 h-14 overflow-y-hidden">
+							<div className="relative mx-auto h-full max-w-3xl">
+								<Conversation.ScrollButton className="pointer-events-auto right-[calc(var(--gutter)+(--spacing(3.5)))] bottom-3" />
+							</div>
 						</div>
 					</Conversation.Root>
 				</Panel.Body>
-				<Panel.Footer className="border-separator mx-auto w-full max-w-3xl border-t p-(--gutter) @lg:border-t-0 @lg:pt-0">
+				{/* Why the gutters: the footer reserves the scrollbar's space as the viewport does, so the composer's edges line up with the transcript's. */}
+				{/* Why the negative margin: a hidden overflow would clip the composer's focus ring. */}
+				<Panel.Footer className="scrollbar-gutter-both -mt-1 overflow-y-hidden px-(--gutter) pt-1 pb-(--gutter)">
 					<PromptInput.Root
+						className="mx-auto w-full max-w-[calc(var(--container-3xl)-2*var(--gutter))]"
 						streaming={chat.streaming}
 						onStop={chat.stop}
 						onFilesAdd={(added) => {
