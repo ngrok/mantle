@@ -1724,6 +1724,40 @@ MARK: UTILITIES
 	}
 }
 
+@utility scroll-fade-y-inset {
+	/*
+	 * `scroll-fade-y` for a bordered scroll container, such as `TextArea`. The
+	 * fade covers the padding box only, so the border and a `box-shadow` focus
+	 * ring stay solid. The two plain layers cut the padding box out of an
+	 * unclipped layer, and the fade layer then fills that hole back in.
+	 * An engine without both features gets no mask, because a mask that clips
+	 * to the border box would hide the focus ring.
+	 */
+	@supports (animation-timeline: scroll()) and (mask-clip: no-clip) {
+		mask-image:
+			linear-gradient(
+				to bottom,
+				var(--_scroll-fade-top),
+				black 1.5rem,
+				black calc(100% - 1.5rem),
+				var(--_scroll-fade-bottom)
+			),
+			linear-gradient(black, black), linear-gradient(black, black);
+		mask-clip: padding-box, padding-box, no-clip;
+		mask-origin: padding-box, padding-box, border-box;
+		mask-repeat: no-repeat, no-repeat, repeat;
+		mask-composite: add, exclude, add;
+		animation-name: scroll-fade-y-start, scroll-fade-y-end;
+		animation-fill-mode: both;
+		animation-timing-function: linear;
+		animation-range:
+			0 2px,
+			calc(100% - 2px) 100%;
+		animation-timeline: scroll(self block), scroll(self block);
+		animation-duration: 1ms;
+	}
+}
+
 /*
  * Single-edge variants of `scroll-fade-x` / `scroll-fade-y`, for when only one
  * edge should fade (e.g. a sidebar that fades content scrolling under a sticky
