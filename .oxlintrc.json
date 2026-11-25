@@ -12,7 +12,8 @@
     "vitest"
   ],
   // Why a local plugin: these conventions have no built-in rule. See scripts/oxlint-plugin-mantle.js.
-  "jsPlugins": ["./scripts/oxlint-plugin-mantle.js"],
+  // Why from source: CI lints right after install, before any build. See packages/oxlint-plugin.
+  "jsPlugins": ["./scripts/oxlint-plugin-mantle.js", "./packages/oxlint-plugin/src/index.ts"],
   "categories": {
     "correctness": "error",
     "suspicious": "error"
@@ -49,6 +50,9 @@
     "mantle/prefer-type-alias": "error",
     "mantle/require-suppression-reason": "error",
     "mantle/tailwind-quarter-step-spacing": "error",
+    "ngrok/jsx-no-conditional-before-text": "error",
+    "ngrok/jsx-no-conditional-text-with-siblings": "error",
+    "ngrok/jsx-require-translate-no": "error",
     "jsx-a11y/anchor-has-content": "off",
     "jsx-a11y/no-noninteractive-element-interactions": "off",
     "jsx-a11y/prefer-tag-over-role": "off",
@@ -306,6 +310,16 @@
       ],
       "rules": {
         "mantle/no-config-teardown": "off"
+      }
+    },
+    {
+      // Why: a codemod fixture models a consumer's code before and after the rewrite. It never
+      // renders, and the codemod test pins its bytes, so an inline disable would change the input.
+      "files": ["packages/mantle/migrations/**"],
+      "rules": {
+        "ngrok/jsx-no-conditional-before-text": "off",
+        "ngrok/jsx-no-conditional-text-with-siblings": "off",
+        "ngrok/jsx-require-translate-no": "off"
       }
     },
     {

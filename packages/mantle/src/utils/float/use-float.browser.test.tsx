@@ -161,6 +161,7 @@ describe("useFloat placement while open", () => {
 								style={{ display: "block" }}
 							/>
 						)}
+						{/* oxlint-disable-next-line ngrok/jsx-no-conditional-before-text -- Why: the fixture measures the arrow offset, and no test translates it. */}
 						Content
 					</Popover.Content>
 				</Popover.Root>

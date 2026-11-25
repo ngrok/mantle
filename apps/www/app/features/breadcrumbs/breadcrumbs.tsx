@@ -63,6 +63,7 @@ function Breadcrumbs({ crumbs }: { crumbs: ReadonlyArray<ResolvedCrumb> }) {
 				{crumbs.map((crumb, index) => (
 					<Fragment key={crumb.key}>
 						{index > 0 && <Breadcrumb.Separator />}
+						{/* oxlint-disable-next-line ngrok/jsx-no-conditional-before-text -- Why: a content crumb renders a host element at its root, never bare text. */}
 						{crumb.kind === "content" ? (
 							crumb.content
 						) : (

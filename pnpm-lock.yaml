@@ -63,6 +63,9 @@ catalogs:
     oxfmt:
       specifier: 0.80.0
       version: 0.80.0
+    oxlint:
+      specifier: 1.95.0
+      version: 1.95.0
     react:
       specifier: 19.3.1
       version: 19.3.1
@@ -129,7 +132,7 @@ importers:
         specifier: 'catalog:'
         version: 0.80.0
       oxlint:
-        specifier: 1.95.0
+        specifier: 'catalog:'
         version: 1.95.0(oxlint-tsgolint@7.0.2008)
       oxlint-tsgolint:
         specifier: 7.0.2008
@@ -558,6 +561,24 @@ importers:
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@26.6.10)(jiti@2.7.0)(yaml@2.9.1)
+
+  packages/oxlint-plugin:
+    devDependencies:
+      '@cfg/tsconfig':
+        specifier: workspace:*
+        version: link:../../config/tsconfig
+      '@types/node':
+        specifier: 26.6.10
+        version: 26.6.10
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.95.0(oxlint-tsgolint@7.0.2008)
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.7(@tsdown/css@0.23.7)(tsrs@7.1.0-beta.tsrs5)(typescript@7.0.2)
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
 
 packages:
 

@@ -8,6 +8,16 @@ follow, and all three bind `packages/` and `apps/` alike. The mechanism, the upd
 breaks, and the rejected alternatives are in
 [`decisions/2026-08-04-translation-safe-label-wrappers.md`](../decisions/2026-08-04-translation-safe-label-wrappers.md).
 
+`pnpm -w run lint` reports some of these shapes through [`@ngrok/oxlint-plugin`](../packages/oxlint-plugin/README.md):
+
+- `ngrok/jsx-no-conditional-before-text`: a conditional element immediately before bare text.
+- `ngrok/jsx-no-conditional-text-with-siblings`: literal text that unmounts or becomes an element beside a
+  sibling.
+- `ngrok/jsx-require-translate-no`: a `kbd` or `samp` with no `translate="no"`.
+
+A clean lint does not prove a component safe. The rules skip a branch they cannot read statically, such as
+`{expanded && belowTheFold}`, and no rule checks a permanent element beside `children`.
+
 ## Never render a conditional element immediately before bare text children
 
 ```tsx

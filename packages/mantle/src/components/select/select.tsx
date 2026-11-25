@@ -536,6 +536,7 @@ const Value = ({
 					{children}
 				</span>
 			)}
+			{/* oxlint-disable-next-line ngrok/jsx-no-conditional-before-text -- Why: `renderItemLabel` returns a span, never bare text. */}
 			{label != null && renderItemLabel(label)}
 			{hasValue && children == null && label == null && (
 				<ReportedLabel listbox={listbox} value={value} />

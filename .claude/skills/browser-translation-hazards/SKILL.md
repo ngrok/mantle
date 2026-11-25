@@ -63,7 +63,8 @@ Each one needs a **reparented text node** and an **update that names it**. Both 
 
 ## What no lint rule can see
 
-Hand-check these. Each was measured, not assumed.
+The `ngrok/*` rules in `packages/oxlint-plugin` report shape 1, and shapes 2 and 3 when the branch is literal
+text. No rule reports shapes 4 to 6. Hand-check those and the items below. Each was measured, not assumed.
 
 1. **Every `.mdx` file.** oxlint lints none of the 104 in this repo, and docs demos crash like any other code.
 2. **Anything inside a JSDoc `@example` fence.** A fence that teaches the crash shape copies into call sites.
