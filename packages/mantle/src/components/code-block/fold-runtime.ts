@@ -30,6 +30,16 @@ type FoldGeometry = {
 
 const FOLD_GEOMETRY_CACHE = new WeakMap<Element, FoldGeometry>();
 
+/** How long a fold opens or closes. `mantle.css` holds the same duration. */
+const FOLD_MOTION_MS = 200;
+
+/** The most lines that animate in one toggle. */
+const FOLD_MOTION_LINE_LIMIT = 50;
+
+/** The toggle that last showed each line, so the timer of an older toggle leaves a newer open alone. */
+const LINE_SHOWN_BY = new WeakMap<HTMLElement, number>();
+let lastToggle = 0;
+
 /**
  * Splits a space-separated string into a `Set`, dropping empty entries. Used
  * to parse `data-fold-regions` and `data-folded-regions` attribute values.
@@ -121,27 +131,14 @@ function isGeometryConnected(geometry: FoldGeometry): boolean {
 	return true;
 }
 
-/**
- * Reconciles a single line's hidden state with the currently-folded region
- * set. A line is hidden if any of its parent regions are folded.
- */
-function syncLineHidden(
-	line: HTMLElement,
-	foldedRegions: Set<string>,
-	lineRegions: Set<string>,
-): void {
-	let isHidden = false;
+/** Returns whether a line is hidden: it is when any of its fold regions is folded. */
+function isLineHidden(foldedRegions: Set<string>, lineRegions: Set<string>): boolean {
 	for (const region of lineRegions) {
 		if (foldedRegions.has(region)) {
-			isHidden = true;
-			break;
+			return true;
 		}
 	}
-	if (isHidden) {
-		line.dataset.foldHidden = "true";
-	} else {
-		delete line.dataset.foldHidden;
-	}
+	return false;
 }
 
 /**
@@ -182,13 +179,51 @@ function toggleFoldFromButton(button: HTMLButtonElement): boolean {
 
 	const { regionToLines, lineToRegions } = getFoldGeometry(codeElement);
 	const lines = regionToLines.get(regionId);
-	if (lines != null) {
-		for (const line of lines) {
-			const lineRegions = lineToRegions.get(line);
-			if (lineRegions != null) {
-				syncLineHidden(line, foldedRegions, lineRegions);
-			}
+	const shown: HTMLElement[] = [];
+	let changed = 0;
+	for (const line of lines ?? []) {
+		const lineRegions = lineToRegions.get(line);
+		if (lineRegions == null) {
+			continue;
 		}
+		const isHidden = isLineHidden(foldedRegions, lineRegions);
+		if (isHidden === (line.dataset.foldHidden === "true")) {
+			continue;
+		}
+		// Why a limit: each line runs its own transitions, and a fold of 1,000
+		// lines dropped frames. The opener is at the top, so the first lines are
+		// the ones in view; the others change at once.
+		line.toggleAttribute("data-fold-instant", changed >= FOLD_MOTION_LINE_LIMIT);
+		changed += 1;
+		// Why at once: a line that closes stays on screen while it animates, and keyboard focus must not reach it.
+		line.inert = isHidden;
+		if (isHidden) {
+			line.dataset.foldHidden = "true";
+		} else {
+			// Why "false" and not no attribute: `mantle.css` opens the line from
+			// `[data-fold-hidden="false"]`, so a line that loads open does not animate.
+			line.dataset.foldHidden = "false";
+			shown.push(line);
+		}
+	}
+	if (shown.length > 0) {
+		lastToggle += 1;
+		const toggle = lastToggle;
+		for (const line of shown) {
+			LINE_SHOWN_BY.set(line, toggle);
+		}
+		// Why a timer, not `transitionend`: a hidden tab or an interrupted
+		// transition fires no event. Why from the next frame: the transition
+		// starts there, and a late frame must not end it early.
+		requestAnimationFrame(() => {
+			setTimeout(() => {
+				for (const line of shown) {
+					if (LINE_SHOWN_BY.get(line) === toggle && line.dataset.foldHidden === "false") {
+						delete line.dataset.foldHidden;
+					}
+				}
+			}, FOLD_MOTION_MS);
+		});
 	}
 
 	return true;

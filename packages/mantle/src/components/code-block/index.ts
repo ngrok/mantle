@@ -70,10 +70,13 @@ import * as CodeBlockParts from "./code-block-parts.js";
  *   },
  * });
  *
+ * // The HTML holds no line numbers, so pass the result's number settings too.
  * const serverValue = createMantleCodeBlockValue({
  *   language: "typescript",
  *   code: source,
  *   preHtml: highlightMutation.data?.html,
+ *   showLineNumbers: highlightMutation.data?.showLineNumbers,
+ *   lineNumberStart: highlightMutation.data?.lineNumberStart,
  * });
  * ```
  */

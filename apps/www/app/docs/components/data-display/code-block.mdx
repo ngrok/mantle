@@ -677,7 +677,7 @@ All props from [standard HTML pre attributes](https://developer.mozilla.org/en-U
 | `data-mantle-line-number-start` | a number as a string         | The first line number.                                                                         |
 | `data-mantle-highlight-lines`   | comma-separated line numbers | Present when lines are highlighted.                                                            |
 
-Inside the highlighted HTML, `data-slot="line-number"`, `data-slot="fold-toggle"`, and `data-slot="fold-ellipsis"` mark the gutter number, the fold button, and the folded marker.
+Inside the highlighted HTML, each line is a `.mantle-code-line` with `data-line-number`. CSS draws the gutter number, the fold caret, and the folded marker, so the code's text holds none of them. A token has a short color class, such as `tk` for a keyword, or no element when it has the foreground color.
 
 | CSS Variable                 | Default | Description                                       |
 | :--------------------------- | :------ | :------------------------------------------------ |

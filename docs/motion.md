@@ -81,6 +81,9 @@ value with a comment that names the token.
 - `DataTable` expand and collapse: `starting:` for the enter, a FLIP slide of the rows below, and an exit that
   fades the rows while the rows below slide over them.
 - `Sidebar`: a width transition on `ease-out-strong`.
+- `CodeBlock` folds (`mantle.css`, `fold-runtime.ts`): each line of the fold eases its height and opacity, and
+  `display` changes at the end of a close. The runtime marks only the lines a toggle changed, so a block that
+  loads does not animate.
 - `AppLayout.Content` and `AppLayout.SidePanel` (`mantle.css`, `app-layout-card`): a view transition class. A
   card and a panel with the same `view-transition-name` morph into each other in 300ms on `ease-out-strong`.
   The group clips at the card's radius, and each snapshot keeps its own width, so text does not stretch.

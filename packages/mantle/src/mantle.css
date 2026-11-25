@@ -1932,6 +1932,16 @@ at `:root` (same reason as the palette-alias rule in MARK: INVERT THEME).
 	}
 }
 
+/*
+ * Why a flex column: the highlighter puts a newline between line elements so
+ * `textContent` keeps the line breaks. A flex container renders no text run
+ * that is only white space, so those newlines add no empty lines.
+ */
+pre[data-slot~="code-block-code"][data-syntax-highlighted] > code {
+	display: flex;
+	flex-direction: column;
+}
+
 .mantle-code-line {
 	display: flex;
 	align-items: flex-start;
@@ -1943,43 +1953,99 @@ at `:root` (same reason as the palette-alias rule in MARK: INVERT THEME).
 	display: none;
 }
 
+/*
+ * The fold motion, the same as `Accordion`: the line's height and opacity
+ * change together on the strong ease-out, and `display` changes at the end of
+ * a close. Why `1lh`: a code line does not wrap, so one line height is its
+ * height, and each browser can animate it; `height: auto` animates only with
+ * `interpolate-size`, which only Chromium has. Why the transition only on
+ * `[data-fold-hidden]`: the runtime sets it on the lines that a toggle changed,
+ * and clears `"false"` when the open ends, so a block that loads does not
+ * animate. A line past the first 50 of a toggle has `data-fold-instant` and
+ * changes at once. Why `clip`: the text stays inside the line as it grows or shrinks,
+ * and the sticky gutter keeps its scroll container. The duration is
+ * `FOLD_MOTION_MS` in `fold-runtime.ts`.
+ */
+@media (prefers-reduced-motion: no-preference) {
+	/* Why `min-height: 0`: a flex item does not shrink below its content without it. */
+	.mantle-code-line[data-fold-regions] {
+		height: 1lh;
+		min-height: 0;
+	}
+
+	.mantle-code-line[data-fold-hidden]:not([data-fold-instant]) {
+		overflow-y: clip;
+		transition:
+			height 200ms cubic-bezier(0.23, 1, 0.32, 1),
+			opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
+			display 200ms allow-discrete;
+	}
+
+	.mantle-code-line[data-fold-hidden="true"] {
+		height: 0;
+		opacity: 0;
+	}
+
+	@starting-style {
+		.mantle-code-line[data-fold-hidden="false"]:not([data-fold-instant]) {
+			height: 0;
+			opacity: 0;
+		}
+	}
+}
+
 .mantle-code-line-highlighted {
 	background-color: var(--mantle-code-line-highlight-bg);
 }
 
 /*
- * Why sticky: only the code scrolls; the line numbers stay pinned to the
- * inline-start edge of the scrollport. `z-index: 1` also scopes the
- * backdrop pseudo-element below, so its `z-index: -1` stays inside this
- * stacking context instead of dropping under the code text.
+ * Why a counter, not `attr(data-line-number)`: a counter costs less to
+ * resolve, and a 29-block answer recalculated its styles 12% slower with
+ * `attr()`. A line that closes a fold sets the counter again (see
+ * `decorateHighlightedHtml`), because a folded line is not counted.
  */
-.mantle-code-line-number {
+pre[data-mantle-line-numbers="true"] > code {
+	counter-reset: mantle-line calc(var(--mantle-line-number-start, 1) - 1);
+}
+
+pre[data-mantle-line-numbers="true"] .mantle-code-line {
+	counter-increment: mantle-line;
+}
+
+/*
+ * The line number. Why a pseudo-element of the line, drawn from a counter:
+ * the digits stay out of the DOM text, so copy, find in
+ * page, screen readers, and crawlers read only the code. The alternative text
+ * after `/` is empty for the same reason.
+ *
+ * Why sticky: only the code scrolls; the numbers stay pinned to the inline-start
+ * edge of the scrollport. The background is the opaque gutter backdrop. It
+ * spans the number column plus its gap, and the fold gutter on fold-enabled
+ * blocks (`--_gutter-overhang`); the negative margin gives that fold gutter back
+ * to the toggle, which paints above it.
+ */
+pre[data-mantle-line-numbers="true"] .mantle-code-line::before {
+	/* Why two: a browser without alternative text in `content` drops the second and keeps the first. */
+	content: counter(mantle-line);
+	content: counter(mantle-line) / "";
 	position: sticky;
 	left: 0;
 	z-index: 1;
 	display: block;
 	flex-shrink: 0;
+	box-sizing: content-box;
 	width: var(--mantle-code-line-number-width);
-	margin-right: var(--mantle-code-line-number-gap);
+	padding-right: var(--_gutter-overhang, var(--mantle-code-line-number-gap));
+	margin-right: calc(
+		var(--mantle-code-line-number-gap) - var(--_gutter-overhang, var(--mantle-code-line-number-gap))
+	);
 	user-select: none;
 	text-align: right;
 	color: var(--mantle-code-line-number-color);
-}
-
-/*
- * The opaque gutter backdrop. Scrolled code slides under the pinned numbers,
- * so this masks it across the whole gutter band: the number column plus its
- * gap, and the fold gutter on fold-enabled blocks (`--_gutter-overhang`).
- */
-.mantle-code-line-number::before {
-	content: "";
-	position: absolute;
-	inset: 0 calc(-1 * var(--_gutter-overhang, var(--mantle-code-line-number-gap))) 0 0;
-	z-index: -1;
 	background-color: var(--background-color-base);
 }
 
-pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-number::before {
+pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) {
 	--_gutter-overhang: calc(
 		var(--mantle-code-line-number-gap) + var(--mantle-code-fold-gutter-width) +
 			var(--mantle-code-fold-gutter-gap)
@@ -1988,10 +2054,9 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line
 
 /*
  * Re-add the line-highlight tint over the opaque backdrop, so a highlighted
- * line's gutter matches its content, with the same look the translucent line
- * background painted before the backdrop covered it.
+ * line's gutter matches its content.
  */
-.mantle-code-line-highlighted .mantle-code-line-number::before {
+.mantle-code-line-highlighted::before {
 	background-image: linear-gradient(
 		var(--mantle-code-line-highlight-bg),
 		var(--mantle-code-line-highlight-bg)
@@ -2056,7 +2121,7 @@ pre[data-mantle-line-numbers="true"] .mantle-code-fold-toggle {
  * Why `--tw-leading`: this rule is in no layer, so it wins over a `leading-*`
  * class from the consumer. That class sets `--tw-leading`, and it stays first.
  */
-pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
+pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) {
 	line-height: var(--tw-leading, var(--mantle-code-fold-line-height));
 }
 
@@ -2074,13 +2139,34 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
 	z-index: 2;
 }
 
-.mantle-code-fold-caret {
+/* Why a mask: the caret is drawn by CSS, so no opener line carries an inline SVG. */
+.mantle-code-fold-toggle::after {
+	content: "";
 	width: 0.75rem;
 	height: 0.75rem;
-	transition: transform 120ms ease;
+	background-color: currentColor;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M3.22 5.97a.75.75 0 0 1 1.06 0L8 9.69l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L3.22 7.03a.75.75 0 0 1 0-1.06Z'/%3E%3C/svg%3E")
+		center / contain no-repeat;
 }
 
-.mantle-code-fold-toggle[aria-expanded="false"] .mantle-code-fold-caret {
+/*
+ * Why: forced colors paint a background in the canvas color, which hides the
+ * masked caret. The caret takes the system color of button text.
+ */
+@media (forced-colors: active) {
+	.mantle-code-fold-toggle::after {
+		forced-color-adjust: none;
+		background-color: ButtonText;
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.mantle-code-fold-toggle::after {
+		transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+	}
+}
+
+.mantle-code-fold-toggle[aria-expanded="false"]::after {
 	transform: rotate(-90deg);
 }
 
@@ -2094,10 +2180,10 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
  * with line count) with a flat class match, while keeping HTML payload tiny:
  * only the sparse opener lines carry an extra class.
  */
-pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-content {
+pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-content {
 	margin-left: calc(var(--mantle-code-fold-gutter-width) + var(--mantle-code-fold-gutter-gap));
 }
-pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
+pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle)
 	.mantle-code-line-opener
 	> .mantle-code-line-content {
 	margin-left: 0;
@@ -2105,7 +2191,10 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 
 /* No color-mix fallbacks in this block: see the note at the top of this file. */
 @supports (color: color-mix(in lab, red, red)) or (not (color: color-mix(in lab, red, red))) {
-	.mantle-code-fold-ellipsis {
+	/* Why a pseudo-element: the `⋯` stays out of the DOM text and, with empty alternative text, out of the accessibility tree. */
+	.mantle-code-line-opener > .mantle-code-line-content::after {
+		content: "⋯";
+		content: "⋯" / "";
 		display: none;
 		margin-left: 0.25rem;
 		padding: 0 0.375rem;
@@ -2117,7 +2206,7 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 }
 
 .mantle-code-line:has(> .mantle-code-fold-toggle[aria-expanded="false"])
-	.mantle-code-fold-ellipsis {
+	> .mantle-code-line-content::after {
 	display: inline;
 }
 
@@ -2327,6 +2416,68 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 			content: " (system default)";
 		}
 	}
+}
+
+/*
+ * Token colors. The highlighter writes these short classes (see
+ * `token-classes.ts`) in place of an inline style on every token. Each rule
+ * holds the exact color expression the style held.
+ */
+/*
+ * Why: runs in the foreground color carry no span, so they inherit it from
+ * here. Plain-text languages get no theme colors from Shiki and keep the
+ * inherited text color, as before.
+ */
+pre[data-slot~="code-block-code"][data-syntax-highlighted]:not(
+		[data-lang="text"],
+		[data-lang="txt"],
+		[data-lang="plain"],
+		[data-lang="plaintext"]
+	)
+	> code {
+	color: var(--shiki-foreground);
+}
+pre[data-slot~="code-block-code"] .tc {
+	color: var(--shiki-token-comment);
+}
+pre[data-slot~="code-block-code"] .tn {
+	color: var(--shiki-token-constant);
+}
+pre[data-slot~="code-block-code"] .ts {
+	color: var(--shiki-token-string);
+}
+pre[data-slot~="code-block-code"] .tx {
+	color: var(--shiki-token-string-expression);
+}
+pre[data-slot~="code-block-code"] .tk {
+	color: var(--shiki-token-keyword);
+}
+pre[data-slot~="code-block-code"] .tf {
+	color: var(--shiki-token-function);
+}
+pre[data-slot~="code-block-code"] .tp {
+	color: var(--shiki-token-parameter);
+}
+pre[data-slot~="code-block-code"] .tu {
+	color: var(--shiki-token-punctuation);
+}
+pre[data-slot~="code-block-code"] .tt {
+	color: var(--shiki-token-type, var(--shiki-token-function));
+}
+pre[data-slot~="code-block-code"] .tv {
+	color: var(--shiki-token-variable, var(--shiki-foreground));
+}
+pre[data-slot~="code-block-code"] .to {
+	color: var(--shiki-token-operator, var(--shiki-token-keyword));
+}
+pre[data-slot~="code-block-code"] .ta {
+	color: var(--shiki-token-attribute, var(--shiki-token-constant));
+}
+pre[data-slot~="code-block-code"] .tr {
+	color: var(--shiki-token-property, var(--shiki-token-function));
+}
+pre[data-slot~="code-block-code"] .te {
+	color: var(--shiki-token-escape, var(--shiki-token-constant));
 }
 
 /*

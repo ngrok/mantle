@@ -50,7 +50,7 @@
     "typescript": "catalog:"
   },
   "peerDependencies": {
-    "@ngrok/mantle": "*"
+    "@ngrok/mantle": ">=0.96.0"
   },
   "engines": {
     "node": "^26.0.0"

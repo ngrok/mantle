@@ -217,6 +217,7 @@ const migrationsPages = [
 	"0030-between-variant-migration",
 	"0031-anchored-child-variant-migration",
 	"0032-query-filter-operators-migration",
+	"0033-compact-code-markup-migration",
 ];
 
 export default [

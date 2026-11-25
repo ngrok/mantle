@@ -97,17 +97,16 @@ describe("mantleCodeVitePlugin", () => {
 		expect(result.code).not.toContain('indentation="spaces"');
 	});
 
-	test("defaults showLineNumbers to true for non-shell languages and emits line-number HTML", async () => {
+	test("defaults showLineNumbers to true for non-shell languages", async () => {
 		const result = await runTransform(
 			mantleImport + 'const snippet = mantleCode("typescript")`const value = 1;`;',
 		);
 
 		expect(result.warn).not.toHaveBeenCalled();
 		expect(result.code).toContain('"~showLineNumbers":true');
-		expect(result.code).toContain("mantle-code-line-number");
 	});
 
-	test("preserves showLineNumbers false when explicitly set and omits line-number HTML", async () => {
+	test("preserves showLineNumbers false when explicitly set", async () => {
 		const result = await runTransform(
 			mantleImport +
 				'const snippet = mantleCode("typescript", { showLineNumbers: false })`const value = 1;`;',
@@ -115,30 +114,27 @@ describe("mantleCodeVitePlugin", () => {
 
 		expect(result.warn).not.toHaveBeenCalled();
 		expect(result.code).toContain('"~showLineNumbers":false');
-		expect(result.code).not.toContain("mantle-code-line-number");
 	});
 
-	test("defaults showLineNumbers to false for single-line bash and omits line-number HTML", async () => {
+	test("defaults showLineNumbers to false for single-line bash", async () => {
 		const result = await runTransform(
 			mantleImport + 'const snippet = mantleCode("bash")`npm install @ngrok/mantle`;',
 		);
 
 		expect(result.warn).not.toHaveBeenCalled();
 		expect(result.code).toContain('"~showLineNumbers":false');
-		expect(result.code).not.toContain("mantle-code-line-number");
 	});
 
-	test("defaults showLineNumbers to true for multi-line shell code and emits line-number HTML", async () => {
+	test("defaults showLineNumbers to true for multi-line shell code", async () => {
 		const result = await runTransform(
 			mantleImport + 'const snippet = mantleCode("bash")`echo hello\necho world`;',
 		);
 
 		expect(result.warn).not.toHaveBeenCalled();
 		expect(result.code).toContain('"~showLineNumbers":true');
-		expect(result.code).toContain("mantle-code-line-number");
 	});
 
-	test("single-line shell code respects explicit showLineNumbers true and emits line-number HTML", async () => {
+	test("single-line shell code respects explicit showLineNumbers true", async () => {
 		const result = await runTransform(
 			mantleImport +
 				'const snippet = mantleCode("bash", { showLineNumbers: true })`npm install @ngrok/mantle`;',
@@ -146,7 +142,6 @@ describe("mantleCodeVitePlugin", () => {
 
 		expect(result.warn).not.toHaveBeenCalled();
 		expect(result.code).toContain('"~showLineNumbers":true');
-		expect(result.code).toContain("mantle-code-line-number");
 	});
 
 	test("highlightLines with lineNumberStart produces highlighted lines at correct offsets", async () => {
@@ -172,7 +167,6 @@ describe("mantleCodeVitePlugin", () => {
 
 		expect(result.warn).not.toHaveBeenCalled();
 		expect(result.code).toContain('"~showLineNumbers":false');
-		expect(result.code).not.toContain("mantle-code-line-number");
 	});
 
 	test("JSX showLineNumbers prop overrides shell single-line default", async () => {
@@ -186,7 +180,6 @@ describe("mantleCodeVitePlugin", () => {
 
 		expect(result.warn).not.toHaveBeenCalled();
 		expect(result.code).toContain('"~showLineNumbers":true');
-		expect(result.code).toContain("mantle-code-line-number");
 	});
 
 	test("normalizes numeric highlightLines entries to integers", async () => {
@@ -245,9 +238,9 @@ function extractAssignedObject(transformed: unknown, name: string): string {
 	throw new Error(`unterminated replacement object for ${name}`);
 }
 
-/** Counts rendered code lines in a transformed value by counting per-line content slots. */
+/** Counts rendered code lines in a transformed value by counting per-line content spans. */
 function countRenderedLines(objectLiteral: string): number {
-	return (objectLiteral.match(/data-slot="line-content"/g) ?? []).length;
+	return (objectLiteral.match(/class=\\?"mantle-code-line-content\\?"/g) ?? []).length;
 }
 
 describe("mantleCodeVitePlugin static fragment inlining", () => {

@@ -10,6 +10,7 @@
 import { computeJsonFoldRanges } from "./compute-json-fold-ranges.js";
 import { decorateHighlightedHtml } from "./decorate-highlighted-html.js";
 import { createMantleCodeBlockValue, type MantleCodeBlockValue } from "./mantle-code.js";
+import { tokenClassForColor } from "./token-classes.js";
 
 /**
  * CSS-variable color expressions, copied verbatim from what Mantle's Shiki
@@ -148,7 +149,15 @@ function renderLine(segments: Segment[]): string {
 	let runColor: string | null = null;
 	const flush = () => {
 		if (runColor != null) {
-			html += `<span style="color:${runColor}">${escapeShikiText(runText)}</span>`;
+			const text = escapeShikiText(runText);
+			const tokenClass = tokenClassForColor(runColor);
+			if (tokenClass == null) {
+				html += `<span style="color:${runColor}">${text}</span>`;
+			} else if (tokenClass === "") {
+				html += text;
+			} else {
+				html += `<span class="${tokenClass}">${text}</span>`;
+			}
 		}
 		runText = "";
 		runColor = null;
@@ -359,7 +368,6 @@ function jsonCodeBlockValue(
 	const preHtml = decorateHighlightedHtml({
 		html: jsonToShikiHtml(code),
 		foldableRanges: foldable ? computeJsonFoldRanges(code) : undefined,
-		showLineNumbers,
 	});
 
 	return createMantleCodeBlockValue({ language: "json", code, preHtml, showLineNumbers });

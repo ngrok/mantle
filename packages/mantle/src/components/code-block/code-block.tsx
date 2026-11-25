@@ -8,6 +8,7 @@ import { TerminalIcon } from "@phosphor-icons/react/Terminal";
 import type { ComponentProps, Dispatch, ReactNode, SetStateAction } from "react";
 import {
 	createContext,
+	Fragment,
 	memo,
 	useCallback,
 	useContext,
@@ -44,6 +45,7 @@ import { IconButton } from "../button/icon-button.js";
 import { LiveRegion } from "../live-region/live-region.js";
 import { Slot } from "../slot/index.js";
 import { escapeHtml } from "./escape-html.js";
+import { tokenClassForColor } from "./token-classes.js";
 import { attachFoldHandler, resetFoldState } from "./fold-runtime.js";
 import type { Mode } from "./resolve-pre-rendered-props.js";
 import type { CodeLine, CodeToken } from "./line-tokenizer.js";
@@ -379,18 +381,38 @@ type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children" | "translate"> 
 	value: MantleCodeBlockValue;
 };
 
-/** The inline style of one highlighted token, from its color and Shiki's font-style bit flags. */
-function tokenStyle(token: CodeToken): ComponentProps<"span">["style"] {
+/**
+ * One highlighted token: plain text in the inherited foreground color, a
+ * `<span>` with a short token class from `mantle.css`, or a `<span>` with an
+ * inline style for a color with no class or a font style.
+ */
+function TokenView({ token }: { token: CodeToken }) {
 	const fontStyle = token.fontStyle ?? 0;
-	return {
-		color: token.color,
-		fontStyle: fontStyle & 1 ? "italic" : undefined,
-		fontWeight: fontStyle & 2 ? "bold" : undefined,
-		textDecoration:
-			fontStyle & 12
-				? clsx(fontStyle & 4 && "underline", fontStyle & 8 && "line-through")
-				: undefined,
-	};
+	const tokenClass = token.color == null ? "" : tokenClassForColor(token.color);
+	if (tokenClass === "" && fontStyle === 0) {
+		return token.content;
+	}
+	const className = tokenClass === "" ? undefined : tokenClass;
+	return (
+		<span
+			className={className}
+			style={
+				tokenClass == null || fontStyle !== 0
+					? {
+							color: tokenClass == null ? token.color : undefined,
+							fontStyle: fontStyle & 1 ? "italic" : undefined,
+							fontWeight: fontStyle & 2 ? "bold" : undefined,
+							textDecoration:
+								fontStyle & 12
+									? clsx(fontStyle & 4 && "underline", fontStyle & 8 && "line-through")
+									: undefined,
+						}
+					: undefined
+			}
+		>
+			{token.content}
+		</span>
+	);
 }
 
 /**
@@ -402,36 +424,27 @@ function tokenStyle(token: CodeToken): ComponentProps<"span">["style"] {
 const CodeLineView = memo(function CodeLineView({
 	line,
 	lineNumber,
-	showLineNumber,
 }: {
 	line: CodeLine | string;
 	lineNumber: number;
-	showLineNumber: boolean;
 }) {
-	const isEmpty = line.length === 0;
+	// Why a space: an empty line keeps its height, and each browser copies it as a blank line (see `decorateHighlightedHtml`).
+	let content: ReactNode;
+	if (line.length === 0) {
+		content = " ";
+	} else if (typeof line === "string") {
+		content = line;
+	} else {
+		content = line.map((token, index) => (
+			// oxlint-disable-next-line react/no-array-index-key -- Why: a token has no identity but its position in a line that renders as a whole.
+			<TokenView key={index} token={token} />
+		));
+	}
+	// Why no number element: `mantle.css` counts the lines and draws each
+	// number, so the digits stay out of the code's text.
 	return (
 		<span className="mantle-code-line" data-line-number={lineNumber}>
-			{showLineNumber && (
-				<span className="mantle-code-line-number" data-slot="line-number" aria-hidden="true">
-					{lineNumber}
-				</span>
-			)}
-			<span className="mantle-code-line-content" data-slot="line-content">
-				{/* Why a space: an empty line keeps its height. */}
-				{isEmpty && " "}
-				{!isEmpty && typeof line === "string" && line}
-				{!isEmpty &&
-					typeof line !== "string" &&
-					line.map((token, index) => (
-						<span
-							// oxlint-disable-next-line react/no-array-index-key -- Why: a token has no identity but its position in a line that renders as a whole.
-							key={index}
-							style={tokenStyle(token)}
-						>
-							{token.content}
-						</span>
-					))}
-			</span>
+			<span className="mantle-code-line-content">{content}</span>
 		</span>
 	);
 });
@@ -450,8 +463,8 @@ const CodeLineView = memo(function CodeLineView({
  * reader copies it anyway. The `translate` prop is omitted from the type, so no
  * call site can turn the guard off.
  *
- * Line numbers render `aria-hidden`, so a screen reader hears the code, not
- * "1 const x".
+ * CSS draws line numbers with empty alternative text, so a screen reader hears
+ * the code, not "1 const x", and a copy holds no numbers.
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
@@ -462,9 +475,10 @@ const CodeLineView = memo(function CodeLineView({
  * | `data-mantle-line-number-start` | a number as a string | The first line number. |
  * | `data-mantle-highlight-lines` | comma-separated line numbers | Present when lines are highlighted. |
  *
- * Inside the highlighted HTML, `data-slot="line-number"`, `"fold-toggle"`, and
- * `"fold-ellipsis"` mark the gutter number, the fold button, and the folded
- * marker.
+ * Inside the highlighted HTML, each line is a `.mantle-code-line` with
+ * `data-line-number`, and `mantle.css` draws the gutter number, the fold caret,
+ * and the folded marker. A token has a short color class, such as `tk` for a
+ * keyword, or no element in the foreground color.
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
@@ -617,13 +631,12 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 			) : (
 				<code className="text-size-inherit block min-w-full w-max">
 					{lines.map((line, index) => (
-						<CodeLineView
-							// oxlint-disable-next-line react/no-array-index-key -- Why: a line has no identity but its position, and an appended line must not remount the lines above it.
-							key={index}
-							line={line}
-							lineNumber={effectiveLineNumberStart + index}
-							showLineNumber={effectiveShowLineNumbers}
-						/>
+						// oxlint-disable-next-line react/no-array-index-key -- Why: a line has no identity but its position, and an appended line must not remount the lines above it.
+						<Fragment key={index}>
+							{/* Why a newline: `textContent` keeps the line breaks, the same as pre-rendered HTML. */}
+							{index > 0 && "\n"}
+							<CodeLineView line={line} lineNumber={effectiveLineNumberStart + index} />
+						</Fragment>
 					))}
 				</code>
 			)}
