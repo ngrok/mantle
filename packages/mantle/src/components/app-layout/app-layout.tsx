@@ -1270,8 +1270,8 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  * clickable or read; `useFocusTrap` wraps `Tab` inside it and moves focus
  * into it on open. A panel that is open on mount (`defaultOpen` or a saved
  * cookie) still covers the card and keeps the row `inert`, but it does not
- * take focus: the trap starts when focus first enters the panel or the reader
- * opens it again. The one `<aside>` stays mounted across the lane, the
+ * take focus: the trap starts when focus first enters the panel, when a resize
+ * covers the card while it holds focus, or when the reader opens it again. The one `<aside>` stays mounted across the lane, the
  * float, and the cover, so a conversation keeps its DOM and the trap turns
  * on and off with the viewport.
  *
@@ -1421,6 +1421,22 @@ const SidePanel = ({
 		return () => requestSidebarWidth(false);
 	}, [needsSidebarWidth, requestSidebarWidth]);
 
+	// Why: a panel open since mount turns modal on a resize too, and focus on
+	// the card or the sidebar is lost when they go `inert`. The trap takes that
+	// focus in. Why before `useInertSiblings`: this reads focus before the row
+	// goes `inert`.
+	useLayoutEffect(() => {
+		const panel = panelRef.current;
+		const row = panel?.parentElement;
+		if (!isModal || !openSinceMount || panel == null || row == null) {
+			return;
+		}
+		const activeElement = document.activeElement;
+		if (row.contains(activeElement) && !panel.contains(activeElement)) {
+			setOpenSinceMount(false);
+		}
+	}, [isModal, openSinceMount, panelRef]);
+
 	// Why siblings: the card and the sidebar are the panel's siblings in the row,
 	// and `AppLayout` knows nothing about the sidebar.
 	useInertSiblings(panelRef, { active: isModal });
@@ -1503,7 +1519,11 @@ const SidePanel = ({
 			onFocus={(event) => {
 				onFocus?.(event);
 				lastFocusedInsideRef.current = event.target;
-				setOpenSinceMount(false);
+				// Why the DOM check: React bubbles focus from a portaled popup, and
+				// the trap would pull that focus back into the panel.
+				if (event.currentTarget.contains(event.target)) {
+					setOpenSinceMount(false);
+				}
 			}}
 			onBlur={(event) => {
 				onBlur?.(event);

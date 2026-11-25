@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, FocusEventHandler } from "react";
 import { createRef, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
@@ -1135,6 +1136,38 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		expect(screen.getByTestId("card")).toHaveAttribute("inert");
 		expect(screen.getByTestId("panel")).not.toHaveAttribute("inert");
 		expect(document.body).toHaveFocus();
+	});
+
+	test("focus in a popup portaled out of a covering panel open on mount stays there", () => {
+		mockMatchMedia({ [coverQuery]: true });
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.Workspace>
+					<AppLayout.Content />
+					<AppLayout.SidePanel aria-label="Assistant">
+						<button type="button">send</button>
+						{createPortal(<button type="button">popup</button>, document.body)}
+					</AppLayout.SidePanel>
+				</AppLayout.Workspace>
+			</AppLayout.SidePanelRoot>,
+		);
+		const popup = screen.getByRole("button", { name: "popup" });
+		act(() => {
+			popup.focus();
+		});
+		expect(popup).toHaveFocus();
+	});
+
+	test("a panel open on mount that starts covering moves focus in from the card", () => {
+		const media = mockMatchMedia({ [coverQuery]: false });
+		render(coveringShell());
+		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
+		trigger.focus();
+		act(() => {
+			media.setMatches(coverQuery, true);
+		});
+		expect(screen.getByTestId("card")).toHaveAttribute("inert");
+		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
 	});
 
 	test("a covering panel the reader opens moves focus inside", async () => {

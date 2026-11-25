@@ -1078,7 +1078,8 @@ custom control composes the same state from [`useSidePanel`](#usesidepanel).
   is open, so nothing beneath it is clickable or read, and [`useFocusTrap`](/hooks#usefocustrap) wraps
   `Tab` inside it and moves focus into it on open. A panel that is open on mount (`defaultOpen` or a saved
   cookie) still covers the card and keeps the row `inert`, but it does not take focus from the page: the
-  trap starts when focus first enters the panel or the reader opens it again. The one `<aside>` stays
+  trap starts when focus first enters the panel, when a resize covers the card while it holds focus, or
+  when the reader opens it again. The one `<aside>` stays
   mounted across the lane, the float, and the cover, so a conversation keeps its DOM and the trap turns on
   and off with the viewport.
 
