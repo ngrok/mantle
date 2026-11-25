@@ -41,8 +41,8 @@ const chipClassName = {
 		sm: "h-7 w-fit shrink-0 gap-0.5 whitespace-nowrap rounded-full px-2.5 font-sans text-sm font-medium",
 	},
 	square: {
-		xs: "gap-0.5 rounded-xs py-0.5 pr-0.5 pl-1.5 text-xs font-normal",
-		sm: "gap-0.5 rounded-xs py-0.5 pr-0.5 pl-1.5 text-sm font-normal",
+		xs: "gap-1 rounded-xs px-2 py-0.5 has-data-[slot=chip-remove]:pr-0.5 text-xs font-normal",
+		sm: "gap-1 rounded-xs px-2 py-0.5 has-data-[slot=chip-remove]:pr-0.5 text-sm font-normal",
 	},
 } as const satisfies Record<ChipAppearance, Record<ChipSize, string>>;
 
@@ -202,7 +202,8 @@ function SelectableChip({
 		"data-state": isPressed ? "on" : "off",
 		"data-appearance": appearance,
 		"data-size": size,
-		disabled,
+		// Why conditional: an undefined `disabled` would override a slotted button's own default.
+		...(disabled != null && { disabled }),
 		onClick: handleClick,
 		ref,
 		className: cx(
@@ -244,7 +245,9 @@ function SelectableChip({
 					<>
 						{icon}
 						<span data-slot="chip-label" className="contents">
-							<span className="px-0.5">{children.props.children}</span>
+							<span className={cx(appearance === "pill" && "px-0.5")}>
+								{children.props.children}
+							</span>
 						</span>
 					</>,
 				)}
@@ -255,7 +258,7 @@ function SelectableChip({
 		<button {...buttonProps} type="button">
 			{icon}
 			<span data-slot="chip-label" className="contents">
-				<span className="px-0.5">{children}</span>
+				<span className={cx(appearance === "pill" && "px-0.5")}>{children}</span>
 			</span>
 		</button>
 	);
@@ -358,7 +361,7 @@ function LabelChip({
 		<>
 			{isValidElement(icon) && <Icon data-slot="chip-icon" svg={icon} className="size-3" />}
 			<span data-slot="chip-label" className="contents">
-				<span className="px-0.5">{label}</span>
+				<span className={cx(appearance === "pill" && "px-0.5")}>{label}</span>
 			</span>
 			{removeButton}
 		</>

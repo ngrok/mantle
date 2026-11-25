@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { StarIcon } from "@phosphor-icons/react/Star";
-import { createElement, createRef, useState } from "react";
+import { type ComponentProps, createElement, createRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Chip } from "./chip.js";
@@ -235,6 +235,18 @@ describe("Chip", () => {
 				<button type="button" disabled>
 					Read
 				</button>
+			</Chip>,
+		);
+		expect(screen.getByRole("button", { name: "Read" })).toBeDisabled();
+	});
+
+	test("a selectable asChild chip keeps a slotted component's disabled default", () => {
+		const PendingButton = (props: ComponentProps<"button">) => (
+			<button type="button" disabled {...props} />
+		);
+		render(
+			<Chip selectable asChild>
+				<PendingButton>Read</PendingButton>
 			</Chip>,
 		);
 		expect(screen.getByRole("button", { name: "Read" })).toBeDisabled();
