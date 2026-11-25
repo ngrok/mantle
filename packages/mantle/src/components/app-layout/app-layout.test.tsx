@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, FocusEventHandler } from "react";
-import { createRef, useEffect, useState } from "react";
+import { createRef, useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
@@ -1163,10 +1163,11 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		render(coveringShell());
 		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
 		trigger.focus();
-		// Why both: the browser fires `resize` before it reports the media change.
+		// Why both in one act: a browser fires `resize` with `matches` already
+		// new, before React commits the media change.
 		act(() => {
-			window.dispatchEvent(new Event("resize"));
 			media.setMatches(coverQuery, true);
+			window.dispatchEvent(new Event("resize"));
 		});
 		expect(screen.getByTestId("card")).toHaveAttribute("inert");
 		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
@@ -1195,30 +1196,6 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		expect(screen.getByTestId("card")).toHaveAttribute("inert");
 		// Why not the toggle: a browser drops focus from an `inert` control.
 		expect(screen.getByTestId("panel")).not.toContainElement(document.activeElement as HTMLElement);
-	});
-
-	test("focus that a child stops still arms the trap", async () => {
-		const user = userEvent.setup();
-		mockMatchMedia({ [coverQuery]: true });
-		render(
-			<AppLayout.SidePanelRoot defaultOpen>
-				<AppLayout.Workspace>
-					<AppLayout.Content />
-					<AppLayout.SidePanel aria-label="Assistant">
-						<button type="button">close</button>
-						<button type="button" onFocus={(event) => event.stopPropagation()}>
-							send
-						</button>
-					</AppLayout.SidePanel>
-				</AppLayout.Workspace>
-				<button type="button">after</button>
-			</AppLayout.SidePanelRoot>,
-		);
-		act(() => {
-			screen.getByRole("button", { name: "send" }).focus();
-		});
-		await user.tab();
-		expect(screen.getByRole("button", { name: "close" })).toHaveFocus();
 	});
 
 	test("focus inside a covering panel before hydration arms the trap", async () => {
@@ -1255,6 +1232,74 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		expect(toggle).toHaveFocus();
 		await user.click(toggle);
 		expect(screen.getByRole("button", { name: "close" })).toHaveFocus();
+	});
+
+	const stopFocus: FocusEventHandler = (event) => {
+		event.stopPropagation();
+	};
+	test.each([
+		["onFocus", { onFocus: stopFocus }],
+		["onFocusCapture", { onFocusCapture: stopFocus }],
+	] as const)("focus that a child's %s stops still arms the trap", async (_, handlers) => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.Workspace>
+					<AppLayout.Content />
+					<AppLayout.SidePanel aria-label="Assistant">
+						<button type="button">close</button>
+						<button type="button" {...handlers}>
+							send
+						</button>
+					</AppLayout.SidePanel>
+				</AppLayout.Workspace>
+				<button type="button">after</button>
+			</AppLayout.SidePanelRoot>,
+		);
+		act(() => {
+			screen.getByRole("button", { name: "send" }).focus();
+		});
+		await user.tab();
+		expect(screen.getByRole("button", { name: "close" })).toHaveFocus();
+	});
+
+	test("focus a parent moves in during the mount commit arms the trap", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		function FocusOnMount() {
+			useLayoutEffect(() => {
+				screen.getByRole("button", { name: "send" }).focus();
+			}, []);
+			return (
+				<AppLayout.SidePanelRoot defaultOpen>
+					<AppLayout.Workspace>
+						<AppLayout.Content />
+						<AppLayout.SidePanel aria-label="Assistant">
+							<button type="button">close</button>
+							<button type="button">send</button>
+						</AppLayout.SidePanel>
+					</AppLayout.Workspace>
+					<button type="button">after</button>
+				</AppLayout.SidePanelRoot>
+			);
+		}
+		render(<FocusOnMount />);
+		await user.tab();
+		expect(screen.getByRole("button", { name: "close" })).toHaveFocus();
+	});
+
+	test("a forwarded undefined tabIndex keeps the waiting cover a tab stop", () => {
+		mockMatchMedia({ [coverQuery]: true });
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.Workspace>
+					<AppLayout.Content />
+					<AppLayout.SidePanel aria-label="Assistant" data-testid="panel" tabIndex={undefined} />
+				</AppLayout.Workspace>
+			</AppLayout.SidePanelRoot>,
+		);
+		expect(screen.getByTestId("panel")).toHaveAttribute("tabindex", "0");
 	});
 
 	test("a covering panel that mounts when the reader opens it moves focus inside", async () => {

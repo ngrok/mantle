@@ -1429,7 +1429,8 @@ const SidePanel = ({
 	// Why a viewport query and not the computed position: the cover is the one
 	// presentation the viewport alone decides, and this is the range Tailwind
 	// compiles the cover tier to.
-	const covers = useMatchesMediaQuery(sidePanelCoverQuery[mobileBreakpoint]);
+	const coverQuery = sidePanelCoverQuery[mobileBreakpoint];
+	const covers = useMatchesMediaQuery(coverQuery);
 	const isModal = open && covers;
 
 	// Why a layout effect: the sidebar's state is in `Sidebar.Root`, above or
@@ -1446,25 +1447,41 @@ const SidePanel = ({
 
 	// Why native listeners: React's `onFocus` misses focus that a child stops
 	// and a button portaled into the panel, and it reports popups portaled out
-	// of it. A capturing `focusin` sees the panel's DOM only. Why `resize`: the
-	// first client snapshot also turns a phone's panel modal, and that is no
-	// resize. The browser fires `resize` before it reports the media change.
+	// of it. A document capture listener runs before any child can stop it, and
+	// the DOM check skips popups portaled out. Why `resize`: the first client
+	// snapshot also turns a phone's panel modal, and that is no resize. The
+	// browser fires `resize` before it reports the media change, and `matches`
+	// already holds the new value. Why a layout effect: a parent's layout
+	// effect can move focus in the mount commit, and it runs after this one.
 	const resizedRef = useRef(false);
-	useEffect(() => {
+	useLayoutEffect(() => {
 		const panel = panelRef.current;
 		if (!openSinceMount || panel == null) {
 			return;
 		}
-		const handleResize = () => {
-			resizedRef.current = true;
+		const handleFocusIn = (event: FocusEvent) => {
+			if (event.target instanceof Element && panel.contains(event.target)) {
+				lastFocusedInsideRef.current = event.target;
+				armFocusTrap();
+			}
 		};
-		panel.addEventListener("focusin", armFocusTrap, true);
+		// Why optional: jsdom has no `matchMedia`.
+		const coverList = window.matchMedia?.(coverQuery);
+		let coveredAtLastResize = coverList?.matches ?? false;
+		const handleResize = () => {
+			const covered = coverList?.matches ?? false;
+			if (covered !== coveredAtLastResize) {
+				resizedRef.current = true;
+			}
+			coveredAtLastResize = covered;
+		};
+		document.addEventListener("focusin", handleFocusIn, true);
 		window.addEventListener("resize", handleResize);
 		return () => {
-			panel.removeEventListener("focusin", armFocusTrap, true);
+			document.removeEventListener("focusin", handleFocusIn, true);
 			window.removeEventListener("resize", handleResize);
 		};
-	}, [armFocusTrap, openSinceMount, panelRef]);
+	}, [armFocusTrap, coverQuery, lastFocusedInsideRef, openSinceMount, panelRef]);
 
 	// Why: a panel open since mount still arms the trap in two cases with no
 	// focus event. Focus that entered before hydration fires none, and a resize
@@ -1604,14 +1621,14 @@ const SidePanel = ({
 				event.preventDefault();
 				setOpen(false);
 			}}
-			tabIndex={modalTabIndex}
 			{...props}
 			// Why after the spread: a wider props object can carry `id`,
 			// `data-open`, `data-hydrated`, or `inert` past the type, and a consumer
 			// value would break the trigger's `aria-controls`, desync the collapse
-			// from the root, release the transition gate, or leave a closed panel in
-			// the tab order.
+			// from the root, release the transition gate, leave a closed panel in
+			// the tab order, or take a waiting cover out of it.
 			id={panelId}
+			tabIndex={modalTabIndex ?? props.tabIndex}
 			data-open={open ? "" : undefined}
 			data-hydrated={isHydrated ? "" : undefined}
 			inert={!open}
