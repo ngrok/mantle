@@ -1,5 +1,5 @@
 import postcss, { AtRule, Rule, type ChildNode, type Declaration, type Node } from "postcss";
-import type { Plugin, Rollup } from "vite";
+import type { Plugin } from "vite";
 
 /**
  * A palette stop of a Tailwind or mantle color ramp, such as `--color-pink-300`. The theme
@@ -205,50 +205,6 @@ function canJoin(run: ChildNode[]) {
 }
 
 /**
- * Prunes each stylesheet of a finished bundle that carries the prune marker, and warns about a
- * read of a removed stop in any other file. Run it in a `generateBundle` hook with `order: "post"`.
- */
-function pruneThemeBundle(
-	context: Pick<Rollup.PluginContext, "warn">,
-	bundle: Rollup.OutputBundle,
-): void {
-	const files = Object.values(bundle);
-	const removed = new Set<string>();
-	const themeSheets = new Set<string>();
-	for (const file of files) {
-		if (
-			file.type === "asset" &&
-			file.fileName.endsWith(".css") &&
-			// Why: a pass on a file with a source map would leave the map stale.
-			!(`${file.fileName}.map` in bundle) &&
-			String(file.source).includes(PRUNE_MARKER)
-		) {
-			const result = pruneThemeCss(String(file.source).replace(PRUNE_MARKER_WITH_SPACE, ""));
-			file.source = result.css;
-			if (result.themed) {
-				themeSheets.add(file.fileName);
-			}
-			for (const name of result.removed) {
-				removed.add(name);
-			}
-		}
-	}
-	// A read from another file cannot keep a stop: the pruned stylesheet would change
-	// under the same hashed name. Warn about every read of a stop that any mantle
-	// stylesheet removed, because a page may load the reader without another stylesheet
-	// that keeps it.
-	for (const file of files.filter(({ fileName }) => !themeSheets.has(fileName))) {
-		const text = file.type === "chunk" ? file.code : String(file.source);
-		const lost = [...new Set(text.match(RAMP_STOP_MENTION))].filter((name) => removed.has(name));
-		if (lost.length > 0) {
-			context.warn(
-				`${file.fileName} reads ${lost.join(", ")}, which a mantle stylesheet of this build does not read, so they can lose their dark and island values. Name each one in a file that stylesheet scans, such as with @source inline("bg-pink-300") for --color-pink-300.`,
-			);
-		}
-	}
-}
-
-/**
  * Vite plugin that removes mantle theme CSS a production build does not read.
  *
  * - `mantle.css` restates every palette stop for the dark theme and for `invert-theme` islands.
@@ -262,7 +218,7 @@ function pruneThemeBundle(
  * When another file of the build reads a stop that the stylesheet does not, it warns. `vite dev`
  * serves the full CSS.
  *
- * `mantleSourcesPlugin` runs the same pass by default. Add this plugin only in a build without
+ * `mantleSourcesPlugin` runs this plugin by default. Add it on its own only in a build without
  * `mantleSourcesPlugin`.
  *
  * @see https://mantle.ngrok.com/vite-plugins#mantlethemepruneplugin
@@ -294,7 +250,42 @@ function mantleThemePrunePlugin(): Plugin {
 		generateBundle: {
 			order: "post",
 			handler(_options, bundle) {
-				pruneThemeBundle(this, bundle);
+				const files = Object.values(bundle);
+				const removed = new Set<string>();
+				const themeSheets = new Set<string>();
+				for (const file of files) {
+					if (
+						file.type === "asset" &&
+						file.fileName.endsWith(".css") &&
+						// Why: a pass on a file with a source map would leave the map stale.
+						!(`${file.fileName}.map` in bundle) &&
+						String(file.source).includes(PRUNE_MARKER)
+					) {
+						const result = pruneThemeCss(String(file.source).replace(PRUNE_MARKER_WITH_SPACE, ""));
+						file.source = result.css;
+						if (result.themed) {
+							themeSheets.add(file.fileName);
+						}
+						for (const name of result.removed) {
+							removed.add(name);
+						}
+					}
+				}
+				// A read from another file cannot keep a stop: the pruned stylesheet would change
+				// under the same hashed name. Warn about every read of a stop that any mantle
+				// stylesheet removed, because a page may load the reader without another stylesheet
+				// that keeps it.
+				for (const file of files.filter(({ fileName }) => !themeSheets.has(fileName))) {
+					const text = file.type === "chunk" ? file.code : String(file.source);
+					const lost = [...new Set(text.match(RAMP_STOP_MENTION))].filter((name) =>
+						removed.has(name),
+					);
+					if (lost.length > 0) {
+						this.warn(
+							`${file.fileName} reads ${lost.join(", ")}, which a mantle stylesheet of this build does not read, so they can lose their dark and island values. Name each one in a file that stylesheet scans, such as with @source inline("bg-pink-300") for --color-pink-300.`,
+						);
+					}
+				}
 			},
 		},
 	};
@@ -303,7 +294,5 @@ function mantleThemePrunePlugin(): Plugin {
 export {
 	//,
 	mantleThemePrunePlugin,
-	PRUNE_MARKER,
-	pruneThemeBundle,
 	pruneThemeCss,
 };

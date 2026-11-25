@@ -11,6 +11,7 @@ import {
 	createServer,
 	type InlineConfig,
 	type Plugin,
+	type PluginOption,
 } from "vite";
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import {
@@ -164,7 +165,7 @@ type BuildResult = {
 
 async function buildFixture(
 	root: string,
-	plugins: Plugin[],
+	plugins: PluginOption[],
 	config: Omit<InlineConfig, "root" | "plugins"> = {},
 ): Promise<BuildResult> {
 	const { logger, logs } = captureLogger();

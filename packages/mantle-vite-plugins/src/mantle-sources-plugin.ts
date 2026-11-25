@@ -2,7 +2,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import MagicString from "magic-string";
 import type { Plugin } from "vite";
-import { PRUNE_MARKER, pruneThemeBundle } from "./mantle-theme-prune-plugin.js";
+import { mantleThemePrunePlugin } from "./mantle-theme-prune-plugin.js";
 
 /**
  * Options for {@link mantleSourcesPlugin}.
@@ -36,7 +36,7 @@ type MantleSourcesPluginOptions = {
 	 */
 	idleTimeoutMs?: number;
 	/**
-	 * Whether the build also runs `mantleThemePrunePlugin`, which removes the dark and
+	 * Whether the build also runs {@link mantleThemePrunePlugin}, which removes the dark and
 	 * `invert-theme` values of each palette stop the stylesheet does not read. Pass `false` when
 	 * a file outside the stylesheet reads stops that the stylesheet does not, such as CSS another
 	 * app serves.
@@ -639,10 +639,8 @@ function rewriteSourceAllImports(input: {
 	code: string;
 	cssFile: string;
 	groups: readonly SourceGroup[];
-	/** Text to write before the first line, such as a comment that later hooks look for. */
-	prefix?: string;
 }): { code: string; map: ReturnType<MagicString["generateMap"]> } | null {
-	const { code, cssFile, groups, prefix = "" } = input;
+	const { code, cssFile, groups } = input;
 	const matches = findSourceAllImports(code);
 	if (matches.length === 0) {
 		return null;
@@ -667,7 +665,6 @@ function rewriteSourceAllImports(input: {
 		const start = match.index;
 		source.overwrite(start, start + match[0].length, directives);
 	}
-	source.prepend(prefix);
 	return { code: source.toString(), map: source.generateMap({ hires: true }) };
 }
 
@@ -762,7 +759,7 @@ function findMissing(input: {
  * The plugin must run in the same `vite build` as `@tailwindcss/vite`. Its position in the
  * `plugins` array does not matter.
  *
- * It also runs `mantleThemePrunePlugin`, so the stylesheet keeps the dark and
+ * It also runs {@link mantleThemePrunePlugin}, so the stylesheet keeps the dark and
  * `invert-theme` value of a palette stop only when it reads that stop. `themePrune: false`
  * turns that off.
  *
@@ -779,7 +776,7 @@ function findMissing(input: {
  * });
  * ```
  */
-function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
+function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin[] {
 	const {
 		onMiss = "error",
 		include = [],
@@ -826,7 +823,7 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 		return null;
 	}
 
-	return {
+	const sources: Plugin = {
 		name: "vite-plugin-mantle-sources",
 		apply: "build",
 		// Why shared: `vite build --app` re-creates the plugin per environment by default. The
@@ -889,14 +886,7 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 
 				const moduleFiles = [...listed].toSorted();
 				const groups = planSourceGroups(moduleFiles, readDirectoryListing);
-				const result = rewriteSourceAllImports({
-					code,
-					cssFile,
-					groups,
-					// Why here: Vite hashes the stylesheet's name from its content before
-					// generateBundle, so the marker that asks for the prune also changes the name.
-					prefix: themePrune ? `${PRUNE_MARKER}\n` : "",
-				});
+				const result = rewriteSourceAllImports({ code, cssFile, groups });
 				if (result == null) {
 					return null;
 				}
@@ -911,114 +901,108 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 			},
 		},
 
-		generateBundle: {
-			// Why post: the theme prune must see the final CSS, after every other plugin's hook.
-			order: "post",
-			handler(_outputOptions, bundle) {
-				if (themePrune) {
-					pruneThemeBundle(this, bundle);
-				}
-				const environmentName = this.environment.name;
-				const root = this.environment.config.root;
-				const inBundle = listedFilesOf(
-					Object.values(bundle).flatMap((output) =>
-						output.type === "chunk" ? output.moduleIds : [],
-					),
-				);
+		generateBundle(_outputOptions, bundle) {
+			const environmentName = this.environment.name;
+			const root = this.environment.config.root;
+			const inBundle = listedFilesOf(
+				Object.values(bundle).flatMap((output) =>
+					output.type === "chunk" ? output.moduleIds : [],
+				),
+			);
 
-				const warnServerOnly = (
-					serverName: string,
-					serverBundle: Set<string>,
-					client: ClientBundle,
-				) => {
-					const serverOnly = findMissing({
-						bundleFiles: serverBundle,
-						listed: new Set([...client.listed, ...client.files]),
-					});
-					if (serverOnly.length > 0) {
-						this.warn(
-							`mantle sources: the ${serverName} bundle holds ${serverOnly.length} listed file(s) the client bundle does not reach:\n${formatIdList(root, serverOnly)}\nA component rendered only from server code has no classes in the client CSS. Render it from a module the client also imports.`,
-						);
-					}
-				};
-
-				if (environmentName !== "client") {
-					if (clientBundle == null) {
-						// Why buffer: a builder can run this environment first. The client build compares then.
-						pendingServerBundles.set(environmentName, inBundle);
-						return;
-					}
-					warnServerOnly(environmentName, inBundle, clientBundle);
-					return;
-				}
-
-				clientBundle = {
-					files: inBundle,
-					listed: new Set([...graph.listedBy.values()].flatMap((listed) => [...listed])),
-				};
-				for (const [serverName, serverBundle] of pendingServerBundles) {
-					warnServerOnly(serverName, serverBundle, clientBundle);
-				}
-				pendingServerBundles.clear();
-
-				if (graph.listedBy.size === 0) {
-					if (inBundle.size > 0) {
-						this.warn(
-							`mantle sources: no CSS module that Vite processes holds the \`@import "${MANTLE_PACKAGE_NAME}/${SOURCE_ALL_FILENAME}";\` line, so the plugin changed nothing. Put that line in the CSS entry itself, next to mantle.css, not in a file a nested @import pulls in.`,
-						);
-					}
-					return;
-				}
-
-				const stall =
-					graph.stalled == null
-						? null
-						: `The wait for the module graph ended after ${idleTimeoutMs / 1000}s with no progress while ${graph.stalled.length} module(s) were still pending:\n${formatIdList(root, graph.stalled)}`;
-				if (stall != null) {
+			const warnServerOnly = (
+				serverName: string,
+				serverBundle: Set<string>,
+				client: ClientBundle,
+			) => {
+				const serverOnly = findMissing({
+					bundleFiles: serverBundle,
+					listed: new Set([...client.listed, ...client.files]),
+				});
+				if (serverOnly.length > 0) {
 					this.warn(
-						`mantle sources: the CSS lists the files parsed before the wait gave up.\n${stall}\nA slow module can be the cause. Pass \`idleTimeoutMs\` to wait longer.`,
+						`mantle sources: the ${serverName} bundle holds ${serverOnly.length} listed file(s) the client bundle does not reach:\n${formatIdList(root, serverOnly)}\nA component rendered only from server code has no classes in the client CSS. Render it from a module the client also imports.`,
 					);
 				}
+			};
 
-				const mantleDir = mantleDirOf(inBundle.size > 0 ? inBundle : listedFilesOf(graph.seen));
-				const sourceAllCount = mantleDir == null ? null : countSourceAllFiles(mantleDir);
-
-				for (const [cssId, listed] of graph.listedBy) {
-					const cssFile = fileOf(cssId) ?? cssId;
-					const cssPath = path.relative(root, cssFile);
-					const missing = findMissing({ bundleFiles: inBundle, listed });
-					if (missing.length > 0) {
-						const cause =
-							stall == null
-								? 'A plugin added the module after the CSS transform ran. Move that plugin\'s emit earlier, or pass `onMiss: "warn"` to ship the CSS without those classes.'
-								: `The wait for the module graph gave up before these modules parsed. Pass \`idleTimeoutMs\` to wait longer, or pass \`onMiss: "warn"\` to ship the CSS without those classes.`;
-						const message = `mantle sources: the client bundle holds ${missing.length} listed file(s) that ${cssPath} does not list:\n${formatIdList(root, missing)}\n${cause}`;
-						if (onMiss === "error") {
-							this.error(message);
-						} else {
-							this.warn(message);
-						}
-					}
-
-					// Why seeded: the summary names mantle first and then each `include` entry in the
-					// order the consumer wrote, whatever order the bundler loaded the files in.
-					const counts = new Map<string, number>([[MANTLE_PACKAGE_NAME, 0]]);
-					for (const file of listed) {
-						const info = packageOf(file);
-						if (info != null) {
-							counts.set(info.name, (counts.get(info.name) ?? 0) + 1);
-						}
-					}
-					for (const name of include) {
-						if (!counts.has(name)) {
-							counts.set(name, 0);
-						}
-					}
-					this.environment.logger.info(formatSummary({ cssPath, counts, sourceAllCount }));
+			if (environmentName !== "client") {
+				if (clientBundle == null) {
+					// Why buffer: a builder can run this environment first. The client build compares then.
+					pendingServerBundles.set(environmentName, inBundle);
+					return;
 				}
-			},
+				warnServerOnly(environmentName, inBundle, clientBundle);
+				return;
+			}
+
+			clientBundle = {
+				files: inBundle,
+				listed: new Set([...graph.listedBy.values()].flatMap((listed) => [...listed])),
+			};
+			for (const [serverName, serverBundle] of pendingServerBundles) {
+				warnServerOnly(serverName, serverBundle, clientBundle);
+			}
+			pendingServerBundles.clear();
+
+			if (graph.listedBy.size === 0) {
+				if (inBundle.size > 0) {
+					this.warn(
+						`mantle sources: no CSS module that Vite processes holds the \`@import "${MANTLE_PACKAGE_NAME}/${SOURCE_ALL_FILENAME}";\` line, so the plugin changed nothing. Put that line in the CSS entry itself, next to mantle.css, not in a file a nested @import pulls in.`,
+					);
+				}
+				return;
+			}
+
+			const stall =
+				graph.stalled == null
+					? null
+					: `The wait for the module graph ended after ${idleTimeoutMs / 1000}s with no progress while ${graph.stalled.length} module(s) were still pending:\n${formatIdList(root, graph.stalled)}`;
+			if (stall != null) {
+				this.warn(
+					`mantle sources: the CSS lists the files parsed before the wait gave up.\n${stall}\nA slow module can be the cause. Pass \`idleTimeoutMs\` to wait longer.`,
+				);
+			}
+
+			const mantleDir = mantleDirOf(inBundle.size > 0 ? inBundle : listedFilesOf(graph.seen));
+			const sourceAllCount = mantleDir == null ? null : countSourceAllFiles(mantleDir);
+
+			for (const [cssId, listed] of graph.listedBy) {
+				const cssFile = fileOf(cssId) ?? cssId;
+				const cssPath = path.relative(root, cssFile);
+				const missing = findMissing({ bundleFiles: inBundle, listed });
+				if (missing.length > 0) {
+					const cause =
+						stall == null
+							? 'A plugin added the module after the CSS transform ran. Move that plugin\'s emit earlier, or pass `onMiss: "warn"` to ship the CSS without those classes.'
+							: `The wait for the module graph gave up before these modules parsed. Pass \`idleTimeoutMs\` to wait longer, or pass \`onMiss: "warn"\` to ship the CSS without those classes.`;
+					const message = `mantle sources: the client bundle holds ${missing.length} listed file(s) that ${cssPath} does not list:\n${formatIdList(root, missing)}\n${cause}`;
+					if (onMiss === "error") {
+						this.error(message);
+					} else {
+						this.warn(message);
+					}
+				}
+
+				// Why seeded: the summary names mantle first and then each `include` entry in the
+				// order the consumer wrote, whatever order the bundler loaded the files in.
+				const counts = new Map<string, number>([[MANTLE_PACKAGE_NAME, 0]]);
+				for (const file of listed) {
+					const info = packageOf(file);
+					if (info != null) {
+						counts.set(info.name, (counts.get(info.name) ?? 0) + 1);
+					}
+				}
+				for (const name of include) {
+					if (!counts.has(name)) {
+						counts.set(name, 0);
+					}
+				}
+				this.environment.logger.info(formatSummary({ cssPath, counts, sourceAllCount }));
+			}
 		},
 	};
+	return themePrune ? [sources, mantleThemePrunePlugin()] : [sources];
 }
 
 export {
