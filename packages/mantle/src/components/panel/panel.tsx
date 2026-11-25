@@ -128,7 +128,7 @@ const Root = ({
 /**
  * The toolbar row at the top of `Panel.Root`: the title at the start and the
  * controls at the end, with a close control last. Render it as the **first
- * child of `Panel.Root`**. A flex row with a muted rule under it, on the same
+ * child of `Panel.Root`**. A flex row with a separator line under it, on the same
  * band as `AppLayout.Header`, so the two rows center on one line. Give the
  * title `min-w-0 flex-1 truncate`, so it gives up width before a control does.
  * Merge `border-b-0` for a header with no rule under it.
@@ -178,7 +178,7 @@ const Header = ({
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "panel-header")}
 			className={cx(
-				"border-card-muted flex shrink-0 items-center gap-2 border-b px-4",
+				"border-separator flex shrink-0 items-center gap-2 border-b px-4",
 				headerBandClassName,
 				className,
 			)}

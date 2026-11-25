@@ -452,7 +452,7 @@ const Header = ({
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "app-layout-header")}
 			className={cx(
-				"border-card-muted flex shrink-0 items-center gap-2 border-b px-4",
+				"border-separator flex shrink-0 items-center gap-2 border-b px-4",
 				headerBandClassName,
 				className,
 			)}
