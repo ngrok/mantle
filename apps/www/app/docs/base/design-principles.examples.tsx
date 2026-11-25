@@ -36,6 +36,14 @@ const endpoints: Endpoint[] = [
 		status: "offline",
 		created: "Aug 4, 2026",
 	},
+	{
+		id: "ep_4",
+		name: "payments-reconciliation",
+		url: "https://payments.example.ngrok.app",
+		upstream: "https://payments-reconciliation.internal.example.com:8443/v2/webhooks/settlements",
+		status: "online",
+		created: "Jul 18, 2026",
+	},
 ];
 
 const features = tableFeatures({});

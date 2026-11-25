@@ -192,7 +192,11 @@ const components = {
 	td: (props) => {
 		const { node: _node, className, ...rest } = props;
 		return (
-			<Table.Cell className={cx("px-4 py-3 align-top font-sans text-sm", className)} {...rest} />
+			<Table.Cell
+				className={cx("px-4 py-3 align-top font-sans text-sm", className)}
+				width="wrap"
+				{...rest}
+			/>
 		);
 	},
 	tfoot: (props) => {
@@ -203,7 +207,7 @@ const components = {
 		const { node: _node, className, ...rest } = props;
 		// `px-4` must equal the `px-4` on the `td` above, which widens prose tables past
 		// the 12px component default.
-		return <Table.Header className={cx("px-4", className)} {...rest} />;
+		return <Table.Header className={cx("px-4", className)} width="wrap" {...rest} />;
 	},
 	thead: (props) => {
 		const { node: _node, ...rest } = props;

@@ -751,6 +751,14 @@ export const migrations = [
 			"A Combobox pick writes the text that the item's children show into the input, not the item's value. A preset value shows that text too. Filter on the text, and submit the value from Combobox.Root.",
 		route: "/migrations/0034-combobox-item-text-migration",
 	},
+	{
+		number: 35,
+		slug: "table-column-width-migration",
+		title: "Table Column Width",
+		description:
+			'Table and DataTable cells now stay on one line, share the spare width, and truncate a long value. Pass width="wrap" to a cell whose text must wrap, and remove hand-set column widths.',
+		route: "/migrations/0035-table-column-width-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

@@ -1,0 +1,116 @@
+---
+title: Table Column Width Migration
+description: 'Table and DataTable cells now stay on one line, share the spare width, and truncate a long value. Pass width="wrap" to a cell whose text must wrap, and remove hand-set column widths.'
+introducedIn: "0.96.0"
+codemodIn: "0.96.0"
+---
+
+# Mantle Table Column Width Migration Guide
+
+`Table.Cell` and `Table.Header` take a new `width` prop, and `DataTable` columns read the same value from `meta.width`. With no `width`, a cell now stays on one line. Each column shares the table's spare width, and a long value takes the width it needs. When the row is too narrow, the value truncates with an ellipsis, so every row keeps one height. `width="fit"` keeps a column on one line and never truncates it. It now also gets its share of the spare width. `width="wrap"` lets the text wrap, as every cell did before.
+
+**TL;DR:** Pass `width="wrap"` to each cell and header whose text must wrap, such as prose or a multi-line note. Remove hand-set column widths such as `w-[41%]`, `w-full`, or `max-w-0`, and remove `truncate` on a cell. The default does that now. Keep `meta: { width: "fit" }` on short columns.
+
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0035 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0035-table-column-width.yml --update-all <path>
+```
+
+The rule applies step 2. It adds `width="wrap"` to a `Table.Cell`, `Table.Header`, `DataTable.Cell`, or `DataTable.Header` whose `className` has a class that wraps text: `whitespace-normal`, `whitespace-pre`, `whitespace-pre-wrap`, `whitespace-pre-line`, `whitespace-break-spaces`, `break-words`, `break-all`, `wrap-break-word`, `wrap-anywhere`, or `line-clamp-*`. It also reads the strings inside a `cx()` call. It finds a part through its import from `@ngrok/mantle/table` or `@ngrok/mantle/data-table`, so a renamed import matches, and a part from another library or a local name that shadows the import stays. These stay manual:
+
+- Step 3, because which column holds prose is a choice for each table.
+- Steps 4 and 5, because a width or alignment class sits in a class string that can hold other classes.
+- A class in a variable, or a string compared with `===`, `!==`, `==`, or `!=`.
+
+The codemod skips a part that already sets `width`, so it is safe to run twice. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find each `Table.Cell`, `Table.Header`, `DataTable.Cell`, and `DataTable.Header` from `@ngrok/mantle/table` and `@ngrok/mantle/data-table`, with a renamed import too.
+2. Add `width="wrap"` to each one whose `className` has a class from the `## Codemod` list. In a `DataTable`, you can instead set `meta: { width: "wrap" }` on the column and pass `column` to its header and to each cell.
+3. Find a column that holds prose the reader must see in full, such as a message, a note, or an error, and give it `width="wrap"` the same way. Leave a name, a description, a URL, an email, or an ID on the default: it truncates on one line.
+4. Remove width classes from each cell and header: a fixed width such as `w-60`, a percentage width such as `w-1/3` or `w-[41%]`, `w-full`, `w-0`, `max-w-*`, and `truncate` or `whitespace-nowrap`. They do nothing now: a table with a header row is a CSS grid that sizes each column. Where a column needs a least width, put `min-w-*` on its cells.
+5. Replace a `vertical-align` class on a cell or header with its grid form: `align-top` becomes `content-start`, and `align-bottom` becomes `content-end`. Cells center their content by default.
+6. Find a short value of one shape, such as a date, a status, a count, or a duration. Give its column `width="fit"` (`meta: { width: "fit" }` in a `DataTable`), so it never truncates and never holds a 6rem floor.
+7. In tests: a default cell now wraps its children in a `<div data-slot="table-cell-content">`, and each part sets its ARIA role.
+   - A query by role and name stays the same: `getByRole("cell", { name: "web-10" })`.
+   - A check of the cell's direct children changes: `expect(cell.firstChild).toBe(link)` becomes `expect(cell).toContainElement(link)`.
+8. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why a grid that truncates by default?** A table reads best when every column gets an equal share of the row and every row keeps one height. The browser's table layout gives the column with the longest values most of the spare width, and a hand-set percentage width leaves a gap after short values. A CSS grid with one `auto` track for each column splits the spare width equally, and the default cell can shrink to 6rem. The browser does this in its own layout pass. No script measures the table, so no work runs for each frame, and the server render does not shift on hydration.
+
+---
+
+## Before → after
+
+### A cell with prose
+
+```tsx
+// BEFORE
+<Table.Cell className="whitespace-normal">{event.message}</Table.Cell>
+
+// AFTER
+<Table.Cell className="whitespace-normal" width="wrap">
+	{event.message}
+</Table.Cell>
+```
+
+### A DataTable column with prose
+
+```tsx
+// BEFORE
+columnHelper.accessor("message", {
+	header: () => <DataTable.Header>Message</DataTable.Header>,
+	cell: (props) => <DataTable.Cell className="break-words">{props.getValue()}</DataTable.Cell>,
+});
+
+// AFTER
+columnHelper.accessor("message", {
+	meta: { width: "wrap" },
+	header: (props) => <DataTable.Header column={props.column}>Message</DataTable.Header>,
+	cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
+});
+```
+
+### A hand-set width
+
+```tsx
+// BEFORE
+const descriptionColumnClassName = "w-[41%] max-w-0";
+
+<DataTable.Cell className={cx(descriptionColumnClassName, "truncate")}>
+	{row.description}
+</DataTable.Cell>;
+
+// AFTER
+<DataTable.Cell>{row.description}</DataTable.Cell>;
+```
+
+## Edge cases & gotchas
+
+- A default column has a floor of 6rem when the table is narrow. A short value in a default column holds that floor; give the column `width="fit"`.
+- A cell with an avatar and a name, or with badges, also stays on one line. Its content clips at the cell's edge. Add `truncate` and `min-w-0` to the text inside it to show an ellipsis.
+- `fit` used to give its spare width to the other columns. Now each column gets an equal share. A column cannot be pinned to one width; `min-w-*` on its cells sets its least width.
+- A table with no `<thead>`, with more than 24 columns, or with a spanning cell in its last header row keeps the table layout. There, the spare width is shared in proportion to content, as before.
+- In the grid, every cell in a row is as tall as the row, so a cell's border and background fill it.
+- mantle's `Markdown` tables pass `width="wrap"`, so their prose still wraps.
+- The `width` HTML attribute of `<td>` and `<th>` is obsolete; the prop replaces it.
+
+## How to verify
+
+```sh
+pnpm -w run migrate 0035 --dry-run <path>
+```
+
+Then run the project's formatter, linter, type checker, and tests, and open each table at a wide and a narrow width. See step 6 for test changes.

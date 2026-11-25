@@ -219,6 +219,7 @@ const migrationsPages = [
 	"0032-query-filter-operators-migration",
 	"0033-compact-code-markup-migration",
 	"0034-combobox-item-text-migration",
+	"0035-table-column-width-migration",
 ];
 
 export default [

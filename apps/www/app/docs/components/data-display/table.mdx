@@ -20,26 +20,34 @@ import { Table } from "@ngrok/mantle/table";
 		<Table.Caption>A list of your recent invoices.</Table.Caption>
 		<Table.Head>
 			<Table.Row>
-				<Table.Header className="w-25">Invoice</Table.Header>
-				<Table.Header>Status</Table.Header>
+				<Table.Header width="fit">Invoice</Table.Header>
+				<Table.Header width="fit">Status</Table.Header>
 				<Table.Header>Method</Table.Header>
-				<Table.Header className="text-right">Amount</Table.Header>
+				<Table.Header width="fit" className="text-right">
+					Amount
+				</Table.Header>
 			</Table.Row>
 		</Table.Head>
 		<Table.Body>
 			{invoices.map((invoice) => (
 				<Table.Row key={invoice.invoice}>
-					<Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
-					<Table.Cell>{invoice.paymentStatus}</Table.Cell>
+					<Table.Cell width="fit" className="font-medium">
+						{invoice.invoice}
+					</Table.Cell>
+					<Table.Cell width="fit">{invoice.paymentStatus}</Table.Cell>
 					<Table.Cell>{invoice.paymentMethod}</Table.Cell>
-					<Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+					<Table.Cell width="fit" className="text-right">
+						{invoice.totalAmount}
+					</Table.Cell>
 				</Table.Row>
 			))}
 		</Table.Body>
 		<Table.Foot>
 			<Table.Row>
 				<Table.Cell colSpan={3}>Total</Table.Cell>
-				<Table.Cell className="text-right">$2,500.00</Table.Cell>
+				<Table.Cell width="fit" className="text-right">
+					$2,500.00
+				</Table.Cell>
 			</Table.Row>
 		</Table.Foot>
 	</Table.Element>
@@ -81,9 +89,79 @@ Each row a table renders costs mount and layout time. A table that renders every
 - Return to the first page when a search, a filter, or a sort changes. `useOffsetPagination` does this when the filtered `listSize` changes. Call `goToFirstPage()` when only the sort changes.
 - Keep the page in the URL when a reader leaves the table and comes back, such as from a detail page. Pass `page` and `onPageChange` to [`useOffsetPagination`](/components/navigation/pagination#own-the-page).
 - Paginate before you virtualize. A page of 100 rows mounts fast, and the browser's find in page still sees every row on it.
-- Clip a long ID or URL with [`TruncatedText`](/components/data-display/truncated-text), which keeps the end of the value. Give the table `table-layout: fixed` and a width, or the column grows to the full value.
+- Clip a long ID or URL with [`TruncatedText`](/components/data-display/truncated-text), which keeps the end of the value. A cell clips other long values with an ellipsis; see [Sizing a column](#sizing-a-column).
 
 Use [`DataTable`](/components/data-display/data-table#pagination-controls) when a reader also sorts or selects rows. The same guidelines apply.
+
+## Sizing a column
+
+Each cell stays on one line, and every column gets an equal share of the table's spare width. A long value takes the width it needs. When the row is too narrow, the value truncates with an ellipsis, so every row keeps one height, and a table too narrow for its columns scrolls. A row checkbox or expand column and an action column stay as narrow as their controls. The browser sizes the columns in its own layout pass: no script measures them, and a width class on a cell does nothing. To give a column a least width, put `min-w-*` on its cells.
+
+The grid layout has one tradeoff with VoiceOver in Safari. When the table is the first item on a page, "move to top" lands on the first header cell, not on the table. WebKit puts each grid cell on its own text line, and no CSS changes this. VoiceOver still reads the table, its column and row counts, and each header. With content before the table, as on most pages, VoiceOver reads it the same as a table with `display: table`. NVDA reads it the same in both layouts.
+
+Pass `width` to the column's `Table.Header` and to each of its `Table.Cell`s to change this:
+
+- `"fit"`: the column never truncates. Use it for a short value of one shape, such as an ID, a date, or a status.
+- `"wrap"`: the text wraps onto more lines. Use it for prose that the reader must see in full.
+
+<Example name="components/data-display/table/sizing-a-column" title="Table sizing a column example">
+
+```tsx
+import { Table } from "@ngrok/mantle/table";
+
+const tokens = [
+	{
+		id: "pat_…4uRjpirH",
+		description: "Created via ngrok OAuth",
+		owner: "wesley@example.com",
+		created: "4d ago",
+	},
+	{
+		id: "pat_…o8xvn6M4",
+		description: "ship pat 2",
+		owner: "takoda@example.com",
+		created: "4d ago",
+	},
+	{
+		id: "pat_…3P2R30Rn",
+		description:
+			"A long description that someone pasted in to explain what this token is for in production",
+		owner: "svc-deploy-pipeline@example.com",
+		created: "5d ago",
+	},
+];
+
+export function AccessTokensTable() {
+	return (
+		<Table.Root>
+			<Table.Element>
+				<Table.Head>
+					<Table.Row>
+						<Table.Header width="fit">ID</Table.Header>
+						<Table.Header>Description</Table.Header>
+						<Table.Header>Owner</Table.Header>
+						<Table.Header width="fit">Created</Table.Header>
+					</Table.Row>
+				</Table.Head>
+				<Table.Body>
+					{tokens.map((token) => (
+						<Table.Row key={token.id}>
+							<Table.Cell width="fit">{token.id}</Table.Cell>
+							<Table.Cell className="font-sans">{token.description}</Table.Cell>
+							<Table.Cell className="font-sans">{token.owner}</Table.Cell>
+							<Table.Cell width="fit" className="font-sans">
+								{token.created}
+							</Table.Cell>
+						</Table.Row>
+					))}
+				</Table.Body>
+			</Table.Element>
+		</Table.Root>
+	);
+}
+```
+
+</Example>
 
 ## Pagination
 
@@ -120,19 +198,25 @@ function PaginatedInvoices() {
 				<Table.Element>
 					<Table.Head>
 						<Table.Row>
-							<Table.Header>Invoice</Table.Header>
-							<Table.Header>Status</Table.Header>
+							<Table.Header width="fit">Invoice</Table.Header>
+							<Table.Header width="fit">Status</Table.Header>
 							<Table.Header>Method</Table.Header>
-							<Table.Header className="text-right">Amount</Table.Header>
+							<Table.Header width="fit" className="text-right">
+								Amount
+							</Table.Header>
 						</Table.Row>
 					</Table.Head>
 					<Table.Body>
 						{pageInvoices.map((invoice) => (
 							<Table.Row key={invoice.invoice}>
-								<Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
-								<Table.Cell>{invoice.paymentStatus}</Table.Cell>
+								<Table.Cell width="fit" className="font-medium">
+									{invoice.invoice}
+								</Table.Cell>
+								<Table.Cell width="fit">{invoice.paymentStatus}</Table.Cell>
 								<Table.Cell>{invoice.paymentMethod}</Table.Cell>
-								<Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+								<Table.Cell width="fit" className="text-right">
+									{invoice.totalAmount}
+								</Table.Cell>
 							</Table.Row>
 						))}
 					</Table.Body>
@@ -230,13 +314,21 @@ All props from [tr](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/tr
 
 Defines a cell as the header of a group of table cells and may be used as a child of a `Table.Row`. `scope` defaults to `"col"`; pass `scope="row"` for a header cell inside a body row.
 
-All props from [th](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/th#attributes).
+| Prop     | Type              | Default | Description                                                                                                    |
+| :------- | :---------------- | :------ | :------------------------------------------------------------------------------------------------------------- |
+| `width?` | `"fit" \| "wrap"` |         | How the column sizes. Pass the same value to each cell of the column. See [Sizing a column](#sizing-a-column). |
+
+All other props from [th](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/th#attributes), except `width`.
 
 ### Table.Cell
 
 Defines a cell of a table that contains data and may be used as a child of a `Table.Row`.
 
-All props from [td](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/td#attributes).
+| Prop     | Type              | Default | Description                                                                                                                                      |
+| :------- | :---------------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `width?` | `"fit" \| "wrap"` |         | How the column sizes. When omitted, the cell stays on one line and truncates a value that does not fit. See [Sizing a column](#sizing-a-column). |
+
+All other props from [td](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/td#attributes), except `width`.
 
 ### Table.Caption
 

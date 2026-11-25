@@ -74,19 +74,25 @@ export function PaginatedInvoicesExample() {
 				<Table.Element>
 					<Table.Head>
 						<Table.Row>
-							<Table.Header>Invoice</Table.Header>
-							<Table.Header>Status</Table.Header>
+							<Table.Header width="fit">Invoice</Table.Header>
+							<Table.Header width="fit">Status</Table.Header>
 							<Table.Header>Method</Table.Header>
-							<Table.Header className="text-right">Amount</Table.Header>
+							<Table.Header width="fit" className="text-right">
+								Amount
+							</Table.Header>
 						</Table.Row>
 					</Table.Head>
 					<Table.Body>
 						{pageInvoices.map((invoice) => (
 							<Table.Row key={invoice.invoice}>
-								<Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
-								<Table.Cell>{invoice.paymentStatus}</Table.Cell>
+								<Table.Cell width="fit" className="font-medium">
+									{invoice.invoice}
+								</Table.Cell>
+								<Table.Cell width="fit">{invoice.paymentStatus}</Table.Cell>
 								<Table.Cell>{invoice.paymentMethod}</Table.Cell>
-								<Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+								<Table.Cell width="fit" className="text-right">
+									{invoice.totalAmount}
+								</Table.Cell>
 							</Table.Row>
 						))}
 					</Table.Body>
@@ -124,26 +130,34 @@ export const ExampleTable = () => {
 				<Table.Caption>A list of your recent invoices.</Table.Caption>
 				<Table.Head>
 					<Table.Row>
-						<Table.Header className="w-25">Invoice</Table.Header>
-						<Table.Header>Status</Table.Header>
+						<Table.Header width="fit">Invoice</Table.Header>
+						<Table.Header width="fit">Status</Table.Header>
 						<Table.Header>Method</Table.Header>
-						<Table.Header className="text-right">Amount</Table.Header>
+						<Table.Header width="fit" className="text-right">
+							Amount
+						</Table.Header>
 					</Table.Row>
 				</Table.Head>
 				<Table.Body>
 					{invoices.map((invoice) => (
 						<Table.Row key={invoice.invoice}>
-							<Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
-							<Table.Cell>{invoice.paymentStatus}</Table.Cell>
+							<Table.Cell width="fit" className="font-medium">
+								{invoice.invoice}
+							</Table.Cell>
+							<Table.Cell width="fit">{invoice.paymentStatus}</Table.Cell>
 							<Table.Cell>{invoice.paymentMethod}</Table.Cell>
-							<Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+							<Table.Cell width="fit" className="text-right">
+								{invoice.totalAmount}
+							</Table.Cell>
 						</Table.Row>
 					))}
 				</Table.Body>
 				<Table.Foot>
 					<Table.Row>
 						<Table.Cell colSpan={3}>Total</Table.Cell>
-						<Table.Cell className="text-right">$2,500.00</Table.Cell>
+						<Table.Cell width="fit" className="text-right">
+							$2,500.00
+						</Table.Cell>
 					</Table.Row>
 				</Table.Foot>
 			</Table.Element>
@@ -165,6 +179,60 @@ export function PaginationExample() {
 	return (
 		<PreviewCanvas>
 			<PaginatedInvoicesExample />
+		</PreviewCanvas>
+	);
+}
+
+const tokens = [
+	{
+		id: "pat_…4uRjpirH",
+		description: "Created via ngrok OAuth",
+		owner: "wesley@example.com",
+		created: "4d ago",
+	},
+	{
+		id: "pat_…o8xvn6M4",
+		description: "ship pat 2",
+		owner: "takoda@example.com",
+		created: "4d ago",
+	},
+	{
+		id: "pat_…3P2R30Rn",
+		description:
+			"A long description that someone pasted in to explain what this token is for in production",
+		owner: "svc-deploy-pipeline@example.com",
+		created: "5d ago",
+	},
+];
+
+/** The "Sizing a column" example on the Table docs page. */
+export function SizingAColumnExample() {
+	return (
+		<PreviewCanvas>
+			<Table.Root>
+				<Table.Element>
+					<Table.Head>
+						<Table.Row>
+							<Table.Header width="fit">ID</Table.Header>
+							<Table.Header>Description</Table.Header>
+							<Table.Header>Owner</Table.Header>
+							<Table.Header width="fit">Created</Table.Header>
+						</Table.Row>
+					</Table.Head>
+					<Table.Body>
+						{tokens.map((token) => (
+							<Table.Row key={token.id}>
+								<Table.Cell width="fit">{token.id}</Table.Cell>
+								<Table.Cell className="font-sans">{token.description}</Table.Cell>
+								<Table.Cell className="font-sans">{token.owner}</Table.Cell>
+								<Table.Cell width="fit" className="font-sans">
+									{token.created}
+								</Table.Cell>
+							</Table.Row>
+						))}
+					</Table.Body>
+				</Table.Element>
+			</Table.Root>
 		</PreviewCanvas>
 	);
 }

@@ -31,15 +31,16 @@ Space spreads evenly across a layout. A layout looks off when one element takes 
 
 ### Share the spare width across columns
 
-A table looks even when no one column takes the row.
+A table looks even when no one column takes the row. `Table` and `DataTable` do this by default: each cell stays on one line, every column shares the spare width, and a long value takes the width it needs. When the row is too narrow, the long value truncates with an ellipsis, and the row keeps one height.
 
-- **Do** let the columns whose values change in length, such as a name, a URL, and an upstream, share the spare width.
-- **Do** fit a column whose values are short and the same shape, such as a status, a date, or a duration, to its content.
-- **Don't** give one column `w-full` or a large fixed width. That column takes the row, and the other columns shrink and wrap.
-- **Don't** leave only one column unfit when its values are short. All the spare width goes to it, and a gap opens after its values.
-- **Part:** [`DataTable`](/components/data-display/data-table#sizing-a-column-to-its-content). Set `meta: { width: "fit" }` on a column, and pass `column` to its `DataTable.Header` and to each `DataTable.Cell`.
+- **Do** let the columns whose values change in length, such as a name, a description, a URL, and an owner, use the default.
+- **Do** fit a column whose values are short and the same shape, such as a status, a date, or a duration, so they never truncate.
+- **Do** let prose wrap when the reader must see all of it.
+- **Don't** give one column `w-full`, a percentage width, or a large fixed width. That column takes the row, and a gap opens after its short values.
+- **Don't** add `truncate` and `max-w-0` to a cell. The default truncates already.
+- **Part:** [`DataTable`](/components/data-display/data-table#sizing-a-column) and [`Table`](/components/data-display/table#sizing-a-column). Set `meta: { width: "fit" }` or `meta: { width: "wrap" }` on a `DataTable` column, and pass `column` to its `DataTable.Header` and to each `DataTable.Cell`. On a `Table`, pass `width` to `Table.Header` and to each `Table.Cell`.
 
-Golden example: the name, the URL, and the upstream share the spare width. The status and the date fit their content.
+Golden example: the name, the URL, and the upstream share the spare width, and the long upstream truncates. The status and the date fit their content.
 
 <Example name="base/design-principles/balanced-columns" title="Design Principles balanced columns example">
 
@@ -80,6 +81,14 @@ const endpoints: Endpoint[] = [
 		upstream: "http://10.0.4.12:3000",
 		status: "offline",
 		created: "Aug 4, 2026",
+	},
+	{
+		id: "ep_4",
+		name: "payments-reconciliation",
+		url: "https://payments.example.ngrok.app",
+		upstream: "https://payments-reconciliation.internal.example.com:8443/v2/webhooks/settlements",
+		status: "online",
+		created: "Jul 18, 2026",
 	},
 ];
 
@@ -147,7 +156,7 @@ export function EndpointsTable() {
 
 </Example>
 
-Don't: the name column has `w-full`, so it takes the row. The URL, upstream, status, and date wrap in what is left.
+Don't: the name column has `w-full`, so it takes the row. The URL and the upstream truncate in what is left.
 
 <Example name="base/design-principles/unbalanced-columns" title="Design Principles unbalanced columns example">
 
@@ -188,6 +197,14 @@ const endpoints: Endpoint[] = [
 		upstream: "http://10.0.4.12:3000",
 		status: "offline",
 		created: "Aug 4, 2026",
+	},
+	{
+		id: "ep_4",
+		name: "payments-reconciliation",
+		url: "https://payments.example.ngrok.app",
+		upstream: "https://payments-reconciliation.internal.example.com:8443/v2/webhooks/settlements",
+		status: "online",
+		created: "Jul 18, 2026",
 	},
 ];
 

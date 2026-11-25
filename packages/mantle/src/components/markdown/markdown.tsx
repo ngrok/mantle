@@ -367,6 +367,7 @@ function renderTable(token: TableToken, components: MarkdownComponents) {
 								// oxlint-disable-next-line react/no-array-index-key -- Why: a column has no identity but its position.
 								key={column}
 								className={cellClassName(cell.align)}
+								width="wrap"
 							>
 								{renderInline(cell.tokens, components)}
 							</Table.Header>
@@ -382,6 +383,7 @@ function renderTable(token: TableToken, components: MarkdownComponents) {
 									// oxlint-disable-next-line react/no-array-index-key -- Why: a column has no identity but its position.
 									key={column}
 									className={cellClassName(cell.align)}
+									width="wrap"
 								>
 									{renderInline(cell.tokens, components)}
 								</Table.Cell>
