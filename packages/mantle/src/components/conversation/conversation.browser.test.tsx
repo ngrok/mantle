@@ -26,26 +26,26 @@ function Transcript({
 	height = viewportStyle.height,
 	label = "Conversation",
 	children,
+	actions,
 }: {
 	turns: Turn[];
-	contentRef?: Ref<HTMLOListElement>;
+	contentRef?: Ref<HTMLDivElement>;
 	viewportRef?: Ref<HTMLDivElement>;
 	width?: number;
 	height?: number;
 	label?: string;
 	children?: ReactNode;
+	/** Rendered in the newest message, such as a copy button. */
+	actions?: ReactNode;
 }) {
 	return (
 		<Conversation.Root>
-			<Conversation.Viewport
-				ref={viewportRef}
-				aria-label={label}
-				style={{ ...viewportStyle, width, height }}
-			>
-				<Conversation.Content ref={contentRef}>
-					{turns.map((turn) => (
+			<Conversation.Viewport ref={viewportRef} style={{ ...viewportStyle, width, height }}>
+				<Conversation.Content ref={contentRef} aria-label={label}>
+					{turns.map((turn, index) => (
 						<Message.Root key={turn.id} from={turn.from}>
 							<Message.Content style={{ whiteSpace: "pre-wrap" }}>{turn.text}</Message.Content>
+							{index === turns.length - 1 && actions}
 						</Message.Root>
 					))}
 					{children}
@@ -63,8 +63,29 @@ function nextFrame(): Promise<void> {
 	});
 }
 
-function viewport(): HTMLElement {
-	return screen.getByRole("region", { name: "Conversation" });
+/** The viewport around the feed named `name`. */
+function viewport(name = "Conversation"): HTMLElement {
+	const element = screen
+		.getByRole("feed", { name })
+		.closest<HTMLElement>('[data-slot~="conversation-viewport"]');
+	if (element == null) {
+		throw new Error("Conversation.Viewport did not render.");
+	}
+	return element;
+}
+
+/** The messages, oldest first. */
+function messages(): HTMLElement[] {
+	return screen.getAllByRole("article");
+}
+
+/** The message at `index`, from the end when negative. */
+function message(index: number): HTMLElement {
+	const element = messages().at(index);
+	if (element == null) {
+		throw new Error(`No message at ${index}.`);
+	}
+	return element;
 }
 
 function distanceFromEnd(element: HTMLElement): number {
@@ -185,7 +206,7 @@ describe("Conversation", () => {
 			const immediateDistance = distanceFromEnd(viewport());
 			expect(reducedMotion !== "reduce" || immediateDistance <= 1).toBe(true);
 			await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
-			expect(viewport()).toHaveFocus();
+			expect(messages().at(-1)).toHaveFocus();
 
 			rerender(
 				<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />,
@@ -241,30 +262,154 @@ describe("Conversation", () => {
 		},
 	);
 
-	test("Root draws the focus ring only while the viewport has keyboard focus", async () => {
+	test("Tab lands on the newest message, which alone draws the ring, and only from the keyboard", async () => {
 		// Why compiled CSS: the browser project loads no Tailwind stylesheet.
-		const css = await commands.tailwindCss("./conversation.tsx");
+		const css = await commands.tailwindCss("../message/message.tsx");
 		render(
 			<>
 				<style>{css}</style>
 				<button type="button">Before</button>
-				<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />
+				<Transcript turns={[question, { id: "a1", from: "assistant", text: "Two have none." }]} />
+				<button type="button">After</button>
 			</>,
 		);
 		await nextFrame();
-		const ring = () => getComputedStyle(root()).boxShadow;
-		expect(ring()).toBe("none");
+		const first = message(0);
+		const newest = message(-1);
+		const ring = (element: HTMLElement) => getComputedStyle(element).boxShadow;
 
 		await browserUser.click(screen.getByRole("button", { name: "Before" }));
 		await browserUser.keyboard("{Tab}");
-		expect(viewport()).toHaveFocus();
-		expect(ring()).not.toBe("none");
+		expect(newest).toHaveFocus();
+		expect(ring(newest)).not.toBe("none");
+		expect(ring(first)).toBe("none");
+		expect(ring(root())).toBe("none");
+		await browserUser.keyboard("{Tab}");
+		expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
 
-		// Why: a pointer press focuses the viewport without :focus-visible, so no ring shows.
+		// Why: a pointer press focuses the message without :focus-visible, so no ring shows.
+		await browserUser.click(first);
+		expect(first).toHaveFocus();
+		expect(ring(first)).toBe("none");
+	});
+
+	test("Up and Down move focus between messages, and the tab stop stays on the one the reader chose", async () => {
+		const answer: Turn = { id: "a1", from: "assistant", text: longAnswer };
+		render(
+			<>
+				<button type="button">Before</button>
+				<Transcript turns={[question, answer, { ...question, id: "q2" }]} />
+			</>,
+		);
+		await nextFrame();
+		const first = message(0);
+		const second = message(1);
+		const newest = message(2);
+		expect(messages().map((message) => message.getAttribute("aria-posinset"))).toEqual([
+			"1",
+			"2",
+			"3",
+		]);
+		expect(newest).toHaveAttribute("aria-setsize", "3");
+		newest.focus();
+
+		await browserUser.keyboard("{ArrowUp}");
+		expect(second).toHaveFocus();
+		await browserUser.keyboard("{ArrowUp}");
+		expect(first).toHaveFocus();
+		// Why: the first message sits at the top of the view, below no fade.
+		expect(first.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+			viewport().getBoundingClientRect().top - 1,
+		);
+		await browserUser.keyboard("{ArrowUp}");
+		expect(first).toHaveFocus();
+
+		await browserUser.keyboard("{ArrowDown}");
+		expect(second).toHaveFocus();
+		expect(second.tabIndex).toBe(0);
+		expect(newest.tabIndex).toBe(-1);
 		await browserUser.click(screen.getByRole("button", { name: "Before" }));
-		await browserUser.click(viewport());
-		expect(viewport()).toHaveFocus();
-		expect(ring()).toBe("none");
+		await browserUser.keyboard("{Tab}");
+		expect(second).toHaveFocus();
+	});
+
+	test("Page Up and Page Down scroll the viewport from a focused message", async () => {
+		render(<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />);
+		await nextFrame();
+		const newest = messages().at(-1);
+		newest?.focus({ preventScroll: true });
+		const top = viewport().scrollTop;
+		await browserUser.keyboard("{PageUp}");
+		await waitFor(() => expect(viewport().scrollTop).toBeLessThan(top - 50));
+		expect(newest).toHaveFocus();
+		// Why: WebKit scrolls a page smoothly, so read the place once it stops.
+		let pagedUp = Number.NaN;
+		await waitFor(async () => {
+			const before = viewport().scrollTop;
+			await nextFrame();
+			await nextFrame();
+			pagedUp = viewport().scrollTop;
+			expect(pagedUp).toBe(before);
+		});
+		await browserUser.keyboard("{PageDown}");
+		await waitFor(() => expect(viewport().scrollTop).toBeGreaterThan(pagedUp + 50));
+		expect(newest).toHaveFocus();
+	});
+
+	test("Control+End and Control+Home leave the conversation for its neighbors", async () => {
+		render(
+			<>
+				<button type="button">Before</button>
+				<Transcript turns={[question, { id: "a1", from: "assistant", text: "Two have none." }]} />
+				<textarea aria-label="Message the assistant" />
+			</>,
+		);
+		await nextFrame();
+		messages()[0]?.focus();
+		await browserUser.keyboard("{Control>}{End}{/Control}");
+		expect(screen.getByRole("textbox", { name: "Message the assistant" })).toHaveFocus();
+		messages()[0]?.focus();
+		await browserUser.keyboard("{Control>}{Home}{/Control}");
+		expect(screen.getByRole("button", { name: "Before" })).toHaveFocus();
+	});
+
+	test("a focused newest message keeps following while it streams, and a button in it keeps focus", async () => {
+		const { rerender } = render(
+			<Transcript
+				turns={[question, { id: "a1", from: "assistant", text: "Line 1" }]}
+				actions={<button type="button">Copy</button>}
+			/>,
+		);
+		await nextFrame();
+		const copy = screen.getByRole("button", { name: "Copy" });
+		copy.focus();
+		rerender(
+			<Transcript
+				turns={[question, { id: "a1", from: "assistant", text: longAnswer }]}
+				actions={<button type="button">Copy</button>}
+			/>,
+		);
+		await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
+		expect(copy).toHaveFocus();
+
+		messages().at(-1)?.focus();
+		rerender(
+			<Transcript
+				turns={[question, { id: "a1", from: "assistant", text: longAnswer.repeat(2) }]}
+				actions={<button type="button">Copy</button>}
+			/>,
+		);
+		await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
+		expect(messages().at(-1)).toHaveFocus();
+	});
+
+	test("a removed focused message hands focus to the new tab stop", async () => {
+		const answer: Turn = { id: "a1", from: "assistant", text: "Two have none." };
+		const { rerender } = render(<Transcript turns={[question, answer]} />);
+		await nextFrame();
+		messages().at(-1)?.focus();
+		rerender(<Transcript turns={[question, { ...answer, id: "a1-retry" }]} />);
+		await waitFor(() => expect(messages().at(-1)).toHaveFocus());
 	});
 
 	test("a new viewport ref preserves following and a reader's place", async () => {
@@ -349,7 +494,7 @@ describe("Conversation", () => {
 
 		rerender(<Transcript turns={[{ id: "a1", from: "assistant", text: "Short answer" }]} />);
 		await waitFor(() => expect(button).toHaveAttribute("inert"));
-		expect(viewport()).toHaveFocus();
+		expect(messages().at(-1)).toHaveFocus();
 		await browserUser.keyboard("{Tab}");
 		expect(button).not.toHaveFocus();
 	});
@@ -367,7 +512,7 @@ describe("Conversation", () => {
 		await waitFor(() => expect(root()).toHaveAttribute("data-scrolled-up"));
 
 		rerender(<Transcript turns={turns} label="Renamed conversation" />);
-		const renamed = screen.getByRole("region", { name: "Renamed conversation" });
+		const renamed = viewport("Renamed conversation");
 		expect(renamed.scrollTop).toBe(25);
 		expect(renamed.closest('[data-slot="conversation"]')).toHaveAttribute("data-scrolled-up");
 	});
@@ -381,7 +526,7 @@ describe("Conversation", () => {
 			</>,
 		);
 		await nextFrame();
-		const other = screen.getByRole("region", { name: "Other model" });
+		const other = viewport("Other model");
 		viewport().scrollTo({ top: 25, behavior: "instant" });
 		other.scrollTo({ top: 50, behavior: "instant" });
 		await waitFor(() => expect(root()).toHaveAttribute("data-scrolled-up"));
@@ -562,7 +707,7 @@ describe("Conversation", () => {
 		const table = document.createElement("div");
 		Object.assign(table.style, { maxHeight: "40px", overflowY: "auto", whiteSpace: "pre" });
 		table.textContent = nested;
-		screen.getAllByRole("listitem").at(-1)?.append(table);
+		message(-1).append(table);
 		await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
 		table.scrollTop = 30;
 		table.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true }));
@@ -607,8 +752,8 @@ describe("Conversation", () => {
 					{loading ? (
 						<p>Loading…</p>
 					) : (
-						<Conversation.Viewport aria-label="Conversation" style={viewportStyle}>
-							<Conversation.Content>
+						<Conversation.Viewport style={viewportStyle}>
+							<Conversation.Content aria-label="Conversation">
 								<Message.Root from="assistant">
 									<Message.Content style={{ whiteSpace: "pre-wrap" }}>{longAnswer}</Message.Content>
 								</Message.Root>
@@ -637,8 +782,8 @@ describe("Conversation", () => {
 		render(<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />);
 		await nextFrame();
 		const initialTop = viewport().scrollTop;
-		viewport().focus();
-		const content = screen.getAllByRole("listitem").at(-1);
+		const content = messages().at(-1);
+		content?.focus({ preventScroll: true });
 		if (content == null) {
 			throw new Error("The answer did not render.");
 		}

@@ -16,8 +16,8 @@ export function OverviewExample() {
 	return (
 		<PreviewCanvas>
 			<Conversation.Root className="w-full max-w-2xl">
-				<Conversation.Viewport aria-label="Conversation with the assistant">
-					<Conversation.Content className="p-4">
+				<Conversation.Viewport>
+					<Conversation.Content aria-label="Conversation with the assistant" className="p-4">
 						<Message.Root from="user">
 							<Message.Content>What&apos;s live right now?</Message.Content>
 						</Message.Root>
@@ -49,8 +49,8 @@ export function PendingExample() {
 	return (
 		<PreviewCanvas>
 			<Conversation.Root streaming className="w-full max-w-2xl">
-				<Conversation.Viewport aria-label="Conversation with the assistant">
-					<Conversation.Content className="p-4">
+				<Conversation.Viewport>
+					<Conversation.Content aria-label="Conversation with the assistant" className="p-4">
 						<Message.Root from="user">
 							<Message.Content>Which endpoints have no traffic policy?</Message.Content>
 						</Message.Root>

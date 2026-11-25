@@ -6,7 +6,7 @@ import * as Conversation from "./conversation-parts.js";
 test.each([
 	{ name: "plain jsdom", stub: false },
 	{ name: "a stubbed ResizeObserver", stub: true },
-])("a consumer renders a transcript in $name and finds it by role", ({ stub }) => {
+])("a consumer renders a transcript in $name and finds its message by role", ({ stub }) => {
 	if (stub) {
 		vi.stubGlobal(
 			"ResizeObserver",
@@ -19,8 +19,8 @@ test.each([
 	}
 	render(
 		<Conversation.Root>
-			<Conversation.Viewport aria-label="Conversation">
-				<Conversation.Content>
+			<Conversation.Viewport>
+				<Conversation.Content aria-label="Conversation">
 					<Message.Root from="user">
 						<Message.Content>Which endpoints have no traffic policy?</Message.Content>
 					</Message.Root>
@@ -30,7 +30,9 @@ test.each([
 		</Conversation.Root>,
 	);
 
-	expect(screen.getByRole("region", { name: "Conversation" })).toHaveTextContent(
-		"Which endpoints have no traffic policy?",
-	);
+	const message = screen.getByRole("article");
+	expect(screen.getByRole("feed", { name: "Conversation" })).toContainElement(message);
+	expect(message).toHaveTextContent("Which endpoints have no traffic policy?");
+	// Why: a consumer's keyboard test tabs to the newest message with no layout.
+	expect(message).toHaveAttribute("tabindex", "0");
 });

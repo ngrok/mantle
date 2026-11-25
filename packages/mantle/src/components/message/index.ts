@@ -9,7 +9,8 @@ import * as MessageParts from "./message-parts.js";
 /**
  * One message of a chat: a person's message in a bubble at the end of the
  * row, or the assistant's answer as full-width prose. Each message renders an
- * `<li>` inside `Conversation.Content`, with a visually hidden speaker label.
+ * `<article>` inside the `Conversation.Content` feed, with a visually hidden
+ * speaker label, and takes keyboard focus.
  *
  * @useWhen Show one message of a chat with an assistant or a model, with its actions and a marker while
  * the answer is on its way.

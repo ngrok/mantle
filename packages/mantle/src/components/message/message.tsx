@@ -36,7 +36,7 @@ function useMessageFrom(part: string): MessageFrom {
 /**
  * The props for `Message.Root`.
  */
-type MessageRootProps = ComponentProps<"li"> &
+type MessageRootProps = ComponentProps<"article"> &
 	WithAsChild &
 	WithDataSlot & {
 		/**
@@ -48,8 +48,12 @@ type MessageRootProps = ComponentProps<"li"> &
 	};
 
 /**
- * One message in a `Conversation.Content` list: an `<li>` that lays out the
- * message's content, its actions, and any pending marker.
+ * One message in a `Conversation.Content` feed: an `<article>` that lays out
+ * the message's content, its actions, and any pending marker.
+ *
+ * It takes keyboard focus, and the focus ring goes around it.
+ * `Conversation.Viewport` keeps one message in the tab order and sets
+ * `tabIndex`, `aria-posinset`, and `aria-setsize`, so do not set them.
  *
  * A new person's message makes `Conversation.Viewport` follow the end again,
  * because the answer lands there.
@@ -90,14 +94,19 @@ function Root({
 	from,
 	...props
 }: MessageRootProps) {
-	const Component = asChild ? Slot : "li";
+	const Component = asChild ? Slot : "article";
 
 	return (
 		<MessageContext value={from}>
 			<Component
 				data-slot={joinDataSlot(dataSlot, "message")}
 				data-from={from}
-				className={cx("flex min-w-0 flex-col gap-2", rootClassNames[from], className)}
+				className={cx(
+					// Why the scroll margin: a message that Up or Down scrolls to the top keeps room for its ring.
+					"flex min-w-0 scroll-my-2 flex-col gap-2 rounded-lg focus-visible:focus-ring",
+					rootClassNames[from],
+					className,
+				)}
 				{...props}
 			/>
 		</MessageContext>

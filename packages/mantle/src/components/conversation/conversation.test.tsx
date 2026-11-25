@@ -6,7 +6,7 @@ import * as Conversation from "./conversation-parts.js";
 function Transcript({ streaming }: { streaming?: boolean }) {
 	return (
 		<Conversation.Root streaming={streaming}>
-			<Conversation.Viewport aria-label="Conversation">
+			<Conversation.Viewport>
 				<Conversation.Content aria-label="Messages" />
 			</Conversation.Viewport>
 			<Conversation.ScrollButton />
@@ -21,13 +21,13 @@ describe("Conversation", () => {
 
 		rerender(
 			<Conversation.Root streaming>
-				<Conversation.Viewport aria-label="Conversation">
-					<Conversation.Content />
+				<Conversation.Viewport>
+					<Conversation.Content aria-label="Conversation" />
 				</Conversation.Viewport>
 			</Conversation.Root>,
 		);
 
-		expect(screen.getByRole("region", { name: "Conversation" })).toBeInTheDocument();
+		expect(screen.getByRole("feed", { name: "Conversation" })).toBeInTheDocument();
 		expect(screen.getByRole("status")).toHaveTextContent("Answering…");
 	});
 
@@ -60,12 +60,7 @@ describe("Conversation", () => {
 		const viewportRef = vi.fn<(node: HTMLDivElement | null) => void>();
 		const { container } = render(
 			<Conversation.Root ref={rootRef} className="root-class" data-testid="root">
-				<Conversation.Viewport
-					ref={viewportRef}
-					aria-label="Conversation"
-					className="viewport-class"
-					data-slot="outer"
-				>
+				<Conversation.Viewport ref={viewportRef} className="viewport-class" data-slot="outer">
 					<Conversation.Content aria-label="Messages" className="content-class" />
 				</Conversation.Viewport>
 				<Conversation.ScrollButton className="button-class" />
@@ -76,11 +71,11 @@ describe("Conversation", () => {
 		expect(rootRef).toHaveBeenLastCalledWith(root);
 		expect(root).toHaveClass("root-class");
 		expect(root).toHaveAttribute("data-testid", "root");
-		const viewport = screen.getByRole("region", { name: "Conversation" });
+		const viewport = screen.getByRole("feed", { name: "Messages" }).parentElement;
 		expect(viewportRef).toHaveBeenLastCalledWith(viewport);
 		expect(viewport).toHaveAttribute("data-slot", "outer conversation-viewport");
-		expect(viewport).toHaveAttribute("tabindex", "0");
-		expect(screen.getByRole("list", { name: "Messages" })).toHaveAttribute(
+		expect(viewport).toHaveAttribute("tabindex", "-1");
+		expect(screen.getByRole("feed", { name: "Messages" })).toHaveAttribute(
 			"data-slot",
 			"conversation-content",
 		);
@@ -90,18 +85,18 @@ describe("Conversation", () => {
 	});
 
 	test("Content with asChild renders the child and merges props", () => {
-		const ref = vi.fn<(node: HTMLOListElement | null) => void>();
+		const ref = vi.fn<(node: HTMLDivElement | null) => void>();
 		render(
 			<Conversation.Root>
-				<Conversation.Viewport aria-label="Conversation">
+				<Conversation.Viewport>
 					<Conversation.Content asChild ref={ref} className="content-class" data-testid="content">
-						<ol aria-label="Messages" className="child-class" />
+						<section aria-label="Messages" className="child-class" />
 					</Conversation.Content>
 				</Conversation.Viewport>
 			</Conversation.Root>,
 		);
 
-		const list = screen.getByRole("list", { name: "Messages" });
+		const list = screen.getByRole("feed", { name: "Messages" });
 		expect(list).toHaveClass("content-class", "child-class");
 		expect(list).toHaveAttribute("data-testid", "content");
 		expect(list).toHaveAttribute("data-slot", "conversation-content");

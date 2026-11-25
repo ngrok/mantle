@@ -720,7 +720,7 @@
     "jsdoc": "A chat transcript that follows the newest message while an answer streams, as Amp does.",
     "examples": [
       "Composition:\n```\nConversation.Root\n├── Conversation.Viewport\n│   └── Conversation.Content\n│       └── Message.Root\n└── Conversation.ScrollButton\n```",
-      "```tsx\n<Conversation.Root streaming={isAnswering} className=\"flex-1\">\n  <Conversation.Viewport aria-label=\"Conversation with the assistant\">\n    <Conversation.Content className=\"mx-auto max-w-3xl p-4\">\n      {messages.map((message) => (\n        <Message.Root key={message.id} from={message.role}>\n          <Message.Content>{message.text}</Message.Content>\n        </Message.Root>\n      ))}\n    </Conversation.Content>\n  </Conversation.Viewport>\n  <Conversation.ScrollButton />\n</Conversation.Root>\n```"
+      "```tsx\n<Conversation.Root streaming={isAnswering} className=\"flex-1\">\n  <Conversation.Viewport>\n    <Conversation.Content\n      aria-label=\"Conversation with the assistant\"\n      className=\"mx-auto max-w-3xl p-4\"\n    >\n      {messages.map((message) => (\n        <Message.Root key={message.id} from={message.role}>\n          <Message.Content>{message.text}</Message.Content>\n        </Message.Root>\n      ))}\n    </Conversation.Content>\n  </Conversation.Viewport>\n  <Conversation.ScrollButton />\n</Conversation.Root>\n```"
     ],
     "aliases": [
       "chat",
