@@ -37,7 +37,7 @@ const appearanceClasses = {
 		"text-accent-600 not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border border-transparent text-sm font-medium",
 	outlined:
 		"border-accent-600 bg-form text-accent-600 not-disabled:hover:border-accent-700 not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border text-sm font-medium",
-	link: "text-accent-600 not-disabled:hover:underline group/button-link border-transparent",
+	link: "text-accent-600 not-disabled:hover:underline border-transparent",
 } as const satisfies Record<ButtonAppearance, string>;
 
 /** The classes that the danger and neutral tones lay over each appearance's accent classes. */
