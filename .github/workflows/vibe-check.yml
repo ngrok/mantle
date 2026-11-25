@@ -136,6 +136,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Why write: the bundle-size step posts its report as one pull request comment.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v7.0.1
@@ -161,9 +165,42 @@ jobs:
       - name: Build 🏗️
         run: pnpm run build
 
-      # Why after the build: the budget measures the published dist, after the React Compiler pass.
-      - name: Bundle Budget 📦
-        run: pnpm run check:bundle-budget
+      # Why after the build: the report measures the published dist, after the React Compiler pass.
+      # It fails only when an import with no render loads lazy code; a size never fails it.
+      - name: Bundle Size 📦
+        run: pnpm run report:bundle-size --json "$RUNNER_TEMP/head.json"
+
+      # Why the base: the report compares each size with the pull request's base commit.
+      - name: Bundle Size of the Base 📦
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch --depth=1 origin "$BASE_SHA"
+          git worktree add "$RUNNER_TEMP/base" FETCH_HEAD
+          (cd "$RUNNER_TEMP/base" && pnpm install --frozen-lockfile && pnpm -F @ngrok/mantle run build)
+          pnpm run report:bundle-size --dist "$RUNNER_TEMP/base/packages/mantle/dist" --json "$RUNNER_TEMP/base.json"
+
+      - name: Bundle Size Report 📝
+        if: github.event_name == 'pull_request'
+        # Why: a fork's token cannot comment, and the report never blocks a merge.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          [ -f "$RUNNER_TEMP/base.json" ] || echo '{}' > "$RUNNER_TEMP/base.json"
+          node packages/mantle/scripts/bundle-size.ts --compare "$RUNNER_TEMP/base.json" --head "$RUNNER_TEMP/head.json" > "$RUNNER_TEMP/report.md"
+          printf '\n<!-- bundle-size-report -->\n' >> "$RUNNER_TEMP/report.md"
+          cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+          id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate --jq '.[] | select(.body | contains("<!-- bundle-size-report -->")) | .id' | head -n 1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@"$RUNNER_TEMP/report.md" > /dev/null
+          else
+            gh pr comment "$PR" --repo "$REPO" --body-file "$RUNNER_TEMP/report.md"
+          fi
 
       # Why: server rendering that externalizes @ngrok/mantle loads the dist in Node with no bundler.
       - name: Dist Loads in Node 🔁

@@ -1,22 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { gzipSync } from "node:zlib";
-import { gzipBytesOf, judge, splitChunks } from "./bundle-budget.ts";
+import { formatReport, gzipBytesOf, splitChunks } from "./bundle-size.ts";
 
-describe("judge", () => {
-	it("fails a size one byte over its budget", () => {
-		expect(judge({ gzipBytes: 10_001, maxGzipBytes: 10_000 })).toEqual({ kind: "over", overBy: 1 });
-	});
-
-	it("passes a size at its budget and a size a little under it", () => {
-		expect(judge({ gzipBytes: 10_000, maxGzipBytes: 10_000 })).toEqual({ kind: "within" });
-		expect(judge({ gzipBytes: 9_700, maxGzipBytes: 10_000 })).toEqual({ kind: "within" });
-	});
-
-	it("asks for a lower budget once a size falls more than 3% under it", () => {
-		expect(judge({ gzipBytes: 9_699, maxGzipBytes: 10_000 })).toEqual({
-			kind: "stale",
-			underBy: 301,
+describe("formatReport", () => {
+	it("lists changed bundles first, largest change first, and folds unchanged ones", () => {
+		const report = formatReport({
+			base: { button: 1000, slot: 800, switch: 500 },
+			head: { button: 1010, slot: 700, switch: 500, dictate: 50 },
 		});
+		expect(report).toContain("**3 of 4 bundles changed: -40 B in total.** Largest: `slot` -100 B.");
+		const slot = report.indexOf("| ▼ `slot` | 800 B | 700 B | -100 B (-12.5%) |");
+		const dictate = report.indexOf("| ✚ `dictate` | — | 50 B | new |");
+		const button = report.indexOf("| ▲ `button` | 1000 B | 1010 B | +10 B (+1.0%) |");
+		const folded = report.indexOf("<summary>1 unchanged</summary>");
+		expect([slot, dictate, button, folded].every((index) => index > -1)).toBe(true);
+		expect(slot < dictate && dictate < button && button < folded).toBe(true);
+		expect(report.indexOf("| `switch` | 500 B | 500 B | 0 B |")).toBeGreaterThan(folded);
 	});
 });
 
