@@ -57,12 +57,15 @@ type ConversationRootProps = ComponentProps<"div"> &
 /**
  * A chat transcript that keeps the newest message in view, as Amp does. It
  * holds `Conversation.Viewport`, the region that scrolls, and
- * `Conversation.ScrollButton`, which floats over the viewport's bottom edge.
+ * `Conversation.ScrollButton`, which floats at the viewport's bottom right.
  * Give it a height, such as `flex-1` in a flex column.
  *
  * It owns the chat's one screen-reader announcement: when an answer starts and
  * when it ends. A live region that read each streamed word would interrupt
  * the reader.
+ *
+ * It draws the focus ring while `Conversation.Viewport` has keyboard focus.
+ * The ring sits on Root, so the viewport's fade does not cover it.
  *
  * The children sit in a `display: contents` wrapper, `data-slot="conversation-label"`,
  * so a translated loading message can change to a transcript.
@@ -115,7 +118,13 @@ function Root({
 				ref={ref}
 				data-slot={joinDataSlot(dataSlot, "conversation")}
 				data-streaming={streaming ? "" : undefined}
-				className={cx("group/conversation relative flex min-h-0 flex-col", className)}
+				className={cx(
+					"group/conversation relative flex min-h-0 flex-col",
+					// Why on Root: the viewport's fade mask would fade a ring drawn on the viewport.
+					// Inset, so an ancestor card does not clip the ring.
+					"has-[[data-slot~=conversation-viewport]:focus-visible]:focus-ring has-[[data-slot~=conversation-viewport]:focus-visible]:ring-inset",
+					className,
+				)}
 				{...props}
 			>
 				<div data-slot="conversation-label" className="contents">
@@ -154,9 +163,16 @@ type ConversationViewportProps = ComponentProps<"div"> & WithAsChild & WithDataS
  * any means, it stays where they put it. It follows again when they scroll
  * back to the end, press `Conversation.ScrollButton`, or send a message.
  *
- * The top and bottom edges fade when there is more to read past them, with
- * mantle's `scroll-fade-y`. The region is focusable, so a keyboard can scroll
- * a transcript with no focusable content. Name it with `aria-label`.
+ * The bottom edge fades when newer text is below the view, with mantle's
+ * `scroll-fade-b`, as in Amp. The top does not fade: a chat nearly always has
+ * older history above, so a top fade would dim every view and say nothing.
+ * The region reserves the scrollbar's space on both sides, so centered
+ * content lines up with a centered composer.
+ *
+ * The region is focusable, so a keyboard can scroll a transcript with no
+ * focusable content. Its keyboard focus ring sits on `Conversation.Root`,
+ * because the fade mask would fade a ring on the viewport. Name it with
+ * `aria-label`.
  *
  * On mount it starts at the end, unless something already moved it, such as
  * `useScrollAnchor` restoring the reader's place.
@@ -243,9 +259,10 @@ function Viewport({
 			tabIndex={0}
 			data-slot={joinDataSlot(dataSlot, "conversation-viewport")}
 			className={cx(
-				"scrollbar scroll-fade-y min-h-0 flex-1 overflow-y-auto",
-				// Inset, so an ancestor card does not clip the ring.
-				"focus-visible:ring-focus-accent focus-visible:ring-4 focus-visible:outline-hidden focus-visible:ring-inset",
+				// Why both gutters: centered content lines up with a centered composer below the viewport.
+				// Why no ring here: Root draws it, because the fade mask would fade a ring on the viewport.
+				// Why the negative offset: forced colors paint the hidden outline, and the fade mask clips one outside the box.
+				"scrollbar scrollbar-gutter-both scroll-fade-b min-h-0 flex-1 overflow-y-auto focus-visible:-outline-offset-4 focus-visible:outline-hidden",
 				className,
 			)}
 			{...props}
@@ -538,10 +555,11 @@ type ConversationScrollButtonProps = Omit<
 };
 
 /**
- * The round button over the bottom edge of the viewport that goes back to the
+ * The round button at the bottom right of the viewport that goes back to the
  * newest message, as Amp's does. It shows only while the end is out of view,
- * and leaves the tab order while hidden. A press scrolls to the end, follows
- * the end again, and moves focus to the viewport, because the button hides.
+ * grows in and out as it shows and hides, and leaves the tab order while
+ * hidden. A press scrolls to the end, follows the end again, and moves focus
+ * to the viewport, because the button hides.
  *
  * @see https://mantle.ngrok.com/components/ai/conversation#conversationscrollbutton
  *
@@ -591,10 +609,12 @@ function ScrollButton({
 			type="button"
 			data-slot={joinDataSlot(dataSlot, "conversation-scroll-button")}
 			className={cx(
-				"bg-popover absolute bottom-3 left-1/2 size-8 -translate-x-1/2 rounded-full shadow-md",
-				// Inert ends interaction at once; visibility lets the exit fade finish.
-				"invisible opacity-0 transition-[opacity,visibility] transition-discrete duration-150 ease-out-strong motion-reduce:transition-none",
-				"group-data-scrolled-up/conversation:visible group-data-scrolled-up/conversation:opacity-100",
+				// Why right-5: it clears a 15px classic scrollbar, so a press on the thumb never hits the button.
+				"bg-popover absolute right-5 bottom-3 size-8 rounded-full shadow-md",
+				// Inert ends interaction at once; visibility lets the exit finish.
+				// It morphs in from a little smaller and lower, and leaves on the reverse path.
+				"invisible translate-y-1 scale-90 opacity-0 transition-[opacity,scale,translate,visibility] transition-discrete duration-150 ease-out-strong motion-reduce:transition-none",
+				"group-data-scrolled-up/conversation:visible group-data-scrolled-up/conversation:translate-y-0 group-data-scrolled-up/conversation:scale-100 group-data-scrolled-up/conversation:opacity-100 group-data-scrolled-up/conversation:duration-200",
 				className,
 			)}
 			icon={<ArrowDownIcon />}

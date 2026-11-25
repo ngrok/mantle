@@ -140,13 +140,18 @@ Conversation.Root
 - The view follows the end again when the reader scrolls back to it, presses `Conversation.ScrollButton`, or sends a message. A message from the person is a `Message.Root` with `from="user"`.
 - On mount, the view starts at the end. If something already moved it, such as [`useScrollAnchor`](/hooks#usescrollanchor) restoring the reader's place, the view stays there.
 
-The top and bottom edges fade when there is more to read past them, with [`scroll-fade-y`](/base/scroll-fade).
+The bottom edge fades when newer text is below the view, with [`scroll-fade-b`](/base/scroll-fade), as in Amp. The top edge does not fade, on purpose:
+
+- **A top fade signals nothing.** A chat nearly always has older history above, so a top fade would stay on in almost every view and dim the first line for no reason.
+- **The bottom fade is the signal.** Most of the time the reader is at the end, and the bottom does not fade. The fade appears only after the reader scrolls up and the newest text is out of view, and `Conversation.ScrollButton` shows beside it. Both say "there is more below". The fade needs CSS scroll-driven animations; where a browser lacks them, the button alone carries the signal.
+
+The viewport reserves the scrollbar's space on both sides, so centered content lines up with a centered composer below it.
 
 ## Accessibility
 
 `Conversation.Root` owns the chat's one status announcement. Set `streaming` while an answer streams. Screen readers then hear "Answering…" when it starts and "Answer ended." when it ends. Nothing reads the answer aloud word by word, because that interrupts a reader who is busy with other content.
 
-`Conversation.Viewport` is a named region that takes focus, so a keyboard can scroll a transcript that has no links or buttons. When `Conversation.ScrollButton` hides after a press, focus moves to the viewport.
+`Conversation.Viewport` is a named region that takes focus, so a keyboard can scroll a transcript that has no links or buttons. When it takes keyboard focus, `Conversation.Root` draws the focus ring around the transcript. The ring sits on Root, not on the viewport, so the bottom fade does not cover it. A mouse or touch press shows no ring. Windows high-contrast mode shows an outline inside the viewport. When `Conversation.ScrollButton` hides after a press, focus moves to the viewport.
 
 ## API Reference
 
@@ -189,7 +194,7 @@ All props from [ol](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol
 
 ### Conversation.ScrollButton
 
-The round button over the bottom edge of the viewport that goes back to the newest message. It shows only while the end is out of view.
+The round button at the bottom right of the viewport that goes back to the newest message. It shows only while the end is out of view, and grows in and out as it shows and hides. To move it, such as to the corner of a centered composer, set `right-*` and `bottom-*` in `className`.
 
 All props from [Icon Button](/components/actions/icon-button) except `appearance`, `asChild`, `icon`, `intent`, `label`, and `type`, plus:
 

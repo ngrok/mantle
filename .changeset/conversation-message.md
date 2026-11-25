@@ -6,8 +6,8 @@ Add `Conversation` and `Message`, the chat transcript parts.
 
 `Conversation` at `@ngrok/mantle/conversation` is a chat transcript that follows the newest message while an answer streams:
 
-- `Conversation.Viewport` follows the end while the reader is at the end. When the reader scrolls up by any means, the view stays where they put it. It follows again when they scroll back to the end, press `Conversation.ScrollButton`, or send a message. The top and bottom edges fade with `scroll-fade-y`.
-- `Conversation.ScrollButton` is a round button over the bottom edge that goes back to the newest message. It shows only while the end is out of view.
+- `Conversation.Viewport` follows the end while the reader is at the end. When the reader scrolls up by any means, the view stays where they put it. It follows again when they scroll back to the end, press `Conversation.ScrollButton`, or send a message. The bottom edge fades with `scroll-fade-b` while newer text is below the view; the top does not fade. It reserves the scrollbar's space on both sides, so centered content lines up with a centered composer. It takes keyboard focus, and `Conversation.Root` draws the focus ring, so the fade does not cover it.
+- `Conversation.ScrollButton` is a round button at the bottom right of the viewport that goes back to the newest message. It shows only while the end is out of view, and grows in and out.
 - `Conversation.Content` is the ordered list of messages.
 - `Conversation.Root` owns the chat's one status announcement. Set `streaming`, and screen readers hear "Answering…" when an answer starts and "Answer ended." when it ends. It stamps `data-scrolled-up` while the end is out of view, and `data-streaming` while `streaming` is set.
 

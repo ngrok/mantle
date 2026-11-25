@@ -195,6 +195,78 @@ describe("Conversation", () => {
 		},
 	);
 
+	test.each(["no-preference", "reduce"] as const)(
+		"the scroll button grows in and out with %s motion",
+		async (reducedMotion) => {
+			await commands.emulateMedia({ reducedMotion });
+			// Why compiled CSS: the browser project loads no Tailwind stylesheet.
+			const css = await commands.tailwindCss("./conversation.tsx");
+			render(
+				<>
+					{/* Why the root height: the compiled `flex-1` makes the viewport's height a flex basis of 0. */}
+					<style>{`${css}\n[data-slot~="conversation"] { height: 200px; }`}</style>
+					<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />
+				</>,
+			);
+			await nextFrame();
+			// Why a slot query: the hidden button is inert, so it has no accessible role yet.
+			const button = root().querySelector<HTMLButtonElement>(
+				'[data-slot~="conversation-scroll-button"]',
+			);
+			if (button == null) {
+				throw new Error("Conversation.ScrollButton did not render.");
+			}
+			const settled = () => button.getAnimations().length === 0;
+			const style = () => getComputedStyle(button);
+
+			viewport().scrollTo({ top: 0, behavior: "instant" });
+			await waitFor(() => expect(root()).toHaveAttribute("data-scrolled-up", ""));
+			expect(button.inert).toBe(false);
+			expect(settled()).toBe(reducedMotion === "reduce");
+			await waitFor(() => expect(settled()).toBe(true));
+			expect(style().opacity).toBe("1");
+			expect(style().scale).toBe("1");
+			expect(style().visibility).toBe("visible");
+
+			viewport().scrollTo({ top: viewport().scrollHeight, behavior: "instant" });
+			await waitFor(() => expect(root()).not.toHaveAttribute("data-scrolled-up"));
+			// Why: the button leaves the tab order at once, while it still fades out.
+			expect(button.inert).toBe(true);
+			// Why: with motion, the exit still shows; reduced motion hides the button at once.
+			expect(settled()).toBe(reducedMotion === "reduce");
+			expect(style().visibility).toBe(reducedMotion === "reduce" ? "hidden" : "visible");
+			await waitFor(() => expect(settled()).toBe(true));
+			expect(style().opacity).toBe("0");
+			expect(style().visibility).toBe("hidden");
+		},
+	);
+
+	test("Root draws the focus ring only while the viewport has keyboard focus", async () => {
+		// Why compiled CSS: the browser project loads no Tailwind stylesheet.
+		const css = await commands.tailwindCss("./conversation.tsx");
+		render(
+			<>
+				<style>{css}</style>
+				<button type="button">Before</button>
+				<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />
+			</>,
+		);
+		await nextFrame();
+		const ring = () => getComputedStyle(root()).boxShadow;
+		expect(ring()).toBe("none");
+
+		await browserUser.click(screen.getByRole("button", { name: "Before" }));
+		await browserUser.keyboard("{Tab}");
+		expect(viewport()).toHaveFocus();
+		expect(ring()).not.toBe("none");
+
+		// Why: a pointer press focuses the viewport without :focus-visible, so no ring shows.
+		await browserUser.click(screen.getByRole("button", { name: "Before" }));
+		await browserUser.click(viewport());
+		expect(viewport()).toHaveFocus();
+		expect(ring()).toBe("none");
+	});
+
 	test("a new viewport ref preserves following and a reader's place", async () => {
 		const answer: Turn = { id: "a1", from: "assistant", text: longAnswer };
 		const { rerender } = render(<Transcript viewportRef={() => {}} turns={[question, answer]} />);
