@@ -3,14 +3,19 @@ import { gzipSync } from "node:zlib";
 import { formatReport, gzipBytesOf, splitChunks } from "./bundle-size.ts";
 
 describe("formatReport", () => {
-	it("shows each change against the base, and a dash for a scenario the base lacks", () => {
+	it("lists changed bundles first, largest change first, and folds unchanged ones", () => {
 		const report = formatReport({
-			base: { button: 1000, slot: 800 },
-			head: { button: 1100, slot: 780, dictate: 500 },
+			base: { button: 1000, slot: 800, switch: 500 },
+			head: { button: 1010, slot: 700, switch: 500, dictate: 50 },
 		});
-		expect(report).toContain("| `button` | 1000 B | 1100 B | +100 B (+10.0%) |");
-		expect(report).toContain("| `slot` | 800 B | 780 B | -20 B (-2.5%) |");
-		expect(report).toContain("| `dictate` | — | 500 B | new |");
+		expect(report).toContain("**3 of 4 bundles changed: -40 B in total.** Largest: `slot` -100 B.");
+		const slot = report.indexOf("| ▼ `slot` | 800 B | 700 B | -100 B (-12.5%) |");
+		const dictate = report.indexOf("| ✚ `dictate` | — | 50 B | new |");
+		const button = report.indexOf("| ▲ `button` | 1000 B | 1010 B | +10 B (+1.0%) |");
+		const folded = report.indexOf("<summary>1 unchanged</summary>");
+		expect([slot, dictate, button, folded].every((index) => index > -1)).toBe(true);
+		expect(slot < dictate && dictate < button && button < folded).toBe(true);
+		expect(report.indexOf("| `switch` | 500 B | 500 B | 0 B |")).toBeGreaterThan(folded);
 	});
 });
 

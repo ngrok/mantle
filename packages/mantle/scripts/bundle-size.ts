@@ -28,41 +28,64 @@ const DIST = path.resolve(flag("--dist") ?? path.join(PACKAGE_ROOT, "dist"));
 
 const formatBytes = (bytes: number): string => `${(bytes / 1024).toFixed(1)} KB`;
 
+/** A byte count with its sign, such as `+12` or `-3`. */
+const signed = (bytes: number): string => (bytes > 0 ? `+${bytes}` : `${bytes}`);
+
 /**
- * Formats a Markdown table that compares each scenario's size on the base
+ * Formats a Markdown report that compares each scenario's size on the base
  * branch with its size on the pull request. Pure, so the format is testable.
- * A scenario with no base size, such as a new one, shows a dash.
+ * A headline sums the change. Changed scenarios come first, largest change
+ * first, and unchanged ones fold into a `<details>` block. A scenario with
+ * no base size, such as a new one, shows a dash.
  *
  * @example
  * ```ts
  * formatReport({ base: { button: 1000 }, head: { button: 1100 } });
- * // | `button` | 1000 B | 1100 B | +100 B (+10.0%) |
+ * // | ▲ `button` | 1000 B | 1100 B | +100 B (+10.0%) |
  * ```
  */
 const formatReport = ({ base, head }: { base: Sizes; head: Sizes }): string => {
-	const rows = Object.entries(head).map(([name, bytes]) => {
+	const scenarios = Object.entries(head).map(([name, bytes]) => {
 		const before = base[name];
-		if (before == null) {
-			return `| \`${name}\` | — | ${bytes} B | new |`;
-		}
-		const delta = bytes - before;
-		const sign = delta > 0 ? "+" : "";
-		const change =
-			delta === 0 ? "0 B" : `${sign}${delta} B (${sign}${((delta / before) * 100).toFixed(1)}%)`;
-		return `| \`${name}\` | ${before} B | ${bytes} B | ${change} |`;
+		return { name, bytes, before, delta: before == null ? bytes : bytes - before };
 	});
-	const total = Object.values(head).reduce((sum, bytes) => sum + bytes, 0);
-	const totalBase = Object.entries(head).reduce((sum, [name]) => sum + (base[name] ?? 0), 0);
+	const row = ({ name, bytes, before, delta }: (typeof scenarios)[number]): string => {
+		if (before == null) {
+			return `| ✚ \`${name}\` | — | ${bytes} B | new |`;
+		}
+		const mark = delta > 0 ? "▲" : "▼";
+		const percent = `${delta > 0 ? "+" : ""}${((delta / before) * 100).toFixed(1)}%`;
+		return `| ${delta === 0 ? "" : `${mark} `}\`${name}\` | ${before} B | ${bytes} B | ${delta === 0 ? "0 B" : `${signed(delta)} B (${percent})`} |`;
+	};
+	const changed = scenarios
+		.filter((scenario) => scenario.before == null || scenario.delta !== 0)
+		.toSorted((left, right) => Math.abs(right.delta) - Math.abs(left.delta));
+	const unchanged = scenarios.filter((scenario) => scenario.before != null && scenario.delta === 0);
+	const total = scenarios.reduce((sum, scenario) => sum + scenario.bytes, 0);
+	const totalBase = scenarios.reduce((sum, scenario) => sum + (scenario.before ?? 0), 0);
+	const header = ["| Scenario | `main` | This PR | Change |", "| --- | --- | --- | --- |"];
+	const headline =
+		changed.length === 0
+			? "No bundle changed size."
+			: `**${changed.length} of ${scenarios.length} bundles changed: ${signed(total - totalBase)} B in total.** Largest: \`${changed[0]?.name}\` ${signed(changed[0]?.delta ?? 0)} B.`;
 	return [
-		"## Bundle size",
+		"## 📦 Bundle size",
 		"",
-		"Gzip bytes of the mantle JavaScript that each scenario loads before render, built the way a consumer's Vite production build does. This report does not block a merge.",
+		headline,
 		"",
-		"| Scenario | Base | This PR | Change |",
-		"| --- | --- | --- | --- |",
-		...rows,
-		"",
-		`Sum of all scenarios: ${formatBytes(totalBase)} → ${formatBytes(total)}.`,
+		...(changed.length > 0 ? [...header, ...changed.map(row), ""] : []),
+		...(unchanged.length > 0
+			? [
+					`<details><summary>${unchanged.length} unchanged</summary>`,
+					"",
+					...header,
+					...unchanged.map(row),
+					"",
+					"</details>",
+					"",
+				]
+			: []),
+		`Gzip bytes of the mantle JavaScript each scenario loads before render, as a consumer's Vite production build bundles it. All scenarios: ${formatBytes(totalBase)} → ${formatBytes(total)}. This report never blocks a merge.`,
 		"",
 	].join("\n");
 };
