@@ -139,7 +139,7 @@ export const componentsByCategory = {
 	// Structure: contains, divides, or arranges arbitrary content, unlike Data
 	// Display, which presents specific content. Page/viewport structure
 	// belongs to the top-level Layouts section, not here.
-	Structure: ["Card", "Media Object", "Separator", "Strata", "Well"],
+	Structure: ["Card", "Media Object", "Panel", "Separator", "Strata", "Well"],
 } as const satisfies Record<ComponentCategory, readonly string[]>;
 
 /** Display name of a production-ready component. */
@@ -161,7 +161,6 @@ export const prodReadyComponents: readonly ProdReadyComponent[] = componentCateg
 export const previewComponents = [
 	//,
 	"Calendar",
-	"Panel",
 	"Time Zone",
 	"World Map",
 ] as const;
@@ -216,6 +215,7 @@ export const prodReadyComponentRouteLookup = {
 	"OTP Input": "/components/forms/otp-input",
 	"Overlay Prompt": "/components/primitives/overlay-prompt",
 	Pagination: "/components/navigation/pagination",
+	Panel: "/components/structure/panel",
 	"Password Input": "/components/forms/password-input",
 	Popover: "/components/overlays/popover",
 	"Progress Bar": "/components/feedback/progress-bar",
@@ -259,7 +259,6 @@ export const prodReadyComponentRouteLookup = {
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
 	Calendar: "/components/preview/calendar",
-	Panel: "/components/preview/panel",
 	"Time Zone": "/components/preview/time-zone",
 	"World Map": "/components/preview/world-map",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
@@ -271,7 +270,6 @@ export const previewComponentsRouteLookup = {
  */
 export const previewComponentCategoryLookup = {
 	Calendar: "Forms",
-	Panel: "Structure",
 	"Time Zone": "Primitives",
 	"World Map": "Charts",
 } as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;
