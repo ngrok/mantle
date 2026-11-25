@@ -7,4 +7,3 @@
 - If another file of the build reads a stop that the stylesheet does not, the build warns and names the stop.
 - The build cannot see CSS outside the build, such as CSS another app or a CDN serves, or a stop name that code builds at runtime, such as `` `var(--color-${hue}-300)` ``. It does not warn about them. Name each such stop in a file the stylesheet scans, such as with `@source inline("bg-pink-300")`, or pass `themePrune: false` to keep every stop.
 - If your config also adds `mantleThemePrunePlugin()`, you can remove it. The CSS stays the same.
-- `mantleSourcesPlugin()` now returns an array of plugins. Vite accepts it in `plugins` as before. Code that reads a property of the return value, such as `.name`, must read the first item.
