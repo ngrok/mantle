@@ -26,7 +26,7 @@ describe("Chip", () => {
 		render(
 			<>
 				<Chip data-testid="plain">Read</Chip>
-				<Chip selectable appearance="square">
+				<Chip selectable appearance="square" size="xl">
 					Write
 				</Chip>
 			</>,
@@ -36,6 +36,7 @@ describe("Chip", () => {
 			"data-appearance",
 			"square",
 		);
+		expect(screen.getByRole("button", { name: "Write" })).toHaveAttribute("data-size", "xl");
 	});
 
 	test("a removable chip names its button and calls onRemove", async () => {

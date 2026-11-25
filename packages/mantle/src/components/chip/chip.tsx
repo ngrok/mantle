@@ -25,8 +25,8 @@ import type { ButtonSize } from "../button/sizes.js";
 import { Icon } from "../icon/icon.js";
 import { Slot } from "../slot/index.js";
 
-/** The `xs` and `sm` steps of the Button size scale. */
-type ChipSize = Extract<ButtonSize, "xs" | "sm">;
+/** The Button size scale, from `xs` (24px) to `xl` (48px). */
+type ChipSize = ButtonSize;
 
 /** The chip's shape: a fully rounded `pill`, or a `square` with small corner radii. */
 type ChipAppearance = "pill" | "square";
@@ -39,10 +39,16 @@ const chipClassName = {
 	pill: {
 		xs: "h-6 w-fit shrink-0 gap-0.5 whitespace-nowrap rounded-full px-2 font-sans text-xs font-medium",
 		sm: "h-7 w-fit shrink-0 gap-0.5 whitespace-nowrap rounded-full px-2.5 font-sans text-sm font-medium",
+		md: "h-9 w-fit shrink-0 gap-1 whitespace-nowrap rounded-full px-3 font-sans text-sm font-medium",
+		lg: "h-10 w-fit shrink-0 gap-1 whitespace-nowrap rounded-full px-3.5 font-sans text-sm font-medium",
+		xl: "h-12 w-fit shrink-0 gap-1.5 whitespace-nowrap rounded-full px-4 font-sans text-base font-medium",
 	},
 	square: {
 		xs: "gap-1 rounded-xs px-2 py-0.5 has-data-[slot=chip-remove]:pr-0.5 text-xs font-normal",
 		sm: "gap-1 rounded-xs px-2 py-0.5 has-data-[slot=chip-remove]:pr-0.5 text-sm font-normal",
+		md: "gap-1 rounded-sm px-2.5 py-1.5 has-data-[slot=chip-remove]:pr-1 text-sm font-normal",
+		lg: "gap-1.5 rounded-sm px-3 py-2 has-data-[slot=chip-remove]:pr-1.5 text-sm font-normal",
+		xl: "gap-1.5 rounded-md px-3.5 py-2.5 has-data-[slot=chip-remove]:pr-2 text-base font-normal",
 	},
 } as const satisfies Record<ChipAppearance, Record<ChipSize, string>>;
 
@@ -55,15 +61,30 @@ const LOCK_PATH =
 const X_PATH =
 	"M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z";
 
+/** The leading and state icon size for each chip size. */
+const iconClassName = {
+	xs: "size-3",
+	sm: "size-3",
+	md: "size-3.5",
+	lg: "size-4",
+	xl: "size-4",
+} as const satisfies Record<ChipSize, string>;
+
 /** The remove button and icon classes for each appearance and size. */
 const removeClassName = {
 	pill: {
 		xs: { button: "-me-0.5 rounded-full", icon: "size-3" },
 		sm: { button: "-me-0.5 rounded-full", icon: "size-3" },
+		md: { button: "-me-1 rounded-full", icon: "size-3.5" },
+		lg: { button: "-me-1 rounded-full", icon: "size-4" },
+		xl: { button: "-me-1.5 rounded-full", icon: "size-4" },
 	},
 	square: {
 		xs: { button: "rounded-xs", icon: "size-3" },
 		sm: { button: "rounded-xs", icon: "size-4" },
+		md: { button: "rounded-xs", icon: "size-4" },
+		lg: { button: "rounded-sm", icon: "size-4" },
+		xl: { button: "rounded-sm", icon: "size-5" },
 	},
 } as const satisfies Record<ChipAppearance, Record<ChipSize, { button: string; icon: string }>>;
 
@@ -92,8 +113,8 @@ type ChipSharedProps = WithAsChild &
 		 */
 		appearance?: ChipAppearance;
 		/**
-		 * Height and spacing on the Button scale. A `pill` chip is 24px at `xs` and 28px at `sm`.
-		 * A one-line `square` chip is 2px shorter.
+		 * Height and spacing on the Button scale. A `pill` chip is as tall as a `Button` of the
+		 * same size: 24px at `xs` to 48px at `xl`. A one-line `square` chip is 2px shorter.
 		 * @default "xs"
 		 */
 		size?: ChipSize;
@@ -218,9 +239,9 @@ function SelectableChip({
 		),
 	};
 	const icon = isValidElement(customIcon) ? (
-		<Icon data-slot="chip-icon" svg={customIcon} className="size-3" />
+		<Icon data-slot="chip-icon" svg={customIcon} className={iconClassName[size]} />
 	) : (
-		<StateIcon aria-hidden weight="bold" className="size-3 shrink-0" />
+		<StateIcon aria-hidden weight="bold" className={cx("shrink-0", iconClassName[size])} />
 	);
 	if (asChild) {
 		invariant(
@@ -359,7 +380,9 @@ function LabelChip({
 	);
 	const contentFor = (label: ReactNode) => (
 		<>
-			{isValidElement(icon) && <Icon data-slot="chip-icon" svg={icon} className="size-3" />}
+			{isValidElement(icon) && (
+				<Icon data-slot="chip-icon" svg={icon} className={iconClassName[size]} />
+			)}
 			<span data-slot="chip-label" className="contents">
 				<span className={cx(appearance === "pill" && "px-0.5")}>{label}</span>
 			</span>
@@ -404,7 +427,7 @@ function TagChip(props: RemovableChipProps) {
  * | `data-slot` | `"chip-remove"` | The optional remove button. |
  * | `data-state` | `"on"` \| `"off"` | The selectable state. |
  * | `data-appearance` | `"pill"` \| `"square"` | The shape of the chip. |
- * | `data-size` | `"xs"` \| `"sm"` | The size of the chip. |
+ * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The size of the chip. |
  * | `data-locked` | present when locked | Removal is blocked. |
  *
  * @useWhen Show a compact value, let a user remove it, or turn a choice on or off.

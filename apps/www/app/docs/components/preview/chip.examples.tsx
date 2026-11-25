@@ -83,27 +83,61 @@ export function ControlledExample() {
 /** The pill and square Chip appearances. */
 export function AppearanceExample() {
 	return (
-		<PreviewCanvas className="gap-3">
-			<Chip size="sm" onRemove={() => {}} removeLabel="Remove us-east-1">
-				us-east-1
-			</Chip>
-			<Chip appearance="square" size="sm" onRemove={() => {}} removeLabel="Remove eu-west-1">
-				eu-west-1
-			</Chip>
+		<PreviewCanvas>
+			<div className="flex flex-wrap items-start justify-center gap-6">
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Appearance pill (default)</p>
+					<Chip size="sm" onRemove={() => {}} removeLabel="Remove us-east-1">
+						us-east-1
+					</Chip>
+				</div>
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Appearance square</p>
+					<Chip appearance="square" size="sm" onRemove={() => {}} removeLabel="Remove eu-west-1">
+						eu-west-1
+					</Chip>
+				</div>
+			</div>
 		</PreviewCanvas>
 	);
 }
 
-/** The two Chip sizes. */
+/** Every Chip size on the Button scale. */
 export function SizeExample() {
 	return (
-		<PreviewCanvas className="gap-3">
-			<Chip selectable size="xs">
-				Read
-			</Chip>
-			<Chip selectable size="sm">
-				Read
-			</Chip>
+		<PreviewCanvas>
+			<div className="flex flex-wrap items-start justify-center gap-6">
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size xs (default)</p>
+					<Chip selectable size="xs">
+						Read
+					</Chip>
+				</div>
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size sm</p>
+					<Chip selectable size="sm">
+						Read
+					</Chip>
+				</div>
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size md</p>
+					<Chip selectable size="md">
+						Read
+					</Chip>
+				</div>
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size lg</p>
+					<Chip selectable size="lg">
+						Read
+					</Chip>
+				</div>
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size xl</p>
+					<Chip selectable size="xl">
+						Read
+					</Chip>
+				</div>
+			</div>
 		</PreviewCanvas>
 	);
 }
