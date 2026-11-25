@@ -11,6 +11,7 @@ import { Empty } from "@ngrok/mantle/empty";
 import { Main } from "@ngrok/mantle/main";
 import { Markdown } from "@ngrok/mantle/markdown";
 import { Message } from "@ngrok/mantle/message";
+import { Panel } from "@ngrok/mantle/panel";
 import { PromptInput } from "@ngrok/mantle/prompt-input";
 import { Reasoning } from "@ngrok/mantle/reasoning";
 import { useCopyToClipboard } from "@ngrok/mantle/hooks";
@@ -89,10 +90,10 @@ export function ChatDemo() {
 
 	return (
 		<Main className="fixed inset-0 flex flex-col">
-			<header className="border-separator flex h-12 shrink-0 items-center gap-2 border-b px-4">
+			<Panel.Header>
 				<h1 className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</h1>
 				<ChatOutline messages={chat.messages} />
-			</header>
+			</Panel.Header>
 			<Chat chat={chat} />
 		</Main>
 	);
@@ -211,82 +212,85 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 		<div className="@container flex min-h-0 flex-1 flex-col">
 			{/* Why a second element: a container query reads an ancestor, so the gutter sits inside the container. */}
 			<div className="flex min-h-0 flex-1 flex-col [--gutter:--spacing(3)] @lg:[--gutter:--spacing(4)]">
-				<Conversation.Root streaming={chat.streaming} className="min-h-0 flex-1">
-					{chat.messages.length === 0 ? (
-						<Empty.Root className="m-auto">
-							<Empty.Icon svg={<ChatsCircleIcon />} />
-							<Empty.Title>Ask about your endpoints</Empty.Title>
-							<Empty.Description>
-								<p>The assistant reads your account. It never changes anything without asking.</p>
-							</Empty.Description>
-							<Empty.Actions className="flex-wrap justify-center">
-								{starters.map((starter) => (
-									<Button
-										key={starter}
-										type="button"
-										appearance="outlined"
-										intent="neutral"
-										onClick={() => send(starter)}
-									>
-										{starter}
-									</Button>
-								))}
-							</Empty.Actions>
-						</Empty.Root>
-					) : (
-						<Conversation.Viewport>
-							<Conversation.Content
-								aria-label="Conversation with the assistant"
-								className="mx-auto w-full max-w-3xl px-[calc(var(--gutter)+(--spacing(2)))] py-6"
-							>
-								{chat.messages.map((message) =>
-									message.from === "user" ? (
-										<Message.Root
-											key={message.id}
-											id={message.id}
-											from="user"
-											className="scroll-mt-4"
+				{/* Why no scroll here: `Conversation.Viewport` scrolls, so it can follow the answer as it streams. */}
+				<Panel.Body className="flex flex-col overflow-visible">
+					<Conversation.Root streaming={chat.streaming} className="min-h-0 flex-1">
+						{chat.messages.length === 0 ? (
+							<Empty.Root className="m-auto">
+								<Empty.Icon svg={<ChatsCircleIcon />} />
+								<Empty.Title>Ask about your endpoints</Empty.Title>
+								<Empty.Description>
+									<p>The assistant reads your account. It never changes anything without asking.</p>
+								</Empty.Description>
+								<Empty.Actions className="flex-wrap justify-center">
+									{starters.map((starter) => (
+										<Button
+											key={starter}
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											onClick={() => send(starter)}
 										>
-											<Message.Content className="flex flex-col gap-2">
-												{message.files.length > 0 && (
-													<Attachment.List aria-label="Attached files">
-														{message.files.map((file) => (
-															<Attachment.Root key={file.id}>
-																<Attachment.Preview />
-																<Attachment.Name title={file.name}>{file.name}</Attachment.Name>
-																<Attachment.Size bytes={file.size} />
-															</Attachment.Root>
-														))}
-													</Attachment.List>
-												)}
-												<p className="whitespace-pre-wrap">{message.text}</p>
-											</Message.Content>
-										</Message.Root>
-									) : (
-										<Answer
-											key={message.id}
-											answer={message}
-											onRetry={
-												message === lastAnswer
-													? () => {
-															chat.retry({ model, effort });
-															// Why: Retry leaves while the new answer streams, so focus moves to the field.
-															fieldRef.current?.focus();
-														}
-													: undefined
-											}
-										/>
-									),
-								)}
-							</Conversation.Content>
-						</Conversation.Viewport>
-					)}
-					{/* Why the column: the button sits just outside the transcript's right edge, not at the window's. */}
-					<div className="absolute inset-x-0 bottom-3 mx-auto max-w-3xl">
-						<Conversation.ScrollButton className="right-[calc(var(--gutter)+(--spacing(1.5)))] bottom-0" />
-					</div>
-				</Conversation.Root>
-				<div className="mx-auto w-full max-w-3xl px-(--gutter) pb-(--gutter)">
+											{starter}
+										</Button>
+									))}
+								</Empty.Actions>
+							</Empty.Root>
+						) : (
+							<Conversation.Viewport>
+								<Conversation.Content
+									aria-label="Conversation with the assistant"
+									className="mx-auto w-full max-w-3xl px-[calc(var(--gutter)+(--spacing(2)))] py-6"
+								>
+									{chat.messages.map((message) =>
+										message.from === "user" ? (
+											<Message.Root
+												key={message.id}
+												id={message.id}
+												from="user"
+												className="scroll-mt-4"
+											>
+												<Message.Content className="flex flex-col gap-2">
+													{message.files.length > 0 && (
+														<Attachment.List aria-label="Attached files">
+															{message.files.map((file) => (
+																<Attachment.Root key={file.id}>
+																	<Attachment.Preview />
+																	<Attachment.Name title={file.name}>{file.name}</Attachment.Name>
+																	<Attachment.Size bytes={file.size} />
+																</Attachment.Root>
+															))}
+														</Attachment.List>
+													)}
+													<p className="whitespace-pre-wrap">{message.text}</p>
+												</Message.Content>
+											</Message.Root>
+										) : (
+											<Answer
+												key={message.id}
+												answer={message}
+												onRetry={
+													message === lastAnswer
+														? () => {
+																chat.retry({ model, effort });
+																// Why: Retry leaves while the new answer streams, so focus moves to the field.
+																fieldRef.current?.focus();
+															}
+														: undefined
+												}
+											/>
+										),
+									)}
+								</Conversation.Content>
+							</Conversation.Viewport>
+						)}
+						{/* Why the column: the button sits just outside the transcript's right edge, not at the window's. */}
+						<div className="absolute inset-x-0 bottom-3 mx-auto max-w-3xl">
+							<Conversation.ScrollButton className="right-[calc(var(--gutter)+(--spacing(1.5)))] bottom-0" />
+						</div>
+					</Conversation.Root>
+				</Panel.Body>
+				<Panel.Footer className="mx-auto w-full max-w-3xl px-(--gutter) pb-(--gutter)">
 					<PromptInput.Root
 						streaming={chat.streaming}
 						onStop={chat.stop}
@@ -341,7 +345,7 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 							<PromptInput.Submit />
 						</PromptInput.Footer>
 					</PromptInput.Root>
-				</div>
+				</Panel.Footer>
 			</div>
 		</div>
 	);
