@@ -114,7 +114,10 @@ type DragSession = {
 	dragging: boolean;
 	/** The thumb's offset from the checked item when the drag started, mid-slide or `0`. */
 	base: number;
+	/** The thumb's offset, clamped to the track: where it draws. */
 	offset: number;
+	/** The offset the pointer asks for, not clamped: where the thumb lands. */
+	reach: number;
 	lastPoint: number;
 	lastTime: number;
 	/** The pointer's speed along the axis, in CSS pixels per millisecond. */
@@ -137,11 +140,21 @@ type SlidingThumbOptions = {
 	pseudo: "::before" | "::after";
 	/** The private CSS variable on the group that offsets the thumb during a drag. */
 	offset: `--_${string}`;
-	/** Checks `item`, as a press on it does. */
-	commit: (item: HTMLElement) => void;
+	/** Checks `item`, as a press on it with the modifier keys of `release` does. */
+	commit: (item: HTMLElement, release: PointerEvent) => void;
 };
 
 const parsePixels = (value: string) => Number.parseFloat(value) || 0;
+
+/**
+ * The ratio of an element's viewport size to its own size, such as `0.5` under
+ * `scale(0.5)`. Why the 1px margin: `offsetWidth` rounds to a whole pixel, so
+ * an unscaled item with a fractional width is always within half a pixel.
+ */
+const scaleOf = (element: HTMLElement) => {
+	const { width } = element.getBoundingClientRect();
+	return Math.abs(width - element.offsetWidth) > 1 ? width / element.offsetWidth : 1;
+};
 
 /**
  * Moves the thumb of the group that `groupRef` points at: the `SegmentedControl`
@@ -186,13 +199,23 @@ function useSlidingThumb(
 		}
 		const { items, checked: checkedSelector, disabled, pseudo, offset } = optionsRef.current;
 		let session: DragSession | null = null;
-		let suppressClick = false;
+		let suppressPress = false;
 		let slide: Animation | null = null;
 
 		const readAxis = (): Axis =>
 			group.getAttribute("aria-orientation") === "vertical" ? "y" : "x";
 		const readItems = () => Array.from(group.querySelectorAll<HTMLElement>(items));
 		const readChecked = () => readItems().find((item) => item.matches(checkedSelector)) ?? null;
+		// Why the visibility check: an item with `display: none` has an empty box at the
+		// viewport's edge, and the thumb must never land on an item the reader cannot see.
+		const readSpans = (all: readonly HTMLElement[], axis: Axis): ItemSpan[] =>
+			all.map((item) => ({
+				...spanOf(item.getBoundingClientRect(), axis),
+				disabled:
+					item.matches(disabled) ||
+					(typeof item.checkVisibility === "function" &&
+						!item.checkVisibility({ visibilityProperty: true })),
+			}));
 
 		// Why the computed style: it holds a running slide's current frame, so a
 		// new slide or a drag starts where the thumb is, with no jump.
@@ -200,9 +223,10 @@ function useSlidingThumb(
 			const rect = item.getBoundingClientRect();
 			const style = getComputedStyle(item, pseudo);
 			const [x = "0", y = "0"] = style.translate.split(" ");
+			const scale = scaleOf(item);
 			return {
-				x: rect.left + item.clientLeft + parsePixels(style.left) + parsePixels(x),
-				y: rect.top + item.clientTop + parsePixels(style.top) + parsePixels(y),
+				x: rect.left + scale * (item.clientLeft + parsePixels(style.left) + parsePixels(x)),
+				y: rect.top + scale * (item.clientTop + parsePixels(style.top) + parsePixels(y)),
 				width: parsePixels(style.width),
 				height: parsePixels(style.height),
 			};
@@ -221,8 +245,11 @@ function useSlidingThumb(
 				return;
 			}
 			const to = readThumb(checked);
-			const dx = from.x - to.x;
-			const dy = from.y - to.y;
+			// Why the scale: a transformed ancestor scales the viewport delta, and
+			// `translate` applies in the item's own pixels.
+			const scale = scaleOf(checked);
+			const dx = (from.x - to.x) / scale;
+			const dy = (from.y - to.y) / scale;
 			if (
 				Math.max(
 					Math.abs(dx),
@@ -257,6 +284,7 @@ function useSlidingThumb(
 			running.checkedEnd = end;
 			running.base += shift;
 			running.offset += shift;
+			running.reach += shift;
 			group.style.setProperty(offset, `${running.offset}px`);
 		};
 
@@ -302,6 +330,7 @@ function useSlidingThumb(
 		};
 
 		const handleDown = (event: PointerEvent) => {
+			suppressPress = false;
 			if (!event.isPrimary || event.button !== 0 || session != null) {
 				return;
 			}
@@ -313,10 +342,9 @@ function useSlidingThumb(
 			}
 			const axis = readAxis();
 			const vertical = axis === "y";
-			const spans = all.map((item) => ({
-				...spanOf(item.getBoundingClientRect(), axis),
-				disabled: item.matches(disabled),
-			}));
+			const spans = readSpans(all, axis);
+			// Why only the items with a box: an item with `display: none` would stretch the track.
+			const shown = spans.filter((span) => span.end > span.start);
 			// Why the visible edges: a list that scrolls clips the items past
 			// them, and the thumb must stay where the reader sees it.
 			const groupRect = group.getBoundingClientRect();
@@ -326,8 +354,8 @@ function useSlidingThumb(
 			const visibleEnd = visibleStart + (vertical ? group.clientHeight : group.clientWidth);
 			// Why the extremes and not the first and last item: in RTL, the first
 			// item is on the right.
-			const trackStart = Math.max(visibleStart, Math.min(...spans.map((span) => span.start)));
-			const trackEnd = Math.min(visibleEnd, Math.max(...spans.map((span) => span.end)));
+			const trackStart = Math.max(visibleStart, Math.min(...shown.map((span) => span.start)));
+			const trackEnd = Math.min(visibleEnd, Math.max(...shown.map((span) => span.end)));
 			const checkedSpan = spanOf(checked.getBoundingClientRect(), axis);
 			const point = vertical ? event.clientY : event.clientX;
 			session = {
@@ -346,6 +374,7 @@ function useSlidingThumb(
 				dragging: false,
 				base: 0,
 				offset: 0,
+				reach: 0,
 				lastPoint: point,
 				lastTime: event.timeStamp,
 				velocity: 0,
@@ -383,8 +412,17 @@ function useSlidingThumb(
 				}
 				session.dragging = true;
 				session.base = readTranslate(session.checked);
+				// Why the size goes on: a press on a thumb in the middle of a slide keeps
+				// its size, and the drag takes over only its position.
+				const grabbed = slide == null ? null : readThumb(session.checked);
 				slide?.cancel();
-				slide = null;
+				slide =
+					grabbed == null || getPrefersReducedMotion()
+						? null
+						: session.checked.animate(
+								[{ offset: 0, width: `${grabbed.width}px`, height: `${grabbed.height}px` }],
+								{ duration: 200, easing: easeOutStrong, pseudoElement: pseudo },
+							);
 				// Why capture: the items under the pointer then get no hover tint,
 				// and the click after the release lands on the group, not an item.
 				group.setPointerCapture(event.pointerId);
@@ -396,15 +434,18 @@ function useSlidingThumb(
 			}
 			session.lastPoint = point;
 			session.lastTime = event.timeStamp;
+			session.reach = session.base + travel;
 			session.offset = thumbOffset({
-				travel: session.base + travel,
+				travel: session.reach,
 				min: session.trackStart - session.checkedStart,
 				max: session.trackEnd - session.checkedEnd,
 				give: session.give,
 			});
 			group.style.setProperty(offset, `${session.offset}px`);
+			// Why the reach and not the drawn offset: a wide thumb clamped at an end
+			// could never reach a narrow item at that end.
 			const checkedCenter = (session.checkedStart + session.checkedEnd) / 2;
-			const over = nearestItem(session.spans, checkedCenter + session.offset);
+			const over = nearestItem(session.spans, checkedCenter + session.reach);
 			for (const [index, item] of session.items.entries()) {
 				item.toggleAttribute("data-thumb-over", index === over);
 			}
@@ -430,25 +471,31 @@ function useSlidingThumb(
 			}
 			const rested = event.timeStamp - finished.lastTime > flickRestMs;
 			const velocity = rested ? 0 : finished.velocity;
-			const checkedCenter = (finished.checkedStart + finished.checkedEnd) / 2;
-			const projected = checkedCenter + finished.offset + velocity * flickProjectionMs;
-			const target = finished.items[nearestItem(finished.spans, projected)];
+			// Why a new read: the items can move, resize, or turn disabled during the
+			// drag. The thumb moves with the checked item, so it lands from there.
+			const checkedSpan = spanOf(finished.checked.getBoundingClientRect(), finished.axis);
+			const checkedCenter = (checkedSpan.start + checkedSpan.end) / 2;
+			const projected = checkedCenter + finished.reach + velocity * flickProjectionMs;
+			const spans = readSpans(finished.items, finished.axis);
+			const target = finished.items[nearestItem(spans, projected)];
 			if (target != null && target !== finished.checked) {
-				commitItem(target);
+				commitItem(target, event);
 			}
-			// Why after the commit: the flag must swallow the click the browser
-			// sends after the release, not the commit's own click.
-			suppressClick = true;
-			window.setTimeout(() => {
-				suppressClick = false;
-			}, 0);
+			// Why after the commit: the flag must swallow the mouse events the browser
+			// sends after the release, not the commit's own events. A touch that moved
+			// less than the browser's tap slop still gets a `mousedown` and a `click`.
+			suppressPress = true;
 		};
 
-		const handleClick = (event: MouseEvent) => {
-			if (!suppressClick) {
+		// Why `detail`: a key that clicks an item sends a click with no `detail`, and
+		// it is never part of a pointer press.
+		const handlePress = (event: MouseEvent) => {
+			if (!suppressPress || (event.type === "click" && event.detail === 0)) {
 				return;
 			}
-			suppressClick = false;
+			if (event.type === "click") {
+				suppressPress = false;
+			}
 			event.preventDefault();
 			event.stopPropagation();
 		};
@@ -456,7 +503,8 @@ function useSlidingThumb(
 		group.addEventListener("pointerdown", handleDown);
 		// Why capture: a browser that does not retarget the click to the group
 		// must still not send it to the item under the release.
-		group.addEventListener("click", handleClick, true);
+		group.addEventListener("mousedown", handlePress, true);
+		group.addEventListener("click", handlePress, true);
 		return () => {
 			syncRef.current = null;
 			slide?.cancel();
@@ -465,7 +513,8 @@ function useSlidingThumb(
 			}
 			endSession();
 			group.removeEventListener("pointerdown", handleDown);
-			group.removeEventListener("click", handleClick, true);
+			group.removeEventListener("mousedown", handlePress, true);
+			group.removeEventListener("click", handlePress, true);
 		};
 	}, [groupRef, commitItem]);
 }

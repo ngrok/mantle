@@ -190,9 +190,9 @@ const Item = ({ className, ...props }: SegmentedControlItemProps) => {
 				"not-has-[>input:disabled]:hover:text-strong",
 				// Why a pseudo-element of each item: the checked item draws the thumb, so the
 				// server HTML shows it. `useSlidingThumb` slides it from the item checked before.
-				"before:absolute before:top-0 before:left-0 before:-z-1 before:size-full before:rounded-xs has-[>input:checked]:before:bg-neutral-500/15",
+				"before:pointer-events-none before:absolute before:top-0 before:left-0 before:-z-1 before:size-full before:rounded-xs has-[>input:checked]:before:bg-neutral-500/15",
 				// Why a private variable: during a drag, the thumb follows the pointer off its item.
-				"before:translate-x-(--_segmented-control-thumb-offset,0px)",
+				"has-[>input:checked]:before:translate-x-(--_segmented-control-thumb-offset,0px)",
 				// Why: forced colors paint each background in the canvas color, so the thumb draws an outline there.
 				"forced-colors:has-[>input:checked]:before:outline-2",
 				"has-[>input:checked]:not-in-data-dragging:text-strong",

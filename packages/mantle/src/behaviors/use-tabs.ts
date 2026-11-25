@@ -287,21 +287,6 @@ const pressTab = (tabs: TabsBehavior, tab: HTMLElement, value: string) => {
 };
 
 /**
- * Activates `tab` as a press does: a button tab takes focus without the focus
- * ring and selects once, and a link tab gets a click, so it navigates.
- */
-const activateTab = (tabs: TabsBehavior, tab: HTMLElement) => {
-	if (tab.matches("a[href]")) {
-		tab.click();
-		return;
-	}
-	const prefix = `${tabs.baseId}-trigger-`;
-	if (tab.id.startsWith(prefix)) {
-		pressTab(tabs, tab, tab.id.slice(prefix.length));
-	}
-};
-
-/**
  * Wires one tab: `role="tab"`, `aria-selected`, `aria-controls`, the roving
  * `tabIndex`, the arrow keys, and activation. The last focused tab is the Tab
  * stop, else the selected tab, so the server HTML has the selected tab in the
@@ -496,7 +481,6 @@ const getTabPanelProps = (
 
 export {
 	//,
-	activateTab,
 	getTabListProps,
 	getTabPanelProps,
 	getTabProps,

@@ -3,7 +3,6 @@
 import { cva } from "class-variance-authority";
 import type { ComponentProps, ReactNode } from "react";
 import { cloneElement, createContext, isValidElement, useContext, useRef } from "react";
-import { activateTab } from "../../behaviors/use-tabs.js";
 import type { Orientation } from "../../behaviors/use-tabs.js";
 import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
@@ -29,37 +28,71 @@ function useTabsStyle(partName: string) {
 	return { tabs, orientation: tabs.orientation, appearance: useContext(TabsAppearanceContext) };
 }
 
-/** Where the active-tab indicator is drawn, and which tabs a drag skips. */
-const thumbOptions: Omit<SlidingThumbOptions, "commit"> = {
+/** Where the active-tab indicator is drawn, which tabs a drag skips, and how a drag lands. */
+const thumbOptions: SlidingThumbOptions = {
 	items: '[role="tab"]',
 	checked: '[aria-selected="true"]',
 	disabled: ':is(:disabled, [aria-disabled="true"])',
 	pseudo: "::after",
 	offset: "--_tabs-thumb-offset",
+	// Why a press and a click: a drag lands as a press does, so the trigger's own
+	// handlers run and an `onMouseDown` that calls `preventDefault()` vetoes it.
+	// A link tab ignores the press and follows its click.
+	// Why no commit with a modifier key: a modified press on a link opens it elsewhere,
+	// and a script's click cannot do that. The indicator returns to the active tab.
+	commit: (tab, release) => {
+		if (release.altKey || release.ctrlKey || release.metaKey || release.shiftKey) {
+			return;
+		}
+		const press = new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 });
+		if (tab.matches("a[href]") || tab.dispatchEvent(press)) {
+			tab.click();
+		}
+	},
 };
 
 let overflowObserver: ResizeObserver | undefined;
 
+/** Marks `list` with `data-overflowing="true"` while it is wider than its box, else `"false"`. */
+const measureOverflow = (list: Element) => {
+	list.setAttribute("data-overflowing", String(list.scrollWidth > list.clientWidth));
+};
+
 /**
- * A ref callback for a list and each of its triggers. While a horizontal list
- * scrolls, it carries `data-overflowing`, and a touch swipe on its active tab
- * scrolls the list instead of dragging the indicator. One `ResizeObserver`
- * serves every list: a trigger that resizes, such as a badge that grows, can
- * make its list scroll.
+ * A ref callback for a list and each of its triggers. Once measured, a list
+ * carries `data-overflowing`: `"true"` while it scrolls, else `"false"`. A
+ * touch swipe on the active tab drags the indicator only in a list measured
+ * to fit, so the server HTML and a list that scrolls keep native scrolling.
+ * One `ResizeObserver` serves every list: a trigger that resizes, such as a
+ * badge that grows, can make its list scroll.
  */
 const observeOverflow = (element: HTMLElement | null) => {
-	// Why the check: jsdom has no `ResizeObserver`. The active tab then drags on touch.
+	// Why the check: jsdom has no `ResizeObserver`. The active tab then never drags on touch.
 	if (element == null || typeof ResizeObserver === "undefined") {
 		return undefined;
 	}
 	overflowObserver ??= new ResizeObserver((entries) => {
 		for (const { target } of entries) {
 			const list = target.closest('[role="tablist"]');
-			list?.toggleAttribute("data-overflowing", list.scrollWidth > list.clientWidth);
+			if (list != null) {
+				measureOverflow(list);
+			}
 		}
 	});
 	overflowObserver.observe(element);
-	return () => overflowObserver?.unobserve(element);
+	const list = element.closest('[role="tablist"]');
+	return () => {
+		overflowObserver?.unobserve(element);
+		// Why a frame: a trigger that unmounts resizes nothing that the observer
+		// sees, and the list can fit once the trigger is gone.
+		if (list != null && list !== element) {
+			requestAnimationFrame(() => {
+				if (list.isConnected) {
+					measureOverflow(list);
+				}
+			});
+		}
+	};
 };
 
 /**
@@ -189,7 +222,7 @@ const listVariants = cva("flex", {
  * | `data-slot`        | `"tabs-list"`                  | On the tablist element.               |
  * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.               |
  * | `data-dragging`    | present during a drag          | The indicator follows the pointer. Presence-only. |
- * | `data-overflowing` | present while the list scrolls | A horizontal list is wider than its box. Presence-only. |
+ * | `data-overflowing` | `"true"` \| `"false"`          | Set once measured. `"true"` while a horizontal list is wider than its box. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
@@ -210,10 +243,7 @@ const listVariants = cva("flex", {
 const List = ({ className, ref, ...props }: HeadlessTabs.ListProps) => {
 	const { tabs, orientation, appearance } = useTabsStyle("Tabs.List");
 	const listRef = useRef<HTMLDivElement>(null);
-	useSlidingThumb(listRef, tabs.value, {
-		...thumbOptions,
-		commit: (tab) => activateTab(tabs, tab),
-	});
+	useSlidingThumb(listRef, tabs.value, thumbOptions);
 	return (
 		<HeadlessTabs.List
 			className={cx(
@@ -320,7 +350,8 @@ const triggerVariants = cva(
 		// Why a pseudo-element of each trigger: the active trigger draws the indicator,
 		// so it costs no element and no render, and the server HTML shows it.
 		// `useSlidingThumb` slides it from the trigger that was active.
-		"after:absolute",
+		// Why no pointer events: a sliding indicator over a neighbor must not take its press.
+		"after:pointer-events-none after:absolute",
 		"aria-selected:not-in-data-dragging:text-strong not-aria-disabled:hover:aria-selected:text-strong",
 		// Why: during a drag, the label under the indicator is strong, and the active tab can be away from it.
 		"data-thumb-over:text-strong",
@@ -330,16 +361,17 @@ const triggerVariants = cva(
 	{
 		variants: {
 			orientation: {
-				// Why `in-data-overflowing`: a touch swipe on the active tab of a list that scrolls
-				// scrolls the list. In a list that fits, a sideways swipe drags the indicator.
+				// Why `overflowing=false`: a touch swipe on the active tab drags the indicator only
+				// in a list measured to fit. Before the measure, and in a list that scrolls, it scrolls.
 				horizontal: cx(
 					"rounded-tl-md rounded-tr-md",
-					"after:translate-x-(--_tabs-thumb-offset,0px)",
-					"aria-selected:not-in-data-overflowing:touch-pan-y",
+					// Why only the active tab: an offset indicator on another tab would widen the scroll area.
+					"aria-selected:after:translate-x-(--_tabs-thumb-offset,0px)",
+					"aria-selected:in-data-[overflowing=false]:touch-pan-y",
 				),
 				vertical: cx(
 					"rounded-bl-md rounded-tl-md pr-3",
-					"after:translate-y-(--_tabs-thumb-offset,0px)",
+					"aria-selected:after:translate-y-(--_tabs-thumb-offset,0px)",
 					"aria-selected:touch-pan-x",
 				),
 			} as const satisfies Record<Orientation, string>,

@@ -1,5 +1,6 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import axe from "axe-core";
+import type { ComponentProps } from "react";
 import { useState } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -1354,14 +1355,20 @@ describe("Tabs indicator", () => {
 		orientation = "horizontal",
 		dir,
 		width = 480,
+		overview,
+		hidden,
 	}: {
 		appearance?: "classic" | "pill";
 		orientation?: "horizontal" | "vertical";
 		dir?: "rtl";
 		width?: number;
+		/** Props for the "Overview" trigger. */
+		overview?: Partial<ComponentProps<typeof Tabs.Trigger>>;
+		/** Renders a first tab, "Archive", with `display: none`. */
+		hidden?: boolean;
 	} = {}) {
 		const onValueChange = vi.fn<(value: string) => void>();
-		render(
+		const ui = (overviewProps = overview) => (
 			<div dir={dir} style={{ width }}>
 				<Tabs.Root
 					defaultValue="settings"
@@ -1370,16 +1377,28 @@ describe("Tabs indicator", () => {
 					onValueChange={onValueChange}
 				>
 					<Tabs.List aria-label="Sections">
-						<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+						{hidden && (
+							<Tabs.Trigger value="archive" style={{ display: "none" }}>
+								Archive
+							</Tabs.Trigger>
+						)}
+						<Tabs.Trigger value="overview" {...overviewProps}>
+							Overview
+						</Tabs.Trigger>
 						<Tabs.Trigger value="logs">Logs</Tabs.Trigger>
 						<Tabs.Trigger value="settings">Settings and access</Tabs.Trigger>
 					</Tabs.List>
+					<Tabs.Content value="archive">Archive panel</Tabs.Content>
 					<Tabs.Content value="overview">Overview panel</Tabs.Content>
 					<Tabs.Content value="logs">Logs panel</Tabs.Content>
 					<Tabs.Content value="settings">Settings panel</Tabs.Content>
 				</Tabs.Root>
-			</div>,
+			</div>
 		);
+		const { rerender } = render(ui());
+		/** Renders the "Overview" trigger with new props, as a parent does. */
+		const setOverview = (props: Partial<ComponentProps<typeof Tabs.Trigger>>) =>
+			rerender(ui(props));
 		const vertical = orientation === "vertical";
 		const active = screen.getByRole("tab", { name: "Settings and access" });
 		const rect = active.getBoundingClientRect();
@@ -1404,7 +1423,7 @@ describe("Tabs indicator", () => {
 			}
 		};
 		const release = (travel: number, timeStamp: number) => send("pointerup", travel, timeStamp);
-		return { onValueChange, move, release, list: screen.getByRole("tablist") };
+		return { onValueChange, move, release, setOverview, list: screen.getByRole("tablist") };
 	}
 
 	/** The box that `tab`'s indicator shows when its one slide starts, relative to `tab`. */
@@ -1538,6 +1557,9 @@ describe("Tabs indicator", () => {
 
 	test("a touch swipe on the active tab drags in a list that fits and scrolls a list that overflows", async () => {
 		renderSections({ width: 480 });
+		await vi.waitFor(() => {
+			expect(screen.getByRole("tablist")).toHaveAttribute("data-overflowing", "false");
+		});
 		const fits = screen.getByRole("tab", { name: "Settings and access" });
 		expect(getComputedStyle(fits).touchAction).toBe("pan-y");
 		cleanup();
@@ -1545,10 +1567,113 @@ describe("Tabs indicator", () => {
 		renderSections({ width: 160 });
 		const list = screen.getByRole("tablist");
 		await vi.waitFor(() => {
-			expect(list).toHaveAttribute("data-overflowing");
+			expect(list).toHaveAttribute("data-overflowing", "true");
 		});
 		const overflows = screen.getByRole("tab", { name: "Settings and access" });
 		expect(getComputedStyle(overflows).touchAction).toBe("auto");
+	});
+
+	/** The travel from the center of "Settings and access" to the center of `name`. */
+	function travelTo(name: string) {
+		const from = screen.getByRole("tab", { name: "Settings and access" }).getBoundingClientRect();
+		const to = screen.getByRole("tab", { name }).getBoundingClientRect();
+		return to.left + to.width / 2 - (from.left + from.width / 2);
+	}
+
+	test("an onMouseDown that vetoes a press on a tab also vetoes a drag onto it", async () => {
+		const { onValueChange, move, release } = renderSections({
+			overview: { onMouseDown: (event) => event.preventDefault() },
+		});
+		const travel = travelTo("Overview");
+
+		move([-20, travel]);
+		release(travel, 200);
+
+		await expect.poll(() => screen.getByRole("tabpanel").textContent).toBe("Settings panel");
+		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
+	test("a drag lands on the nearest enabled tab when its target turns disabled mid-drag", async () => {
+		const { onValueChange, move, release, setOverview } = renderSections();
+		const travel = travelTo("Overview");
+
+		move([-20, travel]);
+		setOverview({ disabled: true });
+		release(travel, 200);
+
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenLastCalledWith("logs");
+	});
+
+	test("a flick toward the start never lands on a tab with display: none", () => {
+		const { onValueChange, move, release } = renderSections({ hidden: true });
+		const travel = travelTo("Overview");
+
+		// Why no rest: the flick carries the indicator past the first shown tab.
+		move([travel / 2, travel]);
+		release(travel, 32);
+
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenLastCalledWith("overview");
+	});
+
+	test("a drag lands where the indicator is when the active tab resizes mid-drag", () => {
+		const { onValueChange, move, release } = renderSections();
+		const settings = screen.getByRole("tab", { name: "Settings and access" });
+		const travel = travelTo("Overview");
+
+		move([-20, travel]);
+		// Why: a label that grows, such as a badge count, widens the indicator from its start edge.
+		settings.style.width = `${settings.getBoundingClientRect().width + 240}px`;
+		const indicator = getComputedStyle(settings, "::after");
+		const indicatorCenter =
+			settings.getBoundingClientRect().left +
+			Number.parseFloat(indicator.left) +
+			Number.parseFloat(indicator.translate) +
+			Number.parseFloat(indicator.width) / 2;
+		const nearest = ["Overview", "Logs"]
+			.map((name) => {
+				const box = screen.getByRole("tab", { name }).getBoundingClientRect();
+				return { name, distance: Math.abs(box.left + box.width / 2 - indicatorCenter) };
+			})
+			.toSorted((a, b) => a.distance - b.distance)[0]?.name;
+		release(travel, 200);
+
+		expect(nearest).toBe("Logs");
+		expect(onValueChange).toHaveBeenLastCalledWith("logs");
+	});
+
+	test("the mousedown a touch sends after the release does not activate the tab it started on", async () => {
+		const { onValueChange, move, release } = renderSections();
+		const travel = travelTo("Overview");
+
+		move([-20, travel]);
+		release(travel, 200);
+		await expect.poll(() => screen.getByRole("tabpanel").textContent).toBe("Overview panel");
+		// Why: Chromium sends a compatibility `mousedown` to the pressed tab after a short touch.
+		screen
+			.getByRole("tab", { name: "Settings and access" })
+			.dispatchEvent(
+				new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0, detail: 1 }),
+			);
+
+		await expect.poll(() => screen.getByRole("tabpanel").textContent).toBe("Overview panel");
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenLastCalledWith("overview");
+	});
+
+	test("a slow drag reaches a narrow tab past a wide active tab", () => {
+		const { onValueChange, move, release } = renderSections({
+			overview: { style: { width: 40 } },
+		});
+		const settings = screen.getByRole("tab", { name: "Settings and access" });
+		settings.style.width = "300px";
+		const travel = travelTo("Overview");
+
+		move([-20, travel / 2, travel]);
+		release(travel, 400);
+
+		expect(onValueChange).toHaveBeenLastCalledWith("overview");
 	});
 
 	test("a drag onto a link tab follows the link", async () => {
