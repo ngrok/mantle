@@ -1445,15 +1445,11 @@ const SidePanel = ({
 		return () => requestSidebarWidth(false);
 	}, [needsSidebarWidth, requestSidebarWidth]);
 
-	// Why native listeners: React's `onFocus` misses focus that a child stops
+	// Why a native listener: React's `onFocus` misses focus that a child stops
 	// and a button portaled into the panel, and it reports popups portaled out
 	// of it. A document capture listener runs before any child can stop it, and
-	// the DOM check skips popups portaled out. Why `resize`: the first client
-	// snapshot also turns a phone's panel modal, and that is no resize. The
-	// browser fires `resize` before it reports the media change, and `matches`
-	// already holds the new value. Why a layout effect: a parent's layout
-	// effect can move focus in the mount commit, and it runs after this one.
-	const resizedRef = useRef(false);
+	// the DOM check skips popups portaled out. Why a layout effect: a parent's
+	// layout effect can move focus in the mount commit, and it runs after this one.
 	useLayoutEffect(() => {
 		const panel = panelRef.current;
 		if (!openSinceMount || panel == null) {
@@ -1465,32 +1461,25 @@ const SidePanel = ({
 				armFocusTrap();
 			}
 		};
-		// Why optional: jsdom has no `matchMedia`.
-		const coverList = window.matchMedia?.(coverQuery);
-		let coveredAtLastResize = coverList?.matches ?? false;
-		const handleResize = () => {
-			const covered = coverList?.matches ?? false;
-			if (covered !== coveredAtLastResize) {
-				resizedRef.current = true;
-			}
-			coveredAtLastResize = covered;
-		};
 		document.addEventListener("focusin", handleFocusIn, true);
-		window.addEventListener("resize", handleResize);
 		return () => {
 			document.removeEventListener("focusin", handleFocusIn, true);
-			window.removeEventListener("resize", handleResize);
 		};
-	}, [armFocusTrap, coverQuery, lastFocusedInsideRef, openSinceMount, panelRef]);
+	}, [armFocusTrap, lastFocusedInsideRef, openSinceMount, panelRef]);
 
 	// Why: a panel open since mount still arms the trap in two cases with no
 	// focus event. Focus that entered before hydration fires none, and a resize
 	// that covers the row takes focus from the card or the sidebar when they go
-	// `inert`. Why before `useInertSiblings`: focus is read before the row goes
-	// `inert`.
+	// `inert`. Why the live `matches` and not `covers`: the first client
+	// snapshot also turns a phone's panel modal, and that is no resize, while
+	// the live value has covered since the first commit. Event order differs
+	// by engine, so no `resize` listener can tell them apart. Why before
+	// `useInertSiblings`: focus is read before the row goes `inert`.
+	const coveredAtLastCommitRef = useRef<boolean | null>(null);
 	useLayoutEffect(() => {
-		const resized = resizedRef.current;
-		resizedRef.current = false;
+		const coveredBefore = coveredAtLastCommitRef.current;
+		// Why optional: jsdom has no `matchMedia`.
+		coveredAtLastCommitRef.current = window.matchMedia?.(coverQuery).matches ?? false;
 		const panel = panelRef.current;
 		const row = panel?.parentElement;
 		if (!isModal || !openSinceMount || panel == null || row == null) {
@@ -1498,11 +1487,12 @@ const SidePanel = ({
 		}
 		const activeElement = document.activeElement;
 		const focusIsInPanel = panel.contains(activeElement);
-		const resizeTookRowFocus = resized && activeElement !== row && row.contains(activeElement);
+		const resizeTookRowFocus =
+			coveredBefore === false && activeElement !== row && row.contains(activeElement);
 		if (focusIsInPanel || resizeTookRowFocus) {
 			armFocusTrap();
 		}
-	}, [armFocusTrap, isModal, openSinceMount, panelRef]);
+	}, [armFocusTrap, coverQuery, isModal, openSinceMount, panelRef]);
 
 	// Why siblings: the card and the sidebar are the panel's siblings in the row,
 	// and `AppLayout` knows nothing about the sidebar.

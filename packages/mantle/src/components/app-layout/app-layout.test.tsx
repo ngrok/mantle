@@ -1163,11 +1163,8 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		render(coveringShell());
 		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
 		trigger.focus();
-		// Why both in one act: a browser fires `resize` with `matches` already
-		// new, before React commits the media change.
 		act(() => {
 			media.setMatches(coverQuery, true);
-			window.dispatchEvent(new Event("resize"));
 		});
 		expect(screen.getByTestId("card")).toHaveAttribute("inert");
 		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
