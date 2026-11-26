@@ -250,6 +250,12 @@ function cellClassName(align: "center" | "left" | "right" | null | undefined): s
 	);
 }
 
+/**
+ * Whether the answer streams. Why a context: a finished block never renders
+ * again, and its code block must still learn that the answer ended, to fold.
+ */
+const StreamingContext = /* @__PURE__ */ createContext(false);
+
 /** The fence of a code token, rendered as a mantle `CodeBlock` that highlights as the code streams. */
 function MarkdownCodeBlock({ token }: { token: CodeToken }) {
 	const label = token.lang?.trim().split(/\s/, 1)[0] ?? "";
@@ -258,6 +264,7 @@ function MarkdownCodeBlock({ token }: { token: CodeToken }) {
 		code: token.text,
 		language,
 		showLineNumbers: defaultShowLineNumbers(language, token.text),
+		complete: !use(StreamingContext),
 	});
 	return (
 		<CodeBlock.Root>
@@ -732,18 +739,20 @@ function Markdown({
 			className={cx("min-w-0 wrap-break-word", className)}
 			{...props}
 		>
-			<LinksContext value={snapshot.links}>
-				{Array.from({ length: Math.ceil(snapshot.blocks.length / GROUP_SIZE) }, (_, group) => (
-					<MarkdownGroup
-						// oxlint-disable-next-line react/no-array-index-key -- Why: a group holds the same blocks for the life of the answer.
-						key={group}
-						blocks={snapshot.blocks.slice(group * GROUP_SIZE, (group + 1) * GROUP_SIZE)}
-						start={group * GROUP_SIZE}
-						components={components ?? noComponents}
-						links={snapshot.links}
-					/>
-				))}
-			</LinksContext>
+			<StreamingContext value={streaming}>
+				<LinksContext value={snapshot.links}>
+					{Array.from({ length: Math.ceil(snapshot.blocks.length / GROUP_SIZE) }, (_, group) => (
+						<MarkdownGroup
+							// oxlint-disable-next-line react/no-array-index-key -- Why: a group holds the same blocks for the life of the answer.
+							key={group}
+							blocks={snapshot.blocks.slice(group * GROUP_SIZE, (group + 1) * GROUP_SIZE)}
+							start={group * GROUP_SIZE}
+							components={components ?? noComponents}
+							links={snapshot.links}
+						/>
+					))}
+				</LinksContext>
+			</StreamingContext>
 		</div>
 	);
 }

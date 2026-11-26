@@ -6,8 +6,11 @@ import {
 	type LanguageRegistration,
 } from "@shikijs/core";
 import { createJavaScriptRegexEngine } from "@shikijs/engine-javascript";
+import { computeFoldRanges, type FoldLine } from "./compute-fold-ranges.js";
+import type { FoldableRange } from "./fold-range-utils.js";
 import { mantleShikiThemeName, mantleShikiTokenColors } from "./shiki-theme.js";
 import type { GrammarId } from "./grammars.js";
+import type { SupportedLanguage } from "./supported-languages.js";
 
 /**
  * One token of a highlighted line: its text, its color as a CSS value (a
@@ -40,6 +43,8 @@ type LineTokenizerResult = {
 	lines: CodeLine[];
 	/** The line count of the whole block. */
 	lineCount: number;
+	/** The fold ranges of the whole block, when the request asked for them. */
+	foldableRanges?: FoldableRange[] | undefined;
 };
 
 let highlighterPromise: Promise<HighlighterCore> | undefined;
@@ -89,10 +94,13 @@ async function tokenizeChangedLines({
 	state,
 	code,
 	grammar,
+	foldLanguage,
 }: {
 	state: LineTokenizerState;
 	code: string;
 	grammar: GrammarId;
+	/** When set, the code is final: also compute its fold ranges as this language. */
+	foldLanguage?: SupportedLanguage | undefined;
 }): Promise<LineTokenizerResult> {
 	const highlighter = await getHighlighter();
 	const lines = code.split("\n");
@@ -125,7 +133,42 @@ async function tokenizeChangedLines({
 	}
 	state.lines = lines;
 	state.endStates.length = lines.length;
-	return { start, lines: changed, lineCount: lines.length };
+	return {
+		start,
+		lines: changed,
+		lineCount: lines.length,
+		foldableRanges:
+			foldLanguage == null
+				? undefined
+				: foldRangesOf(highlighter, { state, grammar, language: foldLanguage }),
+	};
+}
+
+/**
+ * The fold ranges of a block whose lines `state` holds. Why once and apart
+ * from the streamed lines: the fold strategies need each token's scopes,
+ * which cost more than its color, so only the final code pays for them.
+ * Each line starts from the grammar state of the line before, so this is one
+ * pass over the block.
+ */
+function foldRangesOf(
+	highlighter: HighlighterCore,
+	{
+		state,
+		grammar,
+		language,
+	}: { state: LineTokenizerState; grammar: GrammarId; language: SupportedLanguage },
+): FoldableRange[] {
+	const tokens: FoldLine[] = state.lines.map(
+		(line, index) =>
+			highlighter.codeToTokensBase(line, {
+				lang: grammar,
+				theme: mantleShikiThemeName,
+				grammarState: index > 0 ? state.endStates[index - 1] : undefined,
+				includeExplanation: "scopeName",
+			})[0] ?? [],
+	);
+	return computeFoldRanges({ language, tokens });
 }
 
 export {

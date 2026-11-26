@@ -42,6 +42,7 @@ import { IconButton } from "../button/icon-button.js";
 import { Slot } from "../slot/index.js";
 import { escapeHtml } from "./escape-html.js";
 import { tokenClassForColor } from "./token-classes.js";
+import { indexFoldRanges, type LineFold as FoldMarkup } from "./decorate-highlighted-html.js";
 import { attachFoldHandler, resetFoldState } from "./fold-runtime.js";
 import type { Mode } from "./resolve-pre-rendered-props.js";
 import type { CodeLine, CodeToken } from "./line-tokenizer.js";
@@ -423,6 +424,9 @@ function TokenView({ token }: { token: CodeToken }) {
 	);
 }
 
+/** The fold markup of one streamed line, with the `counter-set` value of a line that closes a fold. */
+type LineFold = FoldMarkup & { counterSet: string };
+
 /**
  * One line of browser-highlighted code, with the same markup as a line of
  * pre-rendered HTML, so the two share one stylesheet and one geometry.
@@ -432,9 +436,11 @@ function TokenView({ token }: { token: CodeToken }) {
 const CodeLineView = memo(function CodeLineView({
 	line,
 	lineNumber,
+	fold,
 }: {
 	line: CodeLine | string;
 	lineNumber: number;
+	fold: LineFold | undefined;
 }) {
 	// Why a space: an empty line keeps its height, and each browser copies it as a blank line (see `decorateHighlightedHtml`).
 	let content: ReactNode;
@@ -450,8 +456,24 @@ const CodeLineView = memo(function CodeLineView({
 	}
 	// Why no number element: `mantle.css` counts the lines and draws each
 	// number, so the digits stay out of the code's text.
+	// Why the same fold markup as `decorateHighlightedHtml`: the fold runtime and `mantle.css` read only these attributes.
 	return (
-		<span className="mantle-code-line" data-line-number={lineNumber}>
+		<span
+			// Why `clsx`: mantle class names, not Tailwind utilities (see `decorateHighlightedHtml`).
+			className={clsx("mantle-code-line", fold?.opener != null && "mantle-code-line-opener")}
+			data-line-number={lineNumber}
+			data-fold-regions={fold?.regions}
+			style={fold?.closer === true ? { counterSet: fold.counterSet } : undefined}
+		>
+			{fold?.opener != null && (
+				<button
+					type="button"
+					className="mantle-code-fold-toggle"
+					data-fold-line={fold.opener}
+					aria-expanded="true"
+					aria-label="Toggle code folding"
+				/>
+			)}
 			<span className="mantle-code-line-content">{content}</span>
 		</span>
 	);
@@ -463,6 +485,8 @@ const LINE_GROUP_SIZE = 64;
 /** Props of a group of lines. `start` is the index of its first line in the block. */
 type CodeLineGroupProps = {
 	lines: readonly (CodeLine | string)[];
+	/** The fold markup of each line, by its index in the block. */
+	folds: ReadonlyMap<number, LineFold> | undefined;
 	start: number;
 	lineNumberStart: number;
 };
@@ -475,6 +499,7 @@ type CodeLineGroupProps = {
 function isSameLineGroup(previous: CodeLineGroupProps, next: CodeLineGroupProps): boolean {
 	if (
 		previous.start !== next.start ||
+		previous.folds !== next.folds ||
 		previous.lineNumberStart !== next.lineNumberStart ||
 		previous.lines.length !== next.lines.length
 	) {
@@ -495,6 +520,7 @@ function isSameLineGroup(previous: CodeLineGroupProps, next: CodeLineGroupProps)
  */
 const CodeLineGroup = memo(function CodeLineGroup({
 	lines,
+	folds,
 	start,
 	lineNumberStart,
 }: CodeLineGroupProps) {
@@ -503,7 +529,11 @@ const CodeLineGroup = memo(function CodeLineGroup({
 		<Fragment key={index}>
 			{/* Why a newline: `textContent` keeps the line breaks, the same as pre-rendered HTML. */}
 			{start + index > 0 && "\n"}
-			<CodeLineView line={line} lineNumber={lineNumberStart + (start + index)} />
+			<CodeLineView
+				line={line}
+				lineNumber={lineNumberStart + (start + index)}
+				fold={folds?.get(start + index)}
+			/>
 		</Fragment>
 	));
 }, isSameLineGroup);
@@ -515,7 +545,8 @@ const CodeLineGroup = memo(function CodeLineGroup({
  * Mantle's Vite plugin or server highlighter sets `value["~preHtml"]`.
  * `useCodeBlockStream` sets `value["~lines"]` instead: each line then renders
  * as React elements with the same markup, and a line that did not change
- * does not render again. Code folding needs pre-rendered HTML.
+ * does not render again. Streamed lines fold once `useCodeBlockStream` gets
+ * `complete: true`.
  *
  * The `<pre>` always carries `translate="no"`, so a browser translation engine
  * skips the code. A translated CLI flag, env var, or YAML key is wrong, and the
@@ -529,7 +560,7 @@ const CodeLineGroup = memo(function CodeLineGroup({
  * | --- | --- | --- |
  * | `data-expanded` | present when expanded | Presence-only. Only with a composed `CodeBlock.ExpanderButton`, which carries `aria-expanded`. |
  * | `data-syntax-highlighted` | present when highlighted | Presence-only. The value carried pre-rendered Shiki HTML. |
- * | `data-foldable` | present when foldable | Presence-only. The pre-rendered HTML has fold toggles, so each line makes room for the fold gutter. |
+ * | `data-foldable` | present when foldable | Presence-only. The pre-rendered HTML has fold toggles, or the streamed lines can fold, so each line makes room for the fold gutter. |
  * | `data-lang` | the language id | The value's language. |
  * | `data-mantle-line-numbers` | `"true"` \| `"false"` | Whether the gutter shows line numbers. |
  * | `data-mantle-line-number-start` | a number as a string | The first line number. |
@@ -582,6 +613,7 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 		"~lineNumberStart": __lineNumberStart,
 		"~preHtml": __preHtml,
 		"~lines": lines,
+		"~foldableRanges": foldableRanges,
 		"~showLineNumbers": __showLineNumbers,
 	} = value;
 
@@ -620,6 +652,24 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 			: __preHtml;
 	}, [__preHtml, __preValToken, __preVals, hasLines]);
 
+	// The fold markup of each streamed line, by its index. Why the counter
+	// value here: a line that closes a fold sets the line counter again, as
+	// in `decorateHighlightedHtml`.
+	const lineFolds = useMemo(() => {
+		if (lines == null || foldableRanges == null || foldableRanges.length === 0) {
+			return undefined;
+		}
+		const folds = new Map<number, LineFold>();
+		for (const [bufferLine, fold] of indexFoldRanges(foldableRanges)) {
+			const index = bufferLine - 1;
+			folds.set(index, {
+				...fold,
+				counterSet: `mantle-line calc(var(--mantle-line-number-start,1) + ${index})`,
+			});
+		}
+		return folds;
+	}, [foldableRanges, lines]);
+
 	// Attach a single delegated click handler per <pre> so fold toggles do
 	// not pay the cost of N React re-renders or N event handlers (see the
 	// performance rationale in `fold-runtime.ts`). Re-attaches when the
@@ -627,7 +677,7 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	// Only highlighted HTML has fold toggles, so plain text gets no handler.
 	useEffect(() => {
 		const pre = preRef.current;
-		if (pre == null || renderedHtml == null) {
+		if (pre == null || (renderedHtml == null && lineFolds == null)) {
 			return undefined;
 		}
 		const codeElement = pre.querySelector("code");
@@ -635,7 +685,7 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 			resetFoldState(codeElement);
 		}
 		return attachFoldHandler(pre);
-	}, [renderedHtml]);
+	}, [lineFolds, renderedHtml]);
 
 	const isPreRendered = renderedHtml != null || hasLines;
 	// Why not for lines: they render as elements, and a streamed block would escape all of its code on each update.
@@ -669,7 +719,12 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 			// Why an attribute and not `pre:has(.mantle-code-fold-toggle)` in `mantle.css`:
 			// with `:has()`, each line that a stream inserted restyled the lines of the block.
 			// Why the button tag: code text can hold the class name, but its `<` is escaped.
-			data-foldable={renderedHtml != null && FOLD_TOGGLE.test(renderedHtml) ? "" : undefined}
+			data-foldable={
+				(lines != null && foldableRanges != null) ||
+				(renderedHtml != null && FOLD_TOGGLE.test(renderedHtml))
+					? ""
+					: undefined
+			}
 			data-lang={language}
 			data-mantle-highlight-lines={
 				isPreRendered && effectiveHighlightLines != null && effectiveHighlightLines.length > 0
@@ -706,6 +761,7 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 							// oxlint-disable-next-line react/no-array-index-key -- Why: a group holds the same lines for the life of the block, and an appended line must not remount the lines above it.
 							key={group}
 							lines={lines.slice(group * LINE_GROUP_SIZE, (group + 1) * LINE_GROUP_SIZE)}
+							folds={lineFolds}
 							start={group * LINE_GROUP_SIZE}
 							lineNumberStart={effectiveLineNumberStart}
 						/>

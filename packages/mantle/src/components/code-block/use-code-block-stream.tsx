@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { canUseDOM } from "../browser-only/can-use-dom.js";
 import { grammarForLanguage, type GrammarId } from "./grammars.js";
+import { foldStrategyFor } from "./compute-fold-ranges.js";
+import type { FoldableRange } from "./fold-range-utils.js";
 import { createStreamId, dispose, openStream, resolveLines, send } from "./highlight-client.js";
 import type { CodeLine } from "./line-tokenizer.js";
 import { createMantleCodeBlockValue, type MantleCodeBlockValue } from "./mantle-code.js";
@@ -19,7 +21,17 @@ type UseCodeBlockStreamOptions = {
 	 * @default false
 	 */
 	showLineNumbers?: boolean | undefined;
+	/**
+	 * Whether the code is final, such as a fence whose answer finished
+	 * streaming. Pass it to fold: while `false`, each line of a language that
+	 * can fold makes room for the fold gutter; once `true`, the block folds the
+	 * same as a pre-rendered one. Leave it unset for a block that never folds.
+	 */
+	complete?: boolean | undefined;
 };
+
+/** The fold ranges of a block that can fold but has none yet. Why shared: `Code` compares it by reference. */
+const noFolds: FoldableRange[] = [];
 
 /**
  * Highlights code in the browser as it changes, for code that streams in,
@@ -31,6 +43,11 @@ type UseCodeBlockStreamOptions = {
  * its tokens and its React element. Lines render as plain text with the same
  * geometry until their tokens arrive, on the server and in the first client
  * render too. When the worker cannot start, the main thread highlights instead.
+ *
+ * Once `complete` is set, the worker computes the block's fold ranges in
+ * one pass, and the block shows fold toggles. In a language that can fold,
+ * each line makes room for the fold gutter from the first line, so the
+ * toggles shift no code when they appear.
  *
  * Use `mantleCode` or the server highlighter for code that is known before
  * the page renders: they ship no highlighter to the browser.
@@ -54,6 +71,7 @@ function useCodeBlockStream({
 	code: source,
 	language,
 	showLineNumbers = false,
+	complete,
 }: UseCodeBlockStreamOptions): MantleCodeBlockValue {
 	// Why: lines split on LF, so a CR stays at the end of a line, and the HTML
 	// parser reads it as a second line break. `mantleCode` normalizes the same way.
@@ -64,7 +82,10 @@ function useCodeBlockStream({
 	const [highlighted, setHighlighted] = useState<{
 		grammar: GrammarId | undefined;
 		lines: readonly CodeLine[];
-	}>({ grammar: undefined, lines: [] });
+		foldableRanges: FoldableRange[] | undefined;
+	}>({ grammar: undefined, lines: [], foldableRanges: undefined });
+	// Why only with `complete`: a caller that never says the code is final gets no fold gutter.
+	const canFold = complete !== undefined && grammar != null && foldStrategyFor(language) !== "none";
 
 	useEffect(() => {
 		if (grammar == null || !canUseDOM()) {
@@ -77,10 +98,11 @@ function useCodeBlockStream({
 					...(previous.grammar === grammar ? previous.lines.slice(0, result.start) : []),
 					...result.lines,
 				],
+				foldableRanges: result.foldableRanges,
 			}));
 		});
-		send(id, code);
-	}, [code, grammar, id]);
+		send(id, code, complete === true && canFold ? language : undefined);
+	}, [canFold, code, complete, grammar, id, language]);
 
 	useEffect(
 		() => () => {
@@ -89,13 +111,14 @@ function useCodeBlockStream({
 		[id],
 	);
 
+	const isCurrent = grammar != null && highlighted.grammar === grammar;
 	return createMantleCodeBlockValue({
 		code,
 		language,
-		lines: resolveLines(
-			code,
-			grammar != null && highlighted.grammar === grammar ? highlighted.lines : [],
-		),
+		lines: resolveLines(code, isCurrent ? highlighted.lines : []),
+		foldableRanges: canFold
+			? ((complete && isCurrent ? highlighted.foldableRanges : undefined) ?? noFolds)
+			: undefined,
 		showLineNumbers,
 	});
 }
