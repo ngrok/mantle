@@ -30,7 +30,6 @@ import { useIsApplePlatform } from "../../hooks/use-is-apple-platform.js";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { useIsHydratedAfterPaint } from "../../hooks/use-is-hydrated-after-paint.js";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
-import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -1550,9 +1549,6 @@ let closeOpenFlyout: (() => void) | null = null;
 /** How long a mouse rests on a group's icon before its flyout opens, in milliseconds. */
 const FLYOUT_OPEN_DELAY = 150;
 
-/** How long an in-place list folds, in milliseconds. It matches the list's `duration-200`. */
-const FOLD_DURATION = 200;
-
 /** How long a hover flyout stays open after the mouse leaves it, in milliseconds. It matches `HoverCard`. */
 const FLYOUT_CLOSE_DELAY = 300;
 
@@ -2252,26 +2248,36 @@ const Disclosure = ({
 		setFlyout((mode) => (mode === "click" ? null : "click"));
 	});
 
+	/**
+	 * Whether a hover may open the flyout. A disabled trigger opens nothing, and
+	 * a hover must not take a flyout away from a reader whose focus is in it.
+	 */
+	const canHoverOpen = () => {
+		const focusedFlyout = document.activeElement?.closest("[data-flyout][data-open]");
+		return (
+			triggerRef.current?.matches(":disabled, [aria-disabled='true']") !== true &&
+			(focusedFlyout == null || focusedFlyout.id === `${baseId}-list`)
+		);
+	};
+
 	// Why only a mouse: a touch or a pen has no hover, and its tap is a click.
 	const onPointerEnter = useCallbackRef((event: PointerEvent<HTMLElement>) => {
 		if (event.pointerType !== "mouse" || !rail) {
 			return;
 		}
 		clearTimeout(closeTimer.current);
-		// Why: a disabled trigger opens nothing, and a hover must not take a
-		// flyout away from a reader whose focus is in it.
-		const focusedFlyout = document.activeElement?.closest("[data-flyout][data-open]");
-		if (
-			flyout != null ||
-			triggerRef.current?.matches(":disabled, [aria-disabled='true']") === true ||
-			(focusedFlyout != null && focusedFlyout.id !== `${baseId}-list`)
-		) {
+		if (flyout != null || !canHoverOpen()) {
 			return;
 		}
 		clearTimeout(openTimer.current);
 		// Why at once when another flyout is open: the reader moves along the rail, as on a menu bar.
 		const delay = closeOpenFlyout == null ? FLYOUT_OPEN_DELAY : 0;
-		openTimer.current = window.setTimeout(() => setFlyout("hover"), delay);
+		// Why check again: the trigger or the focus can change during the rest.
+		openTimer.current = window.setTimeout(() => {
+			if (canHoverOpen()) {
+				setFlyout((mode) => mode ?? "hover");
+			}
+		}, delay);
 	});
 
 	const onPointerLeave = useCallbackRef((event: PointerEvent<HTMLElement>) => {
@@ -2495,17 +2501,26 @@ const DisclosureTrigger = ({
 			)}
 			onClick={(event: MouseEvent<HTMLButtonElement>) => {
 				onClick?.(event);
-				if (!event.defaultPrevented) {
+				// Why `aria-disabled`: a trigger that announces it is disabled stays focusable, so
+				// Enter and Space still click it.
+				if (
+					!event.defaultPrevented &&
+					event.currentTarget.getAttribute("aria-disabled") !== "true"
+				) {
 					disclosure.onTriggerClick();
 				}
 			}}
 			onPointerEnter={(event: PointerEvent<HTMLButtonElement>) => {
 				onPointerEnter?.(event);
-				disclosure.onPointerEnter(event);
+				if (!event.defaultPrevented) {
+					disclosure.onPointerEnter(event);
+				}
 			}}
 			onPointerLeave={(event: PointerEvent<HTMLButtonElement>) => {
 				onPointerLeave?.(event);
-				disclosure.onPointerLeave(event);
+				if (!event.defaultPrevented) {
+					disclosure.onPointerLeave(event);
+				}
 			}}
 		>
 			{content}
@@ -2616,18 +2631,43 @@ const DisclosureList = ({
 	const listRef = useRef<HTMLUListElement | null>(null);
 	/** The row that last had focus, so focus can stay on it when the sidebar expands. */
 	const lastFocused = useRef<HTMLElement | null>(null);
+	/** The control that an outside press reached, which takes the focus of the flyout. */
+	const pressedOutside = useRef<HTMLElement | null>(null);
 	const { floatingRef, reconcile } = useFloat({
 		open: flyoutOpen,
-		onDismiss: hideFlyout,
+		onDismiss: (reason, outside) => {
+			const target = outside?.detail.originalEvent.target;
+			// Why: a press that does not focus a button, as in Safari, leaves focus in
+			// the flyout. Focus then goes to the control the reader pressed.
+			pressedOutside.current =
+				reason === "outside" && target instanceof Element
+					? target.closest<HTMLElement>("a[href], button, input, select, textarea, [tabindex]")
+					: null;
+			hideFlyout();
+		},
 		getAnchor: () => triggerRef.current,
-		getInsideElements: () => [triggerRef.current],
+		// Why the popups of the rows: a row can open a menu, which renders outside
+		// the list, and focus that moves into that menu stays in the flyout.
+		getInsideElements: () => [
+			triggerRef.current,
+			...Array.from(
+				listRef.current?.querySelectorAll("[aria-expanded='true'][aria-controls]") ?? [],
+				(control) => document.getElementById(control.getAttribute("aria-controls") ?? ""),
+			),
+		],
 		dismissOnOutside: true,
 		dismissWhenCovered: true,
 		side: "right",
 		align: "start",
 		sideOffset: 8,
 		onHide: (floating, focusWasInside) => {
+			const pressed = pressedOutside.current;
+			pressedOutside.current = null;
 			if (!focusWasInside || disclosure.yieldedRef.current) {
+				return;
+			}
+			if (pressed?.isConnected === true) {
+				pressed.focus({ preventScroll: true });
 				return;
 			}
 			// Why: a sidebar that expands shows the same rows in place, so focus
@@ -2665,18 +2705,42 @@ const DisclosureList = ({
 		return () => node.removeEventListener("click", onRowPress);
 	}, [rail, hideFlyout]);
 
-	// Why a check two frames later: a controlled group can refuse the open.
-	// Then the list hides again, so its links never sit in the tab order
-	// while they are invisible.
-	const checkFrame = useRef(0);
+	// Why an observer: a row that becomes the current page opens its group,
+	// also when a router link sets `aria-current` itself. Why it compares the
+	// element: a row that only moves is not a new current page. Why it keeps
+	// observing through a mode change: a route change in the same commit counts.
 	useEffect(() => {
 		const node = listRef.current;
 		if (node == null) {
 			return;
 		}
-		const settleOpen = () => {
+		let current = node.querySelector("[aria-current=page]");
+		const observer = new MutationObserver(() => {
+			const next = node.querySelector("[aria-current=page]");
+			if (next != null && next !== current) {
+				reveal();
+			}
+			current = next;
+		});
+		observer.observe(node, { attributeFilter: ["aria-current"], childList: true, subtree: true });
+		return () => observer.disconnect();
+	}, [reveal]);
+
+	// Why a check two frames later: a controlled group can refuse the open.
+	// Then the list hides again, so its links never sit in the tab order
+	// while they are invisible.
+	const checkFrame = useRef(0);
+	/** Whether find in page showed the list with inline styles. */
+	const shownByFind = useRef(false);
+	useEffect(() => {
+		const node = listRef.current;
+		if (node == null || rail || !supportsBeforeMatch()) {
+			return;
+		}
+		const onBeforeMatch = () => {
 			// Why now: the browser paints its find highlight right after this
 			// event, before React commits the open, and a closed list has no height.
+			shownByFind.current = true;
 			settle(node, () => {
 				node.removeAttribute("hidden");
 				node.style.height = "auto";
@@ -2687,6 +2751,7 @@ const DisclosureList = ({
 			checkFrame.current = requestAnimationFrame(() => {
 				checkFrame.current = requestAnimationFrame(() => {
 					if (!node.hasAttribute("data-open")) {
+						shownByFind.current = false;
 						settle(node, () => {
 							node.setAttribute("hidden", "until-found");
 							node.style.height = "";
@@ -2696,74 +2761,43 @@ const DisclosureList = ({
 				});
 			});
 		};
-		// Why an observer: a row that becomes the current page opens its group,
-		// also when a router link sets `aria-current` itself. The observer runs
-		// before the browser paints.
-		const observer = new MutationObserver((records) => {
-			const nowCurrent = records.some((record) =>
-				record.type === "childList"
-					? Array.from(record.addedNodes).some(
-							(added) =>
-								added instanceof Element &&
-								(added.matches("[aria-current=page]") ||
-									added.querySelector("[aria-current=page]") != null),
-						)
-					: record.target instanceof Element &&
-						record.target.getAttribute("aria-current") === "page" &&
-						record.oldValue !== "page",
-			);
-			// Why only the state in the collapsed sidebar: the list there is the
-			// flyout, and the group shows open once the sidebar expands.
-			if (nowCurrent && rail) {
-				reveal();
-			} else if (nowCurrent && !node.hasAttribute("data-open")) {
-				settleOpen();
-			}
-		});
-		observer.observe(node, {
-			attributeFilter: ["aria-current"],
-			attributeOldValue: true,
-			childList: true,
-			subtree: true,
-		});
-		const onBeforeMatch = !rail && supportsBeforeMatch() ? settleOpen : null;
-		if (onBeforeMatch != null) {
-			node.addEventListener("beforematch", onBeforeMatch);
-		}
+		node.addEventListener("beforematch", onBeforeMatch);
 		return () => {
-			observer.disconnect();
 			cancelAnimationFrame(checkFrame.current);
-			if (onBeforeMatch != null) {
-				node.removeEventListener("beforematch", onBeforeMatch);
-			}
+			node.removeEventListener("beforematch", onBeforeMatch);
 		};
 	}, [rail, reveal]);
 
 	// Why imperative: React types `hidden` as a boolean, with no `"until-found"`.
 	// Why a layout effect: a closed list is hidden before the browser paints.
-	const inertTimer = useRef(0);
+	const fold = useRef(0);
+	const wasRail = useRef(rail);
 	useIsomorphicLayoutEffect(() => {
 		const node = listRef.current;
 		if (node == null) {
 			return;
 		}
-		clearTimeout(inertTimer.current);
-		if (rail) {
-			// Why: a list that held focus is now a closed flyout, which the browser
-			// does not render, so focus moves to the group's icon.
-			if (node.contains(document.activeElement)) {
-				triggerRef.current?.focus({ preventScroll: true });
-			}
-		} else {
+		const railChanged = wasRail.current !== rail;
+		wasRail.current = rail;
+		// Why: a list that held focus stops showing when the sidebar collapses or
+		// the group closes, so focus moves to the group's trigger.
+		if ((rail ? railChanged : !open) && node.contains(document.activeElement)) {
+			triggerRef.current?.focus({ preventScroll: true });
+		}
+		if (!rail) {
 			// Why: the flyout placed the list with inline offsets and a side.
 			node.style.removeProperty("top");
 			node.style.removeProperty("left");
 			delete node.dataset.side;
 		}
-		// Why: an open from find in page or a current row set these to show the
-		// list at once. The classes own the motion after that.
-		node.style.height = "";
-		node.style.opacity = "";
+		// Why: find in page set these to show the list at once. The classes own
+		// the motion after that.
+		if (shownByFind.current) {
+			shownByFind.current = false;
+			node.style.height = "";
+			node.style.opacity = "";
+		}
+		const token = ++fold.current;
 		if (rail || !supportsBeforeMatch()) {
 			node.removeAttribute("hidden");
 			return;
@@ -2777,13 +2811,13 @@ const DisclosureList = ({
 		// Why `inert` until the fold ends: the list stays rendered while it folds,
 		// and Tab must not reach a row that is about to hide. Why remove it then:
 		// `inert` also hides the rows from find in page.
+		// Why the list's own transitions: they set how long the fold runs, also
+		// under reduced motion or a consumer's duration.
 		node.setAttribute("inert", "");
-		inertTimer.current = window.setTimeout(
-			() => node.removeAttribute("inert"),
-			getPrefersReducedMotion() ? 0 : FOLD_DURATION,
-		);
+		void Promise.allSettled(
+			node.getAnimations?.().map((animation) => animation.finished) ?? [],
+		).then(() => fold.current === token && node.removeAttribute("inert"));
 	}, [open, rail]);
-	useEffect(() => () => clearTimeout(inertTimer.current), []);
 
 	// Why after each render: under `asChild` a consumer's `id` on the trigger
 	// replaces the generated one, and the list must name the element that exists.
@@ -2814,7 +2848,7 @@ const DisclosureList = ({
 				rail
 					? // Why `hidden` while closed: before hydration, and without the
 						// popover API, nothing else hides the flyout.
-						`${floatClassName} not-data-open:hidden border-popover bg-popover flex max-h-(--available-height) min-w-44 flex-col gap-px overflow-y-auto rounded-md border p-1 shadow-xl`
+						`${floatClassName} not-data-open:hidden border-popover bg-popover flex max-h-(--available-height) max-w-(--available-width) min-w-44 flex-col gap-px overflow-y-auto rounded-md border p-1 shadow-xl`
 					: // The height and opacity ease open together, as in `Accordion`.
 						// `interpolate-size` is Chromium only; other engines snap.
 						"h-0 overflow-hidden opacity-0 transition-[height,opacity,content-visibility] duration-200 ease-out-strong [interpolate-size:allow-keywords] transition-discrete data-open:h-auto data-open:opacity-100 motion-reduce:transition-none group-not-data-hydrated/sidebar-nav:transition-none [&>li]:pl-7",
@@ -2841,7 +2875,7 @@ const DisclosureList = ({
 				aria-hidden
 				data-slot="sidebar-disclosure-list-label"
 				className={cx(
-					"text-muted list-none truncate px-2 pt-1 pb-0.5 text-xs font-medium",
+					"text-muted shrink-0 list-none truncate px-2 pt-1 pb-0.5 text-xs font-medium",
 					!rail && "hidden",
 				)}
 			/>

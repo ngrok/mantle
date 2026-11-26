@@ -3,6 +3,7 @@ import { useState } from "react";
 import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, describe, expect, onTestFinished, test, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import { TooltipProvider } from "../tooltip/index.js";
 import * as Sidebar from "./sidebar-parts.js";
 
@@ -270,6 +271,57 @@ describe("Sidebar.Disclosure in the collapsed sidebar", () => {
 		expect(mcp.getAttribute("aria-expanded")).toBe("true");
 		expect(ai.getAttribute("aria-expanded")).toBe("false");
 		expect(document.activeElement).not.toBe(ai);
+	});
+
+	test("a row that becomes current leaves focus on the flyout row it was on", async () => {
+		render(<Nav />);
+		const ai = screen.getByRole("button", { name: "AI Gateway" });
+		await userEvent.click(ai);
+		await userEvent.keyboard("{Tab}");
+		const row = document.activeElement;
+
+		// Why `click()`: the route changes and focus does not move.
+		await act(async () => screen.getByRole("button", { name: "Go to AI usage" }).click());
+
+		expect(ai.getAttribute("aria-expanded")).toBe("true");
+		expect(document.activeElement).toBe(row);
+	});
+
+	test("a row's own menu keeps the flyout open while it holds focus", async () => {
+		render(
+			<TooltipProvider>
+				<Sidebar.Root defaultOpen={false} mobileBreakpoint="sm">
+					<div style={{ display: "flex", height: 400 }}>
+						<Sidebar.Nav aria-label="Main">
+							<Sidebar.List>
+								<Sidebar.Disclosure>
+									<Sidebar.DisclosureTrigger>Account</Sidebar.DisclosureTrigger>
+									<Sidebar.DisclosureList>
+										<Sidebar.Item>
+											<DropdownMenu.Root modal={false}>
+												<DropdownMenu.Trigger asChild>
+													<Sidebar.ItemButton>Profile</Sidebar.ItemButton>
+												</DropdownMenu.Trigger>
+												<DropdownMenu.Content>
+													<DropdownMenu.Item>Sign out</DropdownMenu.Item>
+												</DropdownMenu.Content>
+											</DropdownMenu.Root>
+										</Sidebar.Item>
+									</Sidebar.DisclosureList>
+								</Sidebar.Disclosure>
+							</Sidebar.List>
+						</Sidebar.Nav>
+					</div>
+				</Sidebar.Root>
+			</TooltipProvider>,
+		);
+		const account = screen.getByRole("button", { name: "Account" });
+		await userEvent.click(account);
+		await userEvent.keyboard("{Tab}{Enter}");
+		const signOut = await screen.findByRole("menuitem", { name: "Sign out" });
+		await waitFor(() => expect(document.activeElement).toBe(signOut));
+
+		expect(account.getAttribute("aria-expanded")).toBe("true");
 	});
 
 	test("expanding the sidebar keeps focus on the row it was on", async () => {

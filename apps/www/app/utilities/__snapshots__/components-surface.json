@@ -5422,12 +5422,6 @@
         "description": "On the caret icon. Absent under `asChild`."
       },
       {
-        "part": "Sidebar.DisclosureTrigger",
-        "name": "data-current",
-        "value": "present while it marks the current page",
-        "description": "Presence-only. A row in the group is the current page and the list does not show in place. Style with `data-current:`."
-      },
-      {
         "part": "Sidebar.DisclosureList",
         "name": "data-slot",
         "value": "`\"sidebar-disclosure-list\"`",
@@ -5450,6 +5444,12 @@
         "name": "data-flyout",
         "value": "present in the collapsed sidebar",
         "description": "Presence-only. The list is a flyout. Style the flyout with `data-flyout:`."
+      },
+      {
+        "part": "Sidebar.DisclosureList",
+        "name": "data-side",
+        "value": "`\"top\"` \\| `\"right\"` \\| `\"bottom\"` \\| `\"left\"`",
+        "description": "On the flyout only: the side of the trigger it shows on, after it flips to fit. Removed in place."
       },
       {
         "part": "Sidebar.SearchTrigger",
