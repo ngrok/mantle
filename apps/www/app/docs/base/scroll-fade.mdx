@@ -9,7 +9,8 @@ import { Example } from "~/components/example";
 
 Edge-fade utilities for scroll containers. An edge with more content past it
 fades out. At the end of the scroll, or when nothing overflows, the edge stays
-fully opaque.
+fully opaque. A container with nothing to scroll gets no mask at all, so it
+costs nothing extra to paint.
 
 The fade is CSS only: a [scroll-driven animation](https://developer.mozilla.org/en-US/docs/Web/CSS/animation-timeline/scroll)
 runs it.
