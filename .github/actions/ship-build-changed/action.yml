@@ -25,10 +25,11 @@ outputs:
 runs:
   using: composite
   steps:
-    # A PR that opens or reopens, or a PR push with no earlier run, compares
-    # its merge commit with its base. Any other push compares its head with the
-    # baseline head. When the baseline is unknown or cannot be fetched, the app
-    # builds without a comparison. A re-run attempt always builds.
+    # A PR that opens, reopens, or becomes ready for review, or a PR push with
+    # no earlier run, compares its merge commit with its base. Any other push
+    # compares its head with the baseline head. When the baseline is unknown or
+    # cannot be fetched, the app builds without a comparison. A re-run attempt
+    # always builds.
     - name: Find the baseline
       id: range
       shell: bash
