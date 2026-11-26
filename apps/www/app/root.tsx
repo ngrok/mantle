@@ -32,6 +32,7 @@ import { MobileNavigation } from "./components/mobile-navigation";
 import { NavigationProvider } from "./components/navigation-context";
 import { PageContainer } from "./components/page-container";
 import { useLocationHash } from "./features/mcp-preview/use-location-hash";
+import { FramedPreviewHistory } from "./features/preview-history/framed-preview-history";
 import { RouteAnnouncer } from "./features/route-announcer";
 import "./global.css";
 import { canonicalDomain, canonicalHref } from "./utilities/canonical-origin";
@@ -225,6 +226,8 @@ export function Layout({ children }: PropsWithChildren) {
 				    the preview iframe, and each iframe would add its own status region
 				    to the page. A routed demo navigates, so it keeps the announcer. */}
 				{(!isFramedPreview || isRoutedDemo) && <RouteAnnouncer />}
+				{/* The framed side of the routed demo's Back and Forward buttons. */}
+				{isRoutedDemo && <FramedPreviewHistory />}
 				{/* Suppressed inside the prototype frame: its sandbox blocks the
 				    `sessionStorage` that the restoration script reads. */}
 				{!isPrototypeFrame && <ScrollRestoration nonce={nonce} />}
