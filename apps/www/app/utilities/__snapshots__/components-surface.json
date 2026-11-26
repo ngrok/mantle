@@ -3709,7 +3709,43 @@
         "part": "Popover.Content",
         "name": "data-side",
         "value": "`\"top\"` \\| `\"right\"` \\| `\"bottom\"` \\| `\"left\"`",
-        "description": "The side of the anchor the content resolved to."
+        "description": "The side of the anchor the content resolved to. Popover presentation only."
+      },
+      {
+        "part": "Popover.Content",
+        "name": "data-presentation",
+        "value": "`\"popover\"` \\| `\"drawer\"`",
+        "description": "How this open presents. Style the two shapes with `data-[presentation=drawer]:`."
+      },
+      {
+        "part": "Popover.Content",
+        "name": "data-closing",
+        "value": "present while the exit plays",
+        "description": "Presence-only. Drawer presentation only. Drives the slide out."
+      },
+      {
+        "part": "Popover.Content",
+        "name": "data-mantle-modal-content",
+        "value": "`\"\"`",
+        "description": "Drawer presentation only. Floats and an enclosing dialog find the panel by it."
+      },
+      {
+        "part": "Popover.Content",
+        "name": "data-slot` (positioner)",
+        "value": "`\"popover-drawer-positioner\"`",
+        "description": "Drawer presentation only. On the `<dialog>` around the content, which carries `role=\"dialog\"`, the name, `data-open`, `data-closing`, and `data-overlay`."
+      },
+      {
+        "part": "Popover.Content",
+        "name": "data-mantle-scroll-lock",
+        "value": "present while a drawer is open",
+        "description": "Presence-only. On `<html>`. The page stops scrolling."
+      },
+      {
+        "part": "Popover.Content",
+        "name": "data-overlay",
+        "value": "`\"\"`",
+        "description": "Drawer presentation only. On the `<dialog>` positioner. A press on the backdrop targets it."
       },
       {
         "part": "Popover.Arrow",

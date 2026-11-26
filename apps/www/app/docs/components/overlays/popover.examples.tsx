@@ -52,6 +52,54 @@ export function OverviewExample() {
 	);
 }
 
+/** The "Presentation" example on the Popover docs page. */
+export function PresentationExample() {
+	return (
+		<PreviewCanvas className="min-h-160 gap-2">
+			<Popover.Root presentation="auto">
+				<Popover.Trigger asChild>
+					<Button type="button" appearance="outlined" intent="neutral">
+						Add reminder
+					</Button>
+				</Popover.Trigger>
+				<Popover.Content aria-labelledby="popover-reminder" preferredWidth="max-w-80">
+					<form
+						className="grid gap-4"
+						onSubmit={(event) => {
+							event.preventDefault();
+						}}
+					>
+						<div className="space-y-1">
+							<h4 id="popover-reminder" className="font-medium leading-none">
+								New reminder
+							</h4>
+							<p className="text-body text-sm">We notify you at the time you pick.</p>
+						</div>
+						<div className="grid gap-2">
+							<label htmlFor="popover-reminder-text" className="text-sm">
+								Remind me to
+							</label>
+							<Input id="popover-reminder-text" defaultValue="Send the Q3 roadmap" />
+						</div>
+						<div className="flex justify-end gap-2">
+							<Popover.Close asChild>
+								<Button type="button" appearance="outlined" intent="neutral">
+									Cancel
+								</Button>
+							</Popover.Close>
+							<Popover.Close asChild>
+								<Button type="button" appearance="filled" intent="neutral">
+									Save
+								</Button>
+							</Popover.Close>
+						</div>
+					</form>
+				</Popover.Content>
+			</Popover.Root>
+		</PreviewCanvas>
+	);
+}
+
 /** The "Arrow" example on the Popover docs page. */
 export function ArrowExample() {
 	return (
