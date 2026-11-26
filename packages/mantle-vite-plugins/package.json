@@ -1,6 +1,6 @@
 {
   "name": "@ngrok/mantle-vite-plugins",
-  "version": "1.2.11",
+  "version": "1.3.0",
   "description": "Vite plugins for @ngrok/mantle.",
   "keywords": [
     "mantle",

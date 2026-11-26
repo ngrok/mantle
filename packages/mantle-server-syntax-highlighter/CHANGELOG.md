@@ -1,5 +1,19 @@
 # @ngrok/mantle-server-syntax-highlighter
 
+## 1.2.0
+
+### Minor Changes
+
+- [#1909](https://github.com/ngrok/mantle/pull/1909) [`9e07185`](https://github.com/ngrok/mantle/commit/9e071850f31142c3b7e56294b05886be2814d1b3) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The highlighter writes a short color class on each token, such as `tk` for a keyword, in place of an inline color style, and no element around a token in the foreground color. The classes come from `@ngrok/mantle`'s `mantle.css`, so the peer dependency on `@ngrok/mantle` is now `>=0.96.0`. Upgrade both packages together.
+
+  Breaking: the returned `html` holds no line-number elements, so `showLineNumbers` and `lineNumberStart` no longer change the numbers in it. `mantle.css` draws the numbers when the `<pre>` has `data-mantle-line-numbers="true"`. Pass the result's `showLineNumbers` and `lineNumberStart` to `createMantleCodeBlockValue`, and `CodeBlock.Code` sets both. Migration guide: https://mantle.ngrok.com/migrations/0033-compact-code-markup-migration
+
+### Patch Changes
+
+- [#1948](https://github.com/ngrok/mantle/pull/1948) [`8ea6423`](https://github.com/ngrok/mantle/commit/8ea642396919f2f6e0ac3d3bfb3b2b4129a69bf0) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The highlight cache also holds at most 32 MB of code and highlighted HTML (`mantleHighlightCacheMaxBytes`), not only 1,000 entries. One result larger than 32 MB alone stays until the next highlight. 200 results of a 300-line block held 41 MB of server heap, and now hold 27–28 MB; at 1,000 such results, the old bound allowed about 200 MB.
+
+- [#1802](https://github.com/ngrok/mantle/pull/1802) [`081bca2`](https://github.com/ngrok/mantle/commit/081bca231b893db48b2e150344e2b6bcac8e7866) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Read the mantle theme from `@ngrok/mantle` so that server and browser highlighting use the same token colors. The output does not change.
+
 ## 1.1.24
 
 ### Patch Changes
