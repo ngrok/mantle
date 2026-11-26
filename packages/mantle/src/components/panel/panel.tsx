@@ -18,6 +18,7 @@ import { Slot } from "../slot/index.js";
  * example `AppLayout.Root`) and every row moves together.
  */
 const headerBandClassName =
+	// oxlint-disable-next-line mantle/no-structural-combinator -- Why: the rule styles the header band of each panel, so a recheck of the `:has()` restyles that element only. A streamed answer measured no added restyle.
 	"h-14 group-has-[[data-slot~=sidebar-header]:not([data-mobile]_*)]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]";
 
 /**

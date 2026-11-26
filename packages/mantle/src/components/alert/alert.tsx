@@ -206,9 +206,11 @@ const Root = ({
 					"has-[[data-alert-dismiss][data-size=lg]]:[--alert-dismiss-room:--spacing(13)]",
 					"has-[[data-alert-dismiss][data-size=xl]]:[--alert-dismiss-room:--spacing(15)]",
 					"has-data-alert-dismiss:pr-(--alert-dismiss-room)",
+					/* oxlint-disable mantle/no-structural-combinator -- Why: each rule styles one part of this alert, and nothing streams into an alert. */
 					"has-data-alert-dismiss:[&_[data-alert-expand]]:right-(--alert-dismiss-room)",
 					"has-data-alert-expand:[&_[data-slot~=alert-content]]:pr-16",
 					"md:has-data-alert-expand:[&_[data-slot~=alert-content]]:pr-24",
+					/* oxlint-enable mantle/no-structural-combinator */
 					className,
 				)}
 				style={$cssProperties({

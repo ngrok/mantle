@@ -1080,6 +1080,7 @@ const barEnter = "starting:h-0 starting:opacity-0";
  * compose one center per parent.
  */
 const serverBarClassName =
+	// oxlint-disable-next-line mantle/no-structural-combinator -- Why: the sibling tests read only the few server bars of one center, and they style those bars and their alert contents. Nothing streams into a bar.
 	"hidden shrink-0 overflow-hidden [[data-slot=alert-center-bar-anchor]~&[data-alert-center-server-claim]]:block [[data-slot=alert-center-bar-anchor]~&[data-alert-center-server-claim]:has(~[data-alert-center-server-claim])]:hidden [:has(>[data-slot=alert-center-server-bar]~[data-slot=alert-center-server-bar])>[data-alert-center-content-anchor]~&]:[&_[data-slot~=alert-content]]:pr-16 md:[:has(>[data-slot=alert-center-server-bar]~[data-slot=alert-center-server-bar])>[data-alert-center-content-anchor]~&]:[&_[data-slot~=alert-content]]:pr-24";
 
 /** How long to keep the bar mounted for its exit slide if no `transitionend`
@@ -1355,6 +1356,7 @@ const chromeClassName = "gap-2 py-2 pr-2 [&_[data-slot~=alert-icon]]:shrink-0";
  * no re-render).
  */
 const singleLineBarControls =
+	// oxlint-disable-next-line mantle/no-structural-combinator -- Why: each rule styles one control of one bar, and nothing streams into a bar.
 	"not-has-data-[slot=alert-description]:[&_[data-alert-dismiss]]:top-1/2 not-has-data-[slot=alert-description]:[&_[data-alert-expand]]:top-1/2 not-has-data-[slot=alert-description]:[&_[data-alert-dismiss]]:-translate-y-1/2 not-has-data-[slot=alert-description]:[&_[data-alert-expand]]:-translate-y-1/2";
 
 // Why no `asChild`: Bar renders a fixed two-element structure (a presence

@@ -609,6 +609,7 @@ const OtpInputSlotImpl = ({
 				// edge. We use an arbitrary `&:has(+ ...)` variant
 				// because Tailwind's `has-[...]` shorthand doesn't
 				// parse the nested bracketed attribute selector here.
+				// oxlint-disable-next-line mantle/no-structural-combinator -- Why: the sibling test reads the next slot of one short code, and it styles one slot.
 				"[&:has(+[data-highlighted])]:group-data-[otp-state=caret]/otp:border-e-transparent",
 				// Per-slot ring renders only in `caret` state (single
 				// active slot). When more than one slot is active, the

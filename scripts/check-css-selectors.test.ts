@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { customDataVariants, selectorProblems } from "./check-css-selectors.ts";
-import { fixHint, universalHint } from "./oxlint-rules/no-structural-combinator.js";
+import { fixHint, hasHint, universalHint } from "./oxlint-rules/no-structural-combinator.js";
 
 describe("selectorProblems", () => {
 	it("flags a structural pseudo-class before a combinator, with its line", () => {
@@ -44,6 +44,37 @@ describe("selectorProblems", () => {
 			{ line: 5, selector: "[data-y] > * > *", hint: universalHint },
 			{ line: 7, selector: ".g + *:not(.h)", hint: universalHint },
 		]);
+	});
+
+	it("flags a :has() that tests a sibling or reaches past the anchor's children before a combinator", () => {
+		const css =
+			'pre:has(.toggle) .line { color: red; }\n.a:has(> b c) .d { color: red; }\n.p:not(:has(+ *))::after { color: red; }\n.e:has(> f > g) .h { color: red; }\n.i:has(.j) { color: red; }\n.k:has(> .l[aria-expanded="false"]) > .m::after { color: red; }\n';
+
+		expect(selectorProblems(css)).toEqual([
+			{ line: 1, selector: "pre:has(.toggle) .line", hint: hasHint },
+			{ line: 2, selector: ".a:has(> b c) .d", hint: hasHint },
+			{ line: 3, selector: ".p:not(:has(+ *))::after", hint: hasHint },
+		]);
+	});
+
+	it("flags a nested rule's own :has() under a parent that holds an exempted one", () => {
+		const css =
+			"/* structural-selector-ok: one panel. */\n.p:has(.d) .q {\n\t& .label { color: red; }\n\t& .item:has(+ .d) .label { color: red; }\n}\n";
+
+		expect(selectorProblems(css).map((problem) => problem.line)).toEqual([4]);
+	});
+
+	it("nests each alternative of a selector list under its parent", () => {
+		expect(
+			selectorProblems(".feed:has(.toggle) {\n\t&:hover, .line { color: red; }\n}\n").length,
+		).toBe(1);
+	});
+
+	it("reads an escaped character as text and a pseudo-class in any case", () => {
+		const css =
+			"article:has(.mark\\() .line { color: red; }\narticle:has(>.foo\\+bar) .line { color: red; }\narticle:HAS(.line) .line { color: red; }\n";
+
+		expect(selectorProblems(css).map((problem) => problem.line)).toEqual([1, 3]);
 	});
 
 	it("reads past an escaped quote", () => {

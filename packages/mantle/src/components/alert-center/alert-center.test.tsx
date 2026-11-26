@@ -658,8 +658,10 @@ describe("AlertCenter.Bar", () => {
 		// `data-alert-dismiss`, `data-alert-expand`, and `data-slot="alert-description"`,
 		// which `Alert` emits in alert.tsx.
 		expect(bar).toHaveClass(
+			/* oxlint-disable mantle/no-structural-combinator -- Why: asserts the classes of alert-center.tsx. */
 			"not-has-data-[slot=alert-description]:[&_[data-alert-dismiss]]:top-1/2",
 			"not-has-data-[slot=alert-description]:[&_[data-alert-expand]]:top-1/2",
+			/* oxlint-enable mantle/no-structural-combinator */
 		);
 		expect(screen.getByRole("button", { name: "Dismiss Payment failed" })).toHaveAttribute(
 			"data-alert-dismiss",

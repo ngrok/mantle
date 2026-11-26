@@ -754,10 +754,21 @@ cure. Read the roster there rather than restating it here, because an enumerated
   that Chromium's ancestor test can skip the rule. Never write:
   - a structural pseudo-class before a combinator (`[&>tr:last-child>*]`);
   - a sibling combinator before a universal subject (`[&+*]`, `[&>tr+tr>*]`);
-  - a `*:` or `**:` variant. Write `[&>*]:` or `[&_*]:`.
+  - a `*:` or `**:` variant. Write `[&>*]:` or `[&_*]:`;
+  - a `:has()` that tests a sibling (`:not(:has(+ *))`, `has-[+tr]:`);
+  - a `:has()` before a combinator whose argument reaches past the anchor's children
+    (`[&:has(.x)_.line]`, `group-has-[.x]:`, `not-has-[.x]:[&_.y]:`).
+
+  The last two make Chromium check the argument again for each node inserted under the anchor, and restyle
+  each match of the rule under it. On a streamed 665-line code block they restyled about 3,700 elements for
+  each insert (#1938, #1940, #1941). Set a data attribute from the component, use a sibling selector, test
+  only a chain of children (`group-has-[>input:checked]:`), or put `:has()` on the subject (`has-[.x]:`).
 
   The lint rules are `mantle/no-structural-combinator` and `mantle/no-unanchored-child-variant`, and
-  `check:css-selectors` checks stylesheets. A kept exception has a reason with its measured numbers.
+  `check:css-selectors` checks stylesheets. A kept exception has a reason with its measured numbers, or says
+  why the rule styles one element and nothing streams under its anchor.
+  `markdown-restyle.browser.test.tsx` streams an answer with all of `mantle.css` and bounds the elements
+  that each update restyles.
 
 - A leaf component imports no second component family, and no module has a side effect on import
   ([§1.7](#17-forbidden-api-shapes)).
