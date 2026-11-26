@@ -359,6 +359,12 @@ describe("no-structural-combinator", () => {
 		'cx("[&+:not(.x)]:ml-2");',
 		'cx("[&>tr+tr>*]:border-t");',
 		'cx("[&+tr]:[&>*]:p-2");',
+		// The `:has()` rules that #1938, #1940, and #1941 removed: each restyled the lines or rows of a streamed answer.
+		'cx("[&>tr:not(:has(+tr))>*]:border-b");',
+		'cx("[&:has([data-slot=code-block-copy-button])_.line:nth-child(-n+2)]:pr-14");',
+		'cx("[&:has(>[data-slot=a]_[data-slot=b])_&]:p-2");',
+		'cx("group-has-[.x]:p-2 group-has-checked/radio:p-2 peer-has-[.x]:p-2 in-has-[.x]:p-2");',
+		'cx("has-[.x]:*:p-2 not-has-[.x]:[&_.y]:p-2 has-[+tr]:p-2");',
 	])("flags %s", (source) => {
 		expect(
 			lint({ rule: "no-structural-combinator", fileName: "a.ts", source }).length,
@@ -366,7 +372,10 @@ describe("no-structural-combinator", () => {
 	});
 
 	it.each([
-		'cx("[&>tr:not(:has(+tr))>*]:border-b [&>tr+tr>td]:border-t [&+[data-slot=x]]:ml-2");',
+		'cx("[&>tr+tr>td]:border-t [&+[data-slot=x]]:ml-2");',
+		// A `:has()` on the subject, or one that tests only a chain of children.
+		'cx("has-[.x]:p-2 has-focus-within:p-2 has-[>.x]:*:p-2 [&:has(>a>b)_.c]:p-2");',
+		'cx("group-has-[>input:checked]/radio:bg-x peer-has-[>input:checked]:block");',
 		'cx("[&>*]:p-2 [&_*]:p-2 [&[data-open]>*]:p-2 [&+:is(.a)]:p-2");',
 		'cx("[&>*:last-child]:rounded-l-none [&>*:not(:first-child)]:-ml-px last:border-0");',
 		'cx("has-[>button:last-child]:pe-1 [&:has(>a:first-child_b)]:p-2");',

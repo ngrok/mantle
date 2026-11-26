@@ -5,6 +5,8 @@ import fs from "node:fs";
 import process from "node:process";
 import {
 	fixHint,
+	hasCostlyHas,
+	hasHint,
 	hasStructuralCombinator,
 	hasUniversalSubjectTrap,
 	universalHint,
@@ -52,6 +54,7 @@ export function selectorProblems(text: string): Problem[] {
 		const hints = [
 			!parentFails && hasStructuralCombinator(resolved) && fixHint,
 			hasUniversalSubjectTrap(resolved) && universalHint,
+			!(parent != null && hasCostlyHas(parent)) && hasCostlyHas(resolved) && hasHint,
 		].filter((hint) => hint !== false);
 		if (!allowed && hints.length > 0) {
 			problems.push({
