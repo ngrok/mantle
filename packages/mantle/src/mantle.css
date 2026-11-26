@@ -2268,8 +2268,8 @@ pre[data-slot~="code-block-code"][data-foldable]
 	}
 }
 
-.mantle-code-line:has(> .mantle-code-fold-toggle[aria-expanded="false"])
-	> .mantle-code-line-content::after {
+/* Why a sibling and not `.mantle-code-line:has(> toggle)`: the toggle comes just before the content, and a `:has()` on each line kept a stream restyling the whole block. */
+.mantle-code-fold-toggle[aria-expanded="false"] + .mantle-code-line-content::after {
 	display: inline;
 }
 

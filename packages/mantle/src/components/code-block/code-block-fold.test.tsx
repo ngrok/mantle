@@ -360,7 +360,7 @@ describe("mantle.css fold rules", () => {
 			/\.mantle-code-line-opener > \.mantle-code-line-content::after\s*\{\s*content:\s*"⋯";\s*content:\s*"⋯" \/ "";\s*display:\s*none/,
 		);
 		expect(mantleCss).toMatch(
-			/\.mantle-code-line:has\(>\s*\.mantle-code-fold-toggle\[aria-expanded="false"\]\)\s*>\s*\.mantle-code-line-content::after\s*\{\s*display:\s*inline/,
+			/\.mantle-code-fold-toggle\[aria-expanded="false"\] \+ \.mantle-code-line-content::after\s*\{\s*display:\s*inline/,
 		);
 	});
 });
