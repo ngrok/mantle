@@ -1370,11 +1370,11 @@ The row subscribes to the whole table state and to the table options. It re-rend
 
 Remaining props forward to the HTML `<tr>` element.
 
-| Data Attribute   | Value                         | Description                                                                                        |
-| :--------------- | :---------------------------- | :------------------------------------------------------------------------------------------------- |
-| `data-clickable` | present when `onClick` is set | Presence-only. The row runs a handler on a plain click.                                            |
-| `data-expanded`  | present when expanded         | Presence-only. The row's detail panel is open.                                                     |
-| `data-closing`   | present while it fades out    | Presence-only. The row's panel or an ancestor row collapsed. The row is `inert` until it unmounts. |
+| Data Attribute   | Value                         | Description                                                                                                                                             |
+| :--------------- | :---------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `data-clickable` | present when `onClick` is set | Presence-only. The row runs a handler on a plain click.                                                                                                 |
+| `data-expanded`  | present when expanded         | Presence-only. The row's detail panel is open.                                                                                                          |
+| `data-closing`   | present while it fades out    | Presence-only. An ancestor row collapsed. The row is `inert` until it unmounts. Closing the row's own panel marks `DataTable.ExpandedRow`, not the row. |
 
 ### DataTable.EmptyRow
 
@@ -1397,10 +1397,10 @@ A `<th>` cell optimized for header actions. Wrap sortable headers' contents in `
 
 #### Data attributes
 
-| Data Attribute      | Value                              | Description                                                                                                                       |
-| :------------------ | :--------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`         | `"data-table-header table-header"` | On the `<th>`, joined ahead of `Table.Header`'s own slot.                                                                         |
-| `data-column-width` | `"fit"`                            | Present when the `column` prop's `meta.width` is `"fit"`. The header does not wrap its content, and the column shrinks to fit it. |
+| Data Attribute      | Value                              | Description                                                                                                                                         |
+| :------------------ | :--------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`         | `"data-table-header table-header"` | On the `<th>`, joined ahead of `Table.Header`'s own slot.                                                                                           |
+| `data-column-width` | `"fit"` \| `"wrap"`                | The `column` prop's `meta.width`, when set. `"fit"`: the header does not wrap its content, and the column shrinks to fit it; `"wrap"` lets it wrap. |
 
 ### DataTable.HeaderSortButton
 
@@ -1439,10 +1439,10 @@ A `<td>` for one data cell. Applies mantle typography, padding, and alignment fr
 
 #### Data attributes
 
-| Data Attribute      | Value                          | Description                                                                                                                     |
-| :------------------ | :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
-| `data-slot`         | `"data-table-cell table-cell"` | On the `<td>`, joined ahead of `Table.Cell`'s own slot.                                                                         |
-| `data-column-width` | `"fit"`                        | Present when the `column` prop's `meta.width` is `"fit"`. The cell does not wrap its content, and the column shrinks to fit it. |
+| Data Attribute      | Value                          | Description                                                                                                                                       |
+| :------------------ | :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `data-slot`         | `"data-table-cell table-cell"` | On the `<td>`, joined ahead of `Table.Cell`'s own slot.                                                                                           |
+| `data-column-width` | `"fit"` \| `"wrap"`            | The `column` prop's `meta.width`, when set. `"fit"`: the cell does not wrap its content, and the column shrinks to fit it; `"wrap"` lets it wrap. |
 
 ### DataTable.ActionHeader
 

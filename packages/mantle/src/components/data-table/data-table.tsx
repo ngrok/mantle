@@ -1174,7 +1174,7 @@ function isPressOnRowSelection(event: PointerEvent<HTMLTableRowElement>): boolea
  * | ---------------- | ----------------------------- | ------------------------------------------------------- |
  * | `data-clickable` | present when `onClick` is set | Presence-only. The row runs a handler on a plain click. |
  * | `data-expanded`  | present when expanded         | Presence-only. The row's detail panel is open.          |
- * | `data-closing` | present while it fades out | Presence-only. The row's panel or an ancestor row collapsed. The row is `inert` until it unmounts. |
+ * | `data-closing` | present while it fades out | Presence-only. An ancestor row collapsed. The row is `inert` until it unmounts. Closing the row's own panel marks `DataTable.ExpandedRow`, not the row. |
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatablerow
  *

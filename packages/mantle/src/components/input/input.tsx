@@ -37,6 +37,12 @@ type InputProps = Omit<ComponentProps<"input">, "autoComplete" | "type"> &
  * An interactive form control that accepts data from the user. Supports many
  * input types and validation states, and composes with adornment children.
  *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"input"` | The chrome around the input. |
+ * | `data-disabled` | present when disabled | On the chrome. Style with `data-disabled:`. |
+ * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | On the chrome, from the `validation` prop. Omitted when unset. |
+ *
  * @useWhen Accept one line of text from the user, such as a name, an email address, a URL, or a
  * search term.
  *
@@ -84,6 +90,11 @@ type InputCaptureProps = Omit<ComponentProps<"input">, "autoComplete" | "type"> 
 /**
  * The actual <input /> element that captures user input.
  * Used internally by Input component or when you need direct control over the input element.
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"input-capture"` | The `<input>` element. |
+ * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | On the `<input>`. `Input`'s `validation` also reaches it; this part's `validation` does not reach the chrome. Omitted when unset. |
  *
  * @see https://mantle.ngrok.com/components/forms/input
  *

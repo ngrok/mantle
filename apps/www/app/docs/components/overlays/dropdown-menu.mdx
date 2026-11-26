@@ -377,9 +377,9 @@ All props of a `<div>`, plus:
 | `onFocusOutside?`       | `(event: FocusOutsideEvent) => void`                            |           | Runs when focus moves outside the submenu. Call `event.preventDefault()` to keep it open.                    |
 | `onInteractOutside?`    | `(event: PointerDownOutsideEvent \| FocusOutsideEvent) => void` |           | Runs for both an outside press and an outside focus move. Call `event.preventDefault()` to keep it open.     |
 
-| Data Attribute         | Value                                          | Description                                                                                                                                                |
-| ---------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-overflow-top`    | present while scrolled down                    | Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The first item sits past the top edge, so `scroll-cue-y` shows a fade there.   |
-| `data-overflow-bottom` | present while more is below                    | Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there. |
-| `data-open`            | present while open                             | Presence-only. Whether the submenu is open.                                                                                                                |
-| `data-side`            | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the sub-trigger the submenu is on after it flips.                                                                                              |
+| Data Attribute         | Value                       | Description                                                                                                                                                |
+| ---------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-overflow-top`    | present while scrolled down | Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The first item sits past the top edge, so `scroll-cue-y` shows a fade there.   |
+| `data-overflow-bottom` | present while more is below | Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there. |
+| `data-open`            | present while open          | Presence-only. Whether the submenu is open.                                                                                                                |
+| `data-side`            | `"left"` \| `"right"`       | The side of the sub-trigger the submenu is on after it flips.                                                                                              |

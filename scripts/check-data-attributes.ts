@@ -32,8 +32,8 @@ export function stampedDataAttributes(code: string): string[] {
 	const patterns = [
 		/(?<![[\w-])(data-[a-z][a-z0-9-]*)\s*=\s*[{"'`$]/g,
 		// A JSX attribute with no value, such as `<div data-input-otp>`, also before a
-		// spread or another prop.
-		/(?<![[\w:.-])(data-[a-z][a-z0-9-]*)(?=\s*\/?>|\s+(?:[a-zA-Z][\w:-]*\s*(?:=|\/?>)|data-|\{\.\.\.)|\s*\n\s*(?:[a-zA-Z{]|\/?>))/g,
+		// spread or other props. Prose such as `"use data-x for that"` ends in no `>`, `=`, or spread.
+		/(?<![[\w:.-])(data-[a-z][a-z0-9-]*)(?=(?:\s+[a-zA-Z][\w:-]*)*\s*(?:\/?>|=|\{\.\.\.)|\s*\n\s*(?:[a-zA-Z{]|\/?>))/g,
 		/["'`](data-[a-z][a-z0-9-]*)["'`]\s*:/g,
 		/(?:set|toggle|remove)Attribute\(\s*["'`](data-[a-z][a-z0-9-]*)/g,
 		// A constant that a DOM write names, such as `const DRAGGING = "data-dragging"`.

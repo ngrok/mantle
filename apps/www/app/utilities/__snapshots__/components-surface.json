@@ -1949,7 +1949,7 @@
         "part": "DataTable.Row",
         "name": "data-closing",
         "value": "present while it fades out",
-        "description": "Presence-only. The row's panel or an ancestor row collapsed. The row is `inert` until it unmounts."
+        "description": "Presence-only. An ancestor row collapsed. The row is `inert` until it unmounts. Closing the row's own panel marks `DataTable.ExpandedRow`, not the row."
       },
       {
         "part": "DataTable.Header",
@@ -1960,8 +1960,8 @@
       {
         "part": "DataTable.Header",
         "name": "data-column-width",
-        "value": "`\"fit\"`",
-        "description": "Present when the `column` prop's `meta.width` is `\"fit\"`. The header does not wrap its content, and the column shrinks to fit it."
+        "value": "`\"fit\"` \\| `\"wrap\"`",
+        "description": "The `column` prop's `meta.width`, when set. `\"fit\"`: the header does not wrap its content, and the column shrinks to fit it; `\"wrap\"` lets it wrap."
       },
       {
         "part": "DataTable.HeaderSortButton",
@@ -1984,8 +1984,8 @@
       {
         "part": "DataTable.Cell",
         "name": "data-column-width",
-        "value": "`\"fit\"`",
-        "description": "Present when the `column` prop's `meta.width` is `\"fit\"`. The cell does not wrap its content, and the column shrinks to fit it."
+        "value": "`\"fit\"` \\| `\"wrap\"`",
+        "description": "The `column` prop's `meta.width`, when set. `\"fit\"`: the cell does not wrap its content, and the column shrinks to fit it; `\"wrap\"` lets it wrap."
       },
       {
         "part": "DataTable.ActionHeader",
@@ -2351,7 +2351,7 @@
       {
         "part": "DropdownMenu.SubContent",
         "name": "data-side",
-        "value": "`\"top\"` \\| `\"right\"` \\| `\"bottom\"` \\| `\"left\"`",
+        "value": "`\"left\"` \\| `\"right\"`",
         "description": "The side of the sub-trigger the submenu is on after it flips."
       }
     ]
@@ -2675,6 +2675,12 @@
         "description": "On the chrome. Style with `data-disabled:`."
       },
       {
+        "part": "Input",
+        "name": "data-validation",
+        "value": "`\"error\"` \\| `\"success\"` \\| `\"warning\"`",
+        "description": "On the chrome, from `Input`'s `validation` prop. Omitted when unset."
+      },
+      {
         "part": "InputCapture",
         "name": "data-slot",
         "value": "`\"input-capture\"`",
@@ -2684,7 +2690,7 @@
         "part": "InputCapture",
         "name": "data-validation",
         "value": "`\"error\"` \\| `\"success\"` \\| `\"warning\"`",
-        "description": "On the chrome and the `<input>`. Omitted when unset."
+        "description": "On the `<input>`. `Input`'s `validation` also reaches it; an `InputCapture` `validation` does not reach the chrome. Omitted when unset."
       }
     ]
   },
@@ -3180,14 +3186,14 @@
       },
       {
         "part": "Message.Content",
-        "name": "data-slot=\"message-content-label\"",
-        "value": "on the wrapper",
+        "name": "data-slot",
+        "value": "`\"message-content-label\"`",
         "description": "The `display: contents` wrapper around the children."
       },
       {
         "part": "Message.Pending",
-        "name": "data-slot=\"message-pending-label\"",
-        "value": "on the wrapper",
+        "name": "data-slot",
+        "value": "`\"message-pending-label\"`",
         "description": "The `display: contents` wrapper around the children."
       }
     ]
@@ -4264,8 +4270,8 @@
       },
       {
         "part": "Reasoning.Trigger",
-        "name": "data-slot=\"reasoning-trigger-label\"",
-        "value": "on the wrapper",
+        "name": "data-slot",
+        "value": "`\"reasoning-trigger-label\"`",
         "description": "The `display: contents` wrapper around the label."
       }
     ]
@@ -5078,7 +5084,7 @@
         "part": "Sidebar.Nav",
         "name": "data-overlay",
         "value": "`\"\"`",
-        "description": "On the `<dialog>`. A press on the backdrop targets it. Below the mobile breakpoint only, where the nav is a modal sheet."
+        "description": "On the `<dialog>`, at every width. A press on the backdrop targets it; only the mobile sheet has a backdrop."
       },
       {
         "part": "Sidebar.Nav",
@@ -6073,8 +6079,8 @@
       },
       {
         "part": "ToolCall.Trigger",
-        "name": "data-slot=\"tool-call-trigger-label\"",
-        "value": "on the wrapper",
+        "name": "data-slot",
+        "value": "`\"tool-call-trigger-label\"`",
         "description": "The `display: contents` wrapper around the children."
       }
     ]
@@ -6351,8 +6357,8 @@
       },
       {
         "part": "Work.Trigger",
-        "name": "data-slot=\"work-trigger-label\"",
-        "value": "on the wrapper",
+        "name": "data-slot",
+        "value": "`\"work-trigger-label\"`",
         "description": "The `display: contents` wrapper around the label."
       }
     ]
@@ -6458,7 +6464,7 @@
         "part": "WorldMap.Root",
         "name": "data-value",
         "value": "a number",
-        "description": "On each cell of the `sr-only` data table that shows a finite number, and on a numeric x row header. The raw number. A missing value has none."
+        "description": "On the latitude, longitude, and finite size cells of the `sr-only` data table. The raw number. The name row header has none."
       },
       {
         "part": "WorldMap.Callout",
