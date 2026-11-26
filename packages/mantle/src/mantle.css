@@ -2102,9 +2102,12 @@ pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] .mantle-code-gut
 }
 
 pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] .mantle-code-gutter::before {
-	/* Why two: a browser without alternative text in `content` drops the second and keeps the first. */
+	/*
+	 * Why no empty alternative text: the column is `aria-hidden`. And a
+	 * `var()` declaration that a browser cannot read is dropped only when it
+	 * computes, so a fallback pair would draw no numbers there.
+	 */
 	content: var(--mantle-code-gutter);
-	content: var(--mantle-code-gutter) / "";
 	position: absolute;
 	top: 0;
 	left: 0;
