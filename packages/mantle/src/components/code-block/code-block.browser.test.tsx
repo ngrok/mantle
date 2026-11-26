@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
 import { useState } from "react";
-import type { CSSProperties } from "react";
+import type { ComponentProps, CSSProperties } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { commands, userEvent as browserUserEvent } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
@@ -117,7 +117,7 @@ describe("CodeBlock (browser)", () => {
 	 * constant, the rule stops matching and the clearance assertions fail.
 	 */
 	const CLEARANCE_CLASS =
-		"[&:has([data-slot=code-block-copy-button])_.mantle-code-line:nth-child(-n+2)]:pr-14";
+		"[&_:is([data-slot~=code-block-copy-button],:has(>[data-slot~=code-block-copy-button]))~*_.mantle-code-line:nth-child(-n+2)]:pr-14";
 
 	/**
 	 * The end-of-line breathing-room utility on `CodeBlock.Body`: every line
@@ -172,7 +172,9 @@ describe("CodeBlock (browser)", () => {
 		.${CSS.escape(BREATHING_ROOM_CLASS)} .mantle-code-line {
 			padding-right: 1rem;
 		}
-		.${CSS.escape(CLEARANCE_CLASS)}:has([data-slot=code-block-copy-button])
+		.${CSS.escape(CLEARANCE_CLASS)}
+			:is([data-slot~="code-block-copy-button"], :has(> [data-slot~="code-block-copy-button"]))
+			~ *
 			.mantle-code-line:nth-child(-n + 2) {
 			padding-right: 3.5rem;
 		}
@@ -202,10 +204,10 @@ describe("CodeBlock (browser)", () => {
 			left: calc(var(--mantle-code-line-number-width) + var(--mantle-code-line-number-gap));
 			z-index: 1;
 		}
-		pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-content {
+		pre[data-slot~="code-block-code"][data-foldable] .mantle-code-line-content {
 			margin-left: calc(var(--mantle-code-fold-gutter-width) + var(--mantle-code-fold-gutter-gap));
 		}
-		pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle)
+		pre[data-slot~="code-block-code"][data-foldable]
 			.mantle-code-line-opener
 			> .mantle-code-line-content {
 			margin-left: 0;
@@ -269,7 +271,7 @@ describe("CodeBlock (browser)", () => {
 	 */
 	function foldLineHeightCss(): string {
 		const match =
-			/pre\[data-slot~="code-block-code"\]:has\(\.mantle-code-fold-toggle\) \{\n\tline-height:[\s\S]*?\n\}/.exec(
+			/pre\[data-slot~="code-block-code"\]\[data-foldable\] \{\n\tline-height:[\s\S]*?\n\}/.exec(
 				mantleCss,
 			);
 		if (match == null) {
@@ -439,6 +441,56 @@ describe("CodeBlock (browser)", () => {
 			for (const line of document.querySelectorAll(".mantle-code-line")) {
 				expect(getComputedStyle(line).paddingRight).toBe(`${rootFontSizePx()}px`);
 			}
+
+			// A CopyButton that a wrapper component renders, before tabbed code,
+			// in a Body whose child puts its children in an inner element,
+			// reserves the same clearance.
+			const WrappedCopyButton = () => <CodeBlock.CopyButton />;
+			const Panel = ({ children, ...props }: ComponentProps<"section">) => (
+				<section {...props}>
+					<div>{children}</div>
+				</section>
+			);
+			rerender(
+				<div style={{ width: 340 }}>
+					<CodeBlock.Root defaultTab="ts">
+						<CodeBlock.Body asChild>
+							<Panel>
+								<WrappedCopyButton />
+								<CodeBlock.TabContent value="ts">
+									<CodeBlock.Code value={makeFixedWidthValue([100, 100, 100])} />
+								</CodeBlock.TabContent>
+							</Panel>
+						</CodeBlock.Body>
+					</CodeBlock.Root>
+				</div>,
+			);
+			const lines = Array.from(document.querySelectorAll(".mantle-code-line"));
+			expect(lines.map((line) => getComputedStyle(line).paddingRight)).toEqual([
+				`${3.5 * remPx}px`,
+				`${3.5 * remPx}px`,
+				`${remPx}px`,
+			]);
+
+			// A CopyButton in its own wrapper element, before the code, reserves it too.
+			rerender(
+				<div style={{ width: 340 }}>
+					<CodeBlock.Root>
+						<CodeBlock.Body>
+							<span>
+								<CodeBlock.CopyButton />
+							</span>
+							<CodeBlock.Code value={makeFixedWidthValue([100, 100, 100])} />
+						</CodeBlock.Body>
+					</CodeBlock.Root>
+				</div>,
+			);
+			expect(
+				Array.from(
+					document.querySelectorAll(".mantle-code-line"),
+					(line) => getComputedStyle(line).paddingRight,
+				),
+			).toEqual([`${3.5 * remPx}px`, `${3.5 * remPx}px`, `${remPx}px`]);
 		});
 	});
 

@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import * as CodeBlock from "./code-block-parts.js";
+import { jsonCodeBlockValue } from "./json-highlight.js";
 import { createMantleCodeBlockValue } from "./mantle-code.js";
 import { useCodeBlockStream } from "./use-code-block-stream.js";
 
@@ -72,6 +73,43 @@ describe("CodeBlock", () => {
 
 			expect(html).toMatch(/tab-size:2[;"]/);
 			expect(html).not.toContain("-moz-tab-size");
+		});
+
+		test("marks the <pre> foldable only when its HTML has a fold toggle", () => {
+			const pre = (value: ReturnType<typeof jsonCodeBlockValue>) => {
+				const { container, unmount } = render(
+					<CodeBlock.Root>
+						<CodeBlock.Body>
+							<CodeBlock.Code value={value} />
+						</CodeBlock.Body>
+					</CodeBlock.Root>,
+				);
+				const foldable = container.querySelector("pre")?.hasAttribute("data-foldable");
+				unmount();
+				return foldable;
+			};
+
+			const foldable = jsonCodeBlockValue({ a: [1, 2] });
+			expect(pre(foldable)).toBe(true);
+			// Why: HTML that a consumer serialized again can reorder the attributes.
+			expect(
+				pre({
+					...foldable,
+					"~preHtml": (foldable["~preHtml"] ?? "").replaceAll(
+						'type="button" class="mantle-code-fold-toggle"',
+						'class="mantle-code-fold-toggle" type="button"',
+					),
+				}),
+			).toBe(true);
+			// Why: the class name in the code's text is not a fold toggle.
+			expect(
+				pre(
+					jsonCodeBlockValue(
+						{ '<button type="button" class="mantle-code-fold-toggle"': [1, 2] },
+						{ foldable: false },
+					),
+				),
+			).toBe(false);
 		});
 
 		test("drops a prefixed tab size from a consumer style", () => {
@@ -898,5 +936,41 @@ describe("useCodeBlockStream", () => {
 		container.innerHTML = renderToString(<StreamedCode code={"alpha\r\nbeta"} />);
 		const code = container.querySelector("[data-slot='code-block-code'] code");
 		expect(code?.textContent).toBe("alpha\nbeta");
+	});
+
+	test("a long block keeps each line break and line number as it streams past 64 lines", () => {
+		const lines = Array.from({ length: 130 }, (_, index) => `line ${index + 1}`);
+		const { container, rerender } = render(<StreamedCode code={lines.slice(0, 70).join("\n")} />);
+		const code = container.querySelector("[data-slot='code-block-code'] code");
+		// Why the same length first: a group with the same count of lines must still show an edited line.
+		lines[65] = "line 66 changed";
+		rerender(<StreamedCode code={lines.slice(0, 70).join("\n")} />);
+		expect(code?.textContent).toBe(lines.slice(0, 70).join("\n"));
+
+		rerender(<StreamedCode code={lines.join("\n")} />);
+		expect(code?.textContent).toBe(lines.join("\n"));
+		const numbers = [...container.querySelectorAll(".mantle-code-line")].map((line) =>
+			Number(line.getAttribute("data-line-number")),
+		);
+		expect(numbers).toEqual(lines.map((_, index) => index + 1));
+	});
+
+	test("a line that fills a hole in the lines shows", () => {
+		function LineCode({ code, lines }: { code: string; lines: readonly string[] }) {
+			return (
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code value={createMantleCodeBlockValue({ language: "text", code, lines })} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>
+			);
+		}
+		// Why `length`: it leaves a hole at index 1, as a caller that reserves slots does.
+		const sparse: string[] = ["A"];
+		sparse.length = 2;
+		const { container, rerender } = render(<LineCode code="A" lines={sparse} />);
+		rerender(<LineCode code={"A\nB"} lines={["A", "B"]} />);
+
+		expect(container.querySelector("[data-slot='code-block-code'] code")?.textContent).toBe("A\nB");
 	});
 });

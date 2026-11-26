@@ -256,8 +256,8 @@ importers:
         specifier: 0.1.1
         version: 0.1.1
       '@ngrok/remark-mdx-no-paragraph-wrap':
-        specifier: 0.1.0
-        version: 0.1.0(@mdx-js/mdx@3.1.1)(@mdx-js/rollup@3.1.1(rollup@4.68.8))
+        specifier: 0.1.1
+        version: 0.1.1(@mdx-js/mdx@3.1.1)(@mdx-js/rollup@3.1.1(rollup@4.68.8))
       '@react-router/dev':
         specifier: 8.5.3
         version: 8.5.3(react-router@8.5.3(@types/react-dom@19.3.0(@types/react@19.3.3))(@types/react@19.3.3)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(typescript@7.0.2)(vite@8.3.8(@types/node@26.6.10)(jiti@2.7.0)(yaml@2.9.1))
@@ -934,8 +934,8 @@ packages:
   '@ngrok/remark-mdx-github-alerts@0.1.1':
     resolution: {integrity: sha512-XHd2dldNzbp0MVCmGww4ZvOK5maBnH1D7Vf+yWmEc9G62C2KCFqxkyRVSnlhWX5WhH+Xo7eLCMQGmE2r5jRAkg==}
 
-  '@ngrok/remark-mdx-no-paragraph-wrap@0.1.0':
-    resolution: {integrity: sha512-BQjOZB9J+9xbAQlPkQf9WmqRsnEo8NLToYNhX0CV0KWJAwpq3XhU3Ucj1wbg8nu8KGCak2CUoYJ5ohi/3orP6w==}
+  '@ngrok/remark-mdx-no-paragraph-wrap@0.1.1':
+    resolution: {integrity: sha512-9ZFzsgy026eYAaDhLh3MFi0S5uDH5s4qPEDkPCWGVQprWooKP/2Q+dKgcL+R6i4ZXTnAXOIm280N2QVOlY4rYw==}
     peerDependencies:
       '@mdx-js/mdx': '>=3.0.0 || >=4.0.0'
       '@mdx-js/rollup': '>=3.0.0 || >=4.0.0'
@@ -4025,9 +4025,6 @@ packages:
   unist-util-visit-parents@6.1.0:
     resolution: {integrity: sha512-vKXxz6O38sKDj1mtx/k2cWvkkFBuYGx6uGrlzBkVeWCRF/F8sdI0j3Wbkz/5rVNRRuVc8UrgRdbCxNhmYXgP3w==}
 
-  unist-util-visit@5.1.0:
-    resolution: {integrity: sha512-m+vIdyeCOpdr/QeQCu2EzxX/ohgS8KbnPDgFni4dQsfSCtpz8UqDyY5GjRru8PDKuYn7Fq19j1CQ+nJSsGKOzg==}
-
   unist-util-visit@5.2.0:
     resolution: {integrity: sha512-fpsYs/VVoZxfGY9/j3FQpZmN8wdLJaV1Pt38AaJNZu9uKIHcFU3halCdBveEq1HGKO1OEfJY65w1zvoFV1b3qQ==}
 
@@ -4745,10 +4742,9 @@ snapshots:
       '@types/mdast': 4.0.4
       unist-util-visit: 5.2.0
 
-  '@ngrok/remark-mdx-no-paragraph-wrap@0.1.0(@mdx-js/mdx@3.1.1)(@mdx-js/rollup@3.1.1(rollup@4.68.8))':
+  '@ngrok/remark-mdx-no-paragraph-wrap@0.1.1(@mdx-js/mdx@3.1.1)(@mdx-js/rollup@3.1.1(rollup@4.68.8))':
     dependencies:
       '@types/mdast': 4.0.4
-      unist-util-visit: 5.1.0
     optionalDependencies:
       '@mdx-js/mdx': 3.1.1
       '@mdx-js/rollup': 3.1.1(rollup@4.68.8)
@@ -7661,12 +7657,6 @@ snapshots:
     dependencies:
       '@types/unist': 3.0.3
       unist-util-is: 6.0.1
-
-  unist-util-visit@5.1.0:
-    dependencies:
-      '@types/unist': 3.0.3
-      unist-util-is: 6.0.1
-      unist-util-visit-parents: 6.1.0
 
   unist-util-visit@5.2.0:
     dependencies:
