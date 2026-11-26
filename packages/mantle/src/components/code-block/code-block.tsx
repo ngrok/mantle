@@ -5,10 +5,8 @@ import { FileTextIcon } from "@phosphor-icons/react/FileText";
 import { TerminalIcon } from "@phosphor-icons/react/Terminal";
 import type { ComponentProps, Dispatch, ReactNode, SetStateAction } from "react";
 import {
-	Children,
 	createContext,
 	Fragment,
-	isValidElement,
 	memo,
 	useCallback,
 	useContext,
@@ -226,11 +224,8 @@ const Root = ({
 
 /**
  * The body of the `CodeBlock`. This is where `CodeBlock.Code` and
- * the optional `CodeBlock.CopyButton` are rendered.
- *
- * | Data Attribute | Value | Description |
- * | --- | --- | --- |
- * | `data-copy-button` | present with a copy button | Presence-only. A direct child is a `CodeBlock.CopyButton`, so the first two lines of the code make room for it. |
+ * the optional `CodeBlock.CopyButton` are rendered. Put the copy button
+ * before the code: the first two lines of the code after it make room for it.
  *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockbody
  *
@@ -257,20 +252,9 @@ const Body = ({
 	...props
 }: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
 	const Component = asChild ? Slot : "div";
-	// Why the children and not `:has()` in CSS: with `:has()`, each line that a
-	// stream inserted restyled the lines of the block. The children are known
-	// at render, so the server HTML has the attribute too.
-	const parts =
-		asChild && isValidElement<{ children?: ReactNode }>(props.children)
-			? props.children.props.children
-			: props.children;
-	const hasCopyButton = Children.toArray(parts).some(
-		(child) => isValidElement(child) && child.type === CopyButton,
-	);
 	return (
 		<Component
 			data-slot={joinDataSlot(dataSlot, "code-block-body")}
-			data-copy-button={hasCopyButton ? "" : undefined}
 			className={cx(
 				"relative",
 				// Why per-line breathing room: the scroll range ends at the edge of
@@ -281,10 +265,11 @@ const Body = ({
 				// button sits at `right-3 top-3`, over the first two text-mono lines
 				// only. Per-line padding adds to the max-content width of the `w-max`
 				// <code>, so a blanket reserve forced a horizontal scrollbar even when
-				// every line fit the container. `data-copy-button` drops the reserve
-				// when no copy button is rendered. This rule outranks the breathing
-				// room above on specificity.
-				"[&[data-copy-button]_.mantle-code-line:nth-child(-n+2)]:pr-14",
+				// every line fit the container. Why a sibling selector and not
+				// `:has()`: with `:has()`, each line that a stream inserted restyled
+				// the lines of the block. This rule outranks the breathing room above
+				// on specificity.
+				"[&>[data-slot~=code-block-copy-button]~*_.mantle-code-line:nth-child(-n+2)]:pr-14",
 				className,
 			)}
 			ref={ref}

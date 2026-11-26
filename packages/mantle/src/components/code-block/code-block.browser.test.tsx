@@ -116,7 +116,8 @@ describe("CodeBlock (browser)", () => {
 	 * this exact class string. When the component's class drifts from this
 	 * constant, the rule stops matching and the clearance assertions fail.
 	 */
-	const CLEARANCE_CLASS = "[&[data-copy-button]_.mantle-code-line:nth-child(-n+2)]:pr-14";
+	const CLEARANCE_CLASS =
+		"[&>[data-slot~=code-block-copy-button]~*_.mantle-code-line:nth-child(-n+2)]:pr-14";
 
 	/**
 	 * The end-of-line breathing-room utility on `CodeBlock.Body`: every line
@@ -171,7 +172,9 @@ describe("CodeBlock (browser)", () => {
 		.${CSS.escape(BREATHING_ROOM_CLASS)} .mantle-code-line {
 			padding-right: 1rem;
 		}
-		.${CSS.escape(CLEARANCE_CLASS)}[data-copy-button]
+		.${CSS.escape(CLEARANCE_CLASS)}
+			> [data-slot~="code-block-copy-button"]
+			~ *
 			.mantle-code-line:nth-child(-n + 2) {
 			padding-right: 3.5rem;
 		}
@@ -439,13 +442,17 @@ describe("CodeBlock (browser)", () => {
 				expect(getComputedStyle(line).paddingRight).toBe(`${rootFontSizePx()}px`);
 			}
 
-			// A CopyButton after the code reserves the same clearance.
+			// A CopyButton that a wrapper component renders, before tabbed code,
+			// reserves the same clearance.
+			const WrappedCopyButton = () => <CodeBlock.CopyButton />;
 			rerender(
 				<div style={{ width: 340 }}>
-					<CodeBlock.Root>
+					<CodeBlock.Root defaultTab="ts">
 						<CodeBlock.Body>
-							<CodeBlock.Code value={makeFixedWidthValue([100, 100, 100])} />
-							<CodeBlock.CopyButton />
+							<WrappedCopyButton />
+							<CodeBlock.TabContent value="ts">
+								<CodeBlock.Code value={makeFixedWidthValue([100, 100, 100])} />
+							</CodeBlock.TabContent>
 						</CodeBlock.Body>
 					</CodeBlock.Root>
 				</div>,

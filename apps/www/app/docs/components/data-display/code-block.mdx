@@ -648,17 +648,13 @@ All props from [standard HTML div attributes](https://developer.mozilla.org/en-U
 
 ### CodeBlock.Body
 
-The body of the `CodeBlock`. This is where the `CodeBlock.Code` and optional `CodeBlock.CopyButton` are rendered as direct children.
+The body of the `CodeBlock`. This is where the `CodeBlock.Code` and optional `CodeBlock.CopyButton` are rendered as direct children. Put the copy button first: the first two lines of the code after it make room for it.
 
 All props from [standard HTML div attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
 | Prop       | Type      | Default | Description                                                                                                                                   |
 | :--------- | :-------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `CodeBlock.Body` styling and functionality onto alternative element types or your own React components. |
-
-| Data Attribute     | Value                      | Description                                                                                                     |
-| :----------------- | :------------------------- | :-------------------------------------------------------------------------------------------------------------- |
-| `data-copy-button` | present with a copy button | Presence-only. A direct child is a `CodeBlock.CopyButton`, so the first two lines of the code make room for it. |
 
 ### CodeBlock.Code
 
