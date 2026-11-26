@@ -1,14 +1,32 @@
 import {
-	isConditionalElement,
-	isTextChild,
+	firstNodeKinds,
 	isTranslateNoSubtree,
+	mountsElement,
 	renderedChildren,
 	textRange,
 } from "./ast.ts";
-import type { JsxElement, JsxFragment, Rule } from "./types.ts";
+import type { JsxChild, JsxElement, JsxFragment, Rule } from "./types.ts";
 
 /**
- * Reports a conditional element that renders immediately before a bare text child.
+ * The first later sibling whose first node can be a reparented text node, or `null`. React inserts
+ * before the next node that exists, so the walk goes on past a child that can render nothing.
+ */
+function textAnchor(siblings: readonly JsxChild[]): JsxChild | null {
+	for (const sibling of siblings) {
+		const kinds = firstNodeKinds(sibling);
+		if (kinds.text || kinds.unknown) {
+			return sibling;
+		}
+		if (!kinds.nothing) {
+			return null;
+		}
+	}
+	return null;
+}
+
+/**
+ * Reports a conditional element that renders immediately before a bare text child. A `.map()`
+ * counts as conditional, because a new row mounts the same way.
  *
  * Google Translate wraps each text node in a `<font>` and reparents the original node. When the
  * condition turns on, React calls `parent.insertBefore(element, textNode)` against a node the
@@ -50,15 +68,17 @@ export const jsxNoConditionalBeforeText: Rule = {
 				return;
 			}
 			const children = renderedChildren(node.children);
+			const reported = new Set<JsxChild>();
 			for (const [index, child] of children.entries()) {
-				if (!isConditionalElement(child)) {
+				if (!mountsElement(child)) {
 					continue;
 				}
-				const next = children[index + 1];
-				if (next == null || !isTextChild(next)) {
+				const anchor = textAnchor(children.slice(index + 1));
+				if (anchor == null || reported.has(anchor)) {
 					continue;
 				}
-				context.report({ node: textRange(next), messageId: "conditionalBeforeText" });
+				reported.add(anchor);
+				context.report({ node: textRange(anchor), messageId: "conditionalBeforeText" });
 			}
 		}
 

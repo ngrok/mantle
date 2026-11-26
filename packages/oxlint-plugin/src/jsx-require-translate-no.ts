@@ -1,5 +1,5 @@
-import { hasTranslateNoAncestor, translateValue } from "./ast.ts";
-import type { JsxElement, JsxElementName, Rule, RuleContext } from "./types.ts";
+import { elementName, inheritedTranslateMode, translateMode } from "./ast.ts";
+import type { JsxElement, Rule, RuleContext } from "./types.ts";
 
 /**
  * The elements the rule checks when the config names none.
@@ -9,18 +9,6 @@ import type { JsxElement, JsxElementName, Rule, RuleContext } from "./types.ts";
  * default there rather than a lock.
  */
 const DEFAULT_ELEMENTS = ["kbd", "samp"];
-
-/** Spells a JSX tag name the way the config names it: `kbd`, `Kbd`, or `CodeBlock.Code`. */
-function elementName(name: JsxElementName): string {
-	switch (name.type) {
-		case "JSXIdentifier":
-			return name.name;
-		case "JSXNamespacedName":
-			return `${name.namespace.name}:${name.name.name}`;
-		case "JSXMemberExpression":
-			return `${elementName(name.object)}.${name.property.name}`;
-	}
-}
 
 /**
  * Reads the element list out of the rule options, falling back to [DEFAULT_ELEMENTS].
@@ -57,8 +45,9 @@ export function configuredElements(options: RuleContext["options"]): Set<string>
  * attribute classifies content. It is never the fix for the crash the other two rules report.
  *
  * The rule checks the tag names in `elements`, which default to `kbd` and `samp`. It stays quiet
- * when the element carries any `translate` attribute, and when an enclosing element already
- * carries `translate="no"`, because descendants inherit it.
+ * when the element's own `translate` is `no` or an expression it cannot read. Otherwise it reads the
+ * nearest enclosing `translate`, because descendants inherit it. A later props spread can override
+ * an earlier `translate="no"`, so stamp the attribute after the spread.
  *
  * @example
  * // ❌ a translated shortcut key names the wrong key
@@ -107,7 +96,12 @@ export const jsxRequireTranslateNo: Rule = {
 				if (!elements.has(name)) {
 					return;
 				}
-				if (translateValue(node) != null || hasTranslateNoAncestor(node)) {
+				const own = translateMode(node);
+				// Why `dynamic` passes: an expression value says the author decided.
+				if (own === "no" || own === "dynamic") {
+					return;
+				}
+				if (own == null && inheritedTranslateMode(node) === "no") {
 					return;
 				}
 				context.report({

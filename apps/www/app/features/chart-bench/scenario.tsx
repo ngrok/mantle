@@ -280,7 +280,7 @@ const SparklineTable = ({ config, items }: { config: Config; items: Item[] }) =>
 			<h1 className="mb-4 text-lg font-semibold">
 				{config.kind} sparkline table / n={config.n} rows × 2 charts / points={config.points} /
 				animation {config.animate ? "on" : "off"}
-				{config.noCharts ? " / no charts" : ""}
+				<span>{config.noCharts ? " / no charts" : ""}</span>
 			</h1>
 			<DataTable.Root table={table} className="[&_table]:table-fixed">
 				<DataTable.Head />
@@ -327,7 +327,7 @@ export const Scenario = ({ config }: { config: Config }) => {
 				<h1 className="mb-4 text-lg font-semibold">
 					{config.mode} / n={config.n} / points={config.points} / animation{" "}
 					{config.animate ? "on" : "off"}
-					{config.group === "list" ? " / List" : ""}
+					<span>{config.group === "list" ? " / List" : ""}</span>
 				</h1>
 				<MantleCards config={config} className="flex flex-col gap-2">
 					{items.map((item) => (
@@ -343,8 +343,8 @@ export const Scenario = ({ config }: { config: Config }) => {
 			<h1 className="text-lg font-semibold">
 				{config.kind} / {config.mode} / n={config.n} / points={config.points} / animation{" "}
 				{config.animate ? "on" : "off"}
-				{config.gate === "cv" ? " / content-visibility" : ""}
-				{config.group === "list" ? " / List" : ""}
+				<span>{config.gate === "cv" ? " / content-visibility" : ""}</span>
+				<span>{config.group === "list" ? " / List" : ""}</span>
 			</h1>
 			<MantleCards config={config} className="flex flex-col gap-6">
 				{items.map((item) => (

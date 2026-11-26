@@ -3,6 +3,16 @@ import { ruleTester } from "./rule-tester.ts";
 
 ruleTester.run("jsx-no-conditional-text-with-siblings", jsxNoConditionalTextWithSiblings, {
 	valid: [
+		// Known gap: a mapped value this package cannot read stays unknown, like any other.
+		"<button>{items.map((item) => item.label)}<Icon /></button>",
+		// Qodo: React renders no node for `""`, so this conditional never holds text.
+		'<button>{label && ""}<Icon /></button>',
+		// Review finding 5: `??` and `||` replace a nullish left side, so every outcome is text.
+		'<p>{(on ? "On" : null) ?? "Off"}<i /></p>',
+		'<p>{(on ? "On" : null) || "Off"}<i /></p>',
+		// A plain identifier on the left of `&&` is most often a boolean. Without types the rule cannot
+		// tell `count && <Badge />` from `open && <Badge />`, so it does not report either.
+		"<div>{count && <i />}<b /></div>",
 		// The engine skips a subtree under `translate="no"` (`code-block.tsx`).
 		'<pre translate="no"><code><>{index > 0 && "\\n"}<Line /></></code></pre>',
 		// Both branches render text, so React writes the new value through `commitTextUpdate` and
@@ -32,6 +42,54 @@ ruleTester.run("jsx-no-conditional-text-with-siblings", jsxNoConditionalTextWith
 		"<button>{label}<Icon svg={caret} /></button>",
 	],
 	invalid: [
+		{
+			// Review finding 1: React drops `""` from a child list, so the text node unmounts.
+			code: '<h1>Charts{show ? " / List" : ""}</h1>',
+			errors: [{ messageId: "textCanUnmount" }],
+		},
+		{
+			// Review finding 3: a fragment owns no host node, so its text unmounts by itself.
+			code: "<div>{on && <>Save</>}<i /></div>",
+			errors: [{ messageId: "textCanUnmount" }],
+		},
+		{
+			code: "<p>Delete the account{all && <> for all of its members</>}</p>",
+			errors: [{ messageId: "textCanUnmount" }],
+		},
+		{
+			// Qodo: clearing a mapped text list removes each text node beside the icon.
+			code: "<div>{ids.map((id) => `${id}!`)}<i /></div>",
+			errors: [{ messageId: "textCanUnmount" }],
+		},
+		{
+			// Qodo: a fragment is not a host node, so its lone child is not on the `setTextContent` path.
+			code: '<button><>{label && "Submit"}</></button>',
+			errors: [{ messageId: "textCanUnmount" }],
+		},
+		{
+			// Review finding 10: a same-line space is a sibling text node.
+			code: '<button>{on && "Save"} </button>',
+			errors: [{ messageId: "textCanUnmount" }],
+		},
+		{
+			// Review finding 5: `length && …` renders `0` as text, then swaps it for the element.
+			code: "<div>{items.length && <i />}<b /></div>",
+			errors: [{ messageId: "textBecomesElement" }],
+		},
+		{
+			// Review finding 12: a type annotation changes nothing at runtime.
+			code: '<button>{on && ("Save" as const)}<i /></button>',
+			errors: [{ messageId: "textCanUnmount" }],
+		},
+		{
+			// Review finding 13: a bigint and a negative number render as text.
+			code: "<button>{on && 42n}<i /></button>",
+			errors: [{ messageId: "textCanUnmount" }],
+		},
+		{
+			code: "<button>{on && -1}<i /></button>",
+			errors: [{ messageId: "textCanUnmount" }],
+		},
 		{
 			// `&&` renders nothing when the test is falsy, so the text unmounts beside the icon.
 			code: '<button>{label && "Submit"}<Icon svg={caret} /></button>',

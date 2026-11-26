@@ -6,9 +6,9 @@ Add `@ngrok/oxlint-plugin`, ngrok's house oxlint rules under the `ngrok` namespa
 
 `ngrok/jsx-no-conditional-before-text` reports a conditional element that renders immediately before a bare text child. Google Translate reparents the text node, so the element's `insertBefore` names a node that the parent no longer owns. The DOM raises `NotFoundError`, and the root tears down. This is the `Button` crash. The rule catches the `{children}` spelling of it without type information.
 
-`ngrok/jsx-no-conditional-text-with-siblings` reports a conditional text child that can unmount, or change into an element, while a sibling stays mounted. This is the `removeChild` half of the same failure. The rule does not report a conditional whose every branch renders text, because React writes the new value in place.
+`ngrok/jsx-no-conditional-text-with-siblings` reports a conditional text child that can unmount, or change into an element, while a sibling stays mounted. This is the `removeChild` half of the same failure. The rule does not report a conditional whose every branch renders nonempty text, because React writes the new value in place. React creates no node for `""`, so an empty-string branch still unmounts the text.
 
-`ngrok/jsx-require-translate-no` reports an element that holds untranslatable content but has no `translate="no"`. It checks `kbd` and `samp` by default, and the `elements` option adds more.
+`ngrok/jsx-require-translate-no` reports an element that holds untranslatable content but has no `translate="no"`. It checks `kbd` and `samp` by default. The `elements` option replaces that list, so name `kbd` and `samp` in it to keep them.
 
 ```json
 {
@@ -21,4 +21,4 @@ Add `@ngrok/oxlint-plugin`, ngrok's house oxlint rules under the `ngrok` namespa
 }
 ```
 
-oxlint's JS plugin support is in alpha and is not subject to semver, so an oxlint update can break the plugin. The package needs Node 26 and oxlint 1.94 or later.
+oxlint's JS plugin support is in alpha and is not subject to semver, so an oxlint update can break the plugin. The package needs Node 26 and oxlint 1.94 or a later 1.x release.

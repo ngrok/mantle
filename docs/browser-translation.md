@@ -10,7 +10,7 @@ breaks, and the rejected alternatives are in
 
 `pnpm -w run lint` reports some of these shapes through [`@ngrok/oxlint-plugin`](../packages/oxlint-plugin/README.md):
 
-- `ngrok/jsx-no-conditional-before-text`: a conditional element immediately before bare text.
+- `ngrok/jsx-no-conditional-before-text`: a conditional element or a `.map()` immediately before bare text.
 - `ngrok/jsx-no-conditional-text-with-siblings`: literal text that unmounts or becomes an element beside a
   sibling.
 - `ngrok/jsx-require-translate-no`: a `kbd` or `samp` with no `translate="no"`.

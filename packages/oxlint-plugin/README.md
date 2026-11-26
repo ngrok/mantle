@@ -9,8 +9,8 @@ The mechanism, the update-by-update table of what breaks, and the rejected alter
 
 ## Requirements
 
-- Node.js 26+
-- oxlint 1.94+
+- Node.js 26 (`^26.0.0`)
+- oxlint 1.94 or a later 1.x release (`^1.94.0`)
 
 oxlint's JS plugin support is in alpha and not subject to semver, so an oxlint bump can break the plugin. The
 `oxlint` peer dependency records the floor.
@@ -65,8 +65,16 @@ this on the first click of every submit button, because `isLoading` synthesizes 
 Two other fixes work. Move the conditional element after the text, which turns the mount into an
 `appendChild`. Or mount the element unconditionally and write text into it, which is safe and self-healing.
 
+A `.map()` counts as conditional too: a new row inserts before the next node the same way.
+
+The rule finds the node React inserts before, so it reads past a child that can render no node, such as
+`{null}` or an empty list. It reads into a fragment, because a fragment owns no host node. It does not
+report a conditional that picks between two elements of the same type and key, because React updates that
+element in place. It reads a static `translate`, and it skips a subtree whose nearest `translate` is `no`.
+A portal and an element passed in a prop do not inherit that value.
+
 A child whose every branch renders an element or nothing is not text, so `{footer == null ? null : <div />}`
-is not reported. A `.map()` whose arrow callback returns an element counts the same way. A branch this rule cannot read statically counts as text, because the crash costs a blank
+is not reported. A branch this rule cannot read statically counts as text, because the crash costs a blank
 page and the fix costs a `<span>`.
 
 ### `ngrok/jsx-no-conditional-text-with-siblings`
@@ -88,13 +96,23 @@ React's `removeChild` then names a node the translation engine reparented.
 </button>
 ```
 
+An empty string is not text. React creates no node for `""`, so `{show ? " / List" : ""}` beside a sibling
+still removes a text node. Write text into an element that stays mounted instead:
+`<span>{show ? " / List" : ""}</span>`.
+
+A `.map()` counts as conditional, because an empty list unmounts every row. A fragment owns no host node, so
+the rule reads into it, and the lone child of a fragment is not exempt. A count such as
+`{items.length && <Badge />}` renders `0` as text, so the rule reports it.
+
 Three shapes stay quiet on purpose:
 
 - **Every branch renders text:** `{open ? "Show less" : "Show more"}`. React writes the new value through
   `commitTextUpdate`, and the translation reverts.
-- **A lone expression child:** React updates it through `setTextContent`. The failure needs a sibling.
-- **A branch this rule cannot read statically:** `{expanded && belowTheFold}`. That identifier holds an
-  element far more often than a string, so the rule trades the recall for precision.
+- **The lone child of an element:** React updates it through `setTextContent`. The failure needs a sibling.
+- **A branch this rule cannot read statically:** `{expanded && belowTheFold}` and
+  `{items.map((item) => item.label)}`. Such a value holds an element far more often than a string, so the
+  rule trades the recall for precision. For the same reason, `{count && <Badge />}` with a plain identifier
+  reads as a boolean test.
 
 A nested conditional recurses, so `{wide && (full ? <Full /> : <Compact />)}` reads as element-or-nothing.
 
@@ -114,16 +132,22 @@ It is never the fix for the crash the other two rules report: fix the structure 
 <kbd translate="no">{shortcut}</kbd>
 ```
 
-The rule stays quiet when the element carries any `translate` attribute, and when an enclosing element already
-carries `translate="no"`, because descendants inherit it.
+The rule stays quiet when the element's own `translate` is `no`, or is an expression it cannot read.
+`translate="yes"` and `translate=""` both enable translation, so the rule reports them. With no value of its
+own, the element inherits the nearest enclosing `translate`. A portal and an element passed in a prop do not
+inherit it. In JSX the last assignment wins, so a props spread after `translate="no"` can undo it. Stamp the
+attribute after the spread.
+
+The rule treats a `translate` prop on a component as the DOM attribute, because a mantle component passes it
+to its root element.
 
 #### Options
 
-| Option     | Type       | Default           | Meaning                                         |
-| ---------- | ---------- | ----------------- | ----------------------------------------------- |
-| `elements` | `string[]` | `["kbd", "samp"]` | The tag names to check. An empty list opts out. |
+| Option     | Type       | Default           | Meaning                                                                            |
+| ---------- | ---------- | ----------------- | ---------------------------------------------------------------------------------- |
+| `elements` | `string[]` | `["kbd", "samp"]` | The tag names to check. The list replaces the default, and an empty list opts out. |
 
-Name a component the way the JSX spells it, including its object:
+Name a component the way the JSX spells it, including its object. Keep `kbd` and `samp` in the list to go on checking them:
 
 ```json
 {

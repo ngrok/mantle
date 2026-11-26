@@ -44,6 +44,7 @@ function Chips({ ids, total }: { ids: string[]; total?: string }) {
 					{id}
 				</span>
 			))}
+			{/* oxlint-disable-next-line ngrok/jsx-no-conditional-before-text -- Why: the fixture reproduces the crash this rule reports. */}
 			{total}
 		</div>
 	);

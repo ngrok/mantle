@@ -35,6 +35,9 @@ describe("configuredElements", () => {
 
 ruleTester.run("jsx-require-translate-no", jsxRequireTranslateNo, {
 	valid: [
+		// Review finding 8: a static expression value is static, and the last assignment wins.
+		'<kbd translate={"no"}>{shortcut}</kbd>',
+		'<kbd {...props} translate="no">{shortcut}</kbd>',
 		'<kbd translate="no">{shortcut}</kbd>',
 		'<samp translate="no">{output}</samp>',
 		// A bare or dynamic `translate` says the author decided, so the rule stays quiet.
@@ -64,6 +67,34 @@ ruleTester.run("jsx-require-translate-no", jsxRequireTranslateNo, {
 		},
 	],
 	invalid: [
+		{
+			// Review finding 11: a static value other than `no` leaves the key translatable.
+			code: '<kbd translate="yes">{shortcut}</kbd>',
+			errors: [{ messageId: "missingTranslateNo", data: { name: "kbd" } }],
+		},
+		{
+			code: '<kbd translate="">{shortcut}</kbd>',
+			errors: [{ messageId: "missingTranslateNo", data: { name: "kbd" } }],
+		},
+		{
+			// Review finding 8 and Qodo: a later spread can override an earlier `translate="no"`.
+			code: '<kbd translate="no" {...{ translate: "yes" }}>{shortcut}</kbd>',
+			errors: [{ messageId: "missingTranslateNo", data: { name: "kbd" } }],
+		},
+		{
+			code: '<kbd translate="no" {...props}>{shortcut}</kbd>',
+			errors: [{ messageId: "missingTranslateNo", data: { name: "kbd" } }],
+		},
+		{
+			// Review finding 7: the nearest `translate` decides.
+			code: '<div translate="no"><aside translate="yes"><kbd>Return</kbd></aside></div>',
+			errors: [{ messageId: "missingTranslateNo", data: { name: "kbd" } }],
+		},
+		{
+			// Review finding 6: a portal mounts elsewhere, so it does not inherit the attribute.
+			code: '<div translate="no">{createPortal(<kbd>K</kbd>, node)}</div>',
+			errors: [{ messageId: "missingTranslateNo", data: { name: "kbd" } }],
+		},
 		{
 			code: "<kbd>{shortcut}</kbd>",
 			errors: [{ messageId: "missingTranslateNo", data: { name: "kbd" } }],
