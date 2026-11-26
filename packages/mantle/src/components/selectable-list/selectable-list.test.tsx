@@ -715,12 +715,12 @@ type ViewportRenderProp = ComponentProps<typeof SelectableList.Viewport>["childr
 // renderItems drops non-element results at runtime, so the type rejects
 // a string return up front instead of rendering nothing.
 // @ts-expect-error -- a string return is not an element or null
-void (((option) => option.value) satisfies ViewportRenderProp);
+((option) => option.value) satisfies ViewportRenderProp;
 
 // A render prop may return `null` to drop a row.
-void (((option) =>
+((option) =>
 	option.disabled ? null : (
 		<SelectableList.Item value={option.value}>
 			<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
 		</SelectableList.Item>
-	)) satisfies ViewportRenderProp);
+	)) satisfies ViewportRenderProp;

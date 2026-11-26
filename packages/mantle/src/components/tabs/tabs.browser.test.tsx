@@ -913,7 +913,7 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 					<Tabs.Root defaultValue="a">
 						<Tabs.List
 							aria-label="Inline ref"
-							ref={(node) => void node}
+							ref={() => undefined}
 							onKeyDown={() => setKeys((keys) => keys + 1)}
 						>
 							<Tabs.Trigger value="a">A</Tabs.Trigger>

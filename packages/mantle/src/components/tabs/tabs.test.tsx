@@ -996,9 +996,9 @@ describe("HeadlessTabs", () => {
 });
 
 // Type-level contract: a handler typed with a union of tab values type-checks.
-void (<Tabs.Root onValueChange={(_value: "account" | "password") => {}} />);
+<Tabs.Root onValueChange={(_value: "account" | "password") => {}} />;
 // Type-level contract: typecheck fails when a directive below goes unused.
 // @ts-expect-error -- children need asChild
-void (<Tabs.Separator>rule</Tabs.Separator>);
+<Tabs.Separator>rule</Tabs.Separator>;
 // @ts-expect-error -- asChild needs a child to clone
-void (<Tabs.Separator asChild />);
+<Tabs.Separator asChild />;

@@ -10,11 +10,11 @@ import { installPopoverApi } from "./src/test-utils/install-popover-api.js";
 import { createIntersectionObserverStub } from "./src/test-utils/mock-intersection-observer.js";
 import { canUseDOM } from "./src/components/browser-only/can-use-dom.js";
 
-// Why: `@testing-library/jest-dom/vitest` extends `expect` at runtime, but it types its matchers
-// onto `Assertion<T>`, and Vitest 5 declares `Assertion<R, T>`, so that declaration no longer
-// merges and every DOM matcher vanishes from `expect` (testing-library/jest-dom#738). `Matchers`
-// is the interface Vitest 5 reserves for custom matchers, and `Assertion`, `expect.extend`, and
-// the asymmetric matchers all extend it. Delete this block once jest-dom ships v5 types.
+// Why: `@vitest/browser` declares its own `toHaveTextContent(text?: string | number)` on
+// `Assertion`, and that declaration hides the jest-dom 8 overload that takes a `RegExp`.
+// `Matchers` is the interface Vitest 5 reserves for custom matchers, and `Assertion`,
+// `expect.extend`, and the asymmetric matchers all extend it, so the `RegExp` form type-checks
+// again. Delete this block when `typecheck` passes without it.
 declare module "vitest" {
 	interface Matchers<R, T> extends TestingLibraryMatchers<unknown, R> {}
 }

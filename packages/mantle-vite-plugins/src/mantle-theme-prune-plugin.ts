@@ -154,7 +154,9 @@ function joinThemeRuleFragments(root: postcss.Root) {
 		}
 		const run = nodes.slice(start + 1, end);
 		start = end - 1;
-		const firstFallback = run.find((node) => fallbackRuleOf(node) != null);
+		const firstFallback = run.find(
+			(node): node is AtRule => node instanceof AtRule && fallbackRuleOf(node) != null,
+		);
 		const target = fallbackRuleOf(firstFallback);
 		if (firstFallback == null || target == null || !canJoin([head, ...run])) {
 			continue;
