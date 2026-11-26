@@ -2425,19 +2425,19 @@ pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle)
 	}
 
 	/* The caret at the end of the streamed text: after the last paragraph, heading, or list item. */
-	/* structural-selector-ok: only a streaming Markdown element sets the attribute, and the child combinators keep each test inside it. */
+	/* structural-selector-ok: on a streamed answer of lists and quotes at 4x CPU, `:not(:has(+ *))` took 11.8 s of style recalc and `:last-child` 0.3 s (#1941). The cost: when another rule tests `:last-child` on the children of `<body>`, a portal append restyles the subtree of the old last child (2,002 elements for a 2,000-node page). `:has(+ *)` on the lists and quotes only avoids that, but keeps 5.9 s. Why `:where()`: the `:last-child` tests add no weight, as `:not(:has(+ *))` added none. */
 	:where([data-slot~="markdown"][data-streaming])
-		> :not(:has(+ *)):is(p, h1, h2, h3, h4, h5, h6)::after,
+		> :is(p, h1, h2, h3, h4, h5, h6):where(:last-child)::after,
 	:where([data-slot~="markdown"][data-streaming])
-		> :not(:has(+ *)):is(ul, ol)
-		> li:not(:has(+ *)):not(:has(> p, > ul, > ol))::after,
+		> :is(ul, ol):where(:last-child)
+		> li:where(:last-child):not(:has(> p, > ul, > ol))::after,
 	:where([data-slot~="markdown"][data-streaming])
-		> :not(:has(+ *)):is(ul, ol)
-		> li:not(:has(+ *))
-		> p:not(:has(+ *))::after,
+		> :is(ul, ol):where(:last-child)
+		> li:where(:last-child)
+		> p:where(:last-child)::after,
 	:where([data-slot~="markdown"][data-streaming])
-		> blockquote:not(:has(+ *))
-		> p:not(:has(+ *))::after {
+		> blockquote:where(:last-child)
+		> p:where(:last-child)::after {
 		content: "";
 		display: inline-block;
 		width: 0.5em;
