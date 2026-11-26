@@ -182,7 +182,37 @@ rule:
                 has:
                   field: name
                   pattern: $DT
-fix: <$DT.ActionHeader $$$ATTRS>$$$CHILDREN</$DT.ActionHeader>
+# Why: DataTable.ActionHeader takes no `column`, so a copied
+# `column={props.column}` fails typecheck. The rewrite also reads the
+# attribute values, so it drops only a `column` on a `.Header` element that
+# no attribute holds below the column's `header`. A `column` on an element in
+# `children` or in a spread stays.
+rewriters:
+  - id: drop-column
+    rule:
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^column$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: \.\s*Header$
+        not:
+          inside:
+            stopBy:
+              kind: pair
+            kind: jsx_attribute
+    fix: ""
+transform:
+  KEPT:
+    rewrite:
+      source: $$$ATTRS
+      rewriters: [drop-column]
+fix: <$DT.ActionHeader $KEPT>$$$CHILDREN</$DT.ActionHeader>
 ---
 id: action-column-header-self-closing
 language: tsx
@@ -365,7 +395,37 @@ rule:
                 has:
                   field: name
                   pattern: $DT
-fix: <$DT.ActionHeader $$$ATTRS />
+# Why: DataTable.ActionHeader takes no `column`, so a copied
+# `column={props.column}` fails typecheck. The rewrite also reads the
+# attribute values, so it drops only a `column` on a `.Header` element that
+# no attribute holds below the column's `header`. A `column` on an element in
+# `children` or in a spread stays.
+rewriters:
+  - id: drop-column
+    rule:
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^column$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: \.\s*Header$
+        not:
+          inside:
+            stopBy:
+              kind: pair
+            kind: jsx_attribute
+    fix: ""
+transform:
+  KEPT:
+    rewrite:
+      source: $$$ATTRS
+      rewriters: [drop-column]
+fix: <$DT.ActionHeader $KEPT />
 ---
 id: action-column-null-header
 language: tsx
