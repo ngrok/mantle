@@ -112,8 +112,9 @@ function getFilterConjunction(
 		if (kind === "and" || parts.length < 2) {
 			return clauses;
 		}
-		const start = Math.min(...clauses.map((clause) => clause.start));
-		const end = Math.max(...clauses.map((clause) => clause.end));
+		// Why reduce: a spread of a wide query passes the engine's argument limit.
+		const start = clauses.reduce((min, clause) => Math.min(min, clause.start), Infinity);
+		const end = clauses.reduce((max, clause) => Math.max(max, clause.end), -Infinity);
 		const key = positiveKey(clauses[0]);
 		const oneKey =
 			or === "same-key" &&
@@ -194,7 +195,9 @@ function getFilterConjunction(
 
 	const clauses: Clause[] = [];
 	while (index < tokens.length) {
-		clauses.push(...(readOr(false) ?? []));
+		for (const clause of readOr(false) ?? []) {
+			clauses.push(clause);
+		}
 		// A `)` with no open group never comes from the parser, but a caller can hand over any token list.
 		if (tokens[index]?.kind === "group-end") {
 			index += 1;

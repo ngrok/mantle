@@ -114,6 +114,15 @@ describe("getFilterConjunction", () => {
 		expect(actual).toEqual(expected);
 	});
 
+	test("reads a query wider than the engine's argument limit", () => {
+		const values = Array.from({ length: 200_000 }, (_, index) => `name:v${index}`);
+		expect(
+			getFilterConjunction(parseFilterQuery(testGrammar, values.join(" "))).clauses,
+		).toHaveLength(200_000);
+		const { problems } = getFilterConjunction(parseFilterQuery(testGrammar, values.join(" OR ")));
+		expect(problems).toHaveLength(1);
+	});
+
 	test("keeps a qualifier still being typed, and asks nothing of an empty query", () => {
 		// The caller sees `is:` with no members and can ask for a value; a backend must not drop it in silence.
 		expect(read("is: name:api")).toEqual({ clauses: [["is:"], ["name:api"]], problems: [] });
