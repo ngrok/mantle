@@ -64,6 +64,12 @@ describe("selectorProblems", () => {
 		expect(selectorProblems(css).map((problem) => problem.line)).toEqual([4]);
 	});
 
+	it("nests each alternative of a selector list under its parent", () => {
+		expect(
+			selectorProblems(".feed:has(.toggle) {\n\t&:hover, .line { color: red; }\n}\n").length,
+		).toBe(1);
+	});
+
 	it("reads an escaped character as text and a pseudo-class in any case", () => {
 		const css =
 			"article:has(.mark\\() .line { color: red; }\narticle:has(>.foo\\+bar) .line { color: red; }\narticle:HAS(.line) .line { color: red; }\n";

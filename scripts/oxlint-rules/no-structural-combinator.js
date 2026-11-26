@@ -143,7 +143,9 @@ function reachesPastChildren(argument) {
 		const chain = part
 			.replace(/:nth-[a-z-]+\([^()]*\)/g, ":nth()")
 			.trim()
-			.replace(/\s*([>+~,()])\s*/g, "$1");
+			// Why not after `)`: in `:not(.a) .b` that space is a descendant combinator.
+			.replace(/\s*([>+~,(])\s*/g, "$1")
+			.replace(/\s+\)/g, ")");
 		return !chain.startsWith(">") || /[\s+~]/.test(chain.slice(1));
 	});
 }
@@ -181,7 +183,7 @@ function dropAttributes(selector) {
 }
 
 /** Splits at the top-level commas, outside parentheses, brackets, and quotes. */
-function splitTopLevel(selector) {
+export function splitTopLevel(selector) {
 	const parts = [];
 	let depth = 0;
 	let quote = null;
@@ -530,7 +532,9 @@ function classifyVariants(token) {
 			start = index + 1;
 			const relative = RELATIVE_ARBITRARY_VARIANT.exec(variant);
 			const hasArbitrary = /^(not-)?has-\[(.+)\]$/.exec(variant);
-			const relativeHas = /^(group|peer|in)-(not-)?has-(?:\[(.+)\]|[^/]+)(?:\/\S+)?$/.exec(variant);
+			const relativeHas = /^(?:not-)?(group|peer|in)-(not-)?has-(?:\[(.+)\]|[^/]+)(?:\/\S+)?$/.exec(
+				variant,
+			);
 			if (hasArbitrary != null) {
 				const argument = (hasArbitrary[2] ?? "").replace(/(?<!\\)_/g, " ");
 				addHas(
@@ -543,11 +547,23 @@ function classifyVariants(token) {
 				// Why `.x` for a named variant: `group-has-checked` tests any descendant.
 				const argument = (relativeHas[3] ?? ".x").replace(/(?<!\\)_/g, " ");
 				const test = relativeHas[2] == null ? `:has(${argument})` : `:not(:has(${argument}))`;
-				addHas(variant, `.g${test} ${relativeHas[1] === "peer" ? "~ " : ""}&`);
+				const relation = `.g${test} ${relativeHas[1] === "peer" ? "~ " : ""}&`;
+				addHas(variant, relation);
+				// Why: a peer's `~` before a later `>*` is the universal-subject trap.
+				composed = relation.replace("&", composed);
+			} else if (variant === "marker" || variant === "selection") {
+				// Why: Tailwind emits `& *::marker` beside `&::marker`, so the rule reaches the descendants.
+				addHas(variant, "& *");
 			} else if (variant === "*" || variant === "**" || variant === "between") {
 				// Why `between`: mantle's variant styles the children too (`mantle.css`).
 				addHas(variant, variant === "**" ? "& *" : "& > *");
-			} else if (variant.startsWith("[") && variant.endsWith("]") && !variant.includes("&")) {
+			} else if (
+				variant.startsWith("[") &&
+				variant.endsWith("]") &&
+				!variant.includes("&") &&
+				!variant.startsWith("[@")
+			) {
+				// Why not `[@…]`: a feature query, such as `@supports`, holds no selector.
 				// Why: an arbitrary variant with no `&` still compiles, with the selector on the element.
 				addHas(variant, `&:is(${variant.slice(1, -1).replace(/(?<!\\)_/g, " ")})`);
 			} else if (relative != null || /^not-\[.+\]$/.test(variant)) {

@@ -33,7 +33,7 @@ type TraceEvent = {
 /** The name of the mark that starts each update. */
 const UPDATE_MARK = "mantle-restyle-update";
 /** The elements of the recalc that names this test's frame in the trace. */
-const FRAME_MARKER_SIZE = 2000;
+const FRAME_MARKER_SIZE = 2027;
 
 /**
  * The elements that the style recalcs of each update restyled, from a
@@ -66,8 +66,11 @@ async function restyledPerUpdate(run: (mark: () => void) => Promise<void>): Prom
 	const recalcs = events
 		.filter((event) => event.name === "UpdateLayoutTree" && event.args?.elementCount !== undefined)
 		.toSorted((a, b) => a.ts - b.ts);
-	const frame = recalcs.find((event) => (event.args?.elementCount ?? 0) >= FRAME_MARKER_SIZE)?.args
-		?.beginData?.frame;
+	const frame = recalcs.find((event) => {
+		// Why a narrow band: another frame can recalc more than the marker first.
+		const count = event.args?.elementCount ?? 0;
+		return count >= FRAME_MARKER_SIZE && count <= FRAME_MARKER_SIZE + 4;
+	})?.args?.beginData?.frame;
 	const marks = events
 		.filter((event) => event.name === UPDATE_MARK)
 		.map((event) => event.ts)

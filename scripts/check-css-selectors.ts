@@ -9,6 +9,7 @@ import {
 	hasHint,
 	hasStructuralCombinator,
 	hasUniversalSubjectTrap,
+	splitTopLevel,
 	universalHint,
 } from "./oxlint-rules/no-structural-combinator.js";
 
@@ -25,9 +26,14 @@ function resolveNested(parent: string | null, selector: string): string {
 	if (parent == null) {
 		return selector;
 	}
-	return selector.includes("&")
-		? selector.replaceAll("&", `:is(${parent})`)
-		: `:is(${parent}) ${selector}`;
+	// Why each alternative: in `&:hover, .line`, the `.line` still nests under the parent.
+	return splitTopLevel(selector)
+		.map((alternative) =>
+			alternative.includes("&")
+				? alternative.replaceAll("&", `:is(${parent})`)
+				: `:is(${parent}) ${alternative.trim()}`,
+		)
+		.join(", ");
 }
 
 /**

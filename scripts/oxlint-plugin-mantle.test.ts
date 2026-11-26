@@ -381,6 +381,12 @@ describe("no-structural-combinator", () => {
 		'cx("[.a:has(.x)_.line]:block");',
 		`cx("[&[data-label='(']:has(.toggle)_.line]:block");`,
 		'cx("[&:has(>:is(.b_.c))_.d]:p-2");',
+		'cx("[&:has(>.e:not(.m)_.t)_.line]:block");',
+		'cx("has-[.row]:marker:text-x");',
+		'cx("has-[.row]:selection:text-x");',
+		'cx("peer-has-[>input]:[&>*]:block");',
+		'cx("not-group-has-[.toggle]:block");',
+		'cx("not-peer-has-[.toggle]:block");',
 	])("flags %s", (source) => {
 		expect(
 			lint({ rule: "no-structural-combinator", fileName: "a.ts", source }).length,
@@ -423,6 +429,7 @@ describe("no-unanchored-child-variant", () => {
 		'cx("[&>*]:pointer-events-auto [&_[data-slot=icon]]:shrink-0");',
 		'cx("data-state-inactive:[&>*]:paused [&>:first-child]:size-7");',
 		'cx("[&:is([data-a],[data-b])]:p-2 has-[[data-a],[data-b]]:p-2");',
+		'cx("[@supports(selector(:has(+img)))]:block");',
 		'const a = "2 * 3: four";',
 		'cx("between:mbe-px sm:between:me-2 between:border-b between:border-separator");',
 		'const a = "space-between divide";',
