@@ -1,5 +1,23 @@
 # @ngrok/mantle
 
+## 0.96.1
+
+### Patch Changes
+
+- [#1960](https://github.com/ngrok/mantle/pull/1960) [`3f58e92`](https://github.com/ngrok/mantle/commit/3f58e92ede297a210f3bf7b3a42d2464eedc7e52) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The 0002 codemod now drops the `column` prop when it rewrites an action column's header to `DataTable.ActionHeader`. Before, it kept `column={props.column}`, which `DataTable.ActionHeader` does not take, so the rewritten code failed typecheck.
+
+- [#1962](https://github.com/ngrok/mantle/pull/1962) [`827fe20`](https://github.com/ngrok/mantle/commit/827fe20e212b6cbdeaa286a7cf03b1820759e95f) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The 0002 codemod now drops the `props` parameter from an action column's `header` arrow when it only passed `props.column`. Before, the rewrite left `header: (props) =>` with `props` unused, so an app with `noUnusedParameters` failed typecheck.
+
+- [#1961](https://github.com/ngrok/mantle/pull/1961) [`b8bdabb`](https://github.com/ngrok/mantle/commit/b8bdabb9ffae896645972ff2c2494c69a7b03439) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The `scroll-fade-*` utilities set no mask on an element that cannot scroll. Before, each one painted an all-black mask that cost a mask layer on each paint. This applies to `Table`, `Tabs.List`, `Sidebar.Body`, `Breadcrumb.List`, `CodeBlock.TabList`, and `Conversation.Viewport`. In WebKit, a Markdown answer that streams tables into a chat had about 40% less frame overrun time. Chromium and Firefox showed no change. A container that scrolls fades as before.
+
+  An empty `Conversation.Viewport` now shows its focus ring when it has keyboard focus. Before, the mask clipped it.
+
+- [#1953](https://github.com/ngrok/mantle/pull/1953) [`6c34969`](https://github.com/ngrok/mantle/commit/6c34969adae13065b80d2901e31b9aa58ff7d544) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - An open `AppLayout.SidePanel` now collapses an expanded `Sidebar.Root` when its `AppLayout.Workspace` row is narrower than the lane your app sets in `@theme` with `--container-side-panel-lane`. Before, the collapse read the window against a fixed 56.5rem while the panel floated at your lane, so a wider lane left the sidebar and the panel out of step. The collapse and the float now read the same container query, so they move together when the row resizes or a stylesheet loads late.
+
+- [#1953](https://github.com/ngrok/mantle/pull/1953) [`6c34969`](https://github.com/ngrok/mantle/commit/6c34969adae13065b80d2901e31b9aa58ff7d544) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Markdown` takes `truncated` for an answer that ended before it finished, such as one the reader stopped or one whose stream failed. Its unfinished syntax at the end stays closed, as it rendered while streaming, so `**bol` stays bold after the stop and after a reload. Set it from the answer's stored status.
+
+  `Conversation.Root` takes `stopped`. When the reader stops an answer, screen readers hear "Answer stopped." in place of "Answer ended.". The chat recipe sets both.
+
 ## 0.96.0
 
 ### Minor Changes
