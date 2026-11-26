@@ -9,6 +9,11 @@
 # site's turbo build inputs changed since the last successful run, or when
 # this workflow changed. A push that changes only tests or files outside the
 # docs site's dependency graph keeps the running preview. A push to `main` deploys the `main` environment the same way.
+#
+# A draft pull request gets no preview, because previews share one compute
+# pool. A conversion to draft cancels a running deploy. When the PR is marked
+# ready for review, the check compares it with its base, the same as when it
+# opens.
 
 # Do not start the name with "Build and Push Container". Ship reads a run with
 # that name at this path as a run of its old workflow, and looks for an image
@@ -19,7 +24,7 @@ on:
   push:
     branches: ["main"]
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   # A manual run skips the change check and deploys the branch.
   workflow_dispatch:
 
@@ -39,7 +44,11 @@ permissions:
 jobs:
   build:
     # A pull request from a fork gets no OIDC token, so the action cannot run for it.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.event_name != 'pull_request' || (
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        !github.event.pull_request.draft
+      )
     runs-on: ubuntu-latest
     steps:
       # The default ref is the merge of the PR into its base, which ship expects.
