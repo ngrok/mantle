@@ -40,32 +40,6 @@ afterEach(() => {
 
 const composerName = "Message the assistant";
 
-/**
- * The query `AppLayout.SidePanel` reads: the viewport is narrower than the
- * lane an expanded sidebar needs.
- */
-const belowTheLane = "(width < 56.5rem)";
-
-/**
- * Stubs `window.matchMedia` so each listed query matches and every other one
- * (the sidebar's own `md` breakpoint included) does not. happy-dom has no viewport
- * to lay out, so the query is the only environment to mock.
- */
-function stubMatchMedia(matching: ReadonlyArray<string>) {
-	vi.spyOn(window, "matchMedia").mockImplementation((query: string) => ({
-		matches: matching.includes(query),
-		media: query,
-		onchange: null,
-		// oxlint-disable-next-line typescript/no-deprecated -- Why: the `MediaQueryList` type still requires it.
-		addListener: () => {},
-		// oxlint-disable-next-line typescript/no-deprecated -- Why: the `MediaQueryList` type still requires it.
-		removeListener: () => {},
-		addEventListener: () => {},
-		removeEventListener: () => {},
-		dispatchEvent: () => false,
-	}));
-}
-
 /** The docs site mounts a `TooltipProvider` in `root.tsx`; the sidebar rows need it. */
 function renderDemo() {
 	return render(
@@ -75,30 +49,7 @@ function renderDemo() {
 	);
 }
 
-/** Whether the desktop sidebar is expanded: `Sidebar.Nav` stamps `data-expanded` around the `nav`. */
-function isSidebarExpanded() {
-	return screen
-		.getByRole("navigation", { name: "Main" })
-		.closest('[data-slot~="sidebar-nav"]')
-		?.hasAttribute("data-expanded");
-}
-
 describe("AssistantAcrossRoutesDemo", () => {
-	it("yields the sidebar to the panel on every route but the assistant's", async () => {
-		stubMatchMedia([belowTheLane]);
-		const user = userEvent.setup();
-		renderDemo();
-
-		// Why expanded here: the assistant route renders no panel beside the page.
-		expect(isSidebarExpanded()).toBe(true);
-
-		await user.click(screen.getByRole("link", { name: "Endpoints" }));
-		expect(isSidebarExpanded()).toBe(false);
-
-		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
-		expect(isSidebarExpanded()).toBe(true);
-	});
-
 	it("renders the conversation in main on the assistant route and in the panel elsewhere", async () => {
 		const user = userEvent.setup();
 		renderDemo();

@@ -21,7 +21,6 @@ import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
 import { useSwipeToDismiss } from "../../hooks/use-swipe-to-dismiss.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
-import { canUseDOM } from "../browser-only/can-use-dom.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -851,21 +850,6 @@ const sidePanelCoverQuery: Record<AppLayoutSidePanelMobileBreakpoint, string> = 
 };
 
 /**
- * The viewport range in which an open panel needs the sidebar's width: the row
- * is narrower than `--container-side-panel-lane`. Below the lane the row is the
- * viewport's width, and a container query cannot drive React state, so this
- * reads the token as a viewport query. `mantle.css` resolves the app's `@theme`
- * value into `--_side-panel-lane` on `:root`. Before a stylesheet loads, and on
- * the server, it is the default lane.
- */
-function sidePanelNeedsSidebarWidthQuery(): string {
-	const lane = canUseDOM()
-		? getComputedStyle(document.documentElement).getPropertyValue("--_side-panel-lane").trim()
-		: "";
-	return `(width < ${lane || "56.5rem"})`;
-}
-
-/**
  * Whether `panel` floats over the card right now. The float is CSS, decided
  * by the viewport, the row, and the sidebar together, so the computed position
  * is the one truth. A panel in the lane is a docked pane: it ignores `Escape`,
@@ -1294,7 +1278,7 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  * is a sheet. An expanded sidebar at a tablet width floats the panel instead of
  * squeezing the page narrower than it, and collapsing the sidebar returns the
  * panel to the lane. A `Sidebar.Root` in the same shell does that for the
- * reader: while the open panel is below `--container-side-panel-lane`, an
+ * reader: while the open panel's row is narrower than `--container-side-panel-lane`, an
  * expanded sidebar collapses, and it expands again when the panel closes. A
  * wider sidebar or panel raises the tokens in `@theme`.
  *
@@ -1446,23 +1430,27 @@ const SidePanel = ({
 	const covers = useMatchesMediaQuery(coverQuery);
 	const isModal = open && covers;
 
-	// Why a layout effect: the sidebar's state is in `Sidebar.Root`, above or
-	// below the panel's root, and the request must land before the paint.
+	// Why a probe in the row, not a media query: the row's container query that floats the panel also
+	// sizes the probe, so the collapse and the float read one rule and the app's `@theme` lane moves both.
+	// Why a layout effect: the sidebar's state is in `Sidebar.Root`, and the request must land before
+	// the paint. The observer reports a row that resizes, or a stylesheet that loads, while the panel is open.
 	const requestSidebarWidth = useContext(SidebarWidthRequestContext);
-	// Why a read on open: the lane is a stylesheet value, so the panel reads it when it opens, not on each
-	// render, and a stylesheet that loads after mount counts from the next open. A closed panel matches nothing.
-	const needsSidebarWidthQuery = useMemo(
-		() => (open ? sidePanelNeedsSidebarWidthQuery() : "not all"),
-		[open],
-	);
-	const needsSidebarWidth = useMatchesMediaQuery(needsSidebarWidthQuery);
+	const laneProbeRef = useRef<HTMLSpanElement>(null);
 	useLayoutEffect(() => {
-		if (requestSidebarWidth == null) {
+		const probe = laneProbeRef.current;
+		if (requestSidebarWidth == null || probe == null || !open) {
 			return;
 		}
-		requestSidebarWidth(needsSidebarWidth);
-		return () => requestSidebarWidth(false);
-	}, [needsSidebarWidth, requestSidebarWidth]);
+		const request = () => requestSidebarWidth(probe.offsetWidth > 0);
+		request();
+		// Why the guard: jsdom has no `ResizeObserver`.
+		const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(request);
+		observer?.observe(probe);
+		return () => {
+			observer?.disconnect();
+			requestSidebarWidth(false);
+		};
+	}, [open, requestSidebarWidth]);
 
 	// Why a native listener: React's `onFocus` misses focus that a child stops
 	// and a button portaled into the panel, and it reports popups portaled out
@@ -1652,6 +1640,13 @@ const SidePanel = ({
 					{children}
 				</div>
 			</Panel.Root>
+			{/* The lane probe: 1px wide while the row is narrower than `--container-side-panel-lane`, so the
+			    panel asks `Sidebar.Root` for the sidebar's width. After the card, so the card stays the first child. */}
+			<span
+				ref={laneProbeRef}
+				aria-hidden
+				className="pointer-events-none absolute size-0 @max-side-panel-lane/app-layout-workspace:w-px"
+			/>
 		</aside>
 	);
 };

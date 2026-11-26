@@ -457,9 +457,9 @@ remounts, and the crossing still morphs: the page shrinks into whichever shape t
 - **Beside the page, with the sidebar yielding.** Between the lane a collapsed sidebar needs (46.75rem) and the lane
   an expanded sidebar needs (56.5rem), an expanded sidebar leaves the row too narrow for the panel, and the panel
   floats over the page. `Sidebar.Root` prefers the collapsed sidebar there: when the panel opens, or the
-  window narrows below the lane while it is open, the sidebar collapses and the panel sits beside the page.
+  row narrows below the lane while it is open, the sidebar collapses and the panel sits beside the page.
   The reader can expand the sidebar again with `Sidebar.Trigger`, and the panel floats. When the panel closes
-  or the window widens, a sidebar the panel collapsed expands again, and a sidebar the reader toggled keeps their
+  or the row widens, a sidebar the panel collapsed expands again, and a sidebar the reader toggled keeps their
   choice. `onOpenChange` reports the reader's toggles only, so the sidebar cookie keeps their preference.
 - **Floating, below `mobileBreakpoint`.** The panel is an overlay the reader can also dismiss with
   `Escape` while focus is inside. The page beneath stays usable. A drag on the panel's header toward the

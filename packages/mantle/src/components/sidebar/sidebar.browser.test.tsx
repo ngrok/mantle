@@ -9,6 +9,7 @@ import mantleCss from "../../mantle.css?raw";
 import { isApplePlatform } from "../../utils/platform.js";
 import * as Command from "../command/command-parts.js";
 import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
+import * as AppLayout from "../app-layout/app-layout-parts.js";
 import { TooltipProvider } from "../tooltip/index.js";
 import * as Sidebar from "./sidebar-parts.js";
 import { useSidebar } from "./sidebar.js";
@@ -900,4 +901,62 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 			expect(input).toHaveValue("abc");
 		},
 	);
+});
+
+describe("Sidebar beside an open AppLayout.SidePanel", () => {
+	/**
+	 * A wide window, so only the row's width decides: the `lg` sheet and every
+	 * viewport query stay out of play.
+	 */
+	function Shell({ rowWidth }: { rowWidth: string }) {
+		return (
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot defaultOpen>
+					<Sidebar.Root>
+						<div style={{ width: rowWidth, height: 400 }}>
+							<AppLayout.Workspace className="h-full">
+								<Sidebar.Nav data-testid="nav" />
+								<AppLayout.SidePanel aria-label="Assistant" />
+							</AppLayout.Workspace>
+						</div>
+					</Sidebar.Root>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>
+		);
+	}
+
+	const loadStyles = async () => {
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("../app-layout/app-layout.tsx", {
+			mantleCss: true,
+		});
+		document.head.append(style);
+		onTestFinished(() => style.remove());
+	};
+
+	test("collapses below the row's lane and expands again when the row widens", async () => {
+		await page.viewport(1600, 900);
+		await loadStyles();
+		// Why 800px: under the 56.5rem (904px) lane, in a window far above it.
+		const { rerender } = render(<Shell rowWidth="800px" />);
+		await waitFor(() => {
+			expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
+		});
+
+		rerender(<Shell rowWidth="1000px" />);
+		await waitFor(() => {
+			expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
+		});
+	});
+
+	test("follows a stylesheet that loads while the panel is open", async () => {
+		await page.viewport(1600, 900);
+		render(<Shell rowWidth="800px" />);
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
+
+		await loadStyles();
+		await waitFor(() => {
+			expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
+		});
+	});
 });
