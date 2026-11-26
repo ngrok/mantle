@@ -144,7 +144,7 @@ For most codebases a simple mechanical replacement works. Be conservative: only 
 | `header: () => <DataTable.Header>X</DataTable.Header>` | `header: () => <DataTable.ActionHeader>X</DataTable.ActionHeader>` |
 | `header: () => <Table.Header>X</Table.Header>`         | `header: () => <DataTable.ActionHeader>X</DataTable.ActionHeader>` |
 
-If the existing header passes a `className` or other props to `<DataTable.Header>`/`<Table.Header>`, forward them unchanged to `<DataTable.ActionHeader>`; the component accepts all props from `Table.Header`. Remove a `column` prop, such as `column={props.column}`: it is a `DataTable.Header` prop, so `DataTable.ActionHeader` does not take it and the code fails typecheck. `column` also set the header's width from the column's `meta.width`. To keep that width, pass the same value to `width` on `DataTable.ActionHeader`.
+If the existing header passes a `className` or other props to `<DataTable.Header>`/`<Table.Header>`, forward them unchanged to `<DataTable.ActionHeader>`; the component accepts all props from `Table.Header`. Remove a `column` prop, such as `column={props.column}`: it is a `DataTable.Header` prop, so `DataTable.ActionHeader` does not take it and the code fails typecheck. `column` also set the header's width from the column's `meta.width`, and its `aria-sort` while the column is sorted. To keep that width, pass the same value to `width` on `DataTable.ActionHeader`. A sortable action column loses its `aria-sort`, so keep `DataTable.Header` for it.
 
 ---
 

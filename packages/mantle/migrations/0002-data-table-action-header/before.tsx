@@ -151,6 +151,12 @@ export const nestedColumns = columnHelper.columns([
 						header: () => <DataTable.Header />,
 						cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 					},
+					columnHelper.display({
+						id: "column-actions",
+						// oxlint-disable-next-line no-unused-vars -- the rewrite leaves `props` unused
+						header: (props) => <DataTable.Header column={props.column} />,
+						cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+					}),
 				]}
 			/>
 		),

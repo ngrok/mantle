@@ -183,8 +183,9 @@ rule:
                   field: name
                   pattern: $DT
 # Why: DataTable.ActionHeader takes no `column`, so a copied
-# `column={props.column}` fails typecheck. A `column` inside another
-# attribute's value belongs to another element, so it stays.
+# `column={props.column}` fails typecheck. The rewrite also reads the
+# attribute values, so it drops only a `column` on a `.Header` element. A
+# `column` on another element, such as one in `children`, stays.
 rewriters:
   - id: drop-column
     rule:
@@ -192,10 +193,13 @@ rewriters:
       has:
         kind: property_identifier
         regex: ^column$
-      not:
-        inside:
-          stopBy: end
-          kind: jsx_attribute
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: \.Header$
     fix: ""
 transform:
   KEPT:
@@ -386,8 +390,9 @@ rule:
                   field: name
                   pattern: $DT
 # Why: DataTable.ActionHeader takes no `column`, so a copied
-# `column={props.column}` fails typecheck. A `column` inside another
-# attribute's value belongs to another element, so it stays.
+# `column={props.column}` fails typecheck. The rewrite also reads the
+# attribute values, so it drops only a `column` on a `.Header` element. A
+# `column` on another element, such as one in `children`, stays.
 rewriters:
   - id: drop-column
     rule:
@@ -395,10 +400,13 @@ rewriters:
       has:
         kind: property_identifier
         regex: ^column$
-      not:
-        inside:
-          stopBy: end
-          kind: jsx_attribute
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: \.Header$
     fix: ""
 transform:
   KEPT:
