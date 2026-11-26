@@ -899,4 +899,18 @@ describe("useCodeBlockStream", () => {
 		const code = container.querySelector("[data-slot='code-block-code'] code");
 		expect(code?.textContent).toBe("alpha\nbeta");
 	});
+
+	test("a long block keeps each line break and line number as it streams past 64 lines", () => {
+		const lines = Array.from({ length: 130 }, (_, index) => `line ${index + 1}`);
+		const { container, rerender } = render(<StreamedCode code={lines.slice(0, 70).join("\n")} />);
+		lines[65] = "line 66 changed";
+		rerender(<StreamedCode code={lines.join("\n")} />);
+
+		const code = container.querySelector("[data-slot='code-block-code'] code");
+		expect(code?.textContent).toBe(lines.join("\n"));
+		const numbers = [...container.querySelectorAll(".mantle-code-line")].map((line) =>
+			Number(line.getAttribute("data-line-number")),
+		);
+		expect(numbers).toEqual(lines.map((_, index) => index + 1));
+	});
 });

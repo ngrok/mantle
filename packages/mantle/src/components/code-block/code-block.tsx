@@ -445,6 +445,46 @@ const CodeLineView = memo(function CodeLineView({
 	);
 });
 
+/** How many lines of browser-highlighted code render in one group. */
+const LINE_GROUP_SIZE = 64;
+
+/** Props of a group of lines. `start` is the index of its first line in the block. */
+type CodeLineGroupProps = {
+	lines: readonly (CodeLine | string)[];
+	start: number;
+	lineNumberStart: number;
+};
+
+/** Two renders of a group show the same lines. Why `===`: a finished line keeps its tokens, and a plain line is a string. */
+function isSameLineGroup(previous: CodeLineGroupProps, next: CodeLineGroupProps): boolean {
+	return (
+		previous.start === next.start &&
+		previous.lineNumberStart === next.lineNumberStart &&
+		previous.lines.length === next.lines.length &&
+		previous.lines.every((line, index) => line === next.lines[index])
+	);
+}
+
+/**
+ * A run of lines, with no element of its own. Why groups: each update of a
+ * streamed block then renders only the group that changed, not an element
+ * for each line of the block.
+ */
+const CodeLineGroup = memo(function CodeLineGroup({
+	lines,
+	start,
+	lineNumberStart,
+}: CodeLineGroupProps) {
+	return lines.map((line, index) => (
+		// oxlint-disable-next-line react/no-array-index-key -- Why: a line has no identity but its position, and an appended line must not remount the lines above it.
+		<Fragment key={index}>
+			{/* Why a newline: `textContent` keeps the line breaks, the same as pre-rendered HTML. */}
+			{start + index > 0 && "\n"}
+			<CodeLineView line={line} lineNumber={lineNumberStart + start + index} />
+		</Fragment>
+	));
+}, isSameLineGroup);
+
 /**
  * The `CodeBlock` content. Renders pre-highlighted code from `mantleCode()`,
  * or browser-highlighted code from `useCodeBlockStream()`.
@@ -568,7 +608,8 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	}, [renderedHtml]);
 
 	const isPreRendered = renderedHtml != null || hasLines;
-	const displayHtml = renderedHtml ?? escapeHtml(copyText);
+	// Why not for lines: they render as elements, and a streamed block would escape all of its code on each update.
+	const displayHtml = hasLines ? "" : (renderedHtml ?? escapeHtml(copyText));
 
 	// React diffs `dangerouslySetInnerHTML` by prop reference; a fresh
 	// `{ __html }` literal each render re-applies `innerHTML`, wiping any
@@ -626,13 +667,14 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 				/>
 			) : (
 				<code className="text-size-inherit block min-w-full w-max">
-					{lines.map((line, index) => (
-						// oxlint-disable-next-line react/no-array-index-key -- Why: a line has no identity but its position, and an appended line must not remount the lines above it.
-						<Fragment key={index}>
-							{/* Why a newline: `textContent` keeps the line breaks, the same as pre-rendered HTML. */}
-							{index > 0 && "\n"}
-							<CodeLineView line={line} lineNumber={effectiveLineNumberStart + index} />
-						</Fragment>
+					{Array.from({ length: Math.ceil(lines.length / LINE_GROUP_SIZE) }, (_, group) => (
+						<CodeLineGroup
+							// oxlint-disable-next-line react/no-array-index-key -- Why: a group holds the same lines for the life of the block, and an appended line must not remount the lines above it.
+							key={group}
+							lines={lines.slice(group * LINE_GROUP_SIZE, (group + 1) * LINE_GROUP_SIZE)}
+							start={group * LINE_GROUP_SIZE}
+							lineNumberStart={effectiveLineNumberStart}
+						/>
 					))}
 				</code>
 			)}
