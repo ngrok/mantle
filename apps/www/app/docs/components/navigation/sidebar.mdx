@@ -1594,7 +1594,8 @@ panel instead. This behavior is built in: no prop turns it on, and the two roots
 - **The panel takes the width.** When the panel opens in an `AppLayout.Workspace` row narrower than the
   `--container-side-panel-lane` theme token (56.5rem), or the row narrows below it while the panel is open,
   an expanded sidebar collapses. The collapse lands in the same frame as the panel. It reads the container
-  query that floats the panel, so a lane that your app raises in `@theme` moves both.
+  query that floats the panel, so a lane that your app raises in `@theme` moves both. Only a desktop
+  `Sidebar.Nav` in the panel's own row yields: a nav outside the row does not make room for the panel.
 - **The panel gives it back.** When the panel closes, unmounts, or the row widens, a sidebar that the
   panel collapsed expands again.
 - **The reader's choice stands.** `Sidebar.Trigger` still toggles the sidebar beside the open panel, and a

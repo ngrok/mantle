@@ -13,6 +13,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { flushSync } from "react-dom";
 import invariant from "tiny-invariant";
 import { useFocusTrap } from "../../hooks/use-focus-trap.js";
 import { useInertSiblings } from "../../hooks/use-inert-siblings.js";
@@ -1430,27 +1431,40 @@ const SidePanel = ({
 	const covers = useMatchesMediaQuery(coverQuery);
 	const isModal = open && covers;
 
-	// Why a probe in the row, not a media query: the row's container query that floats the panel also
-	// sizes the probe, so the collapse and the float read one rule and the app's `@theme` lane moves both.
-	// Why a layout effect: the sidebar's state is in `Sidebar.Root`, and the request must land before
-	// the paint. The observer reports a row that resizes, or a stylesheet that loads, while the panel is open.
-	const requestSidebarWidth = useContext(SidebarWidthRequestContext);
+	// Why a probe, not a media query: the row's container query that floats the panel also sizes the
+	// probe, so the collapse and the float read one rule, and the app's `@theme` lane moves both.
+	// Why a layout effect: the observer's first report comes before the paint that shows the panel.
+	// Why `flushSync`: a report runs after React's commit, and the collapse must land in that same frame.
+	// Why a local `holding`: the panel gives back only its own request.
+	const changeSidebarWidthRequests = useContext(SidebarWidthRequestContext);
 	const laneProbeRef = useRef<HTMLSpanElement>(null);
 	useLayoutEffect(() => {
 		const probe = laneProbeRef.current;
-		if (requestSidebarWidth == null || probe == null || !open) {
+		if (
+			!open ||
+			changeSidebarWidthRequests == null ||
+			probe == null ||
+			typeof ResizeObserver === "undefined"
+		) {
 			return;
 		}
-		const request = () => requestSidebarWidth(probe.offsetWidth > 0);
-		request();
-		// Why the guard: jsdom has no `ResizeObserver`.
-		const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(request);
-		observer?.observe(probe);
+		let holding = false;
+		const observer = new ResizeObserver(([entry]) => {
+			const needsWidth = (entry?.contentBoxSize[0]?.inlineSize ?? 0) > 0;
+			if (needsWidth === holding) {
+				return;
+			}
+			holding = needsWidth;
+			flushSync(() => changeSidebarWidthRequests(needsWidth ? 1 : -1));
+		});
+		observer.observe(probe);
 		return () => {
-			observer?.disconnect();
-			requestSidebarWidth(false);
+			observer.disconnect();
+			if (holding) {
+				changeSidebarWidthRequests(-1);
+			}
 		};
-	}, [open, requestSidebarWidth]);
+	}, [open, changeSidebarWidthRequests]);
 
 	// Why a native listener: React's `onFocus` misses focus that a child stops
 	// and a button portaled into the panel, and it reports popups portaled out
@@ -1640,12 +1654,15 @@ const SidePanel = ({
 					{children}
 				</div>
 			</Panel.Root>
-			{/* The lane probe: 1px wide while the row is narrower than `--container-side-panel-lane`, so the
-			    panel asks `Sidebar.Root` for the sidebar's width. After the card, so the card stays the first child. */}
+			{/* The lane probe: 1px wide while the row is narrower than `--container-side-panel-lane` and a
+			    desktop `Sidebar.Nav` is in the row. The same selector floats the panel. A nav outside the row
+			    does not change the row's width, so it never yields. `box-content`: a consumer's padding on the
+			    aside's children never gives the probe width. After the card, so the card stays the first child. */}
 			<span
 				ref={laneProbeRef}
 				aria-hidden
-				className="pointer-events-none absolute size-0 @max-side-panel-lane/app-layout-workspace:w-px"
+				// oxlint-disable-next-line mantle/no-structural-combinator -- Why: as for the float rules, it styles the one probe.
+				className="pointer-events-none absolute box-content size-0 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:w-px"
 			/>
 		</aside>
 	);

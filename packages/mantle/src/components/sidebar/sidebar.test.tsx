@@ -1115,14 +1115,14 @@ describe("Sidebar yielding to a side panel", () => {
 	 */
 	function PanelRequest() {
 		const [needsWidth, setNeedsWidth] = useState(false);
-		const requestWidth = useContext(SidebarWidthRequestContext);
+		const changeRequests = useContext(SidebarWidthRequestContext);
 		useLayoutEffect(() => {
-			if (requestWidth == null) {
+			if (changeRequests == null || !needsWidth) {
 				return;
 			}
-			requestWidth(needsWidth);
-			return () => requestWidth(false);
-		}, [needsWidth, requestWidth]);
+			changeRequests(1);
+			return () => changeRequests(-1);
+		}, [needsWidth, changeRequests]);
 		return (
 			<button type="button" onClick={() => setNeedsWidth(!needsWidth)}>
 				Toggle panel
@@ -1162,6 +1162,28 @@ describe("Sidebar yielding to a side panel", () => {
 		await togglePanel(user);
 		expect(nav()).toHaveAttribute("data-expanded");
 		expect(onOpenChange).toHaveBeenCalledTimes(0);
+	});
+
+	test("one panel's release leaves another panel's request open", async () => {
+		const user = userEvent.setup();
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav data-testid="nav" />
+				<PanelRequest />
+				<PanelRequest />
+			</Sidebar.Root>,
+		);
+		const [first, second] = screen.getAllByRole("button", { name: "Toggle panel" });
+		if (first == null || second == null) {
+			throw new Error("The shell renders two panel requests.");
+		}
+		await user.click(first);
+		await user.click(second);
+		await user.click(second);
+		expect(nav()).not.toHaveAttribute("data-expanded");
+
+		await user.click(first);
+		expect(nav()).toHaveAttribute("data-expanded");
 	});
 
 	test("a request that unmounts gives the width back", async () => {

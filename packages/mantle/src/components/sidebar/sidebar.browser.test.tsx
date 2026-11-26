@@ -10,6 +10,7 @@ import { isApplePlatform } from "../../utils/platform.js";
 import * as Command from "../command/command-parts.js";
 import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import * as AppLayout from "../app-layout/app-layout-parts.js";
+import { useSidePanel } from "../app-layout/app-layout.js";
 import { TooltipProvider } from "../tooltip/index.js";
 import * as Sidebar from "./sidebar-parts.js";
 import { useSidebar } from "./sidebar.js";
@@ -904,19 +905,41 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 });
 
 describe("Sidebar beside an open AppLayout.SidePanel", () => {
+	function PanelToggle() {
+		const { toggle } = useSidePanel();
+		return (
+			<button type="button" onClick={toggle}>
+				Toggle panel
+			</button>
+		);
+	}
+
 	/**
 	 * A wide window, so only the row's width decides: the `lg` sheet and every
 	 * viewport query stay out of play.
 	 */
-	function Shell({ rowWidth }: { rowWidth: string }) {
+	function Shell({
+		rowWidth,
+		panelMounted = true,
+		navInRow = true,
+		defaultOpen = true,
+	}: {
+		rowWidth: string;
+		panelMounted?: boolean;
+		navInRow?: boolean;
+		defaultOpen?: boolean;
+	}) {
+		const nav = <Sidebar.Nav className="transition-none" data-testid="nav" />;
 		return (
 			<TooltipProvider>
-				<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.SidePanelRoot defaultOpen={defaultOpen}>
 					<Sidebar.Root>
-						<div style={{ width: rowWidth, height: 400 }}>
-							<AppLayout.Workspace className="h-full">
-								<Sidebar.Nav data-testid="nav" />
-								<AppLayout.SidePanel aria-label="Assistant" />
+						<PanelToggle />
+						<div style={{ display: "flex", width: rowWidth, height: 400 }}>
+							{!navInRow && nav}
+							<AppLayout.Workspace className="h-full flex-1">
+								{navInRow && nav}
+								{panelMounted && <AppLayout.SidePanel aria-label="Assistant" />}
 							</AppLayout.Workspace>
 						</div>
 					</Sidebar.Root>
@@ -925,10 +948,20 @@ describe("Sidebar beside an open AppLayout.SidePanel", () => {
 		);
 	}
 
-	const loadStyles = async () => {
+	const nav = () => screen.getByTestId("nav");
+	/** Waits `count` frames: a loop or a late request shows up within a few. */
+	const frames = async (count: number) => {
+		for (let i = 0; i < count; i++) {
+			await new Promise<void>((resolve) => {
+				requestAnimationFrame(() => resolve());
+			});
+		}
+	};
+	const loadStyles = async (css = "") => {
 		const style = document.createElement("style");
 		style.textContent = await commands.tailwindCss("../app-layout/app-layout.tsx", {
 			mantleCss: true,
+			css,
 		});
 		document.head.append(style);
 		onTestFinished(() => style.remove());
@@ -940,23 +973,74 @@ describe("Sidebar beside an open AppLayout.SidePanel", () => {
 		// Why 800px: under the 56.5rem (904px) lane, in a window far above it.
 		const { rerender } = render(<Shell rowWidth="800px" />);
 		await waitFor(() => {
-			expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
+			expect(nav()).not.toHaveAttribute("data-expanded");
 		});
 
 		rerender(<Shell rowWidth="1000px" />);
 		await waitFor(() => {
-			expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
+			expect(nav()).toHaveAttribute("data-expanded");
 		});
 	});
 
 	test("follows a stylesheet that loads while the panel is open", async () => {
 		await page.viewport(1600, 900);
 		render(<Shell rowWidth="800px" />);
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
+		expect(nav()).toHaveAttribute("data-expanded");
 
 		await loadStyles();
 		await waitFor(() => {
-			expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
+			expect(nav()).not.toHaveAttribute("data-expanded");
 		});
+	});
+
+	test("follows the app's @theme lane through an open, a close, and an unmount", async () => {
+		await page.viewport(1600, 900);
+		// Why 1200px: above the default lane (904px), under the app's 80rem (1280px).
+		await loadStyles("@theme { --container-side-panel-lane: 80rem; }");
+		const user = userEvent.setup();
+		const { rerender } = render(<Shell rowWidth="1200px" defaultOpen={false} />);
+		expect(nav()).toHaveAttribute("data-expanded");
+
+		await user.click(screen.getByRole("button", { name: "Toggle panel" }));
+		await waitFor(() => {
+			expect(nav()).not.toHaveAttribute("data-expanded");
+		});
+
+		await user.click(screen.getByRole("button", { name: "Toggle panel" }));
+		await waitFor(() => {
+			expect(nav()).toHaveAttribute("data-expanded");
+		});
+
+		await user.click(screen.getByRole("button", { name: "Toggle panel" }));
+		await waitFor(() => {
+			expect(nav()).not.toHaveAttribute("data-expanded");
+		});
+
+		rerender(<Shell rowWidth="1200px" panelMounted={false} />);
+		await waitFor(() => {
+			expect(nav()).toHaveAttribute("data-expanded");
+		});
+	});
+
+	test("a nav outside the panel's row stays expanded and settles", async () => {
+		// Why: collapsing a nav beside the row widens the row, which would release the request.
+		await page.viewport(1600, 900);
+		await loadStyles();
+		render(<Shell rowWidth="1000px" navInRow={false} />);
+		const changes: boolean[] = [];
+		const observer = new MutationObserver(() => changes.push(nav().hasAttribute("data-expanded")));
+		observer.observe(nav(), { attributes: true, attributeFilter: ["data-expanded"] });
+		onTestFinished(() => observer.disconnect());
+		await frames(10);
+		expect(nav()).toHaveAttribute("data-expanded");
+		expect(changes).toEqual([]);
+	});
+
+	test("padding on the panel's children does not count as the lane", async () => {
+		await page.viewport(1600, 900);
+		await loadStyles('[data-slot~="app-layout-side-panel"] > * { padding-inline: 8px; }');
+		render(<Shell rowWidth="1200px" />);
+		await frames(5);
+		expect(nav()).toHaveAttribute("data-expanded");
 	});
 });
