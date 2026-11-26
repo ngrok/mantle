@@ -14,6 +14,7 @@ type Payment = { id: string; amount: number };
 
 // A part that reads `column`, nested in a header attribute.
 declare function ColumnLabel(props: { column: unknown }): null;
+declare const Labels: { Header: typeof ColumnLabel };
 
 const features = tableFeatures({});
 const columnHelper = createColumnHelper<typeof features, Payment>();
@@ -68,7 +69,12 @@ export const columns = columnHelper.columns([
 			<DataTable.Header
 				column={props.column}
 				// oxlint-disable-next-line react/no-children-prop -- the case is an element in a prop
-				children={<ColumnLabel column={props.column} />}
+				children={
+					<>
+						<ColumnLabel column={props.column} />
+						<Labels.Header column={props.column} />
+					</>
+				}
 			/>
 		),
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
