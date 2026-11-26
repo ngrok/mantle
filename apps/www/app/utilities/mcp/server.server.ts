@@ -664,7 +664,13 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			const recordSlugs = new Set(records.map((record) => record.docsSlug));
 			const searchable: FindRecord[] = [
 				...records,
-				...docPages.filter((page) => !recordSlugs.has(page.docsSlug)),
+				// Why exports, not records: a version can export a part that its manifest has no record for.
+				...docPages.filter(
+					(page) =>
+						!recordSlugs.has(page.docsSlug) &&
+						(page.importPaths == null ||
+							page.importPaths.some((path) => data.specifiers.has(path))),
+				),
 			];
 			const found = findRecords(searchable, { query, kind });
 			const strongMatch = found[0]?.strong === true;
@@ -1316,6 +1322,7 @@ async function readDocPages(): Promise<DocPageRecord[]> {
 		),
 		buildSiteAgentManifest(),
 	]);
+	const ownersBySlug = Map.groupBy(recordsOf({ manifest }), (record) => record.docsSlug);
 	const recipes = (manifest.recipes ?? []).map(
 		({ name, slug, docsUrl, summary, useWhen, aliases, parts }): DocPageRecord => ({
 			name,
@@ -1328,7 +1335,17 @@ async function readDocPages(): Promise<DocPageRecord[]> {
 			docsSlug: slug,
 		}),
 	);
-	return [...pages.filter((page) => page != null), ...recipes];
+	return [
+		...pages
+			.filter((page) => page != null)
+			.map((page) => {
+				const owners = ownersBySlug.get(page.docsSlug);
+				return owners == null
+					? page
+					: { ...page, importPaths: [...new Set(owners.map((owner) => owner.importPath))] };
+			}),
+		...recipes,
+	];
 }
 
 let docPagesCache: Promise<DocPageRecord[]> | undefined;

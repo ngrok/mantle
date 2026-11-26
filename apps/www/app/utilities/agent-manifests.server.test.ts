@@ -100,16 +100,7 @@ describe("the site's agent manifest", () => {
 	// label in the middle and got no strong match, though Separator builds one.
 	it("finds Separator for a divider with a text label", async () => {
 		const manifest = await buildSiteAgentManifest();
-		const records = recordsOf({
-			version: "0.0.0",
-			manifest,
-			specifiers: new Set(),
-			exportsBySpecifier: new Map(),
-			llmsTxt: undefined,
-			declarationsOf: () => undefined,
-			declaredWordsOf: () => new Set(),
-			partPropsOf: () => ({ status: "unknown" }),
-		});
+		const records = recordsOf({ manifest });
 
 		const [top] = findRecords(records, {
 			query: "horizontal separator divider text label middle",
@@ -125,16 +116,7 @@ describe("the site's agent manifest", () => {
 	// An alias word scores high, so an alias that names a different part sends agents to the wrong page.
 	it("ranks a page that lists an alias first for that alias", async () => {
 		const manifest = await buildSiteAgentManifest();
-		const records = recordsOf({
-			version: "0.0.0",
-			manifest,
-			specifiers: new Set(),
-			exportsBySpecifier: new Map(),
-			llmsTxt: undefined,
-			declarationsOf: () => undefined,
-			declaredWordsOf: () => new Set(),
-			partPropsOf: () => ({ status: "unknown" }),
-		});
+		const records = recordsOf({ manifest });
 
 		const misses = manifest.components.flatMap((component) =>
 			(component.aliases ?? [])
@@ -148,16 +130,7 @@ describe("the site's agent manifest", () => {
 	// The Separator search words must not rank a divider above Label for a plain label query.
 	it("ranks Label above Separator for a text label", async () => {
 		const manifest = await buildSiteAgentManifest();
-		const records = recordsOf({
-			version: "0.0.0",
-			manifest,
-			specifiers: new Set(),
-			exportsBySpecifier: new Map(),
-			llmsTxt: undefined,
-			declarationsOf: () => undefined,
-			declaredWordsOf: () => new Set(),
-			partPropsOf: () => ({ status: "unknown" }),
-		});
+		const records = recordsOf({ manifest });
 
 		const names = findRecords(records, { query: "text label" }).map(({ record }) => record.name);
 
@@ -174,16 +147,7 @@ describe("the site's agent manifest", () => {
 		["segmented control pick one three none", "Segmented Control"],
 	])("finds a strong match for %s", async (query, name) => {
 		const manifest = await buildSiteAgentManifest();
-		const records = recordsOf({
-			version: "0.0.0",
-			manifest,
-			specifiers: new Set(),
-			exportsBySpecifier: new Map(),
-			llmsTxt: undefined,
-			declarationsOf: () => undefined,
-			declaredWordsOf: () => new Set(),
-			partPropsOf: () => ({ status: "unknown" }),
-		});
+		const records = recordsOf({ manifest });
 
 		expect(findRecords(records, { query })[0]).toEqual(
 			expect.objectContaining({ record: expect.objectContaining({ name }), strong: true }),
@@ -196,16 +160,7 @@ describe("the site's agent manifest", () => {
 		"dialog wizard with steps",
 	])("finds no strong match for %s", async (query) => {
 		const manifest = await buildSiteAgentManifest();
-		const records = recordsOf({
-			version: "0.0.0",
-			manifest,
-			specifiers: new Set(),
-			exportsBySpecifier: new Map(),
-			llmsTxt: undefined,
-			declarationsOf: () => undefined,
-			declaredWordsOf: () => new Set(),
-			partPropsOf: () => ({ status: "unknown" }),
-		});
+		const records = recordsOf({ manifest });
 
 		expect(findRecords(records, { query })[0]?.strong).toBe(false);
 	});
@@ -215,16 +170,7 @@ describe("the site's agent manifest", () => {
 		["labeled text input", "Input"],
 	])("ranks the plain part first for %s", async (query, name) => {
 		const manifest = await buildSiteAgentManifest();
-		const records = recordsOf({
-			version: "0.0.0",
-			manifest,
-			specifiers: new Set(),
-			exportsBySpecifier: new Map(),
-			llmsTxt: undefined,
-			declarationsOf: () => undefined,
-			declaredWordsOf: () => new Set(),
-			partPropsOf: () => ({ status: "unknown" }),
-		});
+		const records = recordsOf({ manifest });
 
 		expect(findRecords(records, { query })[0]?.record.name).toBe(name);
 	});
