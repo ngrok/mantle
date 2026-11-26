@@ -146,7 +146,7 @@ describe("siblingsFromJsDoc", () => {
 });
 
 describe("dataAttributesFromMdx", () => {
-	it("reads each part's table in the API reference, and keeps an escaped pipe in its cell", () => {
+	it("reads the data rows of each part's table in the API reference, and keeps an escaped pipe in its cell", () => {
 		const mdx = [
 			"## Accessibility",
 			"",
@@ -155,6 +155,10 @@ describe("dataAttributesFromMdx", () => {
 			"| `data-overview` | present | An overview row, not the contract. |",
 			"",
 			"## API Reference",
+			"",
+			"| Data Attribute | Value | Description |",
+			"| --- | --- | --- |",
+			'| `data-slot` | `"tabs"` | Above the first part, so the whole component. |',
 			"",
 			"### Tabs.Root",
 			"",
@@ -178,9 +182,22 @@ describe("dataAttributesFromMdx", () => {
 			"| Data Attribute | Value | Description |",
 			"| --- | --- | --- |",
 			"| `data-dragging` | present during a drag | Presence-only. |",
+			'| `aria-selected` | `"true"` | An ARIA row, not a data attribute. |',
+			"",
+			"## Accessibility notes",
+			"",
+			"| Data Attribute | Value | Description |",
+			"| --- | --- | --- |",
+			"| `data-after-reference` | present | Past the API reference. |",
 		].join("\n");
 
-		expect(dataAttributesFromMdx(mdx)).toEqual([
+		expect(dataAttributesFromMdx(mdx, "Tabs")).toEqual([
+			{
+				part: "Tabs",
+				name: "data-slot",
+				value: '`"tabs"`',
+				description: "Above the first part, so the whole component.",
+			},
 			{
 				part: "Tabs.Root",
 				name: "data-orientation",

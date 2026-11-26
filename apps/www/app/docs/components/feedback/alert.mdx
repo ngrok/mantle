@@ -465,10 +465,10 @@ All props from [Button](/components/actions/button#api-reference), plus:
 | `count`    | `number`  |         | The number of hidden related alerts, displayed with a leading `+`.   |
 | `expanded` | `boolean` |         | Whether the related alerts are visible; rotates the caret when true. |
 
-| Data Attribute      | Value                   | Description                                                                              |
-| ------------------- | ----------------------- | ---------------------------------------------------------------------------------------- |
-| `data-slot`         | `"alert-expand-button"` | The button.                                                                              |
-| `data-alert-expand` | `"true"`                | Always present. `Alert.Root` reserves room for the button with `has-data-alert-expand:`. |
+| Data Attribute      | Value                          | Description                                                                              |
+| ------------------- | ------------------------------ | ---------------------------------------------------------------------------------------- |
+| `data-slot`         | `"alert-expand-button button"` | The button, joined ahead of `Button`'s own slot.                                         |
+| `data-alert-expand` | `"true"`                       | Always present. `Alert.Root` reserves room for the button with `has-data-alert-expand:`. |
 
 ### Alert.Description
 
@@ -514,7 +514,7 @@ All props from [IconButton](/components/actions/icon-button#api-reference), with
 | `size?`       | `"xs"` \| `"sm"` \| `"md"`              | `"sm"`            | The size of the button.                                                        |
 | `type?`       | `"button"` \| `"submit"` \| `"reset"`   | `"button"`        | The default behavior of the button.                                            |
 
-| Data Attribute       | Value                         | Description                                                                               |
-| -------------------- | ----------------------------- | ----------------------------------------------------------------------------------------- |
-| `data-slot`          | `"alert-dismiss-icon-button"` | The button.                                                                               |
-| `data-alert-dismiss` | `"true"`                      | Always present. `Alert.Root` reserves room for the button with `has-data-alert-dismiss:`. |
+| Data Attribute       | Value                                     | Description                                                                               |
+| -------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `data-slot`          | `"alert-dismiss-icon-button icon-button"` | The button, joined ahead of `IconButton`'s own slot.                                      |
+| `data-alert-dismiss` | `"true"`                                  | Always present. `Alert.Root` reserves room for the button with `has-data-alert-dismiss:`. |

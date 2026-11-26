@@ -166,7 +166,7 @@ type ThemeProviderProps = PropsWithChildren<{
  * | --- | --- | --- |
  * | `data-theme` | `"system"` \| `"light"` \| `"dark"` | On `<html>`. The stored theme, before `"system"` resolves. |
  * | `data-applied-theme` | `"light"` \| `"dark"` | On `<html>`. The theme that paints. |
- * | `data-theme-transition` | present during a swap | Presence-only. On `<html>` and on each open dialog or menu while the theme swap animates. |
+ * | `data-theme-transition` | present during a swap | Presence-only. On `<html>`, and on each mounted `Dialog` or `DropdownMenu` content and positioner, while the theme swap animates. |
  * | `data-theme-transition-many` | present during a swap | Presence-only. On `<html>` when the page holds many transitions, so a style rule stops them instead of a script. |
  *
  * @see https://mantle.ngrok.com/components/primitives/theme#themeprovider

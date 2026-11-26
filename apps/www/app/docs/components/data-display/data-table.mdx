@@ -1370,11 +1370,11 @@ The row subscribes to the whole table state and to the table options. It re-rend
 
 Remaining props forward to the HTML `<tr>` element.
 
-| Data Attribute   | Value                         | Description                                                                     |
-| :--------------- | :---------------------------- | :------------------------------------------------------------------------------ |
-| `data-clickable` | present when `onClick` is set | Presence-only. The row runs a handler on a plain click.                         |
-| `data-expanded`  | present when expanded         | Presence-only. The row's detail panel is open.                                  |
-| `data-closing`   | present while it fades out    | Presence-only. An ancestor row collapsed. The row is `inert` until it unmounts. |
+| Data Attribute   | Value                         | Description                                                                                        |
+| :--------------- | :---------------------------- | :------------------------------------------------------------------------------------------------- |
+| `data-clickable` | present when `onClick` is set | Presence-only. The row runs a handler on a plain click.                                            |
+| `data-expanded`  | present when expanded         | Presence-only. The row's detail panel is open.                                                     |
+| `data-closing`   | present while it fades out    | Presence-only. The row's panel or an ancestor row collapsed. The row is `inert` until it unmounts. |
 
 ### DataTable.EmptyRow
 
@@ -1545,8 +1545,8 @@ The sibling `<tr>` that renders a row's expanded detail panel. Render it directl
 | `colSpan?`   | `number`                | the visible cell count | Override the cell's `colSpan`. Defaults to the row's visible cells, or every cell without `columnVisibilityFeature`. |
 | `className?` | `string`                |                        | Extra classes merged onto the `<tr>`. Remaining props forward to the HTML `<tr>` element.                            |
 
-| Data Attribute          | Value                       | Description                                                                     |
-| ----------------------- | --------------------------- | ------------------------------------------------------------------------------- |
-| `data-slot`             | `"data-table-expanded-row"` | The `<tr>`.                                                                     |
-| `data-expanded-content` | `"true"`                    | Always present. Marks the detail panel's row.                                   |
-| `data-closing`          | present while it fades out  | Presence-only. An ancestor row collapsed. The row is `inert` until it unmounts. |
+| Data Attribute          | Value                                 | Description                                                                                        |
+| ----------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `data-slot`             | `"data-table-expanded-row table-row"` | The `<tr>`, joined ahead of `Table.Row`'s own slot.                                                |
+| `data-expanded-content` | `"true"`                              | Always present. Marks the detail panel's row.                                                      |
+| `data-closing`          | present while it fades out            | Presence-only. The row's panel or an ancestor row collapsed. The row is `inert` until it unmounts. |

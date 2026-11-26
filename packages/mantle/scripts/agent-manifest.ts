@@ -684,21 +684,24 @@ function leadingJsDoc(source: string): string | undefined {
 }
 
 /**
- * Read the rows of every "Data attributes" table in a docs page's
+ * Read the `data-*` rows of every "Data attributes" table in a docs page's
  * `## API Reference` section. Each row takes its part from the nearest `###`
- * heading above it. Tables elsewhere on the page, such as an overview under
- * Accessibility, are not read: the API reference is the contract.
+ * heading above it in that section, else `defaultPart`: a table above the first
+ * part, or under a `### Data attributes` heading, covers the whole component.
+ * Tables elsewhere on the page, such as an overview under Accessibility, are
+ * not read: the API reference is the contract. An ARIA or HTML row in a table
+ * is not a data attribute, so it is skipped.
  *
  * @example
  * dataAttributesFromMdx("## API Reference\n\n### Tabs.List\n\n| Data Attribute | Value | Description |\n| - | - | - |\n| `data-overflowing` | `\"true\"` \\| `\"false\"` | Set once measured. |");
  * // => [{ part: "Tabs.List", name: "data-overflowing", value: '`"true"` \\| `"false"`', description: "Set once measured." }]
  */
-function dataAttributesFromMdx(mdx: string): AgentManifestDataAttribute[] {
+function dataAttributesFromMdx(mdx: string, defaultPart = ""): AgentManifestDataAttribute[] {
 	const rows: AgentManifestDataAttribute[] = [];
 	let inReference = false;
 	let inTable = false;
 	let inFence = false;
-	let part = "";
+	let part = defaultPart;
 	for (const line of mdx.split("\n")) {
 		if (line.startsWith("```")) {
 			inFence = !inFence;
@@ -708,8 +711,10 @@ function dataAttributesFromMdx(mdx: string): AgentManifestDataAttribute[] {
 		}
 		if (line.startsWith("## ")) {
 			inReference = line.trim() === "## API Reference";
+			part = defaultPart;
 		} else if (line.startsWith("### ")) {
-			part = line.slice(4).trim();
+			const heading = line.slice(4).trim();
+			part = /^data attributes$/i.test(heading) ? defaultPart : heading;
 		}
 		// Why the split on an unescaped pipe: a value cell such as `"a"` \| `"b"` escapes its own.
 		const cells = line.startsWith("|")
@@ -728,10 +733,11 @@ function dataAttributesFromMdx(mdx: string): AgentManifestDataAttribute[] {
 			continue;
 		}
 		const [name, value = "", description = ""] = cells;
-		if (!inTable || name == null || /^:?-+:?$/.test(name)) {
+		const attribute = name?.replace(/^`|`$/g, "");
+		if (!inTable || attribute == null || !attribute.startsWith("data-")) {
 			continue;
 		}
-		rows.push({ part, name: name.replace(/^`|`$/g, ""), value, description });
+		rows.push({ part, name: attribute, value, description });
 	}
 	return rows;
 }
@@ -916,7 +922,7 @@ function componentEntry(
 
 	const summary = stringField(frontmatter, "description");
 	const aliases = stringListField(frontmatter, "aliases", slug);
-	const dataAttributes = dataAttributesFromMdx(doc.mdx ?? "");
+	const dataAttributes = dataAttributesFromMdx(doc.mdx ?? "", leafToPascal(leaf));
 	return {
 		name,
 		slug,

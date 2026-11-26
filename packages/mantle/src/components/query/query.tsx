@@ -992,6 +992,8 @@ type QueryListProps = Omit<ComponentProps<"div">, "children" | "id" | "role"> &
  * | ----------- | --------------------- | ------------------------------------------------------------------- |
  * | `data-slot` | `"query-list"`        | On the listbox.                                                     |
  * | `data-slot` | `"query-group-label"` | On each section heading, a block `span` hidden from assistive tech. |
+ * | `data-overflow-top` | present while scrolled down | Presence-only. On the list. The first item sits past the top edge, so `scroll-cue-y` shows a fade there. |
+ * | `data-overflow-bottom` | present while more is below | Presence-only. On the list. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there. |
  *
  * @see https://mantle.ngrok.com/components/forms/query#querylist
  *

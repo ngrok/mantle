@@ -130,7 +130,7 @@ type CodeBlockRootProps = Omit<ComponentProps<"div">, "align"> &
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-orientation` | `"horizontal"` | Present when the root holds a `CodeBlock.TabList`. Omitted otherwise. |
+ * | `data-orientation` | `"horizontal"` | Present when `defaultTab` or `activeTab` is set. Omitted otherwise. |
  *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockroot
  *
@@ -477,10 +477,10 @@ const CodeLineView = memo(function CodeLineView({
  * | `data-mantle-line-number-start` | a number as a string | The first line number. |
  * | `data-mantle-highlight-lines` | comma-separated line numbers | Present when lines are highlighted. |
  * | `data-line-number` | a number | On each `.mantle-code-line`. The line number the gutter shows. |
- * | `data-fold-line` | a line number | On each fold toggle `<button>`. The line that opens the region the button folds. |
- * | `data-fold-regions` | space-separated line numbers | On each line inside a foldable region. The opener line of each region that holds it. |
- * | `data-folded-regions` | space-separated line numbers | On the `<code>` while a region is folded. The opener line of each folded region. |
- * | `data-fold-hidden` | `"true"` \| `"false"` | On a line after a fold first changes it. `"true"` while a folded region hides the line. |
+ * | `data-fold-line` | a fold id | On each fold toggle `<button>`. The URI-encoded id of the region the button folds. |
+ * | `data-fold-regions` | space-separated fold ids | On each line inside a foldable region. The id of each region that holds it. |
+ * | `data-folded-regions` | space-separated fold ids | On the `<code>` while a region is folded. The id of each folded region. |
+ * | `data-fold-hidden` | `"true"` \| `"false"` | On a line a fold changed. `"true"` while a folded region hides it; `"false"` only while it opens, then removed. |
  * | `data-fold-instant` | present on a large fold | Presence-only. On each line past the first 50 that a fold changes. The line hides or shows with no motion. |
  *
  * Inside the highlighted HTML, each line is a `.mantle-code-line` with

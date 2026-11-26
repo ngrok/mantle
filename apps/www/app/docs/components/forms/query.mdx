@@ -575,10 +575,12 @@ The suggestion listbox for the token under the caret. It groups the rows under "
 | `children`   | `(suggestion: FilterSuggestion) => ReactNode` | none                   | Renders one suggestion. Return a `Query.Item` for every suggestion, because the arrow keys move through every one. Required. |
 | `aria-label` | `string`                                      | `"Filter suggestions"` | The accessible name of the listbox.                                                                                          |
 
-| Data Attribute | Value                 | Description                                                         |
-| -------------- | --------------------- | ------------------------------------------------------------------- |
-| `data-slot`    | `"query-list"`        | On the listbox.                                                     |
-| `data-slot`    | `"query-group-label"` | On each section heading, a block `span` hidden from assistive tech. |
+| Data Attribute         | Value                       | Description                                                                                                |
+| ---------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `data-slot`            | `"query-list"`              | On the listbox.                                                                                            |
+| `data-slot`            | `"query-group-label"`       | On each section heading, a block `span` hidden from assistive tech.                                        |
+| `data-overflow-top`    | present while scrolled down | Presence-only. On the list. The first item sits past the top edge, so `scroll-cue-y` shows a fade there.   |
+| `data-overflow-bottom` | present while more is below | Presence-only. On the list. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there. |
 
 ### Query.Item
 

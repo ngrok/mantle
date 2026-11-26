@@ -336,6 +336,10 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ---------- | --------- | ------- | ------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
 
+| Data Attribute | Value               | Description |
+| -------------- | ------------------- | ----------- |
+| `data-slot`    | `"otp-input-group"` | The group.  |
+
 ### OtpInput.Slot
 
 A single character slot. Must be rendered inside an `OtpInput.Root`. Reads its character, active state, and fake caret position from the root via context. Always renders `translate="no"`. See [Translation](#translation).
@@ -361,6 +365,10 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ----------- | --------- | ------- | ---------------------------------------------------------------------------------------------------- |
 | `asChild?`  | `boolean` | `false` | Render as a different element by passing a child.                                                    |
 | `semantic?` | `boolean` | `false` | If `true`, renders with `role="separator"`. Otherwise the separator is decorative and `aria-hidden`. |
+
+| Data Attribute | Value                   | Description    |
+| -------------- | ----------------------- | -------------- |
+| `data-slot`    | `"otp-input-separator"` | The separator. |
 
 ### Pattern helpers
 

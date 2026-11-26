@@ -498,6 +498,11 @@ The scrolling container for the palette's groups and items: the `role="listbox"`
 | :------- | :------- | :-------------- | :------------------------------------------ |
 | `label?` | `string` | `"Suggestions"` | The accessible name of the list. Not shown. |
 
+| Data Attribute         | Value                       | Description                                                                                                |
+| ---------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `data-overflow-top`    | present while scrolled down | Presence-only. On the list. The first item sits past the top edge, so `scroll-cue-y` shows a fade there.   |
+| `data-overflow-bottom` | present while more is below | Presence-only. On the list. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there. |
+
 ### Command.Empty
 
 The empty-state message; it renders only when no item matches the query.

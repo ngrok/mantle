@@ -32,9 +32,11 @@ export function stampedDataAttributes(code: string): string[] {
 	const patterns = [
 		/(?<![[\w-])(data-[a-z][a-z0-9-]*)\s*=\s*[{"'`$]/g,
 		// A JSX attribute with no value, such as `<div data-input-otp>`.
-		/(?<![[\w:.-])(data-[a-z][a-z0-9-]*)(?=\s*\/?>|\s*\n\s*(?:[a-zA-Z{]|\/?>))/g,
+		/(?<![[\w:.-])(data-[a-z][a-z0-9-]*)(?=\s*\/?>|\s+[a-zA-Z][\w:-]*=|\s*\n\s*(?:[a-zA-Z{]|\/?>))/g,
 		/["'`](data-[a-z][a-z0-9-]*)["'`]\s*:/g,
 		/(?:set|toggle|remove)Attribute\(\s*["'`](data-[a-z][a-z0-9-]*)/g,
+		// A constant that a DOM write names, such as `const DRAGGING = "data-dragging"`.
+		/\b(?:const|let)\s+\w+\s*=\s*["'`](data-[a-z][a-z0-9-]*)["'`]/g,
 	];
 	const names = new Set<string>();
 	for (const pattern of patterns) {
@@ -42,7 +44,7 @@ export function stampedDataAttributes(code: string): string[] {
 			names.add(match[1] ?? "");
 		}
 	}
-	for (const match of stripped.matchAll(/\.dataset\.([a-zA-Z]+)\s*=/g)) {
+	for (const match of stripped.matchAll(/\.dataset\.([a-zA-Z]+)\s*=(?!=)/g)) {
 		names.add(`data-${(match[1] ?? "").replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`)}`);
 	}
 	return [...names].toSorted();
@@ -91,47 +93,71 @@ function resolveImport(from: string, specifier: string): string | undefined {
 }
 
 /**
- * Attributes a component's imports stamp that the component itself never
- * renders, keyed by component folder. The check follows every shared import,
- * so a branch of a shared module that only another family takes shows up here.
- * Each entry says why, so a reviewer can tell an exemption from a gap.
+ * Stamps that a source file holds but a component never renders, keyed by
+ * component folder, then by the file's path under `components/`. The check
+ * follows every private import, so a branch that only another family takes
+ * shows up. An entry drops the attribute from that one file only, so a new
+ * write elsewhere still needs a row. Each entry says why.
  */
-const notRendered: Record<string, Record<string, string>> = {
-	"area-chart": { "data-texture": "The legend swatch of a bar series only." },
-	"line-chart": { "data-texture": "The legend swatch of a bar series only." },
-	"scatter-plot": { "data-texture": "The legend swatch of a bar series only." },
-	"world-map": { "data-texture": "The legend swatch of a bar series only." },
+const notRendered: Record<string, Record<string, Record<string, string>>> = {
+	"area-chart": { "chart/legend.tsx": { "data-texture": "The swatch of a bar series only." } },
+	"line-chart": { "chart/legend.tsx": { "data-texture": "The swatch of a bar series only." } },
+	"scatter-plot": { "chart/legend.tsx": { "data-texture": "The swatch of a bar series only." } },
+	"world-map": { "chart/legend.tsx": { "data-texture": "The swatch of a bar series only." } },
 	"bar-chart": {
-		"data-shape":
-			"The hover dot and the swatch of a non-bar series only. A bar chart never fills its markers.",
+		"chart/legend.tsx": { "data-shape": "The swatch of a non-bar series only." },
+		"chart/engine.ts": { "data-shape": "The hover dot, which a bar chart never shows." },
 	},
-	command: { "data-text-value": "`useOption`'s props, which `Command.Item` does not spread." },
+	command: {
+		"../behaviors/use-listbox.ts": {
+			"data-text-value": "`useOption`'s props, which `Command.Item` does not spread.",
+		},
+	},
+	"multi-select": {
+		"../behaviors/use-listbox.ts": {
+			"data-text-value": "`useOption` with no `textValue`, so React omits the attribute.",
+		},
+	},
 	input: {
-		"data-bwignore":
-			"`passwordManagerIgnoreProps`, which a consumer spreads. `Input` renders none.",
-		"data-form-type":
-			"`passwordManagerIgnoreProps`, which a consumer spreads. `Input` renders none.",
-		"data-lpignore":
-			"`passwordManagerIgnoreProps`, which a consumer spreads. `Input` renders none.",
-		"data-protonpass-ignore":
-			"`passwordManagerIgnoreProps`, which a consumer spreads. `Input` renders none.",
+		"input/password-manager-ignore.ts": {
+			"data-bwignore": "`passwordManagerIgnoreProps`, which a consumer spreads.",
+			"data-form-type": "`passwordManagerIgnoreProps`, which a consumer spreads.",
+			"data-lpignore": "`passwordManagerIgnoreProps`, which a consumer spreads.",
+			"data-protonpass-ignore": "`passwordManagerIgnoreProps`, which a consumer spreads.",
+		},
+	},
+	"otp-input": {
+		"input/password-manager-ignore.ts": {
+			"data-bwignore": "`OtpInput` spreads only `data-lpignore` from it.",
+			"data-form-type": "`OtpInput` spreads only `data-lpignore` from it.",
+			"data-protonpass-ignore": "`OtpInput` spreads only `data-lpignore` from it.",
+		},
 	},
 	list: {
-		"data-highlighted": "A grid row only. `List` renders list rows; `SelectableList` documents it.",
+		"list/primitive.tsx": {
+			"data-highlighted":
+				"A grid row only. `List` renders list rows; `SelectableList` documents it.",
+		},
 	},
 };
 
 type Gap = { component: string; attribute: string; missing: ("JSDoc" | "docs page")[] };
+
+// Why a new expression: `seeLink` is global, so its `test` would resume at the last match.
+const isPrivate = (file: string) =>
+	file.startsWith(`${srcDir}/`) && !new RegExp(seeLink.source).test(fs.readFileSync(file, "utf8"));
 
 /**
  * Compare the `data-*` attributes each public component stamps with the ones
  * its JSDoc and its docs page's API reference document.
  *
  * A component is a folder under `components/` whose source has an `@see` link
- * to a docs page. Its stamps include the shared modules it imports, such as a
- * behavior hook or a folder with no `@see` link (`chart`), but not another
- * public component: that one documents its own. `data-slot` is out of scope,
- * since every part carries it (COMPONENT_SPEC.md §3.2).
+ * to a docs page. Its stamps include each private module it imports: one with
+ * no `@see` link, such as a behavior hook, the `chart` folder, or Dialog's
+ * `native-primitive`, which Sheet and AlertDialog render too. A module with an
+ * `@see` link is another component's public part, which documents its own.
+ * `data-slot` is out of scope, since every part carries it (COMPONENT_SPEC.md
+ * §3.2).
  */
 export function dataAttributeGaps(): Gap[] {
 	const folders = fs.readdirSync(componentsDir).toSorted();
@@ -145,15 +171,11 @@ export function dataAttributeGaps(): Gap[] {
 			pagesOf.set(folder, [...slugs]);
 		}
 	}
-	const isShared = (file: string) => {
-		const folder = /^packages\/mantle\/src\/components\/([^/]+)\//.exec(file)?.[1];
-		return folder == null ? file.startsWith(`${srcDir}/`) : !pagesOf.has(folder);
-	};
-
 	const gaps: Gap[] = [];
 	for (const [folder, slugs] of pagesOf) {
 		const own = sourceFiles(`${componentsDir}/${folder}`);
 		const stamped = new Set<string>();
+		const exempt = notRendered[folder] ?? {};
 		const seen = new Set<string>();
 		const queue = [...own];
 		while (queue.length > 0) {
@@ -163,23 +185,23 @@ export function dataAttributeGaps(): Gap[] {
 			}
 			seen.add(file);
 			const code = fs.readFileSync(file, "utf8");
+			const skip = exempt[path.relative(componentsDir, file)] ?? {};
 			for (const name of stampedDataAttributes(code)) {
-				stamped.add(name);
+				if (!(name in skip)) {
+					stamped.add(name);
+				}
 			}
 			// Why not `import type`: a type import renders nothing.
 			for (const match of code.matchAll(
 				/^\s*(?:import|export)\s+(?!type\s)[^;]*?from\s+"(\.{1,2}\/[^"]+)"/gm,
 			)) {
 				const target = resolveImport(file, match[1] ?? "");
-				if (target != null && !seen.has(target) && isShared(target)) {
+				if (target != null && !seen.has(target) && isPrivate(target)) {
 					queue.push(target);
 				}
 			}
 		}
 		stamped.delete("data-slot");
-		for (const name of Object.keys(notRendered[folder] ?? {})) {
-			stamped.delete(name);
-		}
 
 		const jsdoc = new Set(
 			own.flatMap((file) => jsDocDataAttributes(fs.readFileSync(file, "utf8"))),

@@ -330,12 +330,15 @@ Renders a popover that contains combobox content, e.g. items, groups, and separa
 | `asChild?`   | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
 | `sameWidth?` | `boolean` | `true`  | Whether the popover should be the same width as the input.            |
 
-| Data Attribute      | Value                 | Description                                                                                                    |
-| ------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `data-mantle-popup` | `""`                  | On the popover box. An enclosing `Dialog` reads it to keep a press inside the popup.                           |
-| `data-open`         | `""`                  | On the popover box and the listbox while open. An enclosing `Dialog` reads it to leave **Escape** to the list. |
-| `data-side`         | `"top"` \| `"bottom"` | On the popover box. The side of the anchor the popup opened on.                                                |
-| `data-float-scroll` | `""`                  | On the listbox. The element that scrolls when the popup is shorter than its content.                           |
+| Data Attribute         | Value                       | Description                                                                                                    |
+| ---------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `data-slot`            | `"combobox-popup"`          | On the popover box that holds the listbox and the footer. It also carries `data-side`.                         |
+| `data-mantle-popup`    | `""`                        | On the popover box. An enclosing `Dialog` leaves **Escape** from a footer control to the popup.                |
+| `data-open`            | `""`                        | On the popover box and the listbox while open. An enclosing `Dialog` reads it to leave **Escape** to the list. |
+| `data-side`            | `"top"` \| `"bottom"`       | On the popover box. The side of the anchor the popup opened on.                                                |
+| `data-float-scroll`    | `""`                        | On the listbox. The element that scrolls when the popup is shorter than its content.                           |
+| `data-overflow-top`    | present while scrolled down | Presence-only. On the listbox. The first item sits past the top edge, so `scroll-cue-y` shows a fade there.    |
+| `data-overflow-bottom` | present while more is below | Presence-only. On the listbox. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there.  |
 
 ### Combobox.Item
 
@@ -350,12 +353,12 @@ All props of a `<div>`, plus:
 | `disabled?` | `boolean`                                                 |         | Whether the item is inert.                                                                                                                                      |
 | `value?`    | `string`                                                  |         | The value that picking the item sets on `Combobox.Root`, such as an ID. An item with no value is static text that the keyboard skips.                           |
 
-| Data Attribute     | Value                    | Description                                                      |
-| ------------------ | ------------------------ | ---------------------------------------------------------------- |
-| `data-value`       | the `value` prop         | The option's value.                                              |
-| `data-text-value`  | the `textValue` prop     | The text type-ahead matches. Omitted when unset.                 |
-| `data-highlighted` | present when highlighted | Presence-only. The item under the pointer or the keyboard focus. |
-| `data-selected`    | present when selected    | Presence-only. The item's value is the root's value.             |
+| Data Attribute     | Value                    | Description                                                                     |
+| ------------------ | ------------------------ | ------------------------------------------------------------------------------- |
+| `data-value`       | the `value` prop         | The option's value.                                                             |
+| `data-text-value`  | the `value` prop         | Set only when `children` is a function. A pick writes this text into the input. |
+| `data-highlighted` | present when highlighted | Presence-only. The item under the pointer or the keyboard focus.                |
+| `data-selected`    | present when selected    | Presence-only. The item's value is the root's value.                            |
 
 #### The text a pick writes
 
@@ -425,7 +428,6 @@ All props of a `<div>`.
 
 **Data attributes:**
 
-| Data Attribute | Value                       | Description                                                                            |
-| -------------- | --------------------------- | -------------------------------------------------------------------------------------- |
-| `data-slot`    | `"combobox-content-footer"` | On the footer.                                                                         |
-| `data-slot`    | `"combobox-popup"`          | On the popover box that holds the listbox and the footer. It also carries `data-side`. |
+| Data Attribute | Value                       | Description    |
+| -------------- | --------------------------- | -------------- |
+| `data-slot`    | `"combobox-content-footer"` | On the footer. |

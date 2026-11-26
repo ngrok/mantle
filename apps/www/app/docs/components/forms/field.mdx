@@ -570,10 +570,10 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `id?`         | `string`                                     |         | DOM id for the focusable control, not for the wrapping `<div>`. `Field.Control` splats it onto the control and `Field.Label` uses it as the default `htmlFor`. When omitted, `Field.Item` generates a stable id. |
 | `validation?` | `"error" \| "success" \| "warning" \| false` |         | Validation state that `Field.Control` applies. Overrides the inferred `"error"` state; set it for a server-rendered error.                                                                                       |
 
-| Data Attribute    | Value                                   | Description                                                                                                |
-| ----------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `data-slot`       | `"field-item"`                          | The field.                                                                                                 |
-| `data-validation` | `"error"` \| `"success"` \| `"warning"` | The `validation` prop, else `"error"` while `Field.Errors` renders messages. Omitted when neither applies. |
+| Data Attribute    | Value                                   | Description                                                                                                                                                           |
+| ----------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`       | `"field-item"`                          | The field.                                                                                                                                                            |
+| `data-validation` | `"error"` \| `"success"` \| `"warning"` | The `validation` prop. Without it, `"error"` after hydration while `Field.Errors` or `Field.ErrorList` shows a message. Set `validation` for a server-rendered error. |
 
 ### Field.Control
 

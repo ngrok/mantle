@@ -747,6 +747,9 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  * | `data-mobile` | present in the mobile sheet | Presence-only. Marks the sheet presentation used below the root's `mobileBreakpoint`. |
  * | `data-open` | present while the sheet is open | Presence-only, in the mobile sheet only: the sheet's open state, not the desktop expanded state. |
  * | `data-closing` | present while the sheet's exit plays | Presence-only, in the mobile sheet only. Drives the slide-out. |
+ * | `data-overlay` | `""` | On the `<dialog>`. A press on the backdrop targets it. Below the mobile breakpoint only, where the nav is a modal sheet. |
+ * | `data-mantle-modal-content` | `""` | On the panel inside the `<dialog>`. Below the mobile breakpoint only, where the nav is a modal sheet. |
+ * | `data-mantle-scroll-lock` | present while open | Presence-only. On `<html>`. The page stops scrolling. Below the mobile breakpoint only, where the nav is a modal sheet. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarnav
  *

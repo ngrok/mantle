@@ -753,10 +753,12 @@ type MultiSelectContentProps = ComponentProps<"div"> &
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-mantle-popup` | `""` | On the popover box. An enclosing `Dialog` reads it to keep a press inside the popup. |
+ * | `data-mantle-popup` | `""` | On the popover box. An enclosing `Dialog` leaves **Escape** from a footer control to the popup. |
  * | `data-open` | `""` | On the popover box and the listbox while open. An enclosing `Dialog` reads it to leave **Escape** to the list. |
  * | `data-side` | `"top"` \| `"bottom"` | On the popover box. The side of the anchor the popup opened on. |
  * | `data-float-scroll` | `""` | On the listbox. The element that scrolls when the popup is shorter than its content. |
+ * | `data-overflow-top` | present while scrolled down | Presence-only. On the listbox. The first item sits past the top edge, so `scroll-cue-y` shows a fade there. |
+ * | `data-overflow-bottom` | present while more is below | Presence-only. On the listbox. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there. |
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontent
  *
@@ -921,7 +923,6 @@ type MultiSelectItemProps = Omit<ComponentProps<"div">, "children" | "value"> &
  * | `data-slot` | `"multi-select-item"` | On the option element. |
  * | `data-slot` | `"multi-select-item-label"` | On the `<div>` wrapping `children`. |
  * | `data-value` | the `value` prop | The option's value. |
- * | `data-text-value` | the `textValue` prop | The text type-ahead matches. Omitted when unset. |
  * | `data-highlighted` | present when highlighted | Presence-only. The item under the pointer or the keyboard focus. |
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectitem

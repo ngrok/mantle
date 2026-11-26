@@ -99,8 +99,8 @@
       {
         "part": "Alert.ExpandButton",
         "name": "data-slot",
-        "value": "`\"alert-expand-button\"`",
-        "description": "The button."
+        "value": "`\"alert-expand-button button\"`",
+        "description": "The button, joined ahead of `Button`'s own slot."
       },
       {
         "part": "Alert.ExpandButton",
@@ -111,8 +111,8 @@
       {
         "part": "Alert.DismissIconButton",
         "name": "data-slot",
-        "value": "`\"alert-dismiss-icon-button\"`",
-        "description": "The button."
+        "value": "`\"alert-dismiss-icon-button icon-button\"`",
+        "description": "The button, joined ahead of `IconButton`'s own slot."
       },
       {
         "part": "Alert.DismissIconButton",
@@ -336,7 +336,39 @@
         "boundary": "the page holds unsaved changes, and a bar waits for the user to save or discard them."
       }
     ],
-    "useWhen": "The user must confirm a destructive or irreversible action, such as a delete or a sign-out, before it runs."
+    "useWhen": "The user must confirm a destructive or irreversible action, such as a delete or a sign-out, before it runs.",
+    "dataAttributes": [
+      {
+        "part": "AlertDialog.Content",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Presence-only. On the `<dialog>` positioner and the panel. Drives the open animation."
+      },
+      {
+        "part": "AlertDialog.Content",
+        "name": "data-closing",
+        "value": "present while the exit plays",
+        "description": "Presence-only. On the `<dialog>` positioner and the panel. Drives the close animation."
+      },
+      {
+        "part": "AlertDialog.Content",
+        "name": "data-overlay",
+        "value": "`\"\"`",
+        "description": "On the `<dialog>` positioner. A press on the backdrop targets it."
+      },
+      {
+        "part": "AlertDialog.Content",
+        "name": "data-mantle-modal-content",
+        "value": "`\"\"`",
+        "description": "On the panel inside the `<dialog>`. Floats and an enclosing dialog find the panel by it."
+      },
+      {
+        "part": "AlertDialog.Content",
+        "name": "data-mantle-scroll-lock",
+        "value": "present while a modal is open",
+        "description": "Presence-only. On `<html>`, while any modal dialog is open. The page stops scrolling."
+      }
+    ]
   },
   {
     "name": "Anchor",
@@ -566,7 +598,7 @@
         "part": "AreaChart.Root",
         "name": "data-value",
         "value": "a number",
-        "description": "On each value cell of the `sr-only` data table. The raw number the cell shows formatted."
+        "description": "On each cell of the `sr-only` data table that shows a finite number, and on a numeric x row header. The raw number. A missing value has none."
       },
       {
         "part": "AreaChart.Tooltip",
@@ -904,7 +936,7 @@
         "part": "BarChart.Root",
         "name": "data-value",
         "value": "a number",
-        "description": "On each value cell of the `sr-only` data table. The raw number the cell shows formatted."
+        "description": "On each cell of the `sr-only` data table that shows a finite number, and on a numeric x row header. The raw number. A missing value has none."
       },
       {
         "part": "BarChart.Tooltip",
@@ -980,7 +1012,7 @@
     "useWhen": "Show where the current page sits in a hierarchy, as a trail of links from a root page.",
     "dataAttributes": [
       {
-        "part": "",
+        "part": "Breadcrumb",
         "name": "data-slot",
         "value": "`\"breadcrumb\"` \\| `\"breadcrumb-list\"` \\| `\"breadcrumb-item\"` \\| `\"breadcrumb-link\"` \\| `\"breadcrumb-label\"` \\| `\"breadcrumb-page\"` \\| `\"breadcrumb-separator\"` \\| `\"breadcrumb-skeleton\"`",
         "description": "Names each part."
@@ -1106,7 +1138,7 @@
     "useWhen": "Pick one date or a range of dates from a month grid.",
     "dataAttributes": [
       {
-        "part": "",
+        "part": "Calendar",
         "name": "data-slot",
         "value": "`\"calendar\"`",
         "description": "The calendar root."
@@ -1442,7 +1474,7 @@
         "part": "CodeBlock.Root",
         "name": "data-orientation",
         "value": "`\"horizontal\"`",
-        "description": "Present when the root holds a `CodeBlock.TabList`. Omitted otherwise."
+        "description": "Present when `defaultTab` or `activeTab` is set. Omitted otherwise."
       },
       {
         "part": "CodeBlock.Code",
@@ -1489,26 +1521,26 @@
       {
         "part": "CodeBlock.Code",
         "name": "data-fold-line",
-        "value": "a line number",
-        "description": "On each fold toggle `<button>`. The line that opens the region the button folds."
+        "value": "a fold id",
+        "description": "On each fold toggle `<button>`. The URI-encoded id of the region the button folds."
       },
       {
         "part": "CodeBlock.Code",
         "name": "data-fold-regions",
-        "value": "space-separated line numbers",
-        "description": "On each line inside a foldable region. The opener line of each region that holds it."
+        "value": "space-separated fold ids",
+        "description": "On each line inside a foldable region. The id of each region that holds it."
       },
       {
         "part": "CodeBlock.Code",
         "name": "data-folded-regions",
-        "value": "space-separated line numbers",
-        "description": "On the `<code>` while a region is folded. The opener line of each folded region."
+        "value": "space-separated fold ids",
+        "description": "On the `<code>` while a region is folded. The id of each folded region."
       },
       {
         "part": "CodeBlock.Code",
         "name": "data-fold-hidden",
         "value": "`\"true\"` \\| `\"false\"`",
-        "description": "On a line after a fold first changes it. `\"true\"` while a folded region hides the line."
+        "description": "On a line a fold changed. `\"true\"` while a folded region hides it; `\"false\"` only while it opens, then removed."
       },
       {
         "part": "CodeBlock.Code",
@@ -1571,9 +1603,15 @@
       },
       {
         "part": "Combobox.Content",
+        "name": "data-slot",
+        "value": "`\"combobox-popup\"`",
+        "description": "On the popover box that holds the listbox and the footer. It also carries `data-side`."
+      },
+      {
+        "part": "Combobox.Content",
         "name": "data-mantle-popup",
         "value": "`\"\"`",
-        "description": "On the popover box. An enclosing `Dialog` reads it to keep a press inside the popup."
+        "description": "On the popover box. An enclosing `Dialog` leaves **Escape** from a footer control to the popup."
       },
       {
         "part": "Combobox.Content",
@@ -1594,6 +1632,18 @@
         "description": "On the listbox. The element that scrolls when the popup is shorter than its content."
       },
       {
+        "part": "Combobox.Content",
+        "name": "data-overflow-top",
+        "value": "present while scrolled down",
+        "description": "Presence-only. On the listbox. The first item sits past the top edge, so `scroll-cue-y` shows a fade there."
+      },
+      {
+        "part": "Combobox.Content",
+        "name": "data-overflow-bottom",
+        "value": "present while more is below",
+        "description": "Presence-only. On the listbox. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there."
+      },
+      {
         "part": "Combobox.Item",
         "name": "data-value",
         "value": "the `value` prop",
@@ -1602,8 +1652,8 @@
       {
         "part": "Combobox.Item",
         "name": "data-text-value",
-        "value": "the `textValue` prop",
-        "description": "The text type-ahead matches. Omitted when unset."
+        "value": "the `value` prop",
+        "description": "Set only when `children` is a function. A pick writes this text into the input."
       },
       {
         "part": "Combobox.Item",
@@ -1634,12 +1684,6 @@
         "name": "data-slot",
         "value": "`\"combobox-content-footer\"`",
         "description": "On the footer."
-      },
-      {
-        "part": "Combobox.ContentFooter",
-        "name": "data-slot",
-        "value": "`\"combobox-popup\"`",
-        "description": "On the popover box that holds the listbox and the footer. It also carries `data-side`."
       }
     ]
   },
@@ -1697,6 +1741,18 @@
         "name": "data-slot",
         "value": "`\"command-input\"`",
         "description": "The `<input>` itself. Beyond styling, `Command.DialogContent` finds the field by this slot to place the caret after a seeded query."
+      },
+      {
+        "part": "Command.List",
+        "name": "data-overflow-top",
+        "value": "present while scrolled down",
+        "description": "Presence-only. On the list. The first item sits past the top edge, so `scroll-cue-y` shows a fade there."
+      },
+      {
+        "part": "Command.List",
+        "name": "data-overflow-bottom",
+        "value": "present while more is below",
+        "description": "Presence-only. On the list. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there."
       },
       {
         "part": "Command.Group",
@@ -1834,12 +1890,6 @@
       },
       {
         "part": "ConversationOutline.Item",
-        "name": "aria-current",
-        "value": "`\"location\"` on the current message",
-        "description": "The message the reader is at: the first in view, else the last above the view."
-      },
-      {
-        "part": "ConversationOutline.Item",
         "name": "data-target",
         "value": "the `target` prop",
         "description": "The `id` of the message the item jumps to. The outline watches it to update `data-in-view`."
@@ -1899,7 +1949,7 @@
         "part": "DataTable.Row",
         "name": "data-closing",
         "value": "present while it fades out",
-        "description": "Presence-only. An ancestor row collapsed. The row is `inert` until it unmounts."
+        "description": "Presence-only. The row's panel or an ancestor row collapsed. The row is `inert` until it unmounts."
       },
       {
         "part": "DataTable.Header",
@@ -1988,8 +2038,8 @@
       {
         "part": "DataTable.ExpandedRow",
         "name": "data-slot",
-        "value": "`\"data-table-expanded-row\"`",
-        "description": "The `<tr>`."
+        "value": "`\"data-table-expanded-row table-row\"`",
+        "description": "The `<tr>`, joined ahead of `Table.Row`'s own slot."
       },
       {
         "part": "DataTable.ExpandedRow",
@@ -2001,7 +2051,7 @@
         "part": "DataTable.ExpandedRow",
         "name": "data-closing",
         "value": "present while it fades out",
-        "description": "Presence-only. An ancestor row collapsed. The row is `inert` until it unmounts."
+        "description": "Presence-only. The row's panel or an ancestor row collapsed. The row is `inert` until it unmounts."
       }
     ]
   },
@@ -2185,6 +2235,18 @@
         "description": "The side the menu is on after it flips."
       },
       {
+        "part": "DropdownMenu.Content",
+        "name": "data-overflow-top",
+        "value": "present while scrolled down",
+        "description": "Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The first item sits past the top edge, so `scroll-cue-y` shows a fade there."
+      },
+      {
+        "part": "DropdownMenu.Content",
+        "name": "data-overflow-bottom",
+        "value": "present while more is below",
+        "description": "Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there."
+      },
+      {
         "part": "DropdownMenu.Item",
         "name": "data-text-value",
         "value": "the `textValue` prop",
@@ -2267,6 +2329,30 @@
         "name": "data-highlighted",
         "value": "present while focused",
         "description": "Presence-only. The item has focus, from the keyboard or the pointer."
+      },
+      {
+        "part": "DropdownMenu.SubContent",
+        "name": "data-overflow-top",
+        "value": "present while scrolled down",
+        "description": "Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The first item sits past the top edge, so `scroll-cue-y` shows a fade there."
+      },
+      {
+        "part": "DropdownMenu.SubContent",
+        "name": "data-overflow-bottom",
+        "value": "present while more is below",
+        "description": "Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there."
+      },
+      {
+        "part": "DropdownMenu.SubContent",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Presence-only. Whether the submenu is open."
+      },
+      {
+        "part": "DropdownMenu.SubContent",
+        "name": "data-side",
+        "value": "`\"top\"` \\| `\"right\"` \\| `\"bottom\"` \\| `\"left\"`",
+        "description": "The side of the sub-trigger the submenu is on after it flips."
       }
     ]
   },
@@ -2346,7 +2432,7 @@
         "part": "Field.Item",
         "name": "data-validation",
         "value": "`\"error\"` \\| `\"success\"` \\| `\"warning\"`",
-        "description": "The `validation` prop, else `\"error\"` while `Field.Errors` renders messages. Omitted when neither applies."
+        "description": "The `validation` prop. Without it, `\"error\"` after hydration while `Field.Errors` or `Field.ErrorList` shows a message. Set `validation` for a server-rendered error."
       }
     ]
   },
@@ -2476,37 +2562,37 @@
     "useWhen": "Run an action from a compact button that shows one icon and no text, such as a close or a copy button.",
     "dataAttributes": [
       {
-        "part": "",
+        "part": "IconButton",
         "name": "data-slot",
         "value": "`\"icon-button\"`",
         "description": "On the button element. Stable styling hook that survives a `className` override or an `asChild` swap."
       },
       {
-        "part": "",
+        "part": "IconButton",
         "name": "data-icon-button",
         "value": "`\"true\"`",
         "description": "Always present. Lets a wrapper style every icon button it contains."
       },
       {
-        "part": "",
+        "part": "IconButton",
         "name": "data-appearance",
         "value": "`\"filled\"` \\| `\"ghost\"` \\| `\"outlined\"`",
         "description": "The `appearance` prop."
       },
       {
-        "part": "",
+        "part": "IconButton",
         "name": "data-intent",
         "value": "`\"neutral\"`",
         "description": "The `intent` prop."
       },
       {
-        "part": "",
+        "part": "IconButton",
         "name": "data-size",
         "value": "`\"2xs\"` \\| `\"xs\"` \\| `\"sm\"` \\| `\"md\"` \\| `\"lg\"` \\| `\"xl\"`",
         "description": "The `size` prop."
       },
       {
-        "part": "",
+        "part": "IconButton",
         "name": "data-loading",
         "value": "present when `isLoading`",
         "description": "Presence-only, never `\"false\"`."
@@ -2577,22 +2663,22 @@
     "useWhen": "Accept one line of text from the user, such as a name, an email address, a URL, or a search term.",
     "dataAttributes": [
       {
-        "part": "InputCapture",
+        "part": "Input",
         "name": "data-slot",
         "value": "`\"input\"`",
         "description": "The chrome around the input."
+      },
+      {
+        "part": "Input",
+        "name": "data-disabled",
+        "value": "present when disabled",
+        "description": "On the chrome. Style with `data-disabled:`."
       },
       {
         "part": "InputCapture",
         "name": "data-slot",
         "value": "`\"input-capture\"`",
         "description": "The `<input>` element."
-      },
-      {
-        "part": "InputCapture",
-        "name": "data-disabled",
-        "value": "present when disabled",
-        "description": "On the chrome. Style with `data-disabled:`."
       },
       {
         "part": "InputCapture",
@@ -2783,7 +2869,7 @@
         "part": "LineChart.Root",
         "name": "data-value",
         "value": "a number",
-        "description": "On each value cell of the `sr-only` data table. The raw number the cell shows formatted."
+        "description": "On each cell of the `sr-only` data table that shows a finite number, and on a numeric x row header. The raw number. A missing value has none."
       },
       {
         "part": "LineChart.Tooltip",
@@ -3173,9 +3259,15 @@
       },
       {
         "part": "MultiSelect.Content",
+        "name": "data-slot",
+        "value": "`\"multi-select-popup\"`",
+        "description": "On the popover box that holds the listbox and the footer. It also carries `data-side`."
+      },
+      {
+        "part": "MultiSelect.Content",
         "name": "data-mantle-popup",
         "value": "`\"\"`",
-        "description": "On the popover box. An enclosing `Dialog` reads it to keep a press inside the popup."
+        "description": "On the popover box. An enclosing `Dialog` leaves **Escape** from a footer control to the popup."
       },
       {
         "part": "MultiSelect.Content",
@@ -3194,6 +3286,18 @@
         "name": "data-float-scroll",
         "value": "`\"\"`",
         "description": "On the listbox. The element that scrolls when the popup is shorter than its content."
+      },
+      {
+        "part": "MultiSelect.Content",
+        "name": "data-overflow-top",
+        "value": "present while scrolled down",
+        "description": "Presence-only. On the listbox. The first item sits past the top edge, so `scroll-cue-y` shows a fade there."
+      },
+      {
+        "part": "MultiSelect.Content",
+        "name": "data-overflow-bottom",
+        "value": "present while more is below",
+        "description": "Presence-only. On the listbox. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there."
       },
       {
         "part": "MultiSelect.Item",
@@ -3215,12 +3319,6 @@
       },
       {
         "part": "MultiSelect.Item",
-        "name": "data-text-value",
-        "value": "the `textValue` prop",
-        "description": "The text type-ahead matches. Omitted when unset."
-      },
-      {
-        "part": "MultiSelect.Item",
         "name": "data-highlighted",
         "value": "present when highlighted",
         "description": "Presence-only. The item under the pointer or the keyboard focus."
@@ -3230,12 +3328,6 @@
         "name": "data-slot",
         "value": "`\"multi-select-content-footer\"`",
         "description": "On the footer."
-      },
-      {
-        "part": "MultiSelect.ContentFooter",
-        "name": "data-slot",
-        "value": "`\"multi-select-popup\"`",
-        "description": "On the popover box that holds the listbox and the footer. It also carries `data-side`."
       },
       {
         "part": "MultiSelect.ContentFooter",
@@ -3331,6 +3423,12 @@
         "description": "On the `<input>`. Keeps the LastPass badge off; LastPass does not fill one-time codes."
       },
       {
+        "part": "OtpInput.Group",
+        "name": "data-slot",
+        "value": "`\"otp-input-group\"`",
+        "description": "The group."
+      },
+      {
         "part": "OtpInput.Slot",
         "name": "data-slot",
         "value": "`\"otp-input-slot\"`",
@@ -3341,6 +3439,12 @@
         "name": "data-highlighted",
         "value": "present when active",
         "description": "Presence-only. The caret or the selection is on the slot."
+      },
+      {
+        "part": "OtpInput.Separator",
+        "name": "data-slot",
+        "value": "`\"otp-input-separator\"`",
+        "description": "The separator."
       }
     ]
   },
@@ -3871,25 +3975,25 @@
     "useWhen": "Encode a URL or other text as a QR code that a phone camera can scan, with an optional centered logo.",
     "dataAttributes": [
       {
-        "part": "Data attributes",
+        "part": "QrCode",
         "name": "data-slot",
         "value": "`\"qr-code\"`",
         "description": "The `Root` tile."
       },
       {
-        "part": "Data attributes",
+        "part": "QrCode",
         "name": "data-slot",
         "value": "`\"qr-code-frame\"`",
         "description": "The `Frame` svg."
       },
       {
-        "part": "Data attributes",
+        "part": "QrCode",
         "name": "data-slot",
         "value": "`\"qr-code-pattern\"`",
         "description": "The `Pattern` path."
       },
       {
-        "part": "Data attributes",
+        "part": "QrCode",
         "name": "data-slot",
         "value": "`\"qr-code-overlay\"`",
         "description": "The `Overlay` logo container."
@@ -4006,6 +4110,18 @@
         "name": "data-slot",
         "value": "`\"query-group-label\"`",
         "description": "On each section heading, a block `span` hidden from assistive tech."
+      },
+      {
+        "part": "Query.List",
+        "name": "data-overflow-top",
+        "value": "present while scrolled down",
+        "description": "Presence-only. On the list. The first item sits past the top edge, so `scroll-cue-y` shows a fade there."
+      },
+      {
+        "part": "Query.List",
+        "name": "data-overflow-bottom",
+        "value": "present while more is below",
+        "description": "Presence-only. On the list. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there."
       },
       {
         "part": "Query.Item",
@@ -4402,7 +4518,7 @@
         "part": "ScatterPlot.Root",
         "name": "data-value",
         "value": "a number",
-        "description": "On each value cell of the `sr-only` data table. The raw number the cell shows formatted."
+        "description": "On each cell of the `sr-only` data table that shows a finite number, and on a numeric x row header. The raw number. A missing value has none."
       },
       {
         "part": "ScatterPlot.Tooltip",
@@ -4619,6 +4735,18 @@
         "description": "The side of the trigger the list opened on."
       },
       {
+        "part": "Select.Content",
+        "name": "data-overflow-top",
+        "value": "present while scrolled down",
+        "description": "Presence-only. On the listbox. The first item sits past the top edge, so `scroll-cue-y` shows a fade there."
+      },
+      {
+        "part": "Select.Content",
+        "name": "data-overflow-bottom",
+        "value": "present while more is below",
+        "description": "Presence-only. On the listbox. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there."
+      },
+      {
         "part": "Select.Group",
         "name": "data-slot",
         "value": "`\"select-group\"`",
@@ -4644,21 +4772,9 @@
       },
       {
         "part": "Select.Item",
-        "name": "aria-selected",
-        "value": "`\"true\"` \\| `\"false\"`",
-        "description": "Whether this item is the selected value. Style it with `aria-selected:`."
-      },
-      {
-        "part": "Select.Item",
         "name": "data-highlighted",
         "value": "present when highlighted",
         "description": "Presence-only. The item under the pointer or the keyboard focus."
-      },
-      {
-        "part": "Select.Item",
-        "name": "aria-disabled",
-        "value": "`\"true\"` when disabled",
-        "description": "The `disabled` prop. Style it with `aria-disabled:`."
       },
       {
         "part": "Select.Item",
@@ -4724,8 +4840,8 @@
       {
         "part": "SelectableList.Item",
         "name": "data-slot",
-        "value": "`\"selectable-list-item\"`",
-        "description": "The row."
+        "value": "`\"selectable-list-item list-item choice\"`",
+        "description": "The row, joined ahead of the `List` and `Choice` slots it composes."
       },
       {
         "part": "SelectableList.Item",
@@ -4858,7 +4974,39 @@
         "boundary": "the panel holds the persistent navigation of the app."
       }
     ],
-    "useWhen": "Open a panel from the edge of the screen for a task beside the current view, such as a filter panel, a detail view, or a mobile menu."
+    "useWhen": "Open a panel from the edge of the screen for a task beside the current view, such as a filter panel, a detail view, or a mobile menu.",
+    "dataAttributes": [
+      {
+        "part": "Sheet.Content",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Presence-only. On the `<dialog>` positioner and the panel. Drives the open animation."
+      },
+      {
+        "part": "Sheet.Content",
+        "name": "data-closing",
+        "value": "present while the exit plays",
+        "description": "Presence-only. On the `<dialog>` positioner and the panel. Drives the close animation."
+      },
+      {
+        "part": "Sheet.Content",
+        "name": "data-overlay",
+        "value": "`\"\"`",
+        "description": "On the `<dialog>` positioner. A press on the backdrop targets it."
+      },
+      {
+        "part": "Sheet.Content",
+        "name": "data-mantle-modal-content",
+        "value": "`\"\"`",
+        "description": "On the panel inside the `<dialog>`. Floats and an enclosing dialog find the panel by it."
+      },
+      {
+        "part": "Sheet.Content",
+        "name": "data-mantle-scroll-lock",
+        "value": "present while a modal is open",
+        "description": "Presence-only. On `<html>`, while any modal dialog is open. The page stops scrolling."
+      }
+    ]
   },
   {
     "name": "Sidebar",
@@ -4927,6 +5075,24 @@
         "description": "Presence-only, in the mobile sheet only. Drives the slide-out."
       },
       {
+        "part": "Sidebar.Nav",
+        "name": "data-overlay",
+        "value": "`\"\"`",
+        "description": "On the `<dialog>`. A press on the backdrop targets it. Below the mobile breakpoint only, where the nav is a modal sheet."
+      },
+      {
+        "part": "Sidebar.Nav",
+        "name": "data-mantle-modal-content",
+        "value": "`\"\"`",
+        "description": "On the panel inside the `<dialog>`. Below the mobile breakpoint only, where the nav is a modal sheet."
+      },
+      {
+        "part": "Sidebar.Nav",
+        "name": "data-mantle-scroll-lock",
+        "value": "present while open",
+        "description": "Presence-only. On `<html>`. The page stops scrolling. Below the mobile breakpoint only, where the nav is a modal sheet."
+      },
+      {
         "part": "Sidebar.Trigger",
         "name": "data-slot",
         "value": "`\"sidebar-trigger icon-button\"`",
@@ -4993,18 +5159,6 @@
         "description": "Names the part, with any composing ancestor's chain ahead of it."
       },
       {
-        "part": "Sidebar.ItemButton",
-        "name": "aria-current",
-        "value": "`\"page\"` when `current`",
-        "description": "Styles the current row with `aria-[current=page]:`, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop."
-      },
-      {
-        "part": "Sidebar.ItemButton",
-        "name": "aria-expanded",
-        "value": "`\"true\"` \\| `\"false\"`",
-        "description": "**Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open."
-      },
-      {
         "part": "Sidebar.SearchTrigger",
         "name": "data-slot",
         "value": "`\"sidebar-search-trigger\"`",
@@ -5023,22 +5177,10 @@
         "description": "On the chord chips. Default `button` path only, where it is always mounted and `display: none` while empty; the props union forbids `shortcut` under `asChild`. Carries `translate=\"no\"`: a chord is a key name, not prose."
       },
       {
-        "part": "Sidebar.SearchTrigger",
-        "name": "aria-expanded",
-        "value": "`\"true\"` \\| `\"false\"`",
-        "description": "**Read, not stamped**: supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. The row stays highlighted while its palette is open."
-      },
-      {
         "part": "Sidebar.SwitcherTrigger",
         "name": "data-slot",
         "value": "`\"sidebar-switcher-trigger\"`",
         "description": "Names the part, with any composing ancestor's chain ahead of it."
-      },
-      {
-        "part": "Sidebar.SwitcherTrigger",
-        "name": "aria-expanded",
-        "value": "`\"true\"` \\| `\"false\"`",
-        "description": "**Read, not stamped**: supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open."
       },
       {
         "part": "Sidebar.Tooltip",
@@ -5575,12 +5717,6 @@
       },
       {
         "part": "Tabs.Trigger",
-        "name": "aria-selected",
-        "value": "`\"true\"` \\| `\"false\"`",
-        "description": "Whether the trigger's panel is shown. Style it with `aria-selected:`."
-      },
-      {
-        "part": "Tabs.Trigger",
         "name": "data-thumb-over",
         "value": "present during a drag",
         "description": "The dragged indicator is over this trigger. Presence-only."
@@ -5590,12 +5726,6 @@
         "name": "data-slot",
         "value": "`\"tabs-content\"`",
         "description": "On the panel element."
-      },
-      {
-        "part": "Tabs.Content",
-        "name": "hidden",
-        "value": "present while inactive",
-        "description": "The browser hides the panel. `\"until-found\"` with `hiddenUntilFound`."
       },
       {
         "part": "Tabs.Badge",
@@ -5634,22 +5764,10 @@
         "description": "On the trigger element."
       },
       {
-        "part": "HeadlessTabs.Trigger",
-        "name": "aria-selected",
-        "value": "`\"true\"` \\| `\"false\"`",
-        "description": "Whether the trigger's panel is shown. Style it with `aria-selected:`."
-      },
-      {
         "part": "HeadlessTabs.Content",
         "name": "data-slot",
         "value": "`\"tabs-content\"`",
         "description": "On the panel element."
-      },
-      {
-        "part": "HeadlessTabs.Content",
-        "name": "hidden",
-        "value": "present while inactive",
-        "description": "The browser hides the panel. `\"until-found\"` with `hiddenUntilFound`."
       }
     ]
   },
@@ -5734,7 +5852,7 @@
         "part": "ThemeProvider",
         "name": "data-theme-transition",
         "value": "present during a swap",
-        "description": "Presence-only. On `<html>` and on each open dialog or menu while the theme swap animates."
+        "description": "Presence-only. On `<html>`, and on each mounted `Dialog` or `DropdownMenu` content and positioner, while the theme swap animates."
       },
       {
         "part": "ThemeProvider",
@@ -6340,7 +6458,7 @@
         "part": "WorldMap.Root",
         "name": "data-value",
         "value": "a number",
-        "description": "On each value cell of the `sr-only` data table. The raw number the cell shows formatted."
+        "description": "On each cell of the `sr-only` data table that shows a finite number, and on a numeric x row header. The raw number. A missing value has none."
       },
       {
         "part": "WorldMap.Callout",

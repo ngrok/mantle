@@ -11,10 +11,12 @@ describe("stampedDataAttributes", () => {
 			'element.setAttribute("data-shake", "");',
 			'element.toggleAttribute("data-thumb-over", over);',
 			'floating.dataset.themeTransition = "";',
+			'const DRAGGING = "data-dragging";',
 			'`<span data-line-number="${n}">`',
 		].join("\n");
 
 		expect(stampedDataAttributes(code)).toEqual([
+			"data-dragging",
 			"data-input-otp",
 			"data-line-number",
 			"data-open",

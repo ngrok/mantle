@@ -646,7 +646,7 @@ type FieldItemProps = Omit<ComponentProps<"div">, "id"> &
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | The `validation` prop, else `"error"` while `Field.Errors` renders messages. Omitted when neither applies. |
+ * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | The `validation` prop. Without it, `"error"` after hydration while `Field.Errors` or `Field.ErrorList` shows a message. Set `validation` for a server-rendered error. |
  *
  * @see https://mantle.ngrok.com/components/forms/field
  *

@@ -766,6 +766,13 @@ const CommandInput = ({
  * `role="listbox"` element. It scrolls with no visible scrollbar, fades its
  * edges where more items are past them, and does not move the page at its end.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-overflow-top` | present while scrolled down | Presence-only. On the list. The first item sits past the top edge, so `scroll-cue-y` shows a fade there. |
+ * | `data-overflow-bottom` | present while more is below | Presence-only. On the list. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there. |
+ *
  * @see https://mantle.ngrok.com/components/navigation/command#commandlist
  *
  * @example

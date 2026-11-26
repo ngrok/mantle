@@ -908,6 +908,8 @@ type DropdownMenuContentProps = MenuPanelProps & {
  * | --- | --- | --- |
  * | `data-open` | present while open | Presence-only. Whether the menu is open. |
  * | `data-side` | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side the menu is on after it flips. |
+ * | `data-overflow-top` | present while scrolled down | Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The first item sits past the top edge, so `scroll-cue-y` shows a fade there. |
+ * | `data-overflow-bottom` | present while more is below | Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there. |
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenucontent
  *
@@ -1542,6 +1544,15 @@ const SubTrigger = ({
  * overlay or float that holds it, else into `document.body`, and closes when an
  * overlay that does not hold it opens. A float opened from an item, such as a
  * `Popover`, portals into the menu.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-overflow-top` | present while scrolled down | Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The first item sits past the top edge, so `scroll-cue-y` shows a fade there. |
+ * | `data-overflow-bottom` | present while more is below | Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there. |
+ * | `data-open` | present while open | Presence-only. Whether the submenu is open. |
+ * | `data-side` | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the sub-trigger the submenu is on after it flips. |
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenusubcontent
  *
