@@ -54,8 +54,10 @@ const mantleHighlightCacheMaxEntries = 1000;
 
 /**
  * The most bytes of code and highlighted HTML that the cache holds, counted
- * as 2 bytes for each UTF-16 code unit. Why a byte bound: 1,000 entries of a
- * 300-line block held about 200 MB of heap.
+ * as 2 bytes for each UTF-16 code unit. One result larger than this alone
+ * stays cached until the next highlight. Why a byte bound: 200 results of a
+ * 300-line block held 41 MB of heap, so 1,000 such results, the entry bound,
+ * would hold about 200 MB.
  */
 const mantleHighlightCacheMaxBytes = 32 * 1024 * 1024;
 
@@ -270,22 +272,25 @@ async function highlightWithMantleShiki(
 			highlightLines,
 			lineNumberStart,
 		};
-	})().catch((error: unknown) => {
-		mantleHighlightCache.delete(cacheKey);
-		throw error;
-	});
+	})();
 
 	mantleHighlightCache.set(cacheKey, promise, normalizedCode.length * 2);
-	// Why again on resolve: the size of the HTML is known only then. Why the
-	// check: an eviction or a newer call may have replaced this entry.
+	// Why the identity checks: an eviction can drop this entry, and a newer
+	// call can then store another promise for the same key. Why `resize` on
+	// success: the size of the HTML is known only then, and the entry keeps
+	// the recency of its request.
 	void promise.then(
 		({ html }) => {
 			if (mantleHighlightCache.peek(cacheKey) === promise) {
-				mantleHighlightCache.set(cacheKey, promise, (normalizedCode.length + html.length) * 2);
+				mantleHighlightCache.resize(cacheKey, (normalizedCode.length + html.length) * 2);
 			}
 			return undefined;
 		},
-		() => undefined,
+		() => {
+			if (mantleHighlightCache.peek(cacheKey) === promise) {
+				mantleHighlightCache.delete(cacheKey);
+			}
+		},
 	);
 	return promise;
 }

@@ -51,4 +51,18 @@ describe("createLruCache", () => {
 		expect(cache.size()).toBe(1);
 		expect(cache.peek("e")).toBe(5);
 	});
+
+	test("resize keeps the entry's recency and evicts the oldest", () => {
+		const cache = createLruCache<string, number>(10, { maxBytes: 100 });
+
+		cache.set("a", 1, 10);
+		cache.set("b", 2, 10);
+		cache.resize("a", 80);
+		cache.set("c", 3, 20);
+
+		// Why `a` goes: it is the least recently used, though it was resized last.
+		expect(cache.peek("a")).toBeUndefined();
+		expect(cache.peek("b")).toBe(2);
+		expect(cache.peek("c")).toBe(3);
+	});
 });
