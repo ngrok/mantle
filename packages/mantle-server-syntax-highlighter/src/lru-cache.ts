@@ -2,23 +2,41 @@
 type LruCache<K, V> = {
 	delete: (key: K) => boolean;
 	get: (key: K) => V | undefined;
-	set: (key: K, value: V) => void;
+	/** Returns the value without making it the most recently used. */
+	peek: (key: K) => V | undefined;
+	/** Stores `value`. `bytes` is its size, which counts toward `maxBytes`; the default is 0. */
+	set: (key: K, value: V, bytes?: number) => void;
 	size: () => number;
 };
 
-/** Creates an LRU cache that evicts the least-recently-used entry when `maxEntries` is exceeded. */
-function createLruCache<K, V>(maxEntries: number): LruCache<K, V> {
+/**
+ * Creates an LRU cache that evicts the least-recently-used entries while it
+ * holds more than `maxEntries` entries or more than `maxBytes` bytes. The
+ * newest entry stays, even when it alone is larger than `maxBytes`.
+ */
+function createLruCache<K, V>(
+	maxEntries: number,
+	{ maxBytes = Number.POSITIVE_INFINITY }: { maxBytes?: number } = {},
+): LruCache<K, V> {
 	if (!Number.isInteger(maxEntries) || maxEntries <= 0) {
 		throw new Error("LRU cache maxEntries must be a positive integer.");
 	}
 
 	// Why the `{ value }` box: `get` can tell a stored `undefined` from a missing key.
-	const map = new Map<K, { value: V }>();
+	const map = new Map<K, { value: V; bytes: number }>();
+	let totalBytes = 0;
+
+	const remove = (key: K) => {
+		const entry = map.get(key);
+		if (entry == null) {
+			return false;
+		}
+		totalBytes -= entry.bytes;
+		return map.delete(key);
+	};
 
 	return {
-		delete(key) {
-			return map.delete(key);
-		},
+		delete: remove,
 		get(key) {
 			const entry = map.get(key);
 			if (entry == null) {
@@ -29,19 +47,18 @@ function createLruCache<K, V>(maxEntries: number): LruCache<K, V> {
 			map.set(key, entry);
 			return entry.value;
 		},
-		set(key, value) {
-			if (map.has(key)) {
-				map.delete(key);
-			}
-
-			map.set(key, { value });
-			if (map.size <= maxEntries) {
-				return;
-			}
-
-			const oldestKey = map.keys().next().value;
-			if (oldestKey != null) {
-				map.delete(oldestKey);
+		peek(key) {
+			return map.get(key)?.value;
+		},
+		set(key, value, bytes = 0) {
+			remove(key);
+			map.set(key, { value, bytes });
+			totalBytes += bytes;
+			for (const oldest of map.keys()) {
+				if (map.size <= 1 || (map.size <= maxEntries && totalBytes <= maxBytes)) {
+					break;
+				}
+				remove(oldest);
 			}
 		},
 		size() {

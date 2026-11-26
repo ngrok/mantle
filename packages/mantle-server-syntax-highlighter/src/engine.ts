@@ -52,6 +52,13 @@ const mantleShikiLanguageGrammarIds = [
  */
 const mantleHighlightCacheMaxEntries = 1000;
 
+/**
+ * The most bytes of code and highlighted HTML that the cache holds, counted
+ * as 2 bytes for each UTF-16 code unit. Why a byte bound: 1,000 entries of a
+ * 300-line block held about 200 MB of heap.
+ */
+const mantleHighlightCacheMaxBytes = 32 * 1024 * 1024;
+
 type ShikiHighlighter = Awaited<ReturnType<typeof createHighlighter>>;
 
 type MantleHighlightInput = {
@@ -147,6 +154,7 @@ const tokenClassTransformer: ShikiTransformer = {
 let highlighterPromise: Promise<ShikiHighlighter> | undefined;
 const mantleHighlightCache = createLruCache<string, Promise<MantleHighlightResult>>(
 	mantleHighlightCacheMaxEntries,
+	{ maxBytes: mantleHighlightCacheMaxBytes },
 );
 
 /**
@@ -267,7 +275,18 @@ async function highlightWithMantleShiki(
 		throw error;
 	});
 
-	mantleHighlightCache.set(cacheKey, promise);
+	mantleHighlightCache.set(cacheKey, promise, normalizedCode.length * 2);
+	// Why again on resolve: the size of the HTML is known only then. Why the
+	// check: an eviction or a newer call may have replaced this entry.
+	void promise.then(
+		({ html }) => {
+			if (mantleHighlightCache.peek(cacheKey) === promise) {
+				mantleHighlightCache.set(cacheKey, promise, (normalizedCode.length + html.length) * 2);
+			}
+			return undefined;
+		},
+		() => undefined,
+	);
 	return promise;
 }
 
@@ -285,6 +304,7 @@ export {
 	extractHighlightedCodeInnerHtml,
 	getMantleShikiHighlighter,
 	highlightWithMantleShiki,
+	mantleHighlightCacheMaxBytes,
 	mantleHighlightCacheMaxEntries,
 	mantleShikiLanguageGrammarIds,
 	mantleShikiThemeName,
