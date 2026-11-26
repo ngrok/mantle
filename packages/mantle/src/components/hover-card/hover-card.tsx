@@ -396,6 +396,12 @@ type HoverCardArrowProps = Omit<ComponentProps<"svg">, "children" | "width" | "h
  * that faces the trigger and centers on the trigger, also after the card flips
  * or shifts.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-float-arrow` | `""` | On the `<span>` around the arrow's `<svg>`. The float moves it to the edge that faces the anchor. |
+ *
  * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardarrow
  *
  * @example

@@ -227,10 +227,12 @@ All props of a `<div>`, plus:
 
 #### Data attributes
 
-| Data Attribute | Value                                    | Description                              |
-| :------------- | :--------------------------------------- | :--------------------------------------- |
-| `data-open`    | present while open                       | Presence-only. Whether the menu is open. |
-| `data-side`    | `"top" \| "right" \| "bottom" \| "left"` | The side the menu is on after it flips.  |
+| Data Attribute         | Value                                    | Description                                                                                                                                                |
+| :--------------------- | :--------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-open`            | present while open                       | Presence-only. Whether the menu is open.                                                                                                                   |
+| `data-side`            | `"top" \| "right" \| "bottom" \| "left"` | The side the menu is on after it flips.                                                                                                                    |
+| `data-overflow-top`    | present while scrolled down              | Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The first item sits past the top edge, so `scroll-cue-y` shows a fade there.   |
+| `data-overflow-bottom` | present while more is below              | Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there. |
 
 ### DropdownMenu.Item
 
@@ -242,6 +244,11 @@ A standard item in the dropdown menu that can be selected or activated.
 | `disabled?`  | `boolean`                |         | When `true`, prevents the user from interacting with the item.                                                              |
 | `onSelect?`  | `(event: Event) => void` |         | Event handler called when the user selects an item (via mouse or key). Call `event.preventDefault()` to keep the menu open. |
 | `textValue?` | `string`                 |         | The text that typeahead matches. Defaults to the text content of the item.                                                  |
+
+| Data Attribute     | Value                 | Description                                                          |
+| ------------------ | --------------------- | -------------------------------------------------------------------- |
+| `data-text-value`  | the `textValue` prop  | The text type-ahead matches. Omitted when unset.                     |
+| `data-highlighted` | present while focused | Presence-only. The item has focus, from the keyboard or the pointer. |
 
 ### DropdownMenu.CheckboxItem
 
@@ -263,10 +270,12 @@ The item sets `aria-checked` to `true`, `false`, or `mixed` for `"indeterminate"
 
 #### Data attributes
 
-| Data Attribute | Value                                 | Description                          |
-| :------------- | :------------------------------------ | :----------------------------------- |
-| `data-slot`    | `"dropdown-menu-checkbox-item"`       | On the item element.                 |
-| `data-slot`    | `"dropdown-menu-checkbox-item-label"` | On the `<span>` wrapping `children`. |
+| Data Attribute     | Value                                 | Description                                                          |
+| :----------------- | :------------------------------------ | :------------------------------------------------------------------- |
+| `data-slot`        | `"dropdown-menu-checkbox-item"`       | On the item element.                                                 |
+| `data-slot`        | `"dropdown-menu-checkbox-item-label"` | On the `<span>` wrapping `children`.                                 |
+| `data-text-value`  | the `textValue` prop                  | The text type-ahead matches. Omitted when unset.                     |
+| `data-highlighted` | present while focused                 | Presence-only. The item has focus, from the keyboard or the pointer. |
 
 ### DropdownMenu.RadioGroup
 
@@ -294,10 +303,12 @@ All props of `DropdownMenu.Item`, plus:
 
 #### Data attributes
 
-| Data Attribute | Value                              | Description                          |
-| :------------- | :--------------------------------- | :----------------------------------- |
-| `data-slot`    | `"dropdown-menu-radio-item"`       | On the item element.                 |
-| `data-slot`    | `"dropdown-menu-radio-item-label"` | On the `<span>` wrapping `children`. |
+| Data Attribute     | Value                              | Description                                                          |
+| :----------------- | :--------------------------------- | :------------------------------------------------------------------- |
+| `data-slot`        | `"dropdown-menu-radio-item"`       | On the item element.                                                 |
+| `data-slot`        | `"dropdown-menu-radio-item-label"` | On the `<span>` wrapping `children`.                                 |
+| `data-text-value`  | the `textValue` prop               | The text type-ahead matches. Omitted when unset.                     |
+| `data-highlighted` | present while focused              | Presence-only. The item has focus, from the keyboard or the pointer. |
 
 ### DropdownMenu.Label
 
@@ -343,10 +354,12 @@ An icon you pass as a child is now a grandchild of the item, so a `[&>svg]` clas
 
 #### Data attributes
 
-| Data Attribute | Value                               | Description                          |
-| :------------- | :---------------------------------- | :----------------------------------- |
-| `data-slot`    | `"dropdown-menu-sub-trigger"`       | On the item element.                 |
-| `data-slot`    | `"dropdown-menu-sub-trigger-label"` | On the `<span>` wrapping `children`. |
+| Data Attribute     | Value                               | Description                                                          |
+| :----------------- | :---------------------------------- | :------------------------------------------------------------------- |
+| `data-slot`        | `"dropdown-menu-sub-trigger"`       | On the item element.                                                 |
+| `data-slot`        | `"dropdown-menu-sub-trigger-label"` | On the `<span>` wrapping `children`.                                 |
+| `data-text-value`  | the `textValue` prop                | The text type-ahead matches. Omitted when unset.                     |
+| `data-highlighted` | present while focused               | Presence-only. The item has focus, from the keyboard or the pointer. |
 
 ### DropdownMenu.SubContent
 
@@ -363,3 +376,10 @@ All props of a `<div>`, plus:
 | `onPointerDownOutside?` | `(event: PointerDownOutsideEvent) => void`                      |           | Runs when a pointer press starts outside the submenu. Call `event.preventDefault()` to keep it open.         |
 | `onFocusOutside?`       | `(event: FocusOutsideEvent) => void`                            |           | Runs when focus moves outside the submenu. Call `event.preventDefault()` to keep it open.                    |
 | `onInteractOutside?`    | `(event: PointerDownOutsideEvent \| FocusOutsideEvent) => void` |           | Runs for both an outside press and an outside focus move. Call `event.preventDefault()` to keep it open.     |
+
+| Data Attribute         | Value                       | Description                                                                                                                                                |
+| ---------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-overflow-top`    | present while scrolled down | Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The first item sits past the top edge, so `scroll-cue-y` shows a fade there.   |
+| `data-overflow-bottom` | present while more is below | Presence-only. On the `dropdown-menu-viewport` scroller, without `asChild`. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there. |
+| `data-open`            | present while open          | Presence-only. Whether the submenu is open.                                                                                                                |
+| `data-side`            | `"left"` \| `"right"`       | The side of the sub-trigger the submenu is on after it flips.                                                                                              |

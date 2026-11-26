@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	buildAgentManifest,
+	dataAttributesFromMdx,
 	examplesFromJsDoc,
 	firstSentenceFromJsDoc,
 	importableSubpaths,
@@ -141,6 +142,75 @@ describe("siblingsFromJsDoc", () => {
 
 	it("returns an empty array when the block carries no @siblings tag", () => {
 		expect(siblingsFromJsDoc("/**\n * Summary.\n * @see x\n */")).toEqual([]);
+	});
+});
+
+describe("dataAttributesFromMdx", () => {
+	it("reads the data rows of each part's table in the API reference, and keeps an escaped pipe in its cell", () => {
+		const mdx = [
+			"## Accessibility",
+			"",
+			"| Data Attribute | Value | Description |",
+			"| --- | --- | --- |",
+			"| `data-overview` | present | An overview row, not the contract. |",
+			"",
+			"## API Reference",
+			"",
+			"| Data Attribute | Value | Description |",
+			"| --- | --- | --- |",
+			'| `data-slot` | `"tabs"` | Above the first part, so the whole component. |',
+			"",
+			"### Tabs.Root",
+			"",
+			"| Prop | Type | Default | Description |",
+			"| --- | --- | --- | --- |",
+			"| `data-not-an-attribute` | `string` | | A props table. |",
+			"",
+			"#### Data attributes",
+			"",
+			"| Data Attribute | Value | Description |",
+			"| :-- | :-- | :-- |",
+			'| `data-orientation` | `"horizontal"` \\| `"vertical"` | The `orientation` prop. |',
+			"",
+			"```md",
+			"| Data Attribute | Value | Description |",
+			"| `data-in-a-fence` | present | Example text. |",
+			"```",
+			"",
+			"### Tabs.List",
+			"",
+			"| Data Attribute | Value | Description |",
+			"| --- | --- | --- |",
+			"| `data-dragging` | present during a drag | Presence-only. |",
+			'| `aria-selected` | `"true"` | An ARIA row, not a data attribute. |',
+			"",
+			"## Accessibility notes",
+			"",
+			"| Data Attribute | Value | Description |",
+			"| --- | --- | --- |",
+			"| `data-after-reference` | present | Past the API reference. |",
+		].join("\n");
+
+		expect(dataAttributesFromMdx(mdx, "Tabs")).toEqual([
+			{
+				part: "Tabs",
+				name: "data-slot",
+				value: '`"tabs"`',
+				description: "Above the first part, so the whole component.",
+			},
+			{
+				part: "Tabs.Root",
+				name: "data-orientation",
+				value: '`"horizontal"` \\| `"vertical"`',
+				description: "The `orientation` prop.",
+			},
+			{
+				part: "Tabs.List",
+				name: "data-dragging",
+				value: "present during a drag",
+				description: "Presence-only.",
+			},
+		]);
 	});
 });
 
@@ -539,6 +609,7 @@ describe("buildAgentManifestFromFilesystem", () => {
 			aliases: component.aliases,
 			siblings: component.siblings,
 			useWhen: component.useWhen,
+			dataAttributes: component.dataAttributes,
 		}));
 
 		expect(JSON.parse(JSON.stringify(surface))).toEqual(snapshot);

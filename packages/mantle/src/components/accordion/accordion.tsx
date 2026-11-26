@@ -325,6 +325,12 @@ const Root = (props: AccordionRootProps) => {
  * Because the item is a plain `<div>`, its header can be any layout, including a
  * flex row with the {@link Trigger} beside a separate, non-toggling action button.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-open` | present while open | Presence-only. The item's section is open. |
+ *
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordionitem
  *
  * @example
@@ -533,6 +539,12 @@ const TriggerIcon = ({
  * of the {@link Trigger}'s `aria-controls`; `Item` generates it, so `id` is not
  * a prop here. It is flow content, so it may contain anything, including
  * interactive elements.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-open` | present while open | Presence-only. Drives the height and opacity slide. |
  *
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordioncontent
  *

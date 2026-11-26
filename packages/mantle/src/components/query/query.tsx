@@ -518,7 +518,7 @@ type QueryInputProps = Omit<
  *
  * **Data attributes:**
  *
- * | Attribute         | Value                                  | Description                                  |
+ * | Data Attribute         | Value                                  | Description                                  |
  * | ----------------- | -------------------------------------- | -------------------------------------------- |
  * | `data-slot`       | `"query-input"`                        | On the field's outer element.                |
  * | `data-slot`       | `"query-input-actions"`                | On the `span` that wraps the children.       |
@@ -892,7 +892,7 @@ type QueryContentProps = Omit<
  *
  * **Data attributes:**
  *
- * | Attribute    | Value                  | Description                                 |
+ * | Data Attribute    | Value                  | Description                                 |
  * | ------------ | ---------------------- | ------------------------------------------- |
  * | `data-slot`  | `"query-content"`      | On the popover, beside `"popover-content"`. |
  * | `data-open`  | present while open     | On the popover, from `Popover.Content`.     |
@@ -988,10 +988,12 @@ type QueryListProps = Omit<ComponentProps<"div">, "children" | "id" | "role"> &
  *
  * **Data attributes:**
  *
- * | Attribute   | Value                 | Description                                                         |
+ * | Data Attribute   | Value                 | Description                                                         |
  * | ----------- | --------------------- | ------------------------------------------------------------------- |
  * | `data-slot` | `"query-list"`        | On the listbox.                                                     |
  * | `data-slot` | `"query-group-label"` | On each section heading, a block `span` hidden from assistive tech. |
+ * | `data-overflow-top` | present while scrolled down | Presence-only. On the list. The first item sits past the top edge, so `scroll-cue-y` shows a fade there. |
+ * | `data-overflow-bottom` | present while more is below | Presence-only. On the list. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there. |
  *
  * @see https://mantle.ngrok.com/components/forms/query#querylist
  *
@@ -1094,7 +1096,7 @@ type QueryItemProps = Omit<ComponentProps<"div">, "aria-selected" | "id" | "role
  *
  * **Data attributes:**
  *
- * | Attribute          | Value          | Description                                                       |
+ * | Data Attribute          | Value          | Description                                                       |
  * | ------------------ | -------------- | ----------------------------------------------------------------- |
  * | `data-slot`        | `"query-item"` | On the option.                                                    |
  * | `data-highlighted` | present        | While the row is active, or under the pointer with no active row. |
@@ -1219,7 +1221,7 @@ type QueryEmptyProps = Omit<ComponentProps<"div">, "id"> &
  *
  * **Data attributes:**
  *
- * | Attribute   | Value           | Description      |
+ * | Data Attribute   | Value           | Description      |
  * | ----------- | --------------- | ---------------- |
  * | `data-slot` | `"query-empty"` | On the message.  |
  *
@@ -1372,7 +1374,7 @@ type QueryFooterProps = Omit<ComponentProps<"div">, "id"> & WithAsChild & WithDa
  *
  * **Data attributes:**
  *
- * | Attribute   | Value            | Description     |
+ * | Data Attribute   | Value            | Description     |
  * | ----------- | ---------------- | --------------- |
  * | `data-slot` | `"query-footer"` | On the footer.  |
  *
@@ -1436,7 +1438,7 @@ type QueryLegendProps = Omit<ComponentProps<"p">, "children"> & WithDataSlot;
  *
  * **Data attributes:**
  *
- * | Attribute   | Value            | Description     |
+ * | Data Attribute   | Value            | Description     |
  * | ----------- | ---------------- | --------------- |
  * | `data-slot` | `"query-legend"` | On the legend.  |
  *
@@ -1525,7 +1527,7 @@ type QueryKeyboardHintsProps = Omit<ComponentProps<"p">, "children"> &
  *
  * **Data attributes:**
  *
- * | Attribute   | Value                    | Description    |
+ * | Data Attribute   | Value                    | Description    |
  * | ----------- | ------------------------ | -------------- |
  * | `data-slot` | `"query-keyboard-hints"` | On the hints.  |
  *

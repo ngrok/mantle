@@ -197,6 +197,9 @@ type ContentProps = Omit<
  * | `data-appearance` | `"centered"` \| `"full-page"` \| `"full-bleed"`   | Reflects the resolved `appearance`.                                  |
  * | `data-open`       | present while open | Presence-only. The `[open]` mirror the open animation keys on. |
  * | `data-closing`    | present while the exit plays | Presence-only. Drives the close animation. |
+ * | `data-overlay` | `""` | On the `<dialog>` positioner. A press on the backdrop targets it. |
+ * | `data-mantle-modal-content` | `""` | On the panel inside the `<dialog>`. Floats and an enclosing dialog find the panel by it. |
+ * | `data-mantle-scroll-lock` | present while a modal is open | Presence-only. On `<html>`, while any modal dialog is open. The page stops scrolling. |
  *
  * A modal dialog makes the rest of the page inert. To keep app UI usable
  * above it, such as a consent banner, wrap the UI in `OverlayPrompt`: while

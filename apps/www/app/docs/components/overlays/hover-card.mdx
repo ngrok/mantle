@@ -136,6 +136,12 @@ The content to render inside the hover card. Appears in a portal with rich styli
 | `align`      | `"start"` \| `"center"` \| `"end"`             | `"center"` | The alignment against the trigger. The card shifts along the side to stay in the viewport.       |
 | `sideOffset` | `number`                                       | `4`        | The distance in pixels from the trigger.                                                         |
 
+| Data Attribute | Value                                          | Description                                                  |
+| -------------- | ---------------------------------------------- | ------------------------------------------------------------ |
+| `data-slot`    | `"hover-card-content"`                         | On the content, with any composing part's chain ahead of it. |
+| `data-open`    | present while open                             | Presence-only. Absent while the exit transition plays.       |
+| `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the anchor the content resolved to.              |
+
 ### HoverCard.Arrow
 
 An optional tip that points from `HoverCard.Content` at its trigger. Render it as a direct child of `HoverCard.Content`. It renders an `svg`, so `fill-*` paints the surface and `bg-*` paints nothing.
@@ -147,3 +153,7 @@ It takes no `asChild`: the shape is a filled polygon plus a polyline that stroke
 | `width`     | `number` | `14`    | The width of the arrow in pixels.                                                                                                                                                         |
 | `height`    | `number` | `7`     | The height of the arrow in pixels. It adds to `sideOffset`, so the tip lands `sideOffset` pixels from the trigger.                                                                        |
 | `className` | `string` |         | Classes for the `svg`. Reach for `fill-*` for the surface, and target the `polyline` child for the edge: `[&>polyline]:…`. The part already sets `filter` and `clip-path` for its shadow. |
+
+| Data Attribute     | Value | Description                                                                                       |
+| ------------------ | ----- | ------------------------------------------------------------------------------------------------- |
+| `data-float-arrow` | `""`  | On the `<span>` around the arrow's `<svg>`. The float moves it to the edge that faces the anchor. |

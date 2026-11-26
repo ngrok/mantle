@@ -771,6 +771,8 @@ type SelectContentProps = Omit<ComponentProps<"div">, "dir"> &
  * | `data-slot`    | `"select-content"`                             | On the content element.                                                |
  * | `data-open`    | present                                        | Presence-only. Drives the open animation. A closed list renders nothing. |
  * | `data-side`    | `"top"` \| `"bottom"`                           | The side of the trigger the list opened on.                            |
+ * | `data-overflow-top` | present while scrolled down | Presence-only. On the listbox. The first item sits past the top edge, so `scroll-cue-y` shows a fade there. |
+ * | `data-overflow-bottom` | present while more is below | Presence-only. On the listbox. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there. |
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectcontent
  *
@@ -966,6 +968,8 @@ type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
  * | `aria-selected`    | `"true"` \| `"false"` | Whether this item is the selected value. Style it with `aria-selected:`. |
  * | `data-highlighted` | present when highlighted     | Presence-only. The item under the pointer or the keyboard focus.     |
  * | `aria-disabled`    | `"true"` when disabled       | The `disabled` prop. Style it with `aria-disabled:`.                 |
+ * | `data-value` | the `value` prop | The option's value. |
+ * | `data-text-value` | the `textValue` prop | The text type-ahead matches. Omitted when unset. |
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectitem
  *

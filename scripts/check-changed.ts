@@ -26,6 +26,9 @@ const lintConfigFile =
 // The stylesheets `check-css-selectors.ts` reads, and the files that define its check.
 const cssSelectorFile =
 	/^packages\/mantle\/src\/.+\.css$|^scripts\/check-css-selectors\.ts$|^scripts\/oxlint-rules\/no-structural-combinator\.js$/;
+// The files `check-data-attributes.ts` reads: mantle source, the docs pages, and the check itself.
+const dataAttributeFile =
+	/^packages\/mantle\/src\/.+\.tsx?$|^apps\/www\/app\/docs\/.+\.mdx$|^scripts\/check-data-attributes\.ts$|^packages\/mantle\/scripts\/agent-manifest\.ts$/;
 // The files `check-prose.ts` reads: prose and stylesheets.
 const proseFile = /\.(md|mdx|css)$/;
 
@@ -120,6 +123,13 @@ export function planChecks({
 			name: "css selectors",
 			command: "node",
 			args: ["./scripts/check-css-selectors.ts"],
+		});
+	}
+	if (files.some((file) => dataAttributeFile.test(file))) {
+		steps.push({
+			name: "data attributes",
+			command: "node",
+			args: ["./scripts/check-data-attributes.ts"],
 		});
 	}
 	if (touchesPackage) {

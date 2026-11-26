@@ -514,6 +514,12 @@ function useDismissFocusRedirect({
  * `--alert-control-hover-bg` from `Alert.Root`, shared with
  * `Alert.ExpandButton` when both controls are composed together.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-alert-dismiss` | `"true"` | Always present. `Alert.Root` reserves room for the button with `has-data-alert-dismiss:`. |
+ *
  * @see https://mantle.ngrok.com/components/feedback/alert#alertdismissiconbutton
  *
  * @example
@@ -597,6 +603,12 @@ type AlertExpandButtonProps = Omit<
  * plus-prefixed count and caret on narrow viewports. It shares the
  * `--alert-control-*` color variables from `Alert.Root` with the dismiss
  * control.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-alert-expand` | `"true"` | Always present. `Alert.Root` reserves room for the button with `has-data-alert-expand:`. |
  *
  * @see https://mantle.ngrok.com/components/feedback/alert#alertexpandbutton
  *

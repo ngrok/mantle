@@ -47,6 +47,12 @@ type LabelProps = ComponentProps<"label"> & {
  * passing a font-weight utility on the `Label` itself, e.g.
  * `<Label className="font-bold">`.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-disabled` | present when disabled | Presence-only. Set by `disabled` or `aria-disabled`, since `aria-disabled` is not valid on a `<label>`. Style with `data-disabled:`. |
+ *
  * @useWhen Give a form control a visible caption that names it and focuses it on a click.
  *
  * @siblings

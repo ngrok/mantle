@@ -7,15 +7,16 @@ import {
 	type DocPage,
 } from "../../../../packages/mantle/scripts/agent-manifest";
 import { canonicalOrigin } from "~/utilities/canonical-origin";
-import { loadFrontmatter, urlToFileMap } from "~/utilities/docs";
+import { loadFrontmatter, rawDocContent, urlToFileMap } from "~/utilities/docs";
 import { loadSourceFiles, sourceReader } from "~/utilities/mantle-source.server";
 
-/** Every docs page the site serves, with its frontmatter. */
+/** Every docs page the site serves, with its frontmatter and raw MDX. */
 async function loadDocs(): Promise<DocPage[]> {
 	return Promise.all(
 		Array.from(urlToFileMap, async ([slug, filePath]): Promise<DocPage> => ({
 			slug,
 			frontmatter: (await loadFrontmatter(filePath)) ?? {},
+			mdx: rawDocContent[filePath],
 		})),
 	);
 }

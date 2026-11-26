@@ -53,6 +53,12 @@ type Props = Omit<ComponentProps<"input">, "type" | "checked" | "defaultChecked"
  * compose it inside [`Choice`](/components/forms/choice) for a titled, multi-line
  * label with a supplementary description.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | The resolved `validation`. Omitted when unset. |
+ *
  * @useWhen Turn one or more independent options on or off in a form, with an indeterminate state
  * for a partial selection. `CheckboxGroup` shows the options as selectable cards where the user
  * picks several, for a "select all that apply" question.

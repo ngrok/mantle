@@ -308,6 +308,14 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 `onInteractOutside` still fires, but `AlertDialog.Content` calls `event.preventDefault()` after your handler, so a press on the backdrop never closes the dialog.
 
+| Data Attribute              | Value                         | Description                                                                              |
+| --------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------- |
+| `data-open`                 | present while open            | Presence-only. On the `<dialog>` positioner and the panel. Drives the open animation.    |
+| `data-closing`              | present while the exit plays  | Presence-only. On the `<dialog>` positioner and the panel. Drives the close animation.   |
+| `data-overlay`              | `""`                          | On the `<dialog>` positioner. A press on the backdrop targets it.                        |
+| `data-mantle-modal-content` | `""`                          | On the panel inside the `<dialog>`. Floats and an enclosing dialog find the panel by it. |
+| `data-mantle-scroll-lock`   | present while a modal is open | Presence-only. On `<html>`, while any modal dialog is open. The page stops scrolling.    |
+
 ### AlertDialog.Body
 
 Contains the main content of the alert dialog.

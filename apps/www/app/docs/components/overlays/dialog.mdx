@@ -649,11 +649,14 @@ The panel of the dialog, centered in the viewport. `ref`, `className`, and other
 | `onInteractOutside?`    | `(event: PointerDownOutsideEvent) => void`      |              | Event handler called on the same presses as `onPointerDownOutside`, after it. It can be prevented by calling `event.preventDefault`.                                                                                            |
 | `onPointerDownOutside?` | `(event: PointerDownOutsideEvent) => void`      |              | Event handler called when a press starts on the backdrop, or anywhere outside a dialog that is not modal. It can be prevented by calling `event.preventDefault`. See [Handling autofill overlays](#handling-autofill-overlays). |
 
-| Data Attribute    | Value                                           | Description                                                    |
-| ----------------- | ----------------------------------------------- | -------------------------------------------------------------- |
-| `data-appearance` | `"centered"` \| `"full-page"` \| `"full-bleed"` | Reflects the resolved `appearance`.                            |
-| `data-open`       | present while open                              | Presence-only. The `[open]` mirror the open animation keys on. |
-| `data-closing`    | present while the exit plays                    | Presence-only. Drives the close animation.                     |
+| Data Attribute              | Value                                           | Description                                                                              |
+| --------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `data-appearance`           | `"centered"` \| `"full-page"` \| `"full-bleed"` | Reflects the resolved `appearance`.                                                      |
+| `data-open`                 | present while open                              | Presence-only. The `[open]` mirror the open animation keys on.                           |
+| `data-closing`              | present while the exit plays                    | Presence-only. Drives the close animation.                                               |
+| `data-overlay`              | `""`                                            | On the `<dialog>` positioner. A press on the backdrop targets it.                        |
+| `data-mantle-modal-content` | `""`                                            | On the panel inside the `<dialog>`. Floats and an enclosing dialog find the panel by it. |
+| `data-mantle-scroll-lock`   | present while a modal is open                   | Presence-only. On `<html>`, while any modal dialog is open. The page stops scrolling.    |
 
 ### Dialog.Header
 

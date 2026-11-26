@@ -149,6 +149,14 @@ type ListItemProps = Omit<ComponentProps<"button">, "type"> &
  * clicking anywhere on the item triggers it, and the enclosing listitem carries
  * the pill's hover / `current` accent.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-index` | a number | On the row. Its position in the list. |
+ * | `data-selected` | present when `current` | Presence-only. On the row. Draws the tinted pill. |
+ * | `data-disabled` | present when `disabled` | Presence-only. On the row. |
+ *
  * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example

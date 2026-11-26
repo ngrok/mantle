@@ -362,13 +362,14 @@ The default chip accepts native span props. A selectable chip accepts native but
 
 `onRemove` and `selectable` cannot be combined. A plain chip renders a span; a selectable chip renders a button.
 
-| Data Attribute    | Value                                          | Description                                  |
-| ----------------- | ---------------------------------------------- | -------------------------------------------- |
-| `data-slot`       | `"chip"`                                       | The root element.                            |
-| `data-slot`       | `"chip-label"`                                 | The label wrapper, with `display: contents`. |
-| `data-slot`       | `"chip-icon"`                                  | The optional leading icon.                   |
-| `data-slot`       | `"chip-remove"`                                | The optional remove button.                  |
-| `data-state`      | `"on"` \| `"off"`                              | The selectable state.                        |
-| `data-appearance` | `"pill"` \| `"square"`                         | The shape of the chip.                       |
-| `data-size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The size of the chip.                        |
-| `data-locked`     | present                                        | Removal is blocked.                          |
+| Data Attribute    | Value                                          | Description                                                                                         |
+| ----------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `data-slot`       | `"chip"`                                       | The root element.                                                                                   |
+| `data-slot`       | `"chip-label"`                                 | The label wrapper, with `display: contents`.                                                        |
+| `data-slot`       | `"chip-icon"`                                  | The optional leading icon.                                                                          |
+| `data-slot`       | `"chip-remove"`                                | The optional remove button.                                                                         |
+| `data-state`      | `"on"` \| `"off"`                              | The selectable state.                                                                               |
+| `data-appearance` | `"pill"` \| `"square"`                         | The shape of the chip.                                                                              |
+| `data-size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The size of the chip.                                                                               |
+| `data-locked`     | present                                        | Removal is blocked.                                                                                 |
+| `data-shake`      | present while it shakes                        | Presence-only. A locked chip shakes when the user tries to remove it. Not set under reduced motion. |

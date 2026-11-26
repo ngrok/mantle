@@ -8,8 +8,9 @@ import { buildManifest, type ManifestComponent } from "./manifest.server";
  * `/api/components.json` and shipped as `dist/agent.json`.
  *
  * The committed `__snapshots__/components-surface.json` file is *generated*
- * from each component's docs frontmatter and source JSDoc (summary, every
- * `@example` block, the `@siblings` and `@useWhen` tags), never hand-edited.
+ * from each component's docs page and source JSDoc (summary, every `@example`
+ * block, the `@siblings` and `@useWhen` tags, and the rows of the API
+ * reference's data-attribute tables), never hand-edited.
  * It is the source-of-truth shape of the structured surface agents consume,
  * so a change to a component's docs, summary, or tags that isn't reflected
  * here means the two have drifted. The package's own test pins the pack-time
@@ -41,6 +42,7 @@ type SurfaceEntry = Pick<
 	| "aliases"
 	| "siblings"
 	| "useWhen"
+	| "dataAttributes"
 >;
 
 /** Project a manifest component down to the drift-guarded {@link SurfaceEntry}. */
@@ -58,6 +60,7 @@ function toSurface(component: ManifestComponent): SurfaceEntry {
 		aliases: component.aliases,
 		siblings: component.siblings,
 		useWhen: component.useWhen,
+		dataAttributes: component.dataAttributes,
 	};
 }
 
