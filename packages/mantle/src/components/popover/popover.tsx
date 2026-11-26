@@ -430,14 +430,15 @@ type PopoverContentProps = ComponentProps<"div"> &
  * | `data-presentation` | `"popover"` \| `"drawer"` | How this open presents (`Popover.Root` `presentation`). Style the two shapes with `data-[presentation=drawer]:`. |
  * | `data-closing` | present while the exit plays | Presence-only. Drawer presentation only. Drives the slide out. |
  * | `data-mantle-modal-content` | `""` | Drawer presentation only. Floats and an enclosing dialog find the panel by it. |
- * | `data-slot` (positioner) | `"popover-drawer-positioner"` | Drawer presentation only. On the `<dialog>` around the content, which carries `role="dialog"`, the name, `data-open`, `data-closing`, and `data-overlay`. |
+ * | `data-slot` (positioner) | `"drawer-positioner"` | Drawer presentation only. On the `<dialog>` of the `Drawer` around the content, which carries `role="dialog"`, the name, `data-open`, `data-closing`, and `data-overlay`. |
  * | `data-mantle-scroll-lock` | present while a drawer is open | Presence-only. On `<html>`. The page stops scrolling. |
  * | `data-overlay` | `""` | Drawer presentation only. On the `<dialog>` positioner. A press on the backdrop targets it. |
  *
  * In drawer presentation (`presentation="auto"` on a phone), the content is
- * the panel of a modal `<dialog>` that slides up from the bottom edge. The
- * page is inert, Escape, the back gesture, or a press on the backdrop closes
- * it, and the dialog takes focus so the on-screen keyboard stays closed.
+ * the panel of a `Drawer`: a modal `<dialog>` that slides up from the bottom
+ * edge and closes on a swipe down, Escape, the back gesture, or a press on
+ * the scrim. The dialog takes focus so the on-screen keyboard stays closed,
+ * and `data-slot` reads `"popover-content drawer-content"`.
  * `side`, `align`, `sideOffset`, `preferredWidth`, `onFocusOutside`, and
  * `Popover.Arrow` apply only to the popover presentation. A `Sandbar` slides
  * away while the drawer is open.

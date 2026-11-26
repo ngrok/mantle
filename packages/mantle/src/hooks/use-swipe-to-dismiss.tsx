@@ -63,12 +63,18 @@ type UseSwipeToDismissOptions = {
 	 */
 	property?: SwipeProperty | (() => SwipeProperty);
 	/**
-	 * Whether a drag can start. A function runs at pointer down, for a
-	 * condition CSS owns.
+	 * Whether a drag can start. A function runs at pointer down with the
+	 * pointer event, for a condition CSS or the pressed element owns.
 	 *
 	 * @default true
 	 */
-	active?: boolean | (() => boolean);
+	active?: boolean | ((event: PointerEvent) => boolean);
+	/**
+	 * Runs on each move of a drag with how far the target moved toward the
+	 * edge, as a share of its size from `0` to `1`, and with `0` when a
+	 * released drag springs back. Use it to fade a backdrop with the drag.
+	 */
+	onMove?: (progress: number) => void;
 	/**
 	 * The share of the target's size along the direction a drag must cross to
 	 * dismiss, between `0` and `1`.
@@ -332,6 +338,9 @@ function useSwipeToDismiss(
 			session.offset = Math.max(0, travel);
 			const displacement = travel >= 0 ? travel : -rubberBand(-travel, session.size);
 			writeDisplacement(session, displacement, direction);
+			optionsRef.current.onMove?.(
+				session.size > 0 ? Math.min(session.offset / session.size, 1) : 0,
+			);
 		};
 
 		const handleRelease = (event: PointerEvent) => {
@@ -354,14 +363,16 @@ function useSwipeToDismiss(
 			// Why clear before the dismiss: the spring back, or the slide the
 			// caller runs, starts from where the pointer left the target.
 			clearDisplacement(finished);
-			if (event.type === "pointercancel") {
-				return;
-			}
 			const rested = event.timeStamp - finished.lastTime > flickRestMs;
 			const velocity = rested ? 0 : finished.velocity;
-			if (shouldDismissSwipe({ ...finished, velocity, threshold, flickVelocity })) {
+			if (
+				event.type !== "pointercancel" &&
+				shouldDismissSwipe({ ...finished, velocity, threshold, flickVelocity })
+			) {
 				onDismiss();
+				return;
 			}
+			optionsRef.current.onMove?.(0);
 		};
 
 		const handleDown = (event: PointerEvent) => {
@@ -371,7 +382,7 @@ function useSwipeToDismiss(
 				property = "translate",
 				target,
 			} = optionsRef.current;
-			const canStart = typeof active === "function" ? active() : active;
+			const canStart = typeof active === "function" ? active(event) : active;
 			if (!canStart || !event.isPrimary || event.button !== 0 || session != null) {
 				return;
 			}

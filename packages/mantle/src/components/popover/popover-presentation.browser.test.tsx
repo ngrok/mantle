@@ -35,7 +35,7 @@ async function openDrawer(user: ReturnType<typeof userEvent.setup>) {
 				await user.click(trigger);
 			}
 			await user.click(trigger);
-			return document.querySelector("dialog[data-slot='popover-drawer-positioner']:modal") != null;
+			return document.querySelector("dialog[data-slot='drawer-positioner']:modal") != null;
 		})
 		.toBe(true);
 	return trigger;
@@ -73,7 +73,7 @@ describe.runIf(server.browser === "chromium")('Popover presentation="auto"', () 
 		const drawer = await screen.findByRole("dialog", { name: "Add reminder" });
 		expect(drawer.matches("dialog:modal")).toBe(true);
 		expect(
-			document.querySelector("[data-slot='popover-content']")?.getAttribute("data-presentation"),
+			document.querySelector("[data-slot~='popover-content']")?.getAttribute("data-presentation"),
 		).toBe("drawer");
 		// Why: focus on the field would open the on-screen keyboard over the drawer.
 		expect(document.activeElement).toBe(drawer);

@@ -218,6 +218,11 @@
 			"types": "./dist/dialog.d.ts",
 			"import": "./dist/dialog.js"
 		},
+		"./drawer": {
+			"@ngrok/src-live-types": "./src/components/drawer/index.ts",
+			"types": "./dist/drawer.d.ts",
+			"import": "./dist/drawer.js"
+		},
 		"./dropdown-menu": {
 			"@ngrok/src-live-types": "./src/components/dropdown-menu/index.ts",
 			"types": "./dist/dropdown-menu.d.ts",

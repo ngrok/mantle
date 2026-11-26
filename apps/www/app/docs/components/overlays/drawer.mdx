@@ -1,0 +1,176 @@
+---
+title: Drawer
+description: A panel that slides up from the bottom edge of the screen for a short task, with a swipe down to close.
+aliases: [bottom sheet, tray, action sheet]
+---
+
+import { Example } from "~/components/example";
+
+# Drawer
+
+A panel that slides up from the bottom edge of the screen for a short task, with a swipe down to close.
+
+<Example name="components/overlays/drawer/overview" title="Drawer example">
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Drawer } from "@ngrok/mantle/drawer";
+
+<Drawer.Root>
+	<Drawer.Trigger asChild>
+		<Button type="button" appearance="outlined" intent="neutral">
+			Filters
+		</Button>
+	</Drawer.Trigger>
+	<Drawer.Content>
+		<Drawer.Header>
+			<Drawer.Title>Filters</Drawer.Title>
+			<Drawer.Description>Show the endpoints that match.</Drawer.Description>
+		</Drawer.Header>
+		<Drawer.Body>
+			<fieldset className="grid gap-2">
+				<legend className="text-strong mb-2 text-sm font-medium">Status</legend>
+				<label className="flex items-center gap-2 text-sm">
+					<input type="checkbox" defaultChecked /> Online
+				</label>
+				<label className="flex items-center gap-2 text-sm">
+					<input type="checkbox" /> Offline
+				</label>
+			</fieldset>
+		</Drawer.Body>
+		<Drawer.Footer>
+			<Drawer.Close asChild>
+				<Button type="button" appearance="outlined" intent="neutral">
+					Cancel
+				</Button>
+			</Drawer.Close>
+			<Drawer.Close asChild>
+				<Button type="button" appearance="filled" intent="neutral">
+					Apply
+				</Button>
+			</Drawer.Close>
+		</Drawer.Footer>
+	</Drawer.Content>
+</Drawer.Root>;
+```
+
+</Example>
+
+## When to use
+
+- Show a short task or a set of choices from the bottom of a phone screen, where a thumb reaches it: filters, a share sheet, a quick form.
+- Prefer [`Popover`](/components/overlays/popover) with `presentation="auto"` for a task that sits next to its trigger on a large screen and becomes a drawer on a phone.
+- Prefer [`Sheet`](/components/overlays/sheet) for a panel from the left or right edge, such as a detail view.
+- Prefer [`Dialog`](/components/overlays/dialog) for a task that needs a centered modal window.
+
+## Swipe to close
+
+The panel follows a finger or a mouse down one to one. A release past a quarter of its height, or a flick, closes it. A shorter drag springs back, and a drag up meets rubber-band resistance. The scrim fades with the drag. A press on a field, on selected text, or on scrolled content does not start a drag, and on a touch screen `Drawer.Body` scrolls with the finger. Under reduced motion the drawer appears and leaves in place.
+
+Set `dismissible={false}` on `Drawer.Root` while the drawer holds unsaved work: a swipe springs back, and Escape, back, and the scrim do nothing. `Drawer.Close` and the owner still close it.
+
+## Layering and the keyboard
+
+`Drawer` runs on the browser's modal `<dialog>`: the page is inert and stops scrolling, and focus returns to the trigger on close. Focus moves to the `<dialog>`, not to its first field, so the on-screen keyboard stays closed until the user taps a field. When the keyboard opens, the panel rises above it. The scrim is a light dim with no blur.
+
+Floats composed inside portal into the drawer. Toasts and `OverlayPrompt` content move into it. A `Sandbar` slides away while the drawer is open, so it does not cover the drawer's actions. See [Stacking layers](/base/stacking-layers).
+
+## Composition
+
+```text showLineNumbers=false
+Drawer.Root
+├── Drawer.Trigger
+└── Drawer.Content
+    ├── Drawer.Header
+    │   ├── Drawer.Title
+    │   └── Drawer.Description
+    ├── Drawer.Body
+    └── Drawer.Footer
+        └── Drawer.Close
+```
+
+## API Reference
+
+### Drawer.Root
+
+The stateful root. It renders no element.
+
+| Prop            | Type                      | Default | Description                                                                                        |
+| :-------------- | :------------------------ | :------ | :------------------------------------------------------------------------------------------------- |
+| `defaultOpen?`  | `boolean`                 | `false` | The open state on the first render, for an uncontrolled drawer.                                    |
+| `open?`         | `boolean`                 |         | The controlled open state. Pair it with `onOpenChange`.                                            |
+| `onOpenChange?` | `(open: boolean) => void` |         | Runs when the drawer opens or closes.                                                              |
+| `dismissible?`  | `boolean`                 | `true`  | Whether a swipe, Escape, back, or the scrim closes the drawer. With `false`, a swipe springs back. |
+
+### Drawer.Trigger
+
+The button that opens the drawer. All props of a `<button>`, plus `asChild`.
+
+| Data Attribute | Value              | Description     |
+| -------------- | ------------------ | --------------- |
+| `data-slot`    | `"drawer-trigger"` | On the trigger. |
+
+### Drawer.Content
+
+The panel: a modal `<dialog>` that slides up from the bottom edge, with a grab handle at its top. All props of a `<div>`, plus `onOpenAutoFocus`, `onCloseAutoFocus`, `onEscapeKeyDown`, `onPointerDownOutside`, and `onInteractOutside`.
+
+It sets the CSS variables `--drawer-swipe` (how far a drag has moved the panel, from `0` to `1`) and `--drawer-keyboard-inset` (the height of the on-screen keyboard) on the `<dialog>`.
+
+| Data Attribute              | Value                        | Description                                                                           |
+| --------------------------- | ---------------------------- | ------------------------------------------------------------------------------------- |
+| `data-slot`                 | `"drawer-content"`           | On the panel, with any composing part's chain ahead of it.                            |
+| `data-slot` (positioner)    | `"drawer-positioner"`        | On the `<dialog>` around the panel.                                                   |
+| `data-slot` (handle)        | `"drawer-handle"`            | On the grab handle at the top of the panel. Hidden from assistive technology.         |
+| `data-open`                 | present while open           | Presence-only. On the `<dialog>` positioner and the panel. Drives the slide in.       |
+| `data-closing`              | present while the exit plays | Presence-only. On the `<dialog>` positioner and the panel. Drives the slide out.      |
+| `data-overlay`              | `""`                         | On the `<dialog>` positioner. A press on the scrim targets it.                        |
+| `data-mantle-modal-content` | `""`                         | On the panel. Floats and an enclosing dialog find the panel by it.                    |
+| `data-mantle-scroll-lock`   | present while open           | Presence-only. On `<html>`, while any modal dialog is open. The page stops scrolling. |
+
+### Drawer.Header
+
+The top of the drawer, for its title and description. All props of a `<div>`.
+
+| Data Attribute | Value             | Description    |
+| -------------- | ----------------- | -------------- |
+| `data-slot`    | `"drawer-header"` | On the header. |
+
+### Drawer.Title
+
+The accessible name of the drawer. Renders an `h2`, or its child with `asChild`.
+
+| Data Attribute | Value            | Description   |
+| -------------- | ---------------- | ------------- |
+| `data-slot`    | `"drawer-title"` | On the title. |
+
+### Drawer.Description
+
+The accessible description of the drawer. All props of a `<div>`, plus `asChild`.
+
+| Data Attribute | Value                  | Description         |
+| -------------- | ---------------------- | ------------------- |
+| `data-slot`    | `"drawer-description"` | On the description. |
+
+### Drawer.Body
+
+The scrolling middle of the drawer. All props of a `<div>`.
+
+| Data Attribute | Value           | Description  |
+| -------------- | --------------- | ------------ |
+| `data-slot`    | `"drawer-body"` | On the body. |
+
+### Drawer.Footer
+
+The actions at the bottom of the drawer. All props of a `<div>`.
+
+| Data Attribute | Value             | Description    |
+| -------------- | ----------------- | -------------- |
+| `data-slot`    | `"drawer-footer"` | On the footer. |
+
+### Drawer.Close
+
+A button that closes the drawer. All props of a `<button>`, plus `asChild`.
+
+| Data Attribute | Value            | Description          |
+| -------------- | ---------------- | -------------------- |
+| `data-slot`    | `"drawer-close"` | On the close button. |

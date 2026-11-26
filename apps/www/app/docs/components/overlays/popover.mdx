@@ -71,7 +71,7 @@ import { Popover } from "@ngrok/mantle/popover";
 
 ## Presentation
 
-Set `presentation="auto"` on `Popover.Root` when the popover holds a small task, such as a short form. On a phone (a viewport below `sm` with a touch pointer), the content opens as a modal drawer from the bottom edge, where a thumb reaches the fields and the actions. Everywhere else it is a popover. The choice happens each time the popover opens and holds until it closes, so a rotated phone keeps what the user typed.
+Set `presentation="auto"` on `Popover.Root` when the popover holds a small task, such as a short form. On a phone (a viewport below `sm` with a touch pointer), the content opens in a [`Drawer`](/components/overlays/drawer) from the bottom edge, which closes on a swipe down, where a thumb reaches the fields and the actions. Everywhere else it is a popover. The choice happens each time the popover opens and holds until it closes, so a rotated phone keeps what the user typed.
 
 Keep the default for a short list to pick from: a list that jumps to the bottom of the screen moves away from the control it belongs to. `DropdownMenu`, `Select`, and `Combobox` have no drawer.
 
@@ -226,17 +226,17 @@ All props of a `<div>`, plus:
 | `onFocusOutside?`       | `(event: CustomEvent) => void`           |              | Runs when focus moves outside. `event.detail.originalEvent` is the focus event. Call `event.preventDefault()` to keep the popover open.                                                                                                     |
 | `onInteractOutside?`    | `(event: CustomEvent) => void`           |              | Runs for both. Call `event.preventDefault()` to keep the popover open.                                                                                                                                                                      |
 
-| Data Attribute              | Value                                          | Description                                                                                                                                               |
-| --------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`                 | `"popover-content"`                            | On the content, with any composing part's chain ahead of it.                                                                                              |
-| `data-open`                 | present while open                             | Presence-only. Absent while the exit transition plays.                                                                                                    |
-| `data-side`                 | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the anchor the content resolved to. Popover presentation only.                                                                                |
-| `data-presentation`         | `"popover"` \| `"drawer"`                      | How this open presents. Style the two shapes with `data-[presentation=drawer]:`.                                                                          |
-| `data-closing`              | present while the exit plays                   | Presence-only. Drawer presentation only. Drives the slide out.                                                                                            |
-| `data-mantle-modal-content` | `""`                                           | Drawer presentation only. Floats and an enclosing dialog find the panel by it.                                                                            |
-| `data-slot` (positioner)    | `"popover-drawer-positioner"`                  | Drawer presentation only. On the `<dialog>` around the content, which carries `role="dialog"`, the name, `data-open`, `data-closing`, and `data-overlay`. |
-| `data-mantle-scroll-lock`   | present while a drawer is open                 | Presence-only. On `<html>`. The page stops scrolling.                                                                                                     |
-| `data-overlay`              | `""`                                           | Drawer presentation only. On the `<dialog>` positioner. A press on the backdrop targets it.                                                               |
+| Data Attribute              | Value                                          | Description                                                                                                                                                               |
+| --------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`                 | `"popover-content"`                            | On the content, with any composing part's chain ahead of it.                                                                                                              |
+| `data-open`                 | present while open                             | Presence-only. Absent while the exit transition plays.                                                                                                                    |
+| `data-side`                 | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the anchor the content resolved to. Popover presentation only.                                                                                                |
+| `data-presentation`         | `"popover"` \| `"drawer"`                      | How this open presents. Style the two shapes with `data-[presentation=drawer]:`.                                                                                          |
+| `data-closing`              | present while the exit plays                   | Presence-only. Drawer presentation only. Drives the slide out.                                                                                                            |
+| `data-mantle-modal-content` | `""`                                           | Drawer presentation only. Floats and an enclosing dialog find the panel by it.                                                                                            |
+| `data-slot` (positioner)    | `"drawer-positioner"`                          | Drawer presentation only. On the `<dialog>` of the `Drawer` around the content, which carries `role="dialog"`, the name, `data-open`, `data-closing`, and `data-overlay`. |
+| `data-mantle-scroll-lock`   | present while a drawer is open                 | Presence-only. On `<html>`. The page stops scrolling.                                                                                                                     |
+| `data-overlay`              | `""`                                           | Drawer presentation only. On the `<dialog>` positioner. A press on the backdrop targets it.                                                                               |
 
 ### Popover.Anchor
 

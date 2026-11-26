@@ -123,6 +123,7 @@ const docsPages = [
 	// overlays
 	"components/overlays/alert-dialog",
 	"components/overlays/dialog",
+	"components/overlays/drawer",
 	"components/overlays/dropdown-menu",
 	"components/overlays/hover-card",
 	"components/overlays/popover",

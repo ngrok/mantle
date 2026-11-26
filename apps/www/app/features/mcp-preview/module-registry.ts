@@ -40,6 +40,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/data-table": () => import("@ngrok/mantle/data-table"),
 	"@ngrok/mantle/description-list": () => import("@ngrok/mantle/description-list"),
 	"@ngrok/mantle/dialog": () => import("@ngrok/mantle/dialog"),
+	"@ngrok/mantle/drawer": () => import("@ngrok/mantle/drawer"),
 	"@ngrok/mantle/dropdown-menu": () => import("@ngrok/mantle/dropdown-menu"),
 	"@ngrok/mantle/empty": () => import("@ngrok/mantle/empty"),
 	"@ngrok/mantle/field": () => import("@ngrok/mantle/field"),

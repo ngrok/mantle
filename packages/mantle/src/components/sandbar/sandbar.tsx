@@ -212,8 +212,8 @@ type SandbarRootProps = ComponentProps<"div"> &
  * `OverlayPrompt`, so it moves into the top open modal dialog, where it takes
  * clicks and focus, and a press on it does not close the dialog. It renders at
  * Tailwind `z-70`, above a non-modal dialog (`z-60`). A form inside an overlay
- * keeps its save actions in the overlay. The one exception is a `Popover`
- * drawer (`presentation="auto"` on a phone): the bar would cover the drawer's
+ * keeps its save actions in the overlay. The one exception is a `Drawer`, also a
+ * `Popover` drawer (`presentation="auto"` on a phone): the bar would cover the drawer's
  * actions at the bottom edge, so it slides away and is hidden until the
  * drawer closes.
  *
@@ -602,7 +602,7 @@ const Root = ({
 			    Why a layer container: a float composed in the bar (a menu, a
 			    tooltip) portals in here and paints above the bar, not under it at
 			    `z-50`. `[&>*]:pointer-events-auto` keeps those floats clickable.
-			    Why the drawer rules: in an open popover drawer, the bar would
+			    Why the drawer rules: in an open drawer, the bar would
 			    cover the drawer's own actions at the bottom edge. The bar slides
 			    away and goes `invisible` (out of the Tab order and the
 			    accessibility tree), and comes back as the drawer closes. */}
@@ -610,7 +610,7 @@ const Root = ({
 				className={cx(
 					"pointer-events-none fixed inset-x-0 bottom-4 z-70 flex justify-center px-4 [&>*]:pointer-events-auto sm:bottom-10",
 					"transition-[opacity,translate,visibility] duration-200 ease-out-strong",
-					"in-[[data-slot=popover-drawer-positioner][data-open]]:invisible in-[[data-slot=popover-drawer-positioner][data-open]]:opacity-0 in-[[data-slot=popover-drawer-positioner][data-open]]:duration-150 motion-safe:in-[[data-slot=popover-drawer-positioner][data-open]]:translate-y-[calc(100%+2.5rem)]",
+					"in-[[data-slot=drawer-positioner][data-open]]:invisible in-[[data-slot=drawer-positioner][data-open]]:opacity-0 in-[[data-slot=drawer-positioner][data-open]]:duration-150 motion-safe:in-[[data-slot=drawer-positioner][data-open]]:translate-y-[calc(100%+2.5rem)]",
 				)}
 				modal={false}
 				onBlur={handleFocusOut}
