@@ -314,6 +314,15 @@ in a plain stylesheet (a third-party widget override) resolves to nothing.
 			translate: 0;
 		}
 	}
+	/* A drawn text caret's blink: on for 500ms, then off for 500ms, with no fade. It matches
+	   Chromium's default native caret. Gate it with `motion-safe:`: mantle keeps a steady caret
+	   under reduced motion, although native carets blink there. */
+	--animate-caret-blink: caret-blink 1s step-end infinite;
+	@keyframes caret-blink {
+		50% {
+			opacity: 0;
+		}
+	}
 	/* The narrowest workspace row that holds the expanded sidebar (13rem), the content card at
 	   the side panel's floor (21rem), the panel itself (21rem), and the three gutters (1.5rem).
 	   Below it `AppLayout.SidePanel` floats over the card, so the page is never narrower than
@@ -1554,6 +1563,8 @@ MARK: UTILITIES
 	background: transparent !important;
 	color: transparent !important;
 	caret-color: transparent !important;
+	/* Why: forced colors repaint `caret-color`, so the hidden caret shows beside the slot's drawn one. */
+	forced-color-adjust: none !important;
 	box-shadow: none !important;
 	outline: 0 solid transparent !important;
 	pointer-events: auto !important;
@@ -2091,12 +2102,14 @@ pre[data-mantle-line-numbers="true"] .mantle-code-line {
  */
 pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] .mantle-code-gutter {
 	position: sticky;
-	left: 0;
+	inset-inline-start: 0;
 	z-index: 1;
 	flex-shrink: 0;
 	width: calc(var(--mantle-code-line-number-width) + var(--mantle-code-line-number-gap));
 	height: 0;
-	margin-left: calc(
+	/* Why: a click or a triple-click on a number reaches the line under it, as it did with a number on each line. */
+	pointer-events: none;
+	margin-inline-start: calc(
 		-1 * (var(--mantle-code-line-number-width) + var(--mantle-code-line-number-gap))
 	);
 }
@@ -2110,7 +2123,7 @@ pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] .mantle-code-gut
 	content: var(--mantle-code-gutter);
 	position: absolute;
 	top: 0;
-	left: 0;
+	inset-inline-start: 0;
 	box-sizing: content-box;
 	width: var(--mantle-code-line-number-width);
 	padding-right: var(--mantle-code-line-number-gap);
@@ -2122,7 +2135,9 @@ pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] .mantle-code-gut
 }
 
 pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] > .mantle-code-line {
-	padding-left: calc(var(--mantle-code-line-number-width) + var(--mantle-code-line-number-gap));
+	padding-inline-start: calc(
+		var(--mantle-code-line-number-width) + var(--mantle-code-line-number-gap)
+	);
 }
 
 pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] > .mantle-code-line::before {
@@ -2162,7 +2177,7 @@ pre[data-mantle-line-numbers="true"] .mantle-code-line::before {
 	background-color: var(--background-color-base);
 }
 
-pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) {
+pre[data-slot~="code-block-code"][data-foldable] {
 	--_gutter-overhang: calc(
 		var(--mantle-code-line-number-gap) + var(--mantle-code-fold-gutter-width) +
 			var(--mantle-code-fold-gutter-gap)
@@ -2238,7 +2253,7 @@ pre[data-mantle-line-numbers="true"] .mantle-code-fold-toggle {
  * Why `--tw-leading`: this rule is in no layer, so it wins over a `leading-*`
  * class from the consumer. That class sets `--tw-leading`, and it stays first.
  */
-pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) {
+pre[data-slot~="code-block-code"][data-foldable] {
 	line-height: var(--tw-leading, var(--mantle-code-fold-line-height));
 }
 
@@ -2289,18 +2304,18 @@ pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) {
 
 /*
  * Reserve the fold-gutter column so non-opener lines stay aligned with opener
- * lines (whose toggle button occupies the gutter). A single per-<pre> `:has()`
- * scopes this to fold-enabled blocks; within them every line's content gets the
+ * lines (whose toggle button occupies the gutter). The `data-foldable` attribute
+ * of the <pre> scopes this to fold-enabled blocks; within them every line's content gets the
  * gutter margin by default, and opener lines (tagged `mantle-code-line-opener`
  * at HTML-generation time; see decorate-highlighted-html.ts) reset it. This
  * replaces the old *per-line* relational `:not(:has())` probe (whose cost scaled
  * with line count) with a flat class match, while keeping HTML payload tiny:
  * only the sparse opener lines carry an extra class.
  */
-pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-content {
+pre[data-slot~="code-block-code"][data-foldable] .mantle-code-line-content {
 	margin-left: calc(var(--mantle-code-fold-gutter-width) + var(--mantle-code-fold-gutter-gap));
 }
-pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle)
+pre[data-slot~="code-block-code"][data-foldable]
 	.mantle-code-line-opener
 	> .mantle-code-line-content {
 	margin-left: 0;
@@ -2322,8 +2337,8 @@ pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle)
 	}
 }
 
-.mantle-code-line:has(> .mantle-code-fold-toggle[aria-expanded="false"])
-	> .mantle-code-line-content::after {
+/* Why a sibling and not `.mantle-code-line:has(> toggle)`: the toggle comes just before the content, and a `:has()` on each line kept a stream restyling the whole block. */
+.mantle-code-fold-toggle[aria-expanded="false"] + .mantle-code-line-content::after {
 	display: inline;
 }
 
@@ -2468,19 +2483,19 @@ pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle)
 	}
 
 	/* The caret at the end of the streamed text: after the last paragraph, heading, or list item. */
-	/* structural-selector-ok: only a streaming Markdown element sets the attribute, and the child combinators keep each test inside it. */
+	/* structural-selector-ok: on a streamed answer of lists and quotes at 4x CPU, `:not(:has(+ *))` took 11.8 s of style recalc and `:last-child` 0.3 s (#1941). The cost: when another rule tests `:last-child` on the children of `<body>`, a portal append restyles the subtree of the old last child (2,002 elements for a 2,000-node page). `:has(+ *)` on the lists and quotes only avoids that, but keeps 5.9 s. Why `:where()`: the `:last-child` tests add no weight, as `:not(:has(+ *))` added none. */
 	:where([data-slot~="markdown"][data-streaming])
-		> :not(:has(+ *)):is(p, h1, h2, h3, h4, h5, h6)::after,
+		> :is(p, h1, h2, h3, h4, h5, h6):where(:last-child)::after,
 	:where([data-slot~="markdown"][data-streaming])
-		> :not(:has(+ *)):is(ul, ol)
-		> li:not(:has(+ *)):not(:has(> p, > ul, > ol))::after,
+		> :is(ul, ol):where(:last-child)
+		> li:where(:last-child):not(:has(> p, > ul, > ol))::after,
 	:where([data-slot~="markdown"][data-streaming])
-		> :not(:has(+ *)):is(ul, ol)
-		> li:not(:has(+ *))
-		> p:not(:has(+ *))::after,
+		> :is(ul, ol):where(:last-child)
+		> li:where(:last-child)
+		> p:where(:last-child)::after,
 	:where([data-slot~="markdown"][data-streaming])
-		> blockquote:not(:has(+ *))
-		> p:not(:has(+ *))::after {
+		> blockquote:where(:last-child)
+		> p:where(:last-child)::after {
 		content: "";
 		display: inline-block;
 		width: 0.5em;

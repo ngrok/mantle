@@ -81,7 +81,7 @@ export const DOM_PROP_NAMES: ReadonlySet<string> = new Set(
 	transform translate type typeof u1 u2 underlinePosition underlineThickness unicode unicodeBidi
 	unicodeRange unitsPerEm unselectable useMap useragent vAlphabetic vHanging vIdeographic
 	vMathematical valign value values vectorEffect version vertAdvY vertOriginX vertOriginY viewBox
-	viewTarget visibility vocab webpreferences width widths wmode wordSpacing wrap writingMode x x1
+	viewTarget visibility vocab webkitdirectory webpreferences width widths wmode wordSpacing wrap writingMode x x1
 	x2 xChannelSelector xHeight xlinkActuate xlinkArcrole xlinkHref xlinkRole xlinkShow xlinkTitle
 	xlinkType xmlBase xmlLang xmlSpace xmlns xmlnsXlink y y1 y2 yChannelSelector z zoomAndPan`
 		.trim()

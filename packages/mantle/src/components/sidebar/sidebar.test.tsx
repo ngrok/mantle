@@ -2103,11 +2103,11 @@ describe("Sidebar.Tooltip", () => {
 
 // Type-level contract: typecheck fails when a directive below goes unused.
 // @ts-expect-error -- children is required
-void (<Sidebar.Tooltip label="Endpoints" />);
+<Sidebar.Tooltip label="Endpoints" />;
 // @ts-expect-error -- children must be a single element, not text
-void (<Sidebar.Tooltip label="Endpoints">Endpoints</Sidebar.Tooltip>);
+<Sidebar.Tooltip label="Endpoints">Endpoints</Sidebar.Tooltip>;
 // @ts-expect-error -- asChild needs a child to clone
-void (<Sidebar.Separator asChild />);
+<Sidebar.Separator asChild />;
 
 /**
  * The props every part is probed with: a `className` that must land on the

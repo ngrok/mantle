@@ -281,6 +281,83 @@ describe("OtpInput (browser)", () => {
 		expect(slots[1]).not.toHaveAttribute("data-highlighted");
 	});
 
+	describe("caret", () => {
+		let style: HTMLStyleElement;
+		beforeAll(async () => {
+			style = document.createElement("style");
+			style.textContent = await commands.tailwindCss("./otp-input.tsx", { mantleCss: true });
+			document.head.append(style);
+		});
+		afterAll(async () => {
+			style.remove();
+			await commands.emulateMedia({ reducedMotion: "no-preference" });
+		});
+
+		/** Types one character, then returns the empty active slot and its caret parts. */
+		async function focusSecondSlot() {
+			const user = userEvent.setup();
+			const { input, slots } = renderOtp();
+			await user.click(input);
+			await user.keyboard("1");
+			await expect.poll(() => slots[1]?.hasAttribute("data-highlighted")).toBe(true);
+			const slot = slots[1];
+			const blink = slot?.querySelector("[aria-hidden]");
+			const caret = blink?.firstElementChild;
+			if (slot == null || !(blink instanceof HTMLElement) || !(caret instanceof HTMLElement)) {
+				throw new Error("expected a caret in the active slot");
+			}
+			return { slots, slot, blink, caret };
+		}
+
+		test("the empty active slot draws a 1px caret in the slot's text color", async () => {
+			await commands.emulateMedia({ reducedMotion: "no-preference" });
+			const { slots, slot, caret } = await focusSecondSlot();
+
+			const caretStyle = getComputedStyle(caret);
+			expect(caretStyle.borderInlineStartWidth).toBe("1px");
+			expect(caretStyle.borderInlineStartColor).toBe(getComputedStyle(slot).color);
+			const { height } = caret.getBoundingClientRect();
+			expect(height).toBeGreaterThan(0);
+			expect(height).toBeLessThan(slot.getBoundingClientRect().height);
+			// A filled slot shows its character, not a caret.
+			expect(slots[0]?.querySelector("[aria-hidden]")).toBeNull();
+		});
+
+		test("the caret is on for 500ms, then off for 500ms, with no fade, in each cycle", async () => {
+			await commands.emulateMedia({ reducedMotion: "no-preference" });
+			const { blink } = await focusSecondSlot();
+
+			const [animation] = blink.getAnimations();
+			if (animation == null) {
+				throw new Error("expected the caret to blink");
+			}
+			animation.pause();
+			const opacityAt = (ms: number) => {
+				animation.currentTime = ms;
+				return getComputedStyle(blink).opacity;
+			};
+			expect([0, 250, 499, 500, 750, 999, 1000, 1499, 1500].map(opacityAt)).toEqual([
+				"1",
+				"1",
+				"1",
+				"0",
+				"0",
+				"0",
+				"1",
+				"1",
+				"0",
+			]);
+		});
+
+		test("with reduced motion, the caret stays on", async () => {
+			await commands.emulateMedia({ reducedMotion: "reduce" });
+			const { blink } = await focusSecondSlot();
+
+			expect(blink.getAnimations()).toHaveLength(0);
+			expect(getComputedStyle(blink).opacity).toBe("1");
+		});
+	});
+
 	describe("selection", () => {
 		// Why the vitest/browser keyboard: an arrow key must move the native selection.
 		test("a caret on a filled slot selects that slot, so typing replaces its character", async () => {
