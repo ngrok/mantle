@@ -967,10 +967,6 @@ MARK: COMPONENT GEOMETRY
    or set `--sidebar-row-width` on the outside surface itself. */
 :root {
 	--sidebar-row-width: calc(var(--sidebar-width, 13rem) - 1rem);
-	/* Private: the lane that `AppLayout.SidePanel` reads to collapse the sidebar. The container
-	   query inlines `--container-side-panel-lane`, so `:root` has no variable to read. `inline`
-	   resolves the app's own `@theme` value, so the collapse and the lane move together. */
-	--_side-panel-lane: --theme(--container-side-panel-lane inline, 56.5rem);
 }
 
 /**
@@ -1738,6 +1734,33 @@ MARK: UTILITIES
 	}
 }
 
+/*
+ * Turns on the mask of each `scroll-fade-*` utility, only while its scroll
+ * timeline is active. Why: an element that cannot scroll fades no edge, but a
+ * mask still costs it a mask layer on each paint and each resize. In WebKit,
+ * these masks caused about 40% of the frame overrun time while a Markdown answer
+ * streamed tables into a chat. Each utility writes its mask as
+ * `var(--_fade-on) linear-gradient(…)`. `--_fade-on` has no initial value, so
+ * the mask computes to `none`. An active timeline sets it to an empty value, so
+ * the gradient applies. A `var()` inside a keyframe does not see the animated
+ * edge colors, so the gradient stays in the utility.
+ *
+ * Why `@property` and no reset in the utility: a reset with `!important`, as in
+ * Tailwind's important mode, would win over the keyframe. `inherits: false`
+ * keeps a nested container from taking its parent's empty value.
+ */
+@property --_fade-on {
+	syntax: "*";
+	inherits: false;
+}
+
+@keyframes scroll-fade-mask {
+	from,
+	to {
+		--_fade-on:;
+	}
+}
+
 @utility scroll-fade-x {
 	/*
 	 * Fades the inline-start/end edges of a horizontally-scrolling container to
@@ -1754,24 +1777,28 @@ MARK: UTILITIES
 	--_fade-left: var(--_scroll-fade-left);
 	--_fade-right: var(--_scroll-fade-right);
 
-	mask-image: linear-gradient(
-		to right,
-		var(--_fade-left),
-		black 40px,
-		black calc(100% - 40px),
-		var(--_fade-right)
-	);
+	/* The mask made a stacking context on every element; keep it without the mask. */
+	isolation: isolate;
+	mask-image: var(--_fade-on)
+		linear-gradient(
+			to right,
+			var(--_fade-left),
+			black 40px,
+			black calc(100% - 40px),
+			var(--_fade-right)
+		);
 
 	@supports (animation-timeline: scroll()) {
-		animation-name: scroll-fade-x-start, scroll-fade-x-end;
+		animation-name: scroll-fade-x-start, scroll-fade-x-end, scroll-fade-mask;
 		animation-fill-mode: both;
 		/* Linear so the fade tracks scroll position 1:1 across the range. */
 		animation-timing-function: linear;
 		/* Pixel-precise edge snap, independent of total scroll distance. */
 		animation-range:
 			0 2px,
-			calc(100% - 2px) 100%;
-		animation-timeline: scroll(self inline), scroll(self inline);
+			calc(100% - 2px) 100%,
+			normal;
+		animation-timeline: scroll(self inline), scroll(self inline), scroll(self inline);
 		/* Driven by the scroll timeline; a non-auto duration is required by some engines. */
 		animation-duration: 1ms;
 	}
@@ -1782,22 +1809,25 @@ MARK: UTILITIES
 	--_fade-top: var(--_scroll-fade-top);
 	--_fade-bottom: var(--_scroll-fade-bottom);
 
-	mask-image: linear-gradient(
-		to bottom,
-		var(--_fade-top),
-		black 1.5rem,
-		black calc(100% - 1.5rem),
-		var(--_fade-bottom)
-	);
+	isolation: isolate;
+	mask-image: var(--_fade-on)
+		linear-gradient(
+			to bottom,
+			var(--_fade-top),
+			black 1.5rem,
+			black calc(100% - 1.5rem),
+			var(--_fade-bottom)
+		);
 
 	@supports (animation-timeline: scroll()) {
-		animation-name: scroll-fade-y-start, scroll-fade-y-end;
+		animation-name: scroll-fade-y-start, scroll-fade-y-end, scroll-fade-mask;
 		animation-fill-mode: both;
 		animation-timing-function: linear;
 		animation-range:
 			0 2px,
-			calc(100% - 2px) 100%;
-		animation-timeline: scroll(self block), scroll(self block);
+			calc(100% - 2px) 100%,
+			normal;
+		animation-timeline: scroll(self block), scroll(self block), scroll(self block);
 		animation-duration: 1ms;
 	}
 }
@@ -1812,14 +1842,17 @@ MARK: UTILITIES
 @utility scroll-fade-t {
 	--_fade-top: var(--_scroll-fade-top);
 
-	mask-image: linear-gradient(to bottom, var(--_fade-top), black 1.5rem);
+	isolation: isolate;
+	mask-image: var(--_fade-on) linear-gradient(to bottom, var(--_fade-top), black 1.5rem);
 
 	@supports (animation-timeline: scroll()) {
-		animation-name: scroll-fade-y-start;
+		animation-name: scroll-fade-y-start, scroll-fade-mask;
 		animation-fill-mode: both;
 		animation-timing-function: linear;
-		animation-range: 0 2px;
-		animation-timeline: scroll(self block);
+		animation-range:
+			0 2px,
+			normal;
+		animation-timeline: scroll(self block), scroll(self block);
 		animation-duration: 1ms;
 	}
 }
@@ -1827,14 +1860,18 @@ MARK: UTILITIES
 @utility scroll-fade-b {
 	--_fade-bottom: var(--_scroll-fade-bottom);
 
-	mask-image: linear-gradient(to bottom, black calc(100% - 1.5rem), var(--_fade-bottom));
+	isolation: isolate;
+	mask-image: var(--_fade-on)
+		linear-gradient(to bottom, black calc(100% - 1.5rem), var(--_fade-bottom));
 
 	@supports (animation-timeline: scroll()) {
-		animation-name: scroll-fade-y-end;
+		animation-name: scroll-fade-y-end, scroll-fade-mask;
 		animation-fill-mode: both;
 		animation-timing-function: linear;
-		animation-range: calc(100% - 2px) 100%;
-		animation-timeline: scroll(self block);
+		animation-range:
+			calc(100% - 2px) 100%,
+			normal;
+		animation-timeline: scroll(self block), scroll(self block);
 		animation-duration: 1ms;
 	}
 }
@@ -1842,14 +1879,17 @@ MARK: UTILITIES
 @utility scroll-fade-l {
 	--_fade-left: var(--_scroll-fade-left);
 
-	mask-image: linear-gradient(to right, var(--_fade-left), black 40px);
+	isolation: isolate;
+	mask-image: var(--_fade-on) linear-gradient(to right, var(--_fade-left), black 40px);
 
 	@supports (animation-timeline: scroll()) {
-		animation-name: scroll-fade-x-start;
+		animation-name: scroll-fade-x-start, scroll-fade-mask;
 		animation-fill-mode: both;
 		animation-timing-function: linear;
-		animation-range: 0 2px;
-		animation-timeline: scroll(self inline);
+		animation-range:
+			0 2px,
+			normal;
+		animation-timeline: scroll(self inline), scroll(self inline);
 		animation-duration: 1ms;
 	}
 }
@@ -1857,14 +1897,17 @@ MARK: UTILITIES
 @utility scroll-fade-r {
 	--_fade-right: var(--_scroll-fade-right);
 
-	mask-image: linear-gradient(to right, black calc(100% - 40px), var(--_fade-right));
+	isolation: isolate;
+	mask-image: var(--_fade-on) linear-gradient(to right, black calc(100% - 40px), var(--_fade-right));
 
 	@supports (animation-timeline: scroll()) {
-		animation-name: scroll-fade-x-end;
+		animation-name: scroll-fade-x-end, scroll-fade-mask;
 		animation-fill-mode: both;
 		animation-timing-function: linear;
-		animation-range: calc(100% - 2px) 100%;
-		animation-timeline: scroll(self inline);
+		animation-range:
+			calc(100% - 2px) 100%,
+			normal;
+		animation-timeline: scroll(self inline), scroll(self inline);
 		animation-duration: 1ms;
 	}
 }

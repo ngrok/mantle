@@ -176,9 +176,13 @@ const mantleEasings = async (): Promise<string> => {
 // drops a rule. The paths are relative to the test file.
 // Why the theme is opt-in: older tests pin Tailwind's default colors.
 // Why `mantleCss`: a contrast test needs every light and dark token, so it compiles against all of mantle.css.
+// Why `css`: an app's `@theme` block, such as a wider lane, that the build inlines into a container query.
 // Why several sources: a part can take classes from another module, such as `IconButton`'s variants.
 const tailwindCss: BrowserCommand<
-	[sourceFiles: string | readonly string[], options?: { theme?: boolean; mantleCss?: boolean }]
+	[
+		sourceFiles: string | readonly string[],
+		options?: { theme?: boolean; mantleCss?: boolean; css?: string },
+	]
 > = async ({ testPath }, sourceFiles, options) => {
 	if (testPath == null) {
 		throw new Error("tailwindCss runs only inside a test file.");
@@ -199,7 +203,7 @@ const tailwindCss: BrowserCommand<
 		)
 	).flat();
 	const input = options?.mantleCss
-		? `@import "./src/mantle.css";`
+		? `@import "./src/mantle.css";\n${options.css ?? ""}`
 		: `@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${options?.theme ? await mantleTheme() : ""}\n${await mantleEasings()}\n${await mantleCustomVariants()}\n${await mantleUtilities()}\n${await mantleAnimations()}`;
 	const compiler = await compile(input, {
 		base: import.meta.dirname,

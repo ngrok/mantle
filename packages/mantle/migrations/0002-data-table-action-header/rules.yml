@@ -182,7 +182,37 @@ rule:
                 has:
                   field: name
                   pattern: $DT
-fix: <$DT.ActionHeader $$$ATTRS>$$$CHILDREN</$DT.ActionHeader>
+# Why: DataTable.ActionHeader takes no `column`, so a copied
+# `column={props.column}` fails typecheck. The rewrite also reads the
+# attribute values, so it drops only a `column` on a `.Header` element that
+# no attribute holds below the column's `header`. A `column` on an element in
+# `children` or in a spread stays.
+rewriters:
+  - id: drop-column
+    rule:
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^column$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: \.\s*Header$
+        not:
+          inside:
+            stopBy:
+              kind: pair
+            kind: jsx_attribute
+    fix: ""
+transform:
+  KEPT:
+    rewrite:
+      source: $$$ATTRS
+      rewriters: [drop-column]
+fix: <$DT.ActionHeader $KEPT>$$$CHILDREN</$DT.ActionHeader>
 ---
 id: action-column-header-self-closing
 language: tsx
@@ -365,7 +395,37 @@ rule:
                 has:
                   field: name
                   pattern: $DT
-fix: <$DT.ActionHeader $$$ATTRS />
+# Why: DataTable.ActionHeader takes no `column`, so a copied
+# `column={props.column}` fails typecheck. The rewrite also reads the
+# attribute values, so it drops only a `column` on a `.Header` element that
+# no attribute holds below the column's `header`. A `column` on an element in
+# `children` or in a spread stays.
+rewriters:
+  - id: drop-column
+    rule:
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^column$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: \.\s*Header$
+        not:
+          inside:
+            stopBy:
+              kind: pair
+            kind: jsx_attribute
+    fix: ""
+transform:
+  KEPT:
+    rewrite:
+      source: $$$ATTRS
+      rewriters: [drop-column]
+fix: <$DT.ActionHeader $KEPT />
 ---
 id: action-column-null-header
 language: tsx
@@ -524,3 +584,322 @@ rule:
                   field: name
                   pattern: $DT
 fix: "header: () => <$DT.ActionHeader />"
+---
+# Every rule binds $DT to the local name of the `DataTable` import from
+# `@ngrok/mantle/data-table` (and $TABLE to `Table`), so an aliased import
+# matches and another library's `Table` does not.
+id: action-column-header-unused-param
+language: tsx
+message: the action header no longer reads the header context, so the arrow drops its parameter
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  datatable-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/data-table["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^DataTable$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $DT
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $DT
+  table-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/table["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Table$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $TABLE
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $TABLE
+  action-cell-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $DT
+      - has:
+          field: property
+          regex: ^ActionCell$
+  # The nearest object literal is the column, and it holds an action cell. The
+  # search stops at a nested object, so a column whose cell renders a table
+  # with its own action column keeps its header.
+  action-column:
+    kind: object
+    has:
+      stopBy:
+        kind: object
+      any:
+        - kind: jsx_opening_element
+        - kind: jsx_self_closing_element
+      has:
+        field: name
+        matches: action-cell-name
+  # The nearest property is the column's `header`, so a table a `cell` renders
+  # keeps its own headers.
+  header-property:
+    kind: pair
+    has:
+      field: key
+      regex: ^header$
+  # The column's `header` arrow.
+  header-arrow:
+    kind: arrow_function
+    inside:
+      field: value
+      matches: header-property
+  # The value that the `header` arrow returns: its expression body, in
+  # parentheses or not, or a `return` in its block body.
+  header-return:
+    any:
+      - inside:
+          field: body
+          matches: header-arrow
+      - inside:
+          kind: parenthesized_expression
+          inside:
+            field: body
+            matches: header-arrow
+      - inside:
+          kind: return_statement
+          inside:
+            kind: statement_block
+            inside:
+              field: body
+              matches: header-arrow
+  # The `.Header` element that the arrow returns and the rules above rewrite,
+  # under the same import and shadow checks. A `.Header` anywhere else, such
+  # as in children or in a local, keeps its `column`.
+  returned-header:
+    any:
+      - kind: jsx_self_closing_element
+        matches: header-return
+      - kind: jsx_opening_element
+        inside:
+          kind: jsx_element
+          matches: header-return
+    has:
+      field: name
+      regex: \.\s*Header$
+      any:
+        - pattern: $DT.Header
+        - pattern: $TABLE.Header
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              matches: table-import
+          # Why: the rewrite writes `$DT.ActionHeader`, so `$TABLE` and `$DT`
+          # must both be unshadowed.
+          not:
+            inside:
+              stopBy: end
+              matches: scope
+              has:
+                stopBy:
+                  matches: scope
+                any:
+                  - matches: binding-name
+                    pattern: $TABLE
+                  - matches: function-declaration
+                    has:
+                      field: name
+                      pattern: $TABLE
+    not:
+      inside:
+        stopBy: end
+        matches: scope
+        has:
+          stopBy:
+            matches: scope
+          any:
+            - matches: binding-name
+              pattern: $DT
+            - matches: function-declaration
+              has:
+                field: name
+                pattern: $DT
+  # The read of `$P` in `column={$P.column}` on the returned `.Header`, which
+  # `drop-column` removes.
+  removed-column-read:
+    kind: identifier
+    pattern: $P
+    inside:
+      kind: member_expression
+      field: object
+      has:
+        field: property
+        regex: ^column$
+      inside:
+        kind: jsx_expression
+        inside:
+          kind: jsx_attribute
+          has:
+            kind: property_identifier
+            regex: ^column$
+          inside:
+            matches: returned-header
+  # Any read of `$P` other than the removed one. A nested binding under the
+  # same name counts too, so the rule keeps the parameter.
+  surviving-read:
+    any:
+      - kind: identifier
+      - kind: shorthand_property_identifier
+      - kind: shorthand_property_identifier_pattern
+    pattern: $P
+    not:
+      matches: removed-column-read
+  # The column's `header` arrow, after the rules above rewrite it. It reads
+  # `$P` only in the removed `column`, in its body and in its return type.
+  rewritten-header-arrow:
+    kind: arrow_function
+    all:
+      # Bind $DT from the action cell first, as the element rules do.
+      - inside:
+          stopBy:
+            kind: object
+          matches: action-column
+      - matches: header-arrow
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: datatable-import
+      - has:
+          stopBy: end
+          matches: removed-column-read
+      # Why: a nested `header` arrow can capture `$P`, and its own returned
+      # element can look like a removed read.
+      - not:
+          has:
+            stopBy: end
+            matches: header-property
+      - not:
+          has:
+            field: body
+            has:
+              stopBy: end
+              matches: surviving-read
+      - not:
+          has:
+            field: return_type
+            has:
+              stopBy: end
+              matches: surviving-read
+# Why: the rewrite drops `column={props.column}`, and with it the arrow's only
+# read of `props`. An app with `noUnusedParameters` then fails typecheck, so
+# the parameter list becomes `()`. This edit does not overlap the element's
+# rewrite, so one `--update-all` run applies both.
+rule:
+  any:
+    - kind: formal_parameters
+      all:
+        # Why: a default value can have effects, and a type annotation can
+        # hold the only use of a type import or a type parameter, so a
+        # parameter with either stays.
+        - has:
+            kind: required_parameter
+            not:
+              any:
+                - has:
+                    field: value
+                    regex: .
+                - has:
+                    field: type
+                    kind: type_annotation
+            has:
+              field: pattern
+              kind: identifier
+              pattern: $P
+        - not:
+            has:
+              any:
+                - kind: optional_parameter
+                - kind: required_parameter
+                  nthChild:
+                    position: 2
+                    ofRule:
+                      any:
+                        - kind: required_parameter
+                        - kind: optional_parameter
+        - inside:
+            field: parameters
+            matches: rewritten-header-arrow
+    - kind: identifier
+      pattern: $P
+      inside:
+        field: parameter
+        matches: rewritten-header-arrow
+fix: "()"

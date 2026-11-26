@@ -6,10 +6,10 @@ description: Decide whether a ship app needs a new image in this run
 # image. A comparison with the PR base instead rebuilds the app on every push
 # after the first change to it.
 #
-# The baseline is the head of the newest successful run for the same PR, or
-# for the pushed branch. A successful run either built its head, or skipped
-# because its head had the inputs of the build before it. So that head has
-# the inputs of the live image. A cancelled or failed run does not count.
+# The baseline is the head of the newest run that deployed the app, for the
+# same PR or for the pushed branch. That head has the inputs of the live image.
+# A run that skipped the deploy step does not count, because a skip for a PR
+# that leaves the app as on its base does not match the live image.
 # The job needs `actions: read` and a checkout with `fetch-depth: 2`.
 
 inputs:
@@ -25,10 +25,10 @@ outputs:
 runs:
   using: composite
   steps:
-    # A PR that opens or reopens, or a PR push with no earlier run, compares
-    # its merge commit with its base. Any other push compares its head with the
-    # baseline head. When the baseline is unknown or cannot be fetched, the app
-    # builds without a comparison. A re-run attempt always builds.
+    # A PR that opens, reopens, or becomes ready, or a PR push with no earlier
+    # run, compares its merge commit with its base, and any other push compares
+    # its head with the baseline head. A re-run, or a baseline that is unknown or
+    # cannot be fetched, builds the app with no comparison.
     - name: Find the baseline
       id: range
       shell: bash
@@ -62,33 +62,55 @@ runs:
           # without success, since the step can report an image before it
           # fails. The same holds when a re-run attempt started after the
           # baseline, or when a run in another concurrency group, such as a
-          # manual run, is still in progress. No successful run in the first
-          # page leaves the baseline unknown. Each of these builds.
-          if lookup=$(gh api -X GET "repos/${REPO}/actions/workflows/${workflow##*/}/runs" \
+          # manual run, is still in progress. Each of these builds. No deploy in
+          # the first page leaves the baseline unknown.
+          if runs=$(gh api -X GET "repos/${REPO}/actions/workflows/${workflow##*/}/runs" \
             -f branch="${BRANCH}" -f per_page=100 \
             | jq -r --argjson run "${RUN_ID}" --argjson pr "${PR_NUMBER}" --arg event "${EVENT}" --arg since "${PR_CREATED_AT}" '
                 [.workflow_runs[] | select(.id != $run) | select(
                   if $event == "push" then .event == "push" or .event == "workflow_dispatch"
                   else .event == "pull_request" and .created_at >= $since and any(.pull_requests[]?; .number == $pr) end
                 )] as $all
-                | [$all[] | select(.status == "completed")] as $runs
-                | ($runs | map(.conclusion == "success") | index(true)) as $i
                 | if any($all[]; .status != "completed" and .event != $event) then "force"
-                  elif $i == null then (if ($runs | length) > 0 then "force" else "none" end)
-                  elif any($runs[]; .run_attempt > 1 and .run_started_at > $runs[$i].run_started_at) then "force"
-                  else $runs[$i].head_sha, ($runs[:$i][] | .id) end'); then
-            baseline=$(head -n 1 <<<"${lookup}")
-            while read -r id; do
+                  else $all[] | select(.status == "completed") | "\(.id) \(.run_attempt) \(.run_started_at) \(.head_sha)" end'); then
+            baseline=none
+            started=""
+            while read -r id _ start sha; do
               [[ -n "${id}" ]] || continue
-              if ! reported=$(gh api "repos/${REPO}/actions/runs/${id}/jobs?filter=all&per_page=100" \
-                | jq --arg step "${STEP}" 'any(.jobs[].steps[]?; .name == $step and .conclusion != null and .conclusion != "skipped")'); then
-                reported=true
-              fi
-              if [[ "${reported}" == "true" ]]; then
+              if [[ "${id}" == "force" ]]; then
                 baseline=force
                 break
               fi
-            done < <(tail -n +2 <<<"${lookup}")
+              # Every attempt counts: an earlier attempt can report an image that a
+              # later attempt does not. A job that ran without the step, as in an
+              # older workflow, may have deployed, so it is unknown.
+              if ! deploy=$(gh api "repos/${REPO}/actions/runs/${id}/jobs?filter=all&per_page=100" \
+                | jq -r --arg step "${STEP}" '
+                    [.jobs[] | [.steps[]? | select(.name == $step) | .conclusion // "unknown"] as $s
+                      | if ($s | length) > 0 then $s[] elif .conclusion == "skipped" then "skipped" else "unknown" end]
+                    | if length == 0 then "none"
+                      elif all(. == "skipped") then "skipped"
+                      elif all(. == "success" or . == "skipped") then "success"
+                      else "unknown" end'); then
+                deploy=unknown
+              fi
+              case "${deploy}" in
+                none | skipped) ;;
+                success)
+                  baseline="${sha}"
+                  started="${start}"
+                  break
+                  ;;
+                *)
+                  baseline=force
+                  break
+                  ;;
+              esac
+            done <<<"${runs}"
+            if [[ -n "${started}" ]] \
+              && awk -v since="${started}" '$2 > 1 && $3 > since { found = 1 } END { exit !found }' <<<"${runs}"; then
+              baseline=force
+            fi
             case "${baseline}" in
               force) force=true ;;
               none) [[ "${EVENT}" != "push" ]] || force=true ;;
@@ -113,6 +135,8 @@ runs:
           echo "from=${from}"
           echo "to=${to}"
           echo "force=${force}"
+          echo "base=$(git rev-parse HEAD^1)"
+          echo "merge=$(git rev-parse HEAD)"
         } >> "${GITHUB_OUTPUT}"
 
     # The comparison fails when the baseline predates the app. The app then
@@ -127,6 +151,18 @@ runs:
         from: ${{ steps.range.outputs.from }}
         to: ${{ steps.range.outputs.to }}
 
+    # An app that the PR leaves as on its base needs no preview, also after a
+    # rebase moves the PR head. A forced run skips this check and builds.
+    - name: Compare build hashes with the base
+      id: base
+      if: github.event_name == 'pull_request' && steps.range.outputs.force != 'true' && (steps.range.outputs.from != steps.range.outputs.base || steps.range.outputs.to != steps.range.outputs.merge)
+      continue-on-error: true
+      uses: $/.github/actions/turbo-build-changed
+      with:
+        package: ${{ inputs.package }}
+        from: ${{ steps.range.outputs.base }}
+        to: HEAD
+
     # The image also depends on files the turbo hash leaves out: the root
     # package files, which the Dockerfile copies, and the ship workflow and its
     # actions.
@@ -140,11 +176,23 @@ runs:
         WORKFLOW: ${{ steps.range.outputs.workflow }}
         FROM: ${{ steps.range.outputs.from }}
         TO: ${{ steps.range.outputs.to }}
+        BASE: ${{ steps.range.outputs.base }}
+        BASE_CHANGED: ${{ steps.base.outputs.changed }}
+        BASE_OUTCOME: ${{ steps.base.outcome }}
       run: |
-        if [[ "${FORCE}" == "true" || "${HASH_CHANGED}" == "true" || "${HASH_OUTCOME}" == "failure" ]] \
-          || ! git diff --quiet "${FROM}" "${TO}" -- "${WORKFLOW}" .github/actions/ship-build-changed .github/actions/turbo-build-changed \
-            package.json pnpm-workspace.yaml scripts/package-manager-version; then
-          echo "changed=true" >> "${GITHUB_OUTPUT}"
-        else
-          echo "changed=false" >> "${GITHUB_OUTPUT}"
+        extra=("${WORKFLOW}" .github/actions/ship-build-changed .github/actions/turbo-build-changed package.json pnpm-workspace.yaml scripts/package-manager-version)
+        # differs FROM TO HASH_CHANGED HASH_OUTCOME
+        differs() {
+          [[ "$3" == "true" || "$4" == "failure" ]] || ! git diff --quiet "$1" "$2" -- "${extra[@]}"
+        }
+
+        changed=false
+        if [[ "${FORCE}" == "true" ]] || differs "${FROM}" "${TO}" "${HASH_CHANGED}" "${HASH_OUTCOME}"; then
+          changed=true
         fi
+        if [[ "${changed}" == "true" && "${BASE_OUTCOME}" != "skipped" ]] \
+          && ! differs "${BASE}" HEAD "${BASE_CHANGED}" "${BASE_OUTCOME}"; then
+          echo "The PR leaves the app as it is on the base, so it needs no preview."
+          changed=false
+        fi
+        echo "changed=${changed}" >> "${GITHUB_OUTPUT}"

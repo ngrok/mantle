@@ -494,7 +494,11 @@ const Root = ({
 	const preferredOpen = isOpenControlled ? openProp : internalOpen;
 
 	// `AppLayout.SidePanel` sets it through `SidebarWidthRequestContext`.
-	const [sidePanelNeedsWidth, setSidePanelNeedsWidth] = useState(false);
+	const [sidePanelRequests, setSidePanelRequests] = useState(0);
+	const changeSidePanelRequests = useCallback((change: 1 | -1) => {
+		setSidePanelRequests((count) => count + change);
+	}, []);
+	const sidePanelNeedsWidth = sidePanelRequests > 0;
 	const [sidebarYield, setSidebarYield] = useState<SidebarYield>("idle");
 	const nextSidebarYield = resolveSidebarYield({
 		current: sidebarYield,
@@ -680,7 +684,7 @@ const Root = ({
 
 	return (
 		<SidebarContext.Provider value={contextValue}>
-			<SidebarWidthRequestContext.Provider value={setSidePanelNeedsWidth}>
+			<SidebarWidthRequestContext.Provider value={changeSidePanelRequests}>
 				<NativeRoot
 					scope={navScope}
 					open={isOpenMobileControlled ? openMobile && isMobile : undefined}

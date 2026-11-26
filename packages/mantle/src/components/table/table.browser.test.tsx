@@ -2,6 +2,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { commands } from "vitest/browser";
 import * as Table from "./table-parts.js";
 
 // Why inline CSS: the browser project loads no stylesheet, and the overflow
@@ -39,9 +40,9 @@ function renderTable({ rootWidth, tableWidth }: { rootWidth: number; tableWidth:
 }
 
 /** A table whose width grows with its column count, so a re-render can append content. */
-function ColumnsTable({ columns }: { columns: number }) {
+function ColumnsTable({ columns, width = 200 }: { columns: number; width?: number }) {
 	return (
-		<Table.Root data-testid="root" style={{ width: 200 }}>
+		<Table.Root data-testid="root" style={{ width }}>
 			<Table.Element>
 				<Table.Body>
 					<Table.Row>
@@ -303,4 +304,65 @@ describe("Table.Root overflow observer", () => {
 		expect(root).not.toHaveAttribute("data-x-scroll-end");
 		expect(root).not.toHaveAttribute("data-sticky-active");
 	});
+});
+
+describe("Table.Root edge fade", () => {
+	let fadeStyle: HTMLStyleElement;
+
+	beforeAll(async () => {
+		// Why all of mantle.css: the fade is the `scroll-fade-x` utility there.
+		fadeStyle = document.createElement("style");
+		fadeStyle.textContent = await commands.tailwindCss("./table.tsx", { mantleCss: true });
+		document.head.append(fadeStyle);
+	});
+
+	afterAll(() => {
+		fadeStyle.remove();
+	});
+
+	const maskOf = (element: HTMLElement) => getComputedStyle(element).maskImage;
+
+	test("a table that fits has no mask", async () => {
+		renderTable({ rootWidth: 800, tableWidth: 200 });
+		const scroller = requireScroller();
+
+		// Two frames, so a scroll timeline that became active would apply.
+		await new Promise(requestAnimationFrame);
+		await new Promise(requestAnimationFrame);
+
+		expect(maskOf(scroller)).toBe("none");
+	});
+
+	// Why the skip: without scroll timelines, the documented fallback is no mask.
+	test.skipIf(!CSS.supports("animation-timeline: scroll()"))(
+		"a table that grows past its root gets the fade",
+		async () => {
+			// The streaming case: an answer's table starts narrow and gains columns.
+			const { rerender } = render(<ColumnsTable columns={1} width={400} />);
+			const scroller = requireScroller();
+			await new Promise(requestAnimationFrame);
+			await new Promise(requestAnimationFrame);
+			expect(maskOf(scroller)).toBe("none");
+
+			rerender(<ColumnsTable columns={4} width={400} />);
+
+			await waitFor(() => {
+				expect(maskOf(scroller)).toContain("linear-gradient");
+			});
+
+			// Why each stop: an all-black mask is a gradient too, and it fades nothing.
+			// The middle stops keep the content between the faded edges opaque.
+			const opaque = "rgb(0, 0, 0)";
+			const clear = "rgba(0, 0, 0, 0)";
+			const stopsAt = async (scrollLeft: number) => {
+				scroller.scrollLeft = scrollLeft;
+				await new Promise(requestAnimationFrame);
+				await new Promise(requestAnimationFrame);
+				return maskOf(scroller).match(/rgba?\([^)]*\)/g);
+			};
+			expect(await stopsAt(0)).toEqual([opaque, opaque, opaque, clear]);
+			expect(await stopsAt(100)).toEqual([clear, opaque, opaque, clear]);
+			expect(await stopsAt(scroller.scrollWidth)).toEqual([clear, opaque, opaque, opaque]);
+		},
+	);
 });
