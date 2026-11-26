@@ -81,8 +81,17 @@ runs:
                 baseline=force
                 break
               fi
-              if ! deploy=$(gh api "repos/${REPO}/actions/runs/${id}/jobs?filter=latest&per_page=100" \
-                | jq -r --arg step "${STEP}" '[.jobs[].steps[]? | select(.name == $step) | .conclusion // "unknown"] | first // "none"'); then
+              # Every attempt counts: an earlier attempt can report an image that a
+              # later attempt does not. A job that ran without the step, as in an
+              # older workflow, may have deployed, so it is unknown.
+              if ! deploy=$(gh api "repos/${REPO}/actions/runs/${id}/jobs?filter=all&per_page=100" \
+                | jq -r --arg step "${STEP}" '
+                    [.jobs[] | [.steps[]? | select(.name == $step) | .conclusion // "unknown"] as $s
+                      | if ($s | length) > 0 then $s[] elif .conclusion == "skipped" then "skipped" else "unknown" end]
+                    | if length == 0 then "none"
+                      elif all(. == "skipped") then "skipped"
+                      elif all(. == "success" or . == "skipped") then "success"
+                      else "unknown" end'); then
                 deploy=unknown
               fi
               case "${deploy}" in
