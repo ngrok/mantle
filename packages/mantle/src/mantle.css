@@ -314,6 +314,15 @@ in a plain stylesheet (a third-party widget override) resolves to nothing.
 			translate: 0;
 		}
 	}
+	/* A drawn text caret's blink: on for 500ms, then off for 500ms, with no fade. It matches
+	   Chromium's default native caret. Gate it with `motion-safe:`: mantle keeps a steady caret
+	   under reduced motion, although native carets blink there. */
+	--animate-caret-blink: caret-blink 1s step-end infinite;
+	@keyframes caret-blink {
+		50% {
+			opacity: 0;
+		}
+	}
 	/* The narrowest workspace row that holds the expanded sidebar (13rem), the content card at
 	   the side panel's floor (21rem), the panel itself (21rem), and the three gutters (1.5rem).
 	   Below it `AppLayout.SidePanel` floats over the card, so the page is never narrower than
@@ -1554,6 +1563,8 @@ MARK: UTILITIES
 	background: transparent !important;
 	color: transparent !important;
 	caret-color: transparent !important;
+	/* Why: forced colors repaint `caret-color`, so the hidden caret shows beside the slot's drawn one. */
+	forced-color-adjust: none !important;
 	box-shadow: none !important;
 	outline: 0 solid transparent !important;
 	pointer-events: auto !important;

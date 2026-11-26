@@ -70,7 +70,7 @@ export function TanStackFormExample() {
 export function OverviewExample() {
 	return (
 		<PreviewCanvas>
-			<Field.Item name="otp">
+			<Field.Item className="w-fit" name="otp">
 				<Field.Label>Verification code</Field.Label>
 				<Field.Control>
 					<OtpInput.Root maxLength={6}>
