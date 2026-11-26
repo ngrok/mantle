@@ -1724,6 +1724,8 @@
       "cmdk",
       "cmd k",
       "ctrl k",
+      "cmd k shortcut",
+      "ctrl k shortcut",
       "spotlight"
     ],
     "siblings": [
@@ -1737,10 +1739,14 @@
       },
       {
         "name": "Query",
-        "boundary": "a filter on the page that its `keyboardShortcut` prop binds to `/`."
+        "boundary": "a filter on the page with free text and `key:value` qualifiers."
+      },
+      {
+        "name": "FocusShortcut",
+        "boundary": "the slash key (`/`) focuses a filter on the page."
       }
     ],
-    "useWhen": "Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K` menu. Cmd+K on Apple platforms and Ctrl+K elsewhere open its search field.",
+    "useWhen": "Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K` menu. The Cmd+K shortcut on Apple platforms and Ctrl+K elsewhere open it and focus its search field.",
     "dataAttributes": [
       {
         "part": "Command.SearchTrigger",
@@ -2602,6 +2608,50 @@
       "country flag"
     ],
     "useWhen": "Show the country of a region, an IP address, or a billing address as a flag, from its two-letter country code."
+  },
+  {
+    "name": "Focus Shortcut",
+    "slug": "components/forms/focus-shortcut",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/focus-shortcut",
+    "summary": "Lets the slash key (/) move focus into one field from anywhere on the page, and shows a / hint where you place it.",
+    "jsdoc": "Makes the slash key (`/`) move focus into one field from anywhere on the page, and shows a `/` hint where the design places it.",
+    "examples": [
+      "Composition:\n```\nFocusShortcut.Root\n├── FocusShortcut.Field\n└── FocusShortcut.Hint\n```",
+      "```tsx\n<FocusShortcut.Root>\n  <Input>\n    <MagnifyingGlassIcon />\n    <FocusShortcut.Field>\n      <InputCapture aria-label=\"Filter endpoints\" placeholder=\"Filter endpoints\" />\n    </FocusShortcut.Field>\n    <FocusShortcut.Hint />\n  </Input>\n</FocusShortcut.Root>\n```"
+    ],
+    "aliases": [
+      "slash shortcut",
+      "slash key",
+      "press slash"
+    ],
+    "siblings": [
+      {
+        "name": "Kbd",
+        "boundary": "show a key in copy or a tooltip, with no shortcut behind it."
+      },
+      {
+        "name": "Command",
+        "boundary": "a `⌘K` palette that runs an action or navigates."
+      }
+    ],
+    "useWhen": "Let the slash key (`/`) focus the primary filter or text box on a page, and show a `/` hint beside it.",
+    "dataAttributes": [
+      {
+        "part": "FocusShortcut.Field",
+        "name": "data-slot",
+        "value": "`\"focus-shortcut-field\"`",
+        "description": "Joined onto the child's own `data-slot` chain."
+      },
+      {
+        "part": "FocusShortcut.Hint",
+        "name": "data-slot",
+        "value": "`\"focus-shortcut-hint kbd\"`",
+        "description": "On the `<kbd>`. `Kbd` adds `kbd` to the chain."
+      }
+    ]
   },
   {
     "name": "Hover Card",
@@ -4227,9 +4277,13 @@
       {
         "name": "Command",
         "boundary": "a `⌘K` palette that runs an action or navigates."
+      },
+      {
+        "name": "FocusShortcut",
+        "boundary": "the slash key (`/`) focuses the field from anywhere on the page."
       }
     ],
-    "useWhen": "Filter a list with a typed query of free text and `key:value` qualifiers. Its `keyboardShortcut` prop makes the slash key (`/`) a keyboard shortcut that focuses the field while no other text field has focus.",
+    "useWhen": "Filter a list with a typed query of free text and `key:value` qualifiers.",
     "dataAttributes": [
       {
         "part": "Query.Root",
@@ -4248,12 +4302,6 @@
         "name": "data-slot",
         "value": "`\"query-input-actions\"`",
         "description": "On the `span` that wraps the children. The clear button follows it. It has `display: contents`, so each child lays out in the row."
-      },
-      {
-        "part": "Query.Input",
-        "name": "data-slot",
-        "value": "`\"query-input-shortcut kbd\"`",
-        "description": "On the `/` hint, with `keyboardShortcut`. It shows while the field is empty and not focused, on a device that can hover."
       },
       {
         "part": "Query.Input",

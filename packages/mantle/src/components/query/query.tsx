@@ -457,15 +457,6 @@ type QueryInputProps = Omit<
 		 */
 		clearLabel?: string;
 		/**
-		 * Whether `/` moves focus into the field from anywhere on the page. The
-		 * field then shows a `/` hint while it is empty and not focused. Turn it on
-		 * for the one primary filter on a page. If more than one field turns it on,
-		 * `/` goes to the field that turned it on first and can take focus.
-		 *
-		 * @default false
-		 */
-		keyboardShortcut?: boolean;
-		/**
 		 * Called after the clear button empties the query. Use it for work that
 		 * only a clear does, such as applying the empty query at once.
 		 */
@@ -502,11 +493,9 @@ type QueryInputProps = Omit<
  * in a `[data-slot="query-input-actions"]` wrapper with `display: contents`.
  * The clear button sits after that wrapper, not inside it.
  *
- * With `keyboardShortcut`, `/` focuses the field. The key types as usual
- * while focus is in a text control, and it does nothing while the field is
- * disabled or a modal covers it. The `<input>` carries `aria-keyshortcuts="/"`.
- * A `/` hint shows while the field is empty and not focused, on a device that
- * can hover.
+ * To let `/` focus the field, wrap it in `FocusShortcut.Field` from
+ * `@ngrok/mantle/focus-shortcut`, and pass `FocusShortcut.Hint` as a child to
+ * show the `/` hint.
  *
  * **CSS variables:**
  *
@@ -522,7 +511,6 @@ type QueryInputProps = Omit<
  * | ----------------- | -------------------------------------- | -------------------------------------------- |
  * | `data-slot`       | `"query-input"`                        | On the field's outer element.                |
  * | `data-slot`       | `"query-input-actions"`                | On the `span` that wraps the children.       |
- * | `data-slot`       | `"query-input-shortcut kbd"`           | On the `/` hint, with `keyboardShortcut`.    |
  * | `data-slot`       | `"input"`                              | On the field's chrome, as on `Input`.        |
  * | `data-disabled`   | present                                | On the chrome while the field is disabled.   |
  * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | On the chrome. Omitted when unset.           |
@@ -552,14 +540,12 @@ function Input({
 	"aria-describedby": describedBy,
 	"aria-errormessage": errorMessage,
 	"aria-invalid": invalid,
-	"aria-keyshortcuts": callerKeyShortcuts,
 	"data-slot": dataSlot,
 	children,
 	className,
 	clearLabel = "Clear filter",
 	disabled,
 	id,
-	keyboardShortcut = false,
 	name,
 	onBlur,
 	onClear,
@@ -580,10 +566,6 @@ function Input({
 	const fieldControl = useContext(FieldControlContext);
 	const overlayRef = useRef<HTMLDivElement>(null);
 	const composedRef = useComposedRefs(ref, inputRef);
-	// `aria-keyshortcuts` is a space-separated list, so the caller's own shortcuts stay.
-	const keyShortcuts = keyboardShortcut
-		? ["/", callerKeyShortcuts].filter(Boolean).join(" ")
-		: callerKeyShortcuts;
 
 	// Field.Item owns the id, name, and ARIA wiring, as it does for `Select.Trigger`,
 	// so a prop on the input cannot drop the field's description or error.
@@ -610,43 +592,6 @@ function Input({
 			setIsOpen(false);
 		}
 	}, [canSuggest, setIsOpen]);
-
-	// Why opt in: a page with many tables has many Query fields, and `/` can focus only one.
-	useEffect(() => {
-		if (!keyboardShortcut) {
-			return;
-		}
-		const handleWindowKeyDown = (event: globalThis.KeyboardEvent) => {
-			const input = inputRef.current;
-			if (
-				input == null ||
-				input.disabled ||
-				event.key !== "/" ||
-				event.defaultPrevented ||
-				event.repeat ||
-				event.isComposing ||
-				event.metaKey ||
-				event.ctrlKey ||
-				event.altKey ||
-				// The composed path starts at a text field inside a shadow root, where `target` is the host.
-				isTextControl(event.composedPath()[0] ?? null) ||
-				// A modal hides the page behind it with `aria-hidden`, and a field there must not take focus.
-				input.closest("[inert], [aria-hidden='true']") != null
-			) {
-				return;
-			}
-			// A field that is not displayed or sits in a disabled fieldset does not take focus.
-			// It leaves the key to a later field.
-			input.focus();
-			if (!input.matches(":focus")) {
-				return;
-			}
-			// The prevented default also tells a later field with the shortcut that this one took it.
-			event.preventDefault();
-		};
-		window.addEventListener("keydown", handleWindowKeyDown);
-		return () => window.removeEventListener("keydown", handleWindowKeyDown);
-	}, [inputRef, keyboardShortcut]);
 
 	function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
 		onKeyDown?.(event);
@@ -759,7 +704,6 @@ function Input({
 						}
 						aria-describedby={describedByIds === "" ? undefined : describedByIds}
 						aria-errormessage={fieldControl ? fieldControl["aria-errormessage"] : errorMessage}
-						aria-keyshortcuts={keyShortcuts}
 						className="caret-(--text-color-strong) text-transparent"
 						value={context.value}
 						onChange={(event) => context.reportTypedValue(event.target)}
@@ -796,19 +740,6 @@ function Input({
 						}}
 					/>
 				</div>
-				{/* `aria-keyshortcuts` names the key to assistive tech, so the hint is visual only.
-				    A focused field hides it: there, `/` types a slash. A disabled fieldset hides it too.
-				    A device that cannot hover, such as a phone, usually has no key to press. */}
-				{keyboardShortcut && !disabled && context.value === "" && (
-					<Kbd
-						aria-hidden
-						data-slot="query-input-shortcut"
-						// oxlint-disable-next-line mantle/no-structural-combinator -- Why: the `:has()` reads one search field and hides one hint. It also matches an input in a disabled fieldset, which `data-disabled` does not.
-						className="hover-none:hidden [[data-slot=input]:focus-within>&]:hidden [[data-slot=input]:has(input:disabled)>&]:hidden"
-					>
-						/
-					</Kbd>
-				)}
 				{/* Why the clear button sits outside the wrapper: the consumer's
 				    children need a host node of their own, or the button's mount
 				    lands beside a text node that a translation engine reparented. */}
@@ -828,14 +759,6 @@ function Input({
 				)}
 			</InputShell>
 		</Popover.Anchor>
-	);
-}
-
-/** Whether a key press goes into a control that takes text, where `/` must type a slash. */
-function isTextControl(target: EventTarget | null): boolean {
-	return (
-		target instanceof HTMLElement &&
-		(target.isContentEditable || target.matches("input, textarea, select"))
 	);
 }
 

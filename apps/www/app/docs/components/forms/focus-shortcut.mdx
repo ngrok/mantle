@@ -1,0 +1,180 @@
+---
+title: Focus Shortcut
+description: Lets the slash key (/) move focus into one field from anywhere on the page, and shows a / hint where you place it.
+aliases: [slash shortcut, slash key, press slash]
+---
+
+import { Example } from "~/components/example";
+
+# Focus Shortcut
+
+Lets the slash key (`/`) move focus into one field from anywhere on the page, and shows a `/` hint where you place it. It wraps any focusable field: `Input`, `InputCapture`, `TextArea`, `Combobox.Input`, or `Query.Input`.
+
+<Example name="components/forms/focus-shortcut/overview" title="Focus Shortcut example">
+
+```tsx
+import { FocusShortcut } from "@ngrok/mantle/focus-shortcut";
+import { Input, InputCapture } from "@ngrok/mantle/input";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
+
+<FocusShortcut.Root>
+	<Input className="max-w-sm">
+		<MagnifyingGlassIcon />
+		<FocusShortcut.Field>
+			<InputCapture aria-label="Filter endpoints" placeholder="Filter endpoints" />
+		</FocusShortcut.Field>
+		<FocusShortcut.Hint />
+	</Input>
+</FocusShortcut.Root>;
+```
+
+</Example>
+
+## When to use
+
+- Let `/` focus the one primary filter or text box on a page, and show a `/` hint beside it.
+- Prefer [`Kbd`](/components/data-display/kbd) to show a key in copy or a tooltip, with no shortcut behind it.
+- Prefer [`Command`](/components/navigation/command) for a `⌘K` palette that runs an action or navigates.
+
+## Query
+
+Wrap `Query.Input` in `FocusShortcut.Field`, and pass `FocusShortcut.Hint` as a child of `Query.Input`. The hint then sits at the field's right edge, before any inline actions.
+
+<Example name="components/forms/focus-shortcut/query" title="Focus Shortcut on a Query field example">
+
+```tsx
+import { FocusShortcut } from "@ngrok/mantle/focus-shortcut";
+import { Query } from "@ngrok/mantle/query";
+import { useState } from "react";
+
+export function KeyboardShortcutQueryExample() {
+	const [query, setQuery] = useState("");
+
+	return (
+		<Query.Root
+			className="max-w-xl"
+			grammar={projectFilterGrammar}
+			items={projects}
+			value={query}
+			onValueChange={setQuery}
+		>
+			<FocusShortcut.Root>
+				<FocusShortcut.Field>
+					<Query.Input
+						aria-label="Filter projects"
+						placeholder="Filter projects, or type a filter like is:shared"
+					>
+						<FocusShortcut.Hint />
+					</Query.Input>
+				</FocusShortcut.Field>
+			</FocusShortcut.Root>
+			<Query.Content>
+				<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+				<Query.Empty />
+				<Query.Footer>
+					<Query.Legend />
+					<Query.KeyboardHints />
+				</Query.Footer>
+			</Query.Content>
+		</Query.Root>
+	);
+}
+```
+
+</Example>
+
+`projectFilterGrammar` and `projects` are the ones from the [Query](/components/forms/query) page.
+
+## Combobox
+
+`Combobox.Input` renders its own chrome and takes no children, so you place the hint. `FocusShortcut.Root` renders no element, so it can hold a wrapper that positions the hint over the field.
+
+<Example name="components/forms/focus-shortcut/combobox" title="Focus Shortcut on a Combobox example">
+
+```tsx
+import { Combobox } from "@ngrok/mantle/combobox";
+import { FocusShortcut } from "@ngrok/mantle/focus-shortcut";
+
+<Combobox.Root>
+	<FocusShortcut.Root>
+		<div className="relative max-w-sm">
+			<FocusShortcut.Field>
+				<Combobox.Input aria-label="Jump to an account" placeholder="Jump to an account" />
+			</FocusShortcut.Field>
+			<FocusShortcut.Hint className="absolute inset-y-0 inset-e-2.5 my-auto" />
+		</div>
+	</FocusShortcut.Root>
+	<Combobox.Content>
+		<Combobox.Item value="Acme Corp" />
+		<Combobox.Item value="Globex" />
+		<Combobox.Item value="Initech" />
+	</Combobox.Content>
+</Combobox.Root>;
+```
+
+</Example>
+
+## Composition
+
+```text showLineNumbers=false
+FocusShortcut.Root
+├── FocusShortcut.Field
+└── FocusShortcut.Hint
+```
+
+## Polymorphism
+
+`FocusShortcut.Hint` takes `asChild`. Use it to draw the hint with your own element, such as a muted `<span>` in a dense toolbar. The hint keeps `aria-hidden`, `translate="no"`, and the `hidden` attribute that shows and hides it.
+
+`FocusShortcut.Field` always merges onto its one child, so it needs no `asChild`.
+
+## Behavior
+
+- `/` still types a slash while focus is in any text control, including one inside a shadow root.
+- `/` does nothing with Meta, Ctrl, or Alt held, while an IME composes, or on a key repeat.
+- A field that is disabled, not displayed, or behind a modal (`inert` or `aria-hidden="true"` on an ancestor) does not take the key. The key then goes to the next field with the shortcut.
+- When two fields have the shortcut, `/` goes to the field that mounted first and can take focus. Give the shortcut to one field per page.
+- A listener that calls `preventDefault()` on the key first keeps the key. `FocusShortcut.Field` calls `preventDefault()` when it takes the key, so the slash does not type into the field.
+
+## Accessibility
+
+- `FocusShortcut.Field` adds `/` to the field's `aria-keyshortcuts`, and keeps the shortcuts you set.
+- `FocusShortcut.Hint` is `aria-hidden`, because `aria-keyshortcuts` names the key to assistive tech.
+- A device that cannot hover, such as a phone, usually has no key to press, so the hint does not show there. The shortcut stays.
+
+## API Reference
+
+### FocusShortcut.Root
+
+Connects one `FocusShortcut.Field` to its `FocusShortcut.Hint`. It renders no element.
+
+| Prop       | Type        | Default | Description                                                          |
+| ---------- | ----------- | ------- | -------------------------------------------------------------------- |
+| `children` | `ReactNode` | none    | One `FocusShortcut.Field` and, optionally, one `FocusShortcut.Hint`. |
+
+### FocusShortcut.Field
+
+Makes `/` move focus into its child. It renders no element of its own, and merges its props onto the child. The child's `ref` must reach the element that takes focus.
+
+| Prop       | Type           | Default | Description                                                                                                       |
+| ---------- | -------------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| `children` | `ReactElement` | none    | The one field that `/` focuses, such as `InputCapture`, `TextArea`, `Combobox.Input`, or `Query.Input`. Required. |
+
+| Data Attribute      | Value                    | Description                                                     |
+| ------------------- | ------------------------ | --------------------------------------------------------------- |
+| `data-slot`         | `"focus-shortcut-field"` | Joined onto the child's own `data-slot` chain.                  |
+| `aria-keyshortcuts` | `"/"`                    | Added to the child's own `aria-keyshortcuts`, which stay first. |
+
+### FocusShortcut.Hint
+
+The `/` key, rendered as a [`Kbd`](/components/data-display/kbd). It accepts every `kbd` prop except `children`, `hidden`, and `translate`.
+
+| Prop        | Type      | Default | Description                                                                 |
+| ----------- | --------- | ------- | --------------------------------------------------------------------------- |
+| `asChild`   | `boolean` | `false` | Render your own element in place of the `Kbd`, and merge the props onto it. |
+| `className` | `string`  | none    | Classes for the hint, such as its position.                                 |
+
+| Data Attribute | Value                       | Description                                                                                                            |
+| -------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"focus-shortcut-hint kbd"` | On the `<kbd>`. `Kbd` adds `kbd` to the chain.                                                                         |
+| `hidden`       | present                     | While the field has focus, has a value, or is disabled, and on the server. Style the shown state with `not-[hidden]:`. |

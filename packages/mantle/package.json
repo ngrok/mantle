@@ -243,6 +243,11 @@
 			"types": "./dist/flag.d.ts",
 			"import": "./dist/flag.js"
 		},
+		"./focus-shortcut": {
+			"@ngrok/src-live-types": "./src/components/focus-shortcut/index.ts",
+			"types": "./dist/focus-shortcut.d.ts",
+			"import": "./dist/focus-shortcut.js"
+		},
 		"./hooks": {
 			"@ngrok/src-live-types": "./src/hooks/index.ts",
 			"types": "./dist/hooks.d.ts",

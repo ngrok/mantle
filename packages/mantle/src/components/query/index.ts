@@ -15,15 +15,14 @@ import * as QueryParts from "./query-parts.js";
  * The typed string is the only state, and the caller owns it. Inside a
  * `<form>`, Enter submits the form unless it accepts an active suggestion.
  *
- * @useWhen Filter a list with a typed query of free text and `key:value` qualifiers. Its
- * `keyboardShortcut` prop makes the slash key (`/`) a keyboard shortcut that focuses the field
- * while no other text field has focus.
+ * @useWhen Filter a list with a typed query of free text and `key:value` qualifiers.
  *
  * @siblings
  * - `Input`: a plain search box with no query language.
  * - `Combobox`: pick one value from a filtered list of options.
  * - `MultiSelect`: pick several values, shown as tags.
  * - `Command`: a `⌘K` palette that runs an action or navigates.
+ * - `FocusShortcut`: the slash key (`/`) focuses the field from anywhere on the page.
  *
  * @see https://mantle.ngrok.com/components/forms/query
  *

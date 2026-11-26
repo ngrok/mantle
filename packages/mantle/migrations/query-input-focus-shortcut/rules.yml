@@ -1,0 +1,588 @@
+# Every rule binds $QUERY to the local name of the `Query` import from
+# `@ngrok/mantle/query`, so an aliased import matches and another library's
+# `Query` does not.
+id: query-input-shortcut-wrap-self-closing
+language: tsx
+message: Query.Input no longer takes keyboardShortcut; wrap it in FocusShortcut
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  query-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/query["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Query$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $QUERY
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $QUERY
+  query-input-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $QUERY
+      - has:
+          field: property
+          regex: ^Input$
+  # `keyboardShortcut` or `keyboardShortcut={true}`: the shortcut is on.
+  shortcut-on:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^keyboardShortcut$
+    any:
+      - not:
+          has:
+            kind: jsx_expression
+      - has:
+          kind: jsx_expression
+          has:
+            kind: "true"
+  # The element reads the `Query` that `@ngrok/mantle/query` exports, not a
+  # local binding that shadows it.
+  mantle-query-input:
+    all:
+      - has:
+          field: name
+          matches: query-input-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: query-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $QUERY
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $QUERY
+rule:
+  kind: jsx_self_closing_element
+  pattern: $SOURCE
+  all:
+    - has:
+        matches: shortcut-on
+    - matches: mantle-query-input
+transform:
+  WITHOUT:
+    replace:
+      source: $SOURCE
+      replace: '\s+keyboardShortcut(?:\s*=\s*\{\s*true\s*\})?(\s|/|>)'
+      by: "$1"
+  OPEN:
+    replace:
+      source: $WITHOUT
+      replace: '\s*/>$'
+      by: "\n>"
+fix: |-
+  <FocusShortcut.Root>
+    <FocusShortcut.Field>
+      $OPEN
+        <FocusShortcut.Hint />
+      </$QUERY.Input>
+    </FocusShortcut.Field>
+  </FocusShortcut.Root>
+---
+id: query-input-shortcut-wrap-element
+language: tsx
+message: Query.Input no longer takes keyboardShortcut; wrap it in FocusShortcut
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  query-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/query["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Query$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $QUERY
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $QUERY
+  query-input-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $QUERY
+      - has:
+          field: property
+          regex: ^Input$
+  # `keyboardShortcut` or `keyboardShortcut={true}`: the shortcut is on.
+  shortcut-on:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^keyboardShortcut$
+    any:
+      - not:
+          has:
+            kind: jsx_expression
+      - has:
+          kind: jsx_expression
+          has:
+            kind: "true"
+  # The element reads the `Query` that `@ngrok/mantle/query` exports, not a
+  # local binding that shadows it.
+  mantle-query-input:
+    all:
+      - has:
+          field: name
+          matches: query-input-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: query-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $QUERY
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $QUERY
+rule:
+  kind: jsx_element
+  all:
+    - has:
+        field: open_tag
+        pattern: $SOURCE
+        all:
+          - has:
+              matches: shortcut-on
+          - matches: mantle-query-input
+    - pattern: <$_NAME $$$>$$$CHILDREN</$_CLOSE>
+transform:
+  OPEN:
+    replace:
+      source: $SOURCE
+      replace: '\s+keyboardShortcut(?:\s*=\s*\{\s*true\s*\})?(\s|/|>)'
+      by: "$1"
+fix: |-
+  <FocusShortcut.Root>
+    <FocusShortcut.Field>
+      $OPEN
+        <FocusShortcut.Hint />
+        $$$CHILDREN
+      </$QUERY.Input>
+    </FocusShortcut.Field>
+  </FocusShortcut.Root>
+---
+id: query-input-shortcut-drop-false
+language: tsx
+message: Query.Input no longer takes keyboardShortcut; the shortcut is off unless FocusShortcut wraps the field
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  query-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/query["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Query$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $QUERY
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $QUERY
+  query-input-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $QUERY
+      - has:
+          field: property
+          regex: ^Input$
+  # `keyboardShortcut` or `keyboardShortcut={true}`: the shortcut is on.
+  shortcut-on:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^keyboardShortcut$
+    any:
+      - not:
+          has:
+            kind: jsx_expression
+      - has:
+          kind: jsx_expression
+          has:
+            kind: "true"
+  # The element reads the `Query` that `@ngrok/mantle/query` exports, not a
+  # local binding that shadows it.
+  mantle-query-input:
+    all:
+      - has:
+          field: name
+          matches: query-input-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: query-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $QUERY
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $QUERY
+rule:
+  kind: jsx_attribute
+  has:
+    kind: property_identifier
+    regex: ^keyboardShortcut$
+  all:
+    - has:
+        kind: jsx_expression
+        has:
+          kind: "false"
+    - inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        matches: mantle-query-input
+fix: ""
+---
+id: query-input-shortcut-import
+language: tsx
+message: import FocusShortcut for the wrapped Query.Input
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  query-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/query["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Query$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $QUERY
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $QUERY
+  query-input-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $QUERY
+      - has:
+          field: property
+          regex: ^Input$
+  # `keyboardShortcut` or `keyboardShortcut={true}`: the shortcut is on.
+  shortcut-on:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^keyboardShortcut$
+    any:
+      - not:
+          has:
+            kind: jsx_expression
+      - has:
+          kind: jsx_expression
+          has:
+            kind: "true"
+  # The element reads the `Query` that `@ngrok/mantle/query` exports, not a
+  # local binding that shadows it.
+  mantle-query-input:
+    all:
+      - has:
+          field: name
+          matches: query-input-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: query-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $QUERY
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $QUERY
+rule:
+  matches: query-import
+  pattern: $IMPORT
+  all:
+    - inside:
+        kind: program
+        has:
+          stopBy: end
+          any:
+            - kind: jsx_self_closing_element
+            - kind: jsx_opening_element
+          all:
+            - has:
+                matches: shortcut-on
+            - matches: mantle-query-input
+    - not:
+        inside:
+          kind: program
+          has:
+            kind: import_statement
+            has:
+              field: source
+              regex: ^["']@ngrok/mantle/focus-shortcut["']$
+fix: |-
+  import { FocusShortcut } from "@ngrok/mantle/focus-shortcut";
+  $IMPORT
