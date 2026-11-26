@@ -1163,6 +1163,12 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 
 		expect(css).toContain("--_side-panel-lane: 80rem;");
 		expect(css).toContain("(width >= 80rem)");
+
+		// Why: an app can reset Tailwind's container tokens and use no side panel.
+		const reset = await compile(`${mantleCss}\n@theme { --container-*: initial; }`, {
+			loadStylesheet: loadMantleImport,
+		});
+		expect(reset.build([])).toContain("--_side-panel-lane: 56.5rem;");
 	});
 
 	test("a wider lane in the app's theme collapses the sidebar below that lane", async () => {

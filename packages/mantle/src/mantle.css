@@ -970,7 +970,7 @@ MARK: COMPONENT GEOMETRY
 	/* Private: the lane that `AppLayout.SidePanel` reads to collapse the sidebar. The container
 	   query inlines `--container-side-panel-lane`, so `:root` has no variable to read. `inline`
 	   resolves the app's own `@theme` value, so the collapse and the lane move together. */
-	--_side-panel-lane: --theme(--container-side-panel-lane inline);
+	--_side-panel-lane: --theme(--container-side-panel-lane inline, 56.5rem);
 }
 
 /**

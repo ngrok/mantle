@@ -706,9 +706,11 @@ function Markdown({
 }: MarkdownProps) {
 	const source = useFrameValue(children, { throttle: streaming });
 	const parser = useMemo(() => createMarkdownParser({ extensions }), [extensions]);
+	// Why `&& !streaming`: a stream closes its end already, so `truncated` alone must not parse again.
+	const closedEnd = truncated && !streaming;
 	const snapshot = useMemo(
-		() => parser.parse(source, { streaming, truncated }),
-		[parser, source, streaming, truncated],
+		() => parser.parse(source, { streaming, truncated: closedEnd }),
+		[parser, source, streaming, closedEnd],
 	);
 
 	const isHydrated = useIsHydrated();

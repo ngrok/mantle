@@ -157,8 +157,14 @@ function createMarkdownParser({
 			setLinks(tokens.links);
 
 			if (!streaming && frozen.length > 0 && (frozenReadLinks || Object.keys(links).length > 0)) {
-				// Why only the end: `closeMarkdown` changes nothing before the last block.
-				return parseWhole(truncated ? closeMarkdown(source, { math: closeMath }) : source);
+				if (truncated) {
+					// Why the closed tail, and no frozen state: it is the text the last frame showed, and a closer can
+					// split a block that more text would join again.
+					const all = lex(frozenSource + text, Object.create(null));
+					const blocks = contentTokens(all);
+					return { blocks, completeCount: blocks.length, links: all.links };
+				}
+				return parseWhole(source);
 			}
 
 			const finished = tokens.slice(0, Math.max(lastContentIndex(tokens), 0));
