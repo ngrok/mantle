@@ -268,6 +268,26 @@ describe("Slider track press (browser)", () => {
 		return { slider, root: rootOf(slider) };
 	}
 
+	/**
+	 * Pauses each glide of `root` when it starts, so a slow input round trip
+	 * cannot outlast the 200ms glide before the test reads it.
+	 * Why an observer: it runs after the press handler and before the next frame.
+	 * Why a stub, not fake timers: the glide ends on a 250ms timer, and the end
+	 * cancels a paused glide. Vitest advances fake timers while a `userEvent` action runs.
+	 * Why it runs timers shorter than the 200ms glide: an end that cuts the glide short then fails the read.
+	 */
+	function holdGlides(root: HTMLElement) {
+		const runTimer = window.setTimeout.bind(window);
+		vi.stubGlobal("setTimeout", (handler: () => void, delay = 0) =>
+			delay < 200 ? runTimer(handler, delay) : 0,
+		);
+		new MutationObserver(() => {
+			for (const animation of root.getAnimations({ subtree: true })) {
+				animation.pause();
+			}
+		}).observe(root, { attributeFilter: ["data-track-press"] });
+	}
+
 	test("a press 10px beside the thin track still moves the thumb", async () => {
 		const { slider, root } = renderSlider();
 		const rect = root.getBoundingClientRect();
@@ -280,6 +300,7 @@ describe("Slider track press (browser)", () => {
 	test("a press on the track glides the thumb and the range on ease-out-strong in 200ms", async () => {
 		const { slider, root } = renderSlider();
 		const rect = root.getBoundingClientRect();
+		holdGlides(root);
 
 		await userEvent.click(root, { position: { x: rect.width - 1, y: rect.height / 2 } });
 
@@ -297,6 +318,7 @@ describe("Slider track press (browser)", () => {
 		const { root } = renderSlider();
 		const rect = root.getBoundingClientRect();
 		const at = { x: rect.width * 0.8, y: rect.height / 2 };
+		holdGlides(root);
 
 		await userEvent.dragAndDrop(root, root, {
 			sourcePosition: at,

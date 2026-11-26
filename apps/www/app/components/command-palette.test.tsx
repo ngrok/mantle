@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { ThemeProvider } from "@ngrok/mantle/theme";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createRoutesStub } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { CommandPalette } from "./command-palette";
@@ -26,12 +26,21 @@ function renderPalette() {
 	return render(<Stub />);
 }
 
+/**
+ * Waits for the lazy dialog `import()` and the render that follows it.
+ * Why: under load the first import outlasts the 1s `waitFor`.
+ */
+function loadDialog() {
+	return act(() => import("./command-palette-dialog"));
+}
+
 async function openPalette() {
 	const [trigger] = screen.getAllByRole("button", { name: /search mantle/i });
 	if (trigger == null) {
 		throw new Error("expected a palette trigger button");
 	}
 	fireEvent.click(trigger);
+	await loadDialog();
 	return await waitFor(() => screen.getByPlaceholderText("Search Mantle..."));
 }
 
@@ -183,6 +192,7 @@ describe("CommandPalette", () => {
 		});
 
 		expect(notPrevented).toBe(false);
+		await loadDialog();
 		await waitFor(() => {
 			expect(screen.queryByPlaceholderText("Search Mantle...")).not.toBeNull();
 		});
