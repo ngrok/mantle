@@ -114,8 +114,9 @@ describe("getFilterConjunction", () => {
 		expect(actual).toEqual(expected);
 	});
 
-	test("leaves out a qualifier still being typed, and asks nothing of an empty query", () => {
-		expect(read("is: name:api")).toEqual({ clauses: [["name:api"]], problems: [] });
+	test("keeps a qualifier still being typed, and asks nothing of an empty query", () => {
+		// The caller sees `is:` with no members and can ask for a value; a backend must not drop it in silence.
+		expect(read("is: name:api")).toEqual({ clauses: [["is:"], ["name:api"]], problems: [] });
 		expect(read("")).toEqual({ clauses: [], problems: [] });
 		expect(read("OR")).toEqual({ clauses: [], problems: [] });
 	});

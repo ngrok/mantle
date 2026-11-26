@@ -49,7 +49,8 @@ type FilterConjunction = {
 	/**
 	 * The AND group, in query order. Each clause is an OR of its terms: one
 	 * term, or the terms of an `OR` that the `or` option accepts. A comma list
-	 * is one term. A qualifier still being typed, such as `is:`, is left out.
+	 * is one term. A qualifier still being typed, such as `is:`, is a term with
+	 * no `members`, so the caller can ask for a value.
 	 */
 	clauses: FilterConjunctionTerm[][];
 	/**
@@ -151,10 +152,6 @@ function getFilterConjunction(
 				index += 1;
 			}
 			return inner;
-		}
-		// Why null: a qualifier still being typed drops out of its group, as in the expression tree.
-		if (token.kind === "facet" && token.members.length === 0) {
-			return null;
 		}
 		return [{ start: token.start, end: token.end, terms: [{ token, negated: negate }] }];
 	}

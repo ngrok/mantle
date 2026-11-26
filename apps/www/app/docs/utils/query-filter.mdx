@@ -257,7 +257,7 @@ const { clauses, problems } = getFilterConjunction(
 - `NOT (a OR b)` reads as two clauses, `a` and `b`, each negated.
 - `NOT (a b)` is `NOT a OR NOT b`, so it reports a `"negated-group"` problem.
 - `or: "none"` (the default) reports each `OR` as an `"or"` problem. `or: "same-key"` accepts an `OR` whose sides are each one qualifier on one key, not negated, such as `status:404 OR status:500`.
-- Check each term's key and value yourself, such as a key that takes no exclusion.
+- Check each term's key and value yourself, such as a key that takes no exclusion. A qualifier still being typed, such as `status:`, is a term with no `members`, so ask for a value.
 
 ## Natural language search
 
