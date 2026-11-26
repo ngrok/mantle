@@ -292,7 +292,7 @@ describe("Drawer", () => {
 	test("stays on the bottom edge while a drag pulls it up", async () => {
 		render(
 			<Drawer.Root open>
-				<Drawer.Content aria-label="Edit">
+				<Drawer.Content aria-label="Edit" style={{ backgroundColor: "rgb(10, 32, 64)" }}>
 					<Drawer.Body>Name</Drawer.Body>
 				</Drawer.Content>
 			</Drawer.Root>,
@@ -306,6 +306,8 @@ describe("Drawer", () => {
 		// Why the hit test: a gap under the panel would show the page.
 		const { left, width } = panel.getBoundingClientRect();
 		expect(panel.contains(document.elementFromPoint(left + width / 2, innerHeight - 2))).toBe(true);
+		// Why: the stretch shows the panel's own color, not a default.
+		expect(getComputedStyle(panel, "::after").backgroundColor).toBe("rgb(10, 32, 64)");
 		release();
 	});
 

@@ -404,7 +404,7 @@ const Content = ({
 				"transition-[translate] duration-200 ease-out-strong motion-reduce:transition-none starting:translate-y-full data-closing:translate-y-full data-closing:duration-150",
 				// Why the fill below the panel: a drag up stretches the panel, which
 				// stays on the bottom edge. The rubber band never moves it a full height.
-				"after:bg-dialog after:absolute after:inset-x-0 after:top-full after:-mt-px after:h-full",
+				"after:absolute after:inset-x-0 after:top-full after:-mt-px after:h-full after:bg-inherit",
 				className,
 			)}
 			ref={ref}

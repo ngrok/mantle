@@ -259,43 +259,37 @@ describe.runIf(server.browser === "chromium")('Popover presentation="auto"', () 
 		expect(filters.contains(document.activeElement)).toBe(true);
 	});
 
-	test("does not open over a native modal dialog", async () => {
+	test("opens its drawer from the top of two sibling dialogs", async () => {
 		await page.viewport(390, 844);
 		await commands.emulateMedia({ hover: "none" });
 		const user = userEvent.setup();
-		const control = { setOpen: (_open: boolean) => {} };
-		function Background() {
-			const [open, setOpen] = useState(false);
-			control.setOpen = setOpen;
-			return (
-				<Popover.Root presentation="auto" open={open} onOpenChange={setOpen}>
-					<Popover.Trigger>Schedule</Popover.Trigger>
-					<Popover.Content>Reminder</Popover.Content>
-				</Popover.Root>
-			);
-		}
+		const { unmount } = render(<Reminder />);
+		// Why: an open presents a drawer only once the module loaded.
+		await openDrawer(user);
+		unmount();
 		render(
 			<>
-				<Reminder />
-				<Background />
-				<dialog aria-label="Checkout">
-					<button type="button">Pay</button>
-				</dialog>
+				<Dialog.Root open>
+					<Dialog.Content aria-label="Settings">Settings</Dialog.Content>
+				</Dialog.Root>
+				<Dialog.Root open>
+					<Dialog.Content aria-label="Details">
+						<Popover.Root presentation="auto">
+							<Popover.Trigger>Schedule</Popover.Trigger>
+							<Popover.Content>Reminder</Popover.Content>
+						</Popover.Root>
+					</Dialog.Content>
+				</Dialog.Root>
 			</>,
 		);
-		await openDrawer(user);
-		await user.click(screen.getByRole("button", { name: "Add reminder" }));
-		await waitFor(() => expect(document.querySelector("dialog:modal")).toBeNull());
-		const checkout = document.querySelector("dialog[aria-label='Checkout']");
-		if (!(checkout instanceof HTMLDialogElement)) {
-			throw new Error("expected the checkout dialog");
-		}
-		checkout.showModal();
+		await waitFor(() => expect(document.querySelectorAll("dialog:modal")).toHaveLength(2));
 
-		act(() => control.setOpen(true));
+		await user.click(screen.getByRole("button", { name: "Schedule" }));
 
-		expect(document.querySelectorAll("dialog:modal")).toHaveLength(1);
-		expect(checkout.contains(document.activeElement)).toBe(true);
+		expect(await screen.findByRole("dialog", { name: "Schedule" })).toHaveAttribute(
+			"data-slot",
+			"drawer-positioner",
+		);
 	});
 
 	test("keeps a bar usable in a dialog over a drawer", async () => {
@@ -415,6 +409,47 @@ describe.runIf(server.browser === "chromium")('Popover presentation="auto"', () 
 			gotIt.focus();
 			expect(document.activeElement).not.toBe(gotIt);
 		});
+	});
+
+	test("shows a drawer that opens from a bar under another drawer", async () => {
+		await page.viewport(390, 844);
+		await commands.emulateMedia({ hover: "none" });
+		const user = userEvent.setup();
+		function Page() {
+			const [open, setOpen] = useState(false);
+			return (
+				<>
+					<Reminder />
+					<Drawer.Root>
+						<Drawer.Trigger>Filters</Drawer.Trigger>
+						<Drawer.Content aria-label="Filters">
+							<button type="button" onClick={() => setOpen(true)}>
+								Show tips
+							</button>
+						</Drawer.Content>
+					</Drawer.Root>
+					<Sandbar.Root open>
+						<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+						<Popover.Root presentation="auto" open={open} onOpenChange={setOpen}>
+							<Popover.Trigger>Tips</Popover.Trigger>
+							<Popover.Content>
+								<button type="button">Got it</button>
+							</Popover.Content>
+						</Popover.Root>
+					</Sandbar.Root>
+				</>
+			);
+		}
+		render(<Page />);
+		await openDrawer(user);
+		await user.click(screen.getByRole("button", { name: "Add reminder" }));
+		await user.click(screen.getByRole("button", { name: "Filters" }));
+		await screen.findByRole("dialog", { name: "Filters" });
+		await user.click(screen.getByRole("button", { name: "Show tips" }));
+
+		const gotIt = await screen.findByRole("button", { name: "Got it" });
+		gotIt.focus();
+		expect(document.activeElement).toBe(gotIt);
 	});
 
 	test("gives Escape to a drawer inside a popover, and keeps the popover open", async () => {

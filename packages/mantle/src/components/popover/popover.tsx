@@ -21,6 +21,7 @@ import {
 } from "../../utils/float/use-float.js";
 import type { OutsideHandlers } from "../../utils/float/use-float.js";
 import {
+	isCoveredByOverlay,
 	LayerContainer,
 	LayerContainerContext,
 } from "../../utils/layer-container/layer-container.js";
@@ -46,16 +47,6 @@ const wantsDrawer = (presentation: PopoverPresentation): boolean =>
 	presentation === "auto" &&
 	typeof matchMedia === "function" &&
 	matchMedia("(max-width: 39.99rem) and (pointer: coarse)").matches;
-
-/**
- * Whether an open modal `<dialog>` that does not hold `container` is on the
- * page: a drawer would open as a second modal over it and take focus. A
- * dialog that plays its exit does not count.
- */
-const isUnderModal = (container: Element | DocumentFragment | null): boolean =>
-	[...document.querySelectorAll("dialog:modal:not([data-closing])")].some(
-		(dialog) => !dialog.contains(container),
-	);
 
 /**
  * Loads the drawer presentation. A failed load leaves `Drawer` unset, so a
@@ -162,7 +153,7 @@ function Root({
 	// Why not under an overlay: the drawer would open as a second modal over
 	// it and take focus. The popover stays hidden until the overlay closes.
 	const presentsDrawer = (isOpen: boolean) =>
-		isOpen && wantsDrawer(presentation) && !isUnderModal(layerContainer);
+		isOpen && wantsDrawer(presentation) && !isCoveredByOverlay(layerContainer);
 	// Why a decision at each open, in render: a controlled `open` opens with no
 	// event here, and the decision must hold until the close and its exit.
 	// Why `Drawer` must have loaded: a tap never waits on the network, so an
