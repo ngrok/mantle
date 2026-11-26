@@ -29,6 +29,7 @@ import type { TabsBehavior } from "../../behaviors/use-tabs.js";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
+import { $cssProperties } from "../../types/css-properties.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -420,9 +421,12 @@ function TokenView({ token }: { token: CodeToken }) {
 const CodeLineView = memo(function CodeLineView({
 	line,
 	lineNumber,
+	gutter,
 }: {
 	line: CodeLine | string;
 	lineNumber: number;
+	/** The numbers of this line's group, on the first line of a group with line numbers. See `gutterNumbers`. */
+	gutter?: string | undefined;
 }) {
 	// Why a space: an empty line keeps its height, and each browser copies it as a blank line (see `decorateHighlightedHtml`).
 	let content: ReactNode;
@@ -436,14 +440,33 @@ const CodeLineView = memo(function CodeLineView({
 			<TokenView key={index} token={token} />
 		));
 	}
-	// Why no number element: `mantle.css` counts the lines and draws each
-	// number, so the digits stay out of the code's text.
+	// Why no number element: `mantle.css` draws the numbers from a counter or
+	// from the gutter string, so the digits stay out of the code's text.
 	return (
 		<span className="mantle-code-line" data-line-number={lineNumber}>
+			{gutter != null && (
+				<span
+					aria-hidden="true"
+					className="mantle-code-gutter"
+					style={$cssProperties({ "--mantle-code-gutter": gutter })}
+				/>
+			)}
 			<span className="mantle-code-line-content">{content}</span>
 		</span>
 	);
 });
+
+/**
+ * The line numbers of `count` lines from `start`, as a CSS string with one
+ * number on each row. `mantle.css` draws it in a group's sticky gutter.
+ */
+function gutterNumbers(start: number, count: number): string {
+	let numbers = String(start);
+	for (let index = 1; index < count; index += 1) {
+		numbers += `\\A ${start + index}`;
+	}
+	return `"${numbers}"`;
+}
 
 /** How many lines of browser-highlighted code render in one group. */
 const LINE_GROUP_SIZE = 64;
@@ -453,6 +476,8 @@ type CodeLineGroupProps = {
 	lines: readonly (CodeLine | string)[];
 	start: number;
 	lineNumberStart: number;
+	/** Whether the group draws the numbers of its lines in its gutter. */
+	showLineNumbers: boolean;
 };
 
 /**
@@ -464,6 +489,7 @@ function isSameLineGroup(previous: CodeLineGroupProps, next: CodeLineGroupProps)
 	if (
 		previous.start !== next.start ||
 		previous.lineNumberStart !== next.lineNumberStart ||
+		previous.showLineNumbers !== next.showLineNumbers ||
 		previous.lines.length !== next.lines.length
 	) {
 		return false;
@@ -479,19 +505,32 @@ function isSameLineGroup(previous: CodeLineGroupProps, next: CodeLineGroupProps)
 /**
  * A run of lines, with no element of its own. Why groups: each update of a
  * streamed block then renders only the group that changed, not an element
- * for each line of the block.
+ * for each line of the block. Why a gutter for each group: a full group's
+ * numbers never change, so a new line lays out only the numbers of the last
+ * group. Why in the group's first line: the lines stay the only elements in
+ * the `<code>`, and a new line goes at its end, so no sibling rule restyles
+ * the lines after an insert.
  */
 const CodeLineGroup = memo(function CodeLineGroup({
 	lines,
 	start,
 	lineNumberStart,
+	showLineNumbers,
 }: CodeLineGroupProps) {
 	return lines.map((line, index) => (
 		// oxlint-disable-next-line react/no-array-index-key -- Why: a line has no identity but its position, and an appended line must not remount the lines above it.
 		<Fragment key={index}>
 			{/* Why a newline: `textContent` keeps the line breaks, the same as pre-rendered HTML. */}
 			{start + index > 0 && "\n"}
-			<CodeLineView line={line} lineNumber={lineNumberStart + (start + index)} />
+			<CodeLineView
+				line={line}
+				lineNumber={lineNumberStart + (start + index)}
+				gutter={
+					showLineNumbers && index === 0
+						? gutterNumbers(lineNumberStart + start, lines.length)
+						: undefined
+				}
+			/>
 		</Fragment>
 	));
 }, isSameLineGroup);
@@ -677,7 +716,10 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 					dangerouslySetInnerHTML={innerHtmlProp}
 				/>
 			) : (
-				<code className="text-size-inherit block min-w-full w-max">
+				<code
+					className="text-size-inherit block min-w-full w-max"
+					data-mantle-gutter={effectiveShowLineNumbers ? "" : undefined}
+				>
 					{Array.from({ length: Math.ceil(lines.length / LINE_GROUP_SIZE) }, (_, group) => (
 						<CodeLineGroup
 							// oxlint-disable-next-line react/no-array-index-key -- Why: a group holds the same lines for the life of the block, and an appended line must not remount the lines above it.
@@ -685,6 +727,7 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 							lines={lines.slice(group * LINE_GROUP_SIZE, (group + 1) * LINE_GROUP_SIZE)}
 							start={group * LINE_GROUP_SIZE}
 							lineNumberStart={effectiveLineNumberStart}
+							showLineNumbers={effectiveShowLineNumbers}
 						/>
 					))}
 				</code>

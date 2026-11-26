@@ -278,12 +278,33 @@ describe("CodeBlock (browser)", () => {
 		return match[0];
 	}
 
+	/**
+	 * The gutter rules of streamed lines, read from `mantle.css` and not
+	 * mirrored: the sticky column of each group, its numbers, and the space
+	 * that each line keeps for its number.
+	 */
+	function streamedGutterCss(): string {
+		const match =
+			/pre\[data-mantle-line-numbers="true"\] > code\[data-mantle-gutter\] \.mantle-code-gutter \{[\s\S]*?> \.mantle-code-line::before \{[\s\S]*?\n\}/.exec(
+				mantleCss,
+			);
+		if (match == null) {
+			throw new Error("mantle.css holds no gutter rules for streamed lines.");
+		}
+		return match[0];
+	}
+
 	let styleElement: HTMLStyleElement;
 
 	beforeAll(() => {
 		styleElement = document.createElement("style");
 		styleElement.textContent =
-			LAYOUT_STYLE + TAB_LAYOUT_STYLE + foldToggleCss() + foldHitAreaCss() + foldLineHeightCss();
+			LAYOUT_STYLE +
+			TAB_LAYOUT_STYLE +
+			foldToggleCss() +
+			foldHitAreaCss() +
+			foldLineHeightCss() +
+			streamedGutterCss();
 		document.head.appendChild(styleElement);
 	});
 
@@ -474,6 +495,63 @@ describe("CodeBlock (browser)", () => {
 
 			expect(gutterHit()).toBe(line);
 			expect(content.getBoundingClientRect().left).toBe(contentLeftBefore - 100);
+		});
+
+		test("streamed lines pin one gutter for each group of 64 lines while the code scrolls", () => {
+			const lines = Array.from({ length: 70 }, (_, index) =>
+				index === 65 ? "x".repeat(120) : `line ${index + 1}`,
+			);
+			render(
+				<div style={{ width: 340 }}>
+					<CodeBlock.Root>
+						<CodeBlock.Body>
+							<CodeBlock.Code
+								value={createMantleCodeBlockValue({
+									language: "text",
+									code: lines.join("\n"),
+									lines,
+									showLineNumbers: true,
+								})}
+							/>
+						</CodeBlock.Body>
+					</CodeBlock.Root>
+				</div>,
+			);
+
+			const pre = getPre();
+			const rows = Array.from(pre.querySelectorAll(".mantle-code-line"));
+			const gutters = Array.from(pre.querySelectorAll(".mantle-code-gutter"));
+			expect(gutters.map((gutter) => gutter.parentElement)).toEqual([rows[0], rows[64]]);
+
+			// Why the height: the numbers of a group fill the rows of its lines, and no more.
+			for (const [gutter, first, last] of [
+				[gutters[0], rows[0], rows[63]],
+				[gutters[1], rows[64], rows[69]],
+			] as const) {
+				if (gutter == null || first == null || last == null) {
+					throw new Error("expected two groups of lines");
+				}
+				const span = last.getBoundingClientRect().bottom - first.getBoundingClientRect().top;
+				expect(Number.parseFloat(getComputedStyle(gutter, "::before").height)).toBeCloseTo(span, 0);
+			}
+
+			// Why a hit test: the numbers are a pseudo-element of the gutter. A gutter that scrolled away exposes the code.
+			const preLeft = pre.getBoundingClientRect().left;
+			const gutterHit = (row: Element | undefined) => {
+				if (row == null) {
+					throw new Error("expected the line");
+				}
+				row.scrollIntoView({ block: "center" });
+				const { top, height } = row.getBoundingClientRect();
+				return document.elementFromPoint(preLeft + 2, top + height / 2);
+			};
+			expect(gutterHit(rows[65])).toBe(gutters[1]);
+
+			pre.scrollLeft = 100;
+			expect(pre.scrollLeft).toBe(100);
+
+			expect(gutterHit(rows[65])).toBe(gutters[1]);
+			expect(gutterHit(rows[1])).toBe(gutters[0]);
 		});
 
 		test("fold toggles pin with the line numbers while the code scrolls", () => {
