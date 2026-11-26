@@ -87,14 +87,13 @@ type OpenFloat = {
 const openFloats: OpenFloat[] = [];
 
 /**
- * A layer that a float holds and that handles its own Escape: an overlay
- * (its panel, or its modal `<dialog>`, which takes focus as it opens), an
+ * A layer that a float holds and that handles its own Escape: an overlay, an
  * open popup such as a combobox list with a footer, or an expanded popup owner
  * such as a combobox input. An expanded accordion trigger
  * also sets `aria-controls`, but it does not take Escape.
  */
 const nestedLayerSelector =
-	"[data-mantle-modal-content], dialog:modal, [data-mantle-popup], [aria-expanded='true'][aria-controls]:is([role='combobox'], [aria-haspopup]:not([aria-haspopup='false']))";
+	"[data-mantle-modal-content], [data-mantle-popup], [aria-expanded='true'][aria-controls]:is([role='combobox'], [aria-haspopup]:not([aria-haspopup='false']))";
 
 /** Whether an Escape at `target` belongs to a layer inside `floating`. */
 function belongsToNestedLayer(floating: HTMLElement, target: EventTarget | null): boolean {
@@ -113,7 +112,14 @@ function belongsToNestedLayer(floating: HTMLElement, target: EventTarget | null)
  */
 function handleEscape(event: KeyboardEvent): void {
 	const top = openFloats.at(-1);
-	if (event.key !== "Escape" || top == null || belongsToNestedLayer(top.element, event.target)) {
+	// Why the modal check: a modal dialog inside the float takes Escape even
+	// when focus has left it for <body>, as after a field blurs.
+	if (
+		event.key !== "Escape" ||
+		top == null ||
+		belongsToNestedLayer(top.element, event.target) ||
+		top.element.querySelector("dialog:modal") != null
+	) {
 		return;
 	}
 	top.escape(event);

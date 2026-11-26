@@ -1,6 +1,7 @@
 "use client";
 
 import { render, screen, waitFor } from "@testing-library/react";
+import { useCallback, useState } from "react";
 import { userEvent } from "@testing-library/user-event";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { commands, page, server } from "vitest/browser";
@@ -125,12 +126,43 @@ describe.runIf(server.browser === "chromium")('Popover presentation="auto"', () 
 		const outer = screen.getByRole("button", { name: "Project" });
 		await user.click(outer);
 		await openDrawer(user);
+		// Why the blur: a field that blurs to close the keyboard leaves focus on <body>.
+		if (document.activeElement instanceof HTMLElement) {
+			document.activeElement.blur();
+		}
 
 		await user.keyboard("{Escape}");
 		await waitFor(() =>
 			expect(document.querySelector("dialog[data-slot='drawer-positioner']")).toBeNull(),
 		);
 		expect(outer).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("keeps a consumer ref that measures the content attached once", async () => {
+		await page.viewport(390, 844);
+		await commands.emulateMedia({ hover: "none" });
+		const user = userEvent.setup();
+		const calls: (HTMLElement | null)[] = [];
+		function Measured() {
+			const [height, setHeight] = useState(0);
+			const measure = useCallback((element: HTMLDivElement | null) => {
+				calls.push(element);
+				if (element != null) {
+					setHeight(element.offsetHeight);
+				}
+			}, []);
+			return (
+				<Popover.Root presentation="auto">
+					<Popover.Trigger>Add reminder</Popover.Trigger>
+					<Popover.Content ref={measure}>Height {height}</Popover.Content>
+				</Popover.Root>
+			);
+		}
+		render(<Measured />);
+		await openDrawer(user);
+
+		expect(await screen.findByRole("dialog", { name: "Add reminder" })).toBeInTheDocument();
+		expect(calls.filter((element) => element?.dataset.presentation === "drawer")).toHaveLength(1);
 	});
 
 	test("keeps the popover on a desktop", async () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps, RefObject } from "react";
-import { cx } from "../../utils/cx/cx.js";
+import { useEffect } from "react";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { Content, Root } from "../drawer/drawer.js";
@@ -36,58 +36,52 @@ const PopoverDrawer = ({
 	onCloseAutoFocus,
 	onOpenChange,
 	open,
-	ref,
 	triggerRef,
 	...props
-}: PopoverDrawerProps) => (
-	<Root open={open} onOpenChange={onOpenChange}>
-		<Content
-			data-slot={joinDataSlot(dataSlot, "popover-content")}
-			data-presentation="drawer"
-			className={cx("[&_[data-float-arrow]]:hidden", className)}
-			// Why: the trigger names the popover in `aria-controls`, not the
-			// `<dialog>`, so the drawer's own fallback does not find it after a
-			// tap that did not focus it.
-			onCloseAutoFocus={(event) => {
-				onCloseAutoFocus?.(event);
-				const body = triggerRef.current?.ownerDocument.body;
-				if (!event.defaultPrevented && body?.ownerDocument.activeElement === body) {
-					triggerRef.current?.focus();
-				}
-			}}
-			ref={(panel) => {
-				// Why the trigger names the drawer: as in the popover, the trigger
-				// says what opens. Why its rendered `id`: a consumer can set one.
-				const triggerId = triggerRef.current?.id;
-				if (
-					panel != null &&
-					triggerId &&
-					props["aria-label"] == null &&
-					props["aria-labelledby"] == null
-				) {
-					panel.closest("dialog")?.setAttribute("aria-labelledby", triggerId);
-				}
-				if (typeof ref === "function") {
-					return ref(panel);
-				}
-				if (ref != null) {
-					ref.current = panel;
-				}
-				return undefined;
-			}}
-			{...props}
-			onClick={(event) => {
-				// Why: a click in the content must not reach a clickable parent of the trigger.
-				event.stopPropagation();
-				onClick?.(event);
-			}}
-		>
-			<div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-4 pb-4">
-				{children}
-			</div>
-		</Content>
-	</Root>
-);
+}: PopoverDrawerProps) => {
+	const { id, "aria-label": label, "aria-labelledby": labelledBy } = props;
+	// Why the trigger names the drawer: as in the popover, the trigger says
+	// what opens. Why its rendered `id`, after the commit: a consumer can set
+	// one, and the trigger can render after the content.
+	useEffect(() => {
+		const triggerId = triggerRef.current?.id;
+		const dialog = id == null ? null : document.getElementById(id)?.closest("dialog");
+		if (open && dialog != null && triggerId && label == null && labelledBy == null) {
+			dialog.setAttribute("aria-labelledby", triggerId);
+		}
+	}, [id, label, labelledBy, open, triggerRef]);
+
+	return (
+		<Root open={open} onOpenChange={onOpenChange}>
+			<Content
+				data-slot={joinDataSlot(dataSlot, "popover-content")}
+				data-presentation="drawer"
+				className={className}
+				// Why: the trigger names the popover in `aria-controls`, not the
+				// `<dialog>`, so the drawer's own fallback does not find it after a
+				// tap that did not focus it.
+				onCloseAutoFocus={(event) => {
+					onCloseAutoFocus?.(event);
+					const body = triggerRef.current?.ownerDocument.body;
+					if (!event.defaultPrevented && body?.ownerDocument.activeElement === body) {
+						triggerRef.current?.focus();
+					}
+				}}
+				{...props}
+				onClick={(event) => {
+					// Why: a click in the content must not reach a clickable parent of the trigger.
+					event.stopPropagation();
+					onClick?.(event);
+				}}
+			>
+				{/* Why `>` for the arrow: an arrow of a float inside is not this one. */}
+				<div className="min-h-0 flex-1 touch-pan-y touch-pinch-zoom overflow-y-auto overscroll-contain px-4 pb-4 [&>[data-float-arrow]]:hidden">
+					{children}
+				</div>
+			</Content>
+		</Root>
+	);
+};
 
 export {
 	//,

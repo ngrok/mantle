@@ -166,6 +166,13 @@ function Root({
 			loadDrawer();
 		}
 	}, [presentation]);
+	// Why again at each open, from the trigger or the owner: a phone that
+	// rotates below `sm`, or a failed load, loads the drawer for the next open.
+	useEffect(() => {
+		if (open && Drawer == null && wantsDrawer(presentation)) {
+			loadDrawer();
+		}
+	}, [open, presentation]);
 	const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
 	const {
 		triggerRef: anchorRef,
@@ -181,11 +188,6 @@ function Root({
 			setOpen: (next) => {
 				if (next === open) {
 					return;
-				}
-				// Why again here: a phone that rotates below `sm`, or a failed
-				// load, loads the drawer for the next open.
-				if (Drawer == null && wantsDrawer(presentation)) {
-					loadDrawer();
 				}
 				if (openProp === undefined) {
 					setUncontrolledOpen(next);
@@ -210,7 +212,6 @@ function Root({
 			open,
 			openProp,
 			opened.drawer,
-			presentation,
 			setAnchor,
 			setTrigger,
 			triggerId,

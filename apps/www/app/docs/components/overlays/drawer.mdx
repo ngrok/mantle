@@ -67,7 +67,7 @@ import { Drawer } from "@ngrok/mantle/drawer";
 
 The panel follows a finger or a mouse down one to one. A release past a quarter of its height, or a flick, closes it. A shorter drag springs back, and a drag up meets rubber-band resistance. The scrim fades with the drag. A press on a field, on selected text, or on scrolled content does not start a drag, and on a touch screen `Drawer.Body` scrolls with the finger. Under reduced motion the drawer appears and leaves in place.
 
-Set `dismissible={false}` on `Drawer.Root` while the drawer holds unsaved work: a swipe springs back, and Escape, back, and the scrim do nothing. `Drawer.Close` and the owner still close it.
+Set `dismissible={false}` on `Drawer.Root` while the drawer holds unsaved work: a swipe springs back, and Escape, back, and the scrim do nothing. `Drawer.Close` and the owner still close it. The browser still closes it on a second back with no press in between, so that a page cannot trap the user, and `onOpenChange` reports that close.
 
 ## Layering and the keyboard
 

@@ -44,6 +44,8 @@ type DrawerRootProps = {
 	 * Whether a swipe down, Escape, the back gesture, or a press on the
 	 * backdrop closes the drawer. With `false`, a swipe springs back and only
 	 * `Drawer.Close` or the owner closes it, such as while it holds unsaved work.
+	 * The browser still closes it on a second back with no press in between,
+	 * so a page cannot trap the user; `onOpenChange` then reports the close.
 	 * @default true
 	 */
 	dismissible?: boolean;
@@ -143,9 +145,16 @@ const Close = ({
 	/>
 );
 
-/** Whether a press on `target` belongs to a control or to scrolled content, not to a drag. */
+/** The parts of the panel that take no touch scroll, so that a drag on them moves it. */
+const dragSurface =
+	"[data-slot~='drawer-handle'], [data-slot~='drawer-header'], [data-slot~='drawer-footer']";
+
+/**
+ * Whether a press on `target` belongs to a control, to scrolled content, or
+ * to a dialog above the drawer, not to a drag.
+ */
 function pressBelongsToContent(target: EventTarget | null, panel: HTMLElement): boolean {
-	if (!(target instanceof Element)) {
+	if (!(target instanceof Element) || target.closest("dialog") !== panel.closest("dialog")) {
 		return true;
 	}
 	if (
@@ -157,9 +166,13 @@ function pressBelongsToContent(target: EventTarget | null, panel: HTMLElement): 
 	if ((target.ownerDocument.getSelection()?.toString() ?? "") !== "") {
 		return true;
 	}
-	// Why: content that is scrolled scrolls back first, as on iOS.
+	// Why: content that is scrolled scrolls back first, as on iOS. A control
+	// that takes its own drag, such as a slider, sets `touch-action: none`.
 	for (let element: Element | null = target; element != null && element !== panel;) {
-		if (element.scrollTop > 0) {
+		if (
+			element.scrollTop > 0 ||
+			(!element.matches(dragSurface) && getComputedStyle(element).touchAction === "none")
+		) {
 			return true;
 		}
 		element = element.parentElement;
@@ -183,6 +196,8 @@ function SwipeHandle() {
 	const { dismissible, setOpen } = useContext(DrawerContext);
 	const panelRef = useRef<HTMLElement | null>(null);
 	const progress = useRef(0);
+	/** Whether a swipe that closed the drawer left the panel displaced. */
+	const swiped = useRef(false);
 	const attach = (element: HTMLDivElement | null) => {
 		panelRef.current = element?.parentElement ?? null;
 	};
@@ -207,7 +222,9 @@ function SwipeHandle() {
 		},
 		onDismiss: () => {
 			const panel = panelRef.current;
-			if (panel == null) {
+			// Why the `data-closing` check: Escape can close the drawer while the
+			// finger is down, and one close reports once.
+			if (panel == null || panel.hasAttribute("data-closing")) {
 				return;
 			}
 			if (!dismissible) {
@@ -216,11 +233,13 @@ function SwipeHandle() {
 			}
 			// Why: the exit slides from where the finger let go, not from rest.
 			panel.style.translate = `0 ${progress.current * panel.offsetHeight}px`;
+			swiped.current = true;
 			setOpen(false);
 			// Why: a controlled owner can keep the drawer open, and the panel
 			// then goes back to rest.
 			requestAnimationFrame(() => {
 				if (!panel.hasAttribute("data-closing")) {
+					swiped.current = false;
 					rest(panel);
 				}
 			});
@@ -253,7 +272,13 @@ function SwipeHandle() {
 	useEffect(() => {
 		const panel = panelRef.current;
 		const reopen = (event: AnimationEvent) => {
-			if (panel != null && event.target === panel && !panel.hasAttribute("data-closing")) {
+			if (
+				panel != null &&
+				swiped.current &&
+				event.target === panel &&
+				!panel.hasAttribute("data-closing")
+			) {
+				swiped.current = false;
 				rest(panel);
 			}
 		};
@@ -496,7 +521,7 @@ const Body = ({
 	<ScrollBody
 		data-slot={joinDataSlot(dataSlot, "drawer-body")}
 		className={cx(
-			"text-body min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-4 pb-4 focus-visible:focus-ring focus-visible:ring-inset",
+			"text-body min-h-0 flex-1 touch-pan-y touch-pinch-zoom overflow-y-auto overscroll-contain px-4 pb-4 focus-visible:focus-ring focus-visible:ring-inset",
 			className,
 		)}
 		{...props}
