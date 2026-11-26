@@ -289,7 +289,7 @@ describe("CodeBlock (browser)", () => {
 	 */
 	function streamedGutterCss(): string {
 		const match =
-			/pre\[data-mantle-line-numbers="true"\]:dir\(ltr\) > code\[data-mantle-gutter\] \.mantle-code-gutter \{[\s\S]*?> \.mantle-code-line::before \{[\s\S]*?\n\}/.exec(
+			/pre\[data-mantle-line-numbers="true"\][^{]*?>\s+code\[data-mantle-gutter\]\s+\.mantle-code-gutter \{[\s\S]*?>\s+\.mantle-code-line::before \{[\s\S]*?\n\}/.exec(
 				mantleCss,
 			);
 		if (match == null) {
