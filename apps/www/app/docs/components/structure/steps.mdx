@@ -188,9 +188,9 @@ Nothing is focusable, and there is no keyboard contract, because this is static 
 
 ### Steps.Root
 
-The ordered list that holds every step. Renders an `<ol role="list">` that resets the step counter and opens the gutter that the markers sit in. The number is a CSS counter, so `start` and `reversed` move the native marker that this component hides, not the number a reader sees.
+The ordered list that holds every step. Renders an `<ol role="list">` that resets the step counter and opens the gutter that the markers sit in. The number is a CSS counter that counts up from 1. Thus the part takes no `start` or `reversed`, because they would make the numbering of the list disagree with the numbers a reader sees.
 
-All props from [ol](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol#attributes) except `role`, plus:
+All props from [ol](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol#attributes) except `role`, `start`, and `reversed`, plus:
 
 | Prop       | Type      | Default | Description                                                                                                       |
 | ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -211,7 +211,7 @@ Both CSS variables are design tokens that each theme sets, not knobs for one gui
 
 One step. Renders an `<li>` that increments the step counter, draws its own segment of the rail, and mounts the numbered marker before its children. Under `asChild`, the child must render an `<li>`.
 
-All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes), plus:
+All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes) except `value`, plus:
 
 | Prop       | Type      | Default | Description                                                                                                       |
 | ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------- |

@@ -2,9 +2,10 @@ import { render, screen } from "@testing-library/react";
 import { createRef, type PropsWithChildren, type ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import invariant from "tiny-invariant";
-import { describe, expect, test } from "vitest";
+import { describe, expect, expectTypeOf, test } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as Steps from "./steps-parts.js";
+import type { StepsItemProps, StepsRootProps } from "./steps.js";
 
 /** Three steps: the shortest composition that has a first, a middle, and a last. */
 const Guide = ({ children }: PropsWithChildren) => (
@@ -123,6 +124,16 @@ describe("Steps.Root", () => {
 		const root = screen.getByTestId("root");
 		expect(root).toHaveAttribute("data-flavor", "setup");
 		expect(ref.current).toBe(root);
+	});
+});
+
+describe("Steps numbering props", () => {
+	test("takes no start, reversed, or value, so the list numbers as the markers do", () => {
+		// The visible number is a CSS counter that counts up from 1. These native
+		// attributes would change only the number that a screen reader announces.
+		expectTypeOf<StepsRootProps>().not.toHaveProperty("start");
+		expectTypeOf<StepsRootProps>().not.toHaveProperty("reversed");
+		expectTypeOf<StepsItemProps>().not.toHaveProperty("value");
 	});
 });
 

@@ -1,19 +1,22 @@
 import { render, screen } from "@testing-library/react";
+import type { PropsWithChildren } from "react";
 import invariant from "tiny-invariant";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { commands } from "vitest/browser";
+import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
+import { commands, page } from "vitest/browser";
 import * as Steps from "./steps-parts.js";
 
 let styleElement: HTMLStyleElement;
 
 // Why the compiled CSS: the browser project loads no stylesheet. The item's
 // position picks the silhouette through Tailwind variants, so only the real
-// utilities can show which shape paints.
+// utilities can show which shape paints. Why all of mantle.css: the number
+// must resolve its own color token, or it paints black on the black fill.
 beforeAll(async () => {
 	styleElement = document.createElement("style");
 	styleElement.textContent = [
-		"*, ::before, ::after { box-sizing: border-box; border: 0 solid; }",
-		await commands.tailwindCss("./steps.tsx", { theme: true }),
+		await commands.tailwindCss("./steps.tsx", { mantleCss: true }),
+		// A test-only override: a marker with `data-probe` paints that literal digit.
+		"[data-probe]::after { content: attr(data-probe) !important; }",
 	].join("\n");
 	document.head.appendChild(styleElement);
 });
@@ -138,5 +141,139 @@ describe("Steps rail (browser)", () => {
 		const label = screen.getByTestId("step").querySelector('[data-slot="steps-item-label"]');
 		invariant(label != null, "the item rendered no label slot");
 		expect(getComputedStyle(label).display).toBe("contents");
+	});
+});
+
+/**
+ * The pixels of a marker's circle interior, where the number paints: `x`
+ * 8..32 and `y` 10..40 of the 40 by 50 box.
+ */
+const circlePixelsOf = async (marker: Element) => {
+	const shot = await page.screenshot({ element: marker, save: false });
+	const bitmap = await createImageBitmap(
+		await (await fetch(`data:image/png;base64,${shot}`)).blob(),
+	);
+	const canvas = document.createElement("canvas");
+	canvas.width = bitmap.width;
+	canvas.height = bitmap.height;
+	const context = canvas.getContext("2d");
+	invariant(context != null, "no 2D context to decode the screenshot");
+	context.drawImage(bitmap, 0, 0);
+	const scale = bitmap.width / 40;
+	return context.getImageData(8 * scale, 10 * scale, 24 * scale, 30 * scale).data;
+};
+
+/**
+ * Reports, for each step in DOM order, whether its marker paints the number
+ * of its position.
+ *
+ * Why screenshots: the computed `content` of the marker is
+ * `counter(mantle-steps)`, and no DOM API reads the counter's value. The
+ * test paints each marker as is, then with the literal digit, and compares
+ * the pixels inside the circle. The stubs overlap the step above, so their
+ * edges can change between two shots.
+ */
+const numbersPaintedInOrder = async () => {
+	const matches: boolean[] = [];
+	for (const [index, item] of screen.getAllByRole("listitem").entries()) {
+		const marker = markerOf(item);
+		const painted = await circlePixelsOf(marker);
+		marker.setAttribute("data-probe", String(index + 1));
+		const literal = await circlePixelsOf(marker);
+		marker.removeAttribute("data-probe");
+		matches.push(painted.every((value, offset) => value === literal[offset]));
+	}
+	return matches;
+};
+
+const DomainStep = () => (
+	<Steps.Item>
+		<Steps.Title>Bring your own domain</Steps.Title>
+	</Steps.Item>
+);
+
+const Guide = ({ needsTraffic }: { needsTraffic: boolean }) => (
+	<Steps.Root>
+		<>
+			<Steps.Item>
+				<Steps.Title>Install the ngrok agent</Steps.Title>
+			</Steps.Item>
+			<Steps.Item>
+				<Steps.Title>Add your authtoken</Steps.Title>
+			</Steps.Item>
+		</>
+		{needsTraffic && (
+			<Steps.Item>
+				<Steps.Title>Send traffic</Steps.Title>
+			</Steps.Item>
+		)}
+		<DomainStep />
+	</Steps.Root>
+);
+
+describe("Steps numbers (browser)", () => {
+	test("a fragment, a false child, and a wrapper still number 1, 2, 3", async () => {
+		render(<Guide needsTraffic={false} />);
+		expect(await numbersPaintedInOrder()).toEqual([true, true, true]);
+	});
+
+	test("a step that renders later renumbers the steps after it", async () => {
+		const { rerender } = render(<Guide needsTraffic={false} />);
+		rerender(<Guide needsTraffic />);
+		expect(await numbersPaintedInOrder()).toEqual([true, true, true, true]);
+		rerender(<Guide needsTraffic={false} />);
+		expect(await numbersPaintedInOrder()).toEqual([true, true, true]);
+	});
+});
+
+/** The color that a forced colors palette gives a system color keyword. */
+const systemColor = (keyword: "Canvas" | "CanvasText"): string => {
+	const probe = document.createElement("span");
+	probe.style.color = keyword;
+	document.body.append(probe);
+	const { color } = getComputedStyle(probe);
+	probe.remove();
+	return color;
+};
+
+const TwoSteps = ({ children }: PropsWithChildren) => (
+	<Steps.Root>
+		<Steps.Item data-testid="first">
+			<Steps.Title>Install the ngrok agent</Steps.Title>
+		</Steps.Item>
+		<Steps.Item data-testid="last">
+			<Steps.Title>Add your authtoken</Steps.Title>
+			{children}
+		</Steps.Item>
+	</Steps.Root>
+);
+
+describe("Steps in forced colors (browser)", () => {
+	// Why after each test: the emulation belongs to the page, and the page outlives this file.
+	afterEach(async () => {
+		await commands.emulateMedia({ forcedColors: "none" });
+	});
+
+	test("the last item draws no rail below its marker", async () => {
+		await commands.emulateMedia({ forcedColors: "active" });
+		render(<TwoSteps />);
+		// Forced colors paint a transparent border in CanvasText, so the last rail
+		// must name the page color itself.
+		expect(getComputedStyle(screen.getByTestId("first")).borderInlineStartColor).toBe(
+			systemColor("CanvasText"),
+		);
+		expect(getComputedStyle(screen.getByTestId("last")).borderInlineStartColor).toBe(
+			systemColor("Canvas"),
+		);
+	});
+
+	test("the number keeps its Canvas color, with no backplate over the blob", async () => {
+		await commands.emulateMedia({ forcedColors: "active" });
+		render(<TwoSteps />);
+		const number = getComputedStyle(markerOf(screen.getByTestId("first")), "::after");
+		expect(number.color).toBe(systemColor("Canvas"));
+		// Why the mechanism: no computed style shows the backplate, and
+		// `forced-color-adjust: none` is what turns it off for this text.
+		expect(number.forcedColorAdjust).toBe("none");
 	});
 });

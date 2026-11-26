@@ -51,6 +51,9 @@ const StepMarker = () => (
 			// centered. The forced-colors pair keeps the number legible on the forced blob.
 			"after:text-steps-number after:text-lg after:font-medium after:tabular-nums",
 			"forced-colors:after:text-[Canvas]",
+			// Why: forced colors draw a Canvas backplate behind text, which hides a
+			// Canvas number on the CanvasText blob.
+			"forced-colors:after:forced-color-adjust-none",
 			// The counter is generated content, so it is not a text node that a
 			// translation engine can reach or that React moves.
 			"after:content-[counter(mantle-steps)]",
@@ -95,9 +98,12 @@ const StepLabel = ({ children }: { children: ReactNode }) => (
 );
 
 /**
- * Props for `Steps.Root`. Every `<ol>` attribute except `role`, which the part
- * owns: the guide's accessible contract is that it stays a list, so a value
- * here can only take that away.
+ * Props for `Steps.Root`. Every `<ol>` attribute except three:
+ * - `role`: the part owns it, because the guide's accessible contract is that
+ *   it stays a list.
+ * - `start` and `reversed`: the visible number is a CSS counter that always
+ *   counts up from 1, so these would make the list's own numbering disagree
+ *   with the numbers a reader sees.
  *
  * @see https://mantle.ngrok.com/components/structure/steps#stepsroot
  *
@@ -110,7 +116,9 @@ const StepLabel = ({ children }: { children: ReactNode }) => (
  * </Steps.Root>
  * ```
  */
-type StepsRootProps = Omit<ComponentProps<"ol">, "role"> & WithAsChild & WithDataSlot;
+type StepsRootProps = Omit<ComponentProps<"ol">, "role" | "start" | "reversed"> &
+	WithAsChild &
+	WithDataSlot;
 
 /**
  * The ordered list that holds every step. Renders an `<ol role="list">` that
@@ -123,9 +131,8 @@ type StepsRootProps = Omit<ComponentProps<"ol">, "role"> & WithAsChild & WithDat
  * - Under `asChild`, the part clones the role onto the child, because `Slot`
  *   merges a child's props over the slot's own.
  *
- * Composition order is the numbering. The number is a CSS counter, so `start`
- * and `reversed` move the native marker that this component hides, not the
- * number a reader sees.
+ * Composition order is the numbering. The number is a CSS counter that counts
+ * up from 1, so `StepsRootProps` omits `start` and `reversed`.
  *
  * `Steps.Root` paints with two design tokens. Each theme sets both, so
  * override them only to re-theme the rail, and override them together: the
@@ -199,8 +206,10 @@ const Root = ({
 };
 
 /**
- * Props for `Steps.Item`. Every `<li>` attribute, plus `asChild`. Under
- * `asChild`, the child must render an `<li>`.
+ * Props for `Steps.Item`. Every `<li>` attribute except `value`, plus
+ * `asChild`. The visible number is a CSS counter, so a `value` would make the
+ * list's own numbering disagree with it. Under `asChild`, the child must render
+ * an `<li>`.
  *
  * @see https://mantle.ngrok.com/components/structure/steps#stepsitem
  *
@@ -213,7 +222,7 @@ const Root = ({
  * </Steps.Root>
  * ```
  */
-type StepsItemProps = ComponentProps<"li"> & WithAsChild & WithDataSlot;
+type StepsItemProps = Omit<ComponentProps<"li">, "value"> & WithAsChild & WithDataSlot;
 
 /**
  * One step. Renders an `<li>` that increments the step counter, draws its own
@@ -274,6 +283,9 @@ const Item = ({
 			"[counter-increment:mantle-steps]",
 			// The width stays so the content keeps its indent; only the color goes.
 			"last:border-s-transparent",
+			// Why Canvas: forced colors paint a transparent border in CanvasText, but
+			// keep a system color that the page sets.
+			"forced-colors:last:border-s-[Canvas]",
 			// Why a variable per silhouette: the item's own position picks the shape,
 			// with no structural selector before a combinator. The four conditions
 			// do not overlap, so no cascade order picks the shape.
