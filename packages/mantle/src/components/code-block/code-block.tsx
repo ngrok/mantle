@@ -580,6 +580,9 @@ const CodeLineGroup = memo(function CodeLineGroup({
  * does not render again. Streamed lines fold once `useCodeBlockStream` gets
  * `complete: true`.
  *
+ * The `<pre>` is `dir="ltr"` unless the call site sets `dir`, so code reads left
+ * to right in a right-to-left page.
+ *
  * The `<pre>` always carries `translate="no"`, so a browser translation engine
  * skips the code. A translated CLI flag, env var, or YAML key is wrong, and the
  * reader copies it anyway. The `translate` prop is omitted from the type, so no
@@ -633,7 +636,7 @@ const CodeLineGroup = memo(function CodeLineGroup({
  * </CodeBlock.Root>
  * ```
  */
-const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) => {
+const Code = ({ className, dir, style, value, ref, ...props }: CodeBlockCodeProps) => {
 	const preRef = useRef<HTMLPreElement>(null);
 	const composedRef = useComposedRefs(preRef, ref);
 	const { codeId, copyTextRef, hasCodeExpander, isCodeExpanded, registerCode, unregisterCode } =
@@ -719,7 +722,10 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	// performance rationale in `fold-runtime.ts`). Re-attaches when the
 	// rendered HTML changes since `<code>` gets a new dangerouslySetInnerHTML.
 	// Only highlighted HTML has fold toggles, so plain text gets no handler.
-	useEffect(() => {
+	// Why a layout effect: a passive effect runs after paint, so a click on a
+	// new toggle can land before its handler. And a stream that resumes must
+	// show its folded lines in the same frame that its gutter comes back.
+	useIsomorphicLayoutEffect(() => {
 		const pre = preRef.current;
 		if (pre == null || (renderedHtml == null && lineFolds == null)) {
 			return undefined;
@@ -795,6 +801,9 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 					tabSize: 2,
 				} as ComponentProps<"pre">["style"]
 			}
+			// Why: code reads left to right in a right-to-left page too. Without it the
+			// lines align right and the bidi algorithm moves their punctuation.
+			dir={dir ?? "ltr"}
 			{...props}
 			// Why after the spread: a wider props object can still carry `translate`
 			// past the type, and translated code is wrong at every call site.

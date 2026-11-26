@@ -687,31 +687,40 @@ describe("CodeBlock (browser)", () => {
 			}
 		});
 
-		test("streamed lines right to left draw a number on each line, clear of the copy button", () => {
+		test("code reads left to right in a right-to-left page, and a right-to-left block numbers each line", () => {
 			const lines = ["a", "b", "c"];
-			render(
+			const view = (dir?: "rtl") => (
 				<div dir="rtl">
 					<CodeBlock.Root>
 						<CodeBlock.Body>
 							<CodeBlock.Code
+								dir={dir}
 								value={createMantleCodeBlockValue({
 									language: "text",
-									code: lines.join("\n"),
+									code: lines.join("\\n"),
 									lines,
 									showLineNumbers: true,
 								})}
 							/>
 						</CodeBlock.Body>
 					</CodeBlock.Root>
-				</div>,
+				</div>
 			);
-
+			const { rerender } = render(view());
 			const pre = getPre();
-			const gutter = pre.querySelector(".mantle-code-gutter");
-			if (gutter == null) {
-				throw new Error("expected the gutter");
-			}
-			expect(getComputedStyle(gutter, "::before").content).toBe("none");
+			const gutter = () => {
+				const element = pre.querySelector(".mantle-code-gutter");
+				if (element == null) {
+					throw new Error("expected the gutter");
+				}
+				return getComputedStyle(element, "::before").content;
+			};
+			expect(getComputedStyle(pre).direction).toBe("ltr");
+			expect(gutter()).toMatch(/1[\s\S]*2[\s\S]*3/);
+
+			// Why: right to left, one column cannot move the first two numbers clear of the copy button.
+			rerender(view("rtl"));
+			expect(gutter()).toBe("none");
 			for (const row of pre.querySelectorAll(".mantle-code-line")) {
 				expect(getComputedStyle(row, "::before").content).toMatch(/^counter\(mantle-line\)/);
 			}

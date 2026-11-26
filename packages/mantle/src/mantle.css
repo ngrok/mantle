@@ -2095,18 +2095,17 @@ pre[data-mantle-line-numbers="true"] .mantle-code-line {
  * `CodeBlock.Code` sets, and a full group's numbers never change. Each line
  * keeps the space of its number, so the code does not move.
  *
- * Why only left to right: right to left, the numbers of the first two lines
- * move clear of the copy button, and one column cannot do that. There each
- * line draws its own number as before. Why the attribute and not `:dir()`:
- * a build can lower `:dir()` to `:lang()`, which ignores `dir`. A left-to-right
- * block inside a right-to-left one also draws a number on each line.
+ * Why not with `dir="rtl"` on the `<pre>`: right to left, the numbers of the
+ * first two lines move clear of the copy button, and one column cannot do
+ * that. `CodeBlock.Code` sets `dir="ltr"`, so only a call site that sets
+ * `dir="rtl"` gets a number on each line.
  *
  * Why in the group's first line, with no height and a negative margin: the
  * column pins to the line's edge as the number on each line did, it takes no
  * space, and its numbers go down from that line. A code line does not wrap,
  * so the rows of the column match the lines.
  */
-pre[data-mantle-line-numbers="true"]:not([dir="rtl"], [dir="rtl"] *)
+pre[data-mantle-line-numbers="true"]:not([dir="rtl"])
 	> code[data-mantle-gutter]
 	.mantle-code-gutter {
 	position: sticky;
@@ -2122,7 +2121,7 @@ pre[data-mantle-line-numbers="true"]:not([dir="rtl"], [dir="rtl"] *)
 	);
 }
 
-pre[data-mantle-line-numbers="true"]:not([dir="rtl"], [dir="rtl"] *)
+pre[data-mantle-line-numbers="true"]:not([dir="rtl"])
 	> code[data-mantle-gutter]
 	.mantle-code-gutter::before {
 	/*
@@ -2145,7 +2144,7 @@ pre[data-mantle-line-numbers="true"]:not([dir="rtl"], [dir="rtl"] *)
 	background-color: var(--background-color-base);
 }
 
-pre[data-mantle-line-numbers="true"]:not([dir="rtl"], [dir="rtl"] *)
+pre[data-mantle-line-numbers="true"]:not([dir="rtl"])
 	> code[data-mantle-gutter]
 	> .mantle-code-line {
 	/* Why: with no number in the line, a line of only a form feed has no height of its own. */
@@ -2155,7 +2154,7 @@ pre[data-mantle-line-numbers="true"]:not([dir="rtl"], [dir="rtl"] *)
 	);
 }
 
-pre[data-mantle-line-numbers="true"]:not([dir="rtl"], [dir="rtl"] *)
+pre[data-mantle-line-numbers="true"]:not([dir="rtl"])
 	> code[data-mantle-gutter]
 	> .mantle-code-line::before {
 	content: none;
