@@ -2260,6 +2260,12 @@
       },
       {
         "part": "Drawer.Content",
+        "name": "data-slot` (children)",
+        "value": "`\"drawer-children\"`",
+        "description": "On a `display: contents` wrapper around the children, after the handle."
+      },
+      {
+        "part": "Drawer.Content",
         "name": "data-open",
         "value": "present while open",
         "description": "Presence-only. On the `<dialog>` positioner and the panel. Drives the slide in."

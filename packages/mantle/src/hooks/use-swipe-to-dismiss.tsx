@@ -425,6 +425,7 @@ function useSwipeToDismiss(
 			// behind, and the target must not keep a partial displacement.
 			if (session?.dragging) {
 				clearDisplacement(session);
+				optionsRef.current.onMove?.(0);
 			}
 			end();
 			element.removeEventListener("pointerdown", handleDown);

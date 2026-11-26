@@ -148,7 +148,10 @@ function pressBelongsToContent(target: EventTarget | null, panel: HTMLElement): 
 	if (!(target instanceof Element)) {
 		return true;
 	}
-	if (target.closest("input, textarea, select, [contenteditable='true'], [contenteditable='']")) {
+	if (
+		target.closest("input, textarea, select") != null ||
+		(target instanceof HTMLElement && target.isContentEditable)
+	) {
 		return true;
 	}
 	if ((target.ownerDocument.getSelection()?.toString() ?? "") !== "") {
@@ -164,10 +167,17 @@ function pressBelongsToContent(target: EventTarget | null, panel: HTMLElement): 
 	return false;
 }
 
+/** Puts the panel back at rest, with its scrim and text selection. */
+function rest(panel: HTMLElement): void {
+	panel.style.removeProperty("translate");
+	panel.style.removeProperty("user-select");
+	panel.closest("dialog")?.style.setProperty("--drawer-swipe", "0");
+}
+
 /**
- * The grab handle, which also owns the swipe and the keyboard inset. Why
- * here: it mounts with the panel, which the dialog renders only while open,
- * so its effects see the panel.
+ * The grab handle, which also owns the swipe, the keyboard inset, and the
+ * back gesture. Why here: it mounts with the panel, which the dialog renders
+ * only while open, so its effects see the panel.
  */
 function SwipeHandle() {
 	const { dismissible, setOpen } = useContext(DrawerContext);
@@ -197,13 +207,23 @@ function SwipeHandle() {
 		},
 		onDismiss: () => {
 			const panel = panelRef.current;
-			if (!dismissible || panel == null) {
-				panel?.closest("dialog")?.style.setProperty("--drawer-swipe", "0");
+			if (panel == null) {
+				return;
+			}
+			if (!dismissible) {
+				rest(panel);
 				return;
 			}
 			// Why: the exit slides from where the finger let go, not from rest.
 			panel.style.translate = `0 ${progress.current * panel.offsetHeight}px`;
 			setOpen(false);
+			// Why: a controlled owner can keep the drawer open, and the panel
+			// then goes back to rest.
+			requestAnimationFrame(() => {
+				if (!panel.hasAttribute("data-closing")) {
+					rest(panel);
+				}
+			});
 		},
 	});
 
@@ -228,12 +248,39 @@ function SwipeHandle() {
 		};
 	}, []);
 
+	// Why: a reopen during the exit slides in to rest, not to where the
+	// finger let go.
+	useEffect(() => {
+		const panel = panelRef.current;
+		const reopen = (event: AnimationEvent) => {
+			if (panel != null && event.target === panel && !panel.hasAttribute("data-closing")) {
+				rest(panel);
+			}
+		};
+		panel?.addEventListener("animationstart", reopen);
+		return () => panel?.removeEventListener("animationstart", reopen);
+	}, []);
+
+	// Why a capture listener: the native primitive closes on `cancel`, the
+	// close request of the back gesture, and its listener must not run.
+	const blocksBack = useCallbackRef((event: Event) => {
+		if (!dismissible && event.target === event.currentTarget) {
+			event.preventDefault();
+			event.stopImmediatePropagation();
+		}
+	});
+	useEffect(() => {
+		const dialog = panelRef.current?.closest("dialog");
+		dialog?.addEventListener("cancel", blocksBack, { capture: true });
+		return () => dialog?.removeEventListener("cancel", blocksBack, { capture: true });
+	}, [blocksBack]);
+
 	return (
 		<div
 			aria-hidden
 			ref={attach}
 			data-slot="drawer-handle"
-			className="mx-auto mt-2 mb-1 h-1.5 w-10 shrink-0 rounded-full bg-neutral-500/30"
+			className="mx-auto mt-2 mb-1 h-1.5 w-10 shrink-0 touch-none rounded-full bg-neutral-500/30"
 		/>
 	);
 }
@@ -272,6 +319,7 @@ type DrawerContentProps = Omit<
  * | `data-slot` | `"drawer-content"` | On the panel, with any composing part's chain ahead of it. |
  * | `data-slot` (positioner) | `"drawer-positioner"` | On the `<dialog>` around the panel. |
  * | `data-slot` (handle) | `"drawer-handle"` | On the grab handle at the top of the panel. Hidden from assistive technology. |
+ * | `data-slot` (children) | `"drawer-children"` | On a `display: contents` wrapper around the children, after the handle. |
  * | `data-open` | present while open | Presence-only. On the `<dialog>` positioner and the panel. Drives the slide in. |
  * | `data-closing` | present while the exit plays | Presence-only. On the `<dialog>` positioner and the panel. Drives the slide out. |
  * | `data-overlay` | `""` | On the `<dialog>` positioner. A press on the scrim targets it. |
@@ -299,6 +347,7 @@ const Content = ({
 	className,
 	"data-slot": dataSlot,
 	onEscapeKeyDown,
+	onOpenAutoFocus,
 	onPointerDownOutside,
 	ref,
 	...props
@@ -317,14 +366,20 @@ const Content = ({
 			)}
 			data-slot={joinDataSlot(dataSlot, "drawer-content")}
 			className={cx(
-				"bg-dialog border-dialog fixed inset-x-0 bottom-(--drawer-keyboard-inset,0px) flex max-h-[calc(100dvh-2rem)] w-full flex-col rounded-t-2xl border-t shadow-lg outline-hidden sm:mx-auto sm:max-w-lg",
-				"touch-none pb-[env(safe-area-inset-bottom)]",
+				"bg-dialog border-dialog fixed inset-x-0 bottom-(--drawer-keyboard-inset,0px) flex max-h-[calc(100dvh-2rem-var(--drawer-keyboard-inset,0px))] w-full flex-col rounded-t-2xl border-t shadow-lg outline-hidden sm:mx-auto sm:max-w-lg",
+				"pb-[env(safe-area-inset-bottom)]",
 				// Why the transition on `translate`: a released drag springs back.
 				"transition-[translate] duration-200 ease-out-strong motion-reduce:transition-none",
 				"data-open:animate-in data-open:slide-in-from-bottom data-closing:animate-out data-closing:slide-out-to-bottom data-closing:duration-150 motion-reduce:animate-none!",
 				className,
 			)}
 			ref={ref}
+			// Why the dialog keeps focus: focus on the first field would open the
+			// on-screen keyboard over the drawer. A focus move in the handler stays.
+			onOpenAutoFocus={(event) => {
+				onOpenAutoFocus?.(event);
+				event.preventDefault();
+			}}
 			onEscapeKeyDown={(event) => {
 				onEscapeKeyDown?.(event);
 				if (!dismissible) {
@@ -340,7 +395,11 @@ const Content = ({
 			{...props}
 		>
 			<SwipeHandle />
-			{children}
+			{/* Why the wrapper: browser translation reparents a bare text child,
+			    and React then fails to remove it beside the permanent handle. */}
+			<div data-slot="drawer-children" className="contents">
+				{children}
+			</div>
 		</DrawerPrimitiveContent>
 	);
 };
@@ -365,7 +424,7 @@ const Header = ({
 }: ComponentProps<"div"> & WithDataSlot) => (
 	<div
 		data-slot={joinDataSlot(dataSlot, "drawer-header")}
-		className={cx("between:mbe-1 shrink-0 px-4 pt-1 pb-3", className)}
+		className={cx("between:mbe-1 shrink-0 touch-none px-4 pt-1 pb-3", className)}
 		{...props}
 	/>
 );
@@ -465,7 +524,7 @@ const Footer = ({
 }: ComponentProps<"div"> & WithDataSlot) => (
 	<div
 		data-slot={joinDataSlot(dataSlot, "drawer-footer")}
-		className={cx("flex shrink-0 justify-end gap-2 px-4 pt-2 pb-4", className)}
+		className={cx("flex shrink-0 touch-none justify-end gap-2 px-4 pt-2 pb-4", className)}
 		{...props}
 	/>
 );

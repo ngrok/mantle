@@ -2,7 +2,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands } from "vitest/browser";
 import * as Drawer from "./drawer-parts.js";
 
@@ -10,7 +10,10 @@ let styleElement: HTMLStyleElement;
 
 beforeAll(async () => {
 	styleElement = document.createElement("style");
-	styleElement.textContent = await commands.tailwindCss("./drawer.tsx");
+	styleElement.textContent = [
+		await commands.tailwindCss("./drawer.tsx"),
+		await commands.tailwindCss("../dialog/native-primitive.tsx"),
+	].join("\n");
 	document.head.append(styleElement);
 });
 
@@ -18,15 +21,22 @@ afterAll(() => {
 	styleElement.remove();
 });
 
-function Filters({ dismissible }: { dismissible?: boolean }) {
+function Filters({
+	dismissible,
+	onOpenChange,
+}: {
+	dismissible?: boolean;
+	onOpenChange?: (open: boolean) => void;
+}) {
 	return (
-		<Drawer.Root dismissible={dismissible}>
+		<Drawer.Root dismissible={dismissible} onOpenChange={onOpenChange}>
 			<Drawer.Trigger>Filters</Drawer.Trigger>
 			<Drawer.Content>
 				<Drawer.Header>
 					<Drawer.Title>Filters</Drawer.Title>
 				</Drawer.Header>
 				<Drawer.Body>
+					<input aria-label="Search" />
 					<p>Status</p>
 				</Drawer.Body>
 				<Drawer.Footer>
@@ -77,6 +87,8 @@ describe("Drawer", () => {
 		await user.click(trigger);
 		const dialog = await screen.findByRole("dialog", { name: "Filters" });
 		expect(dialog.matches(":modal")).toBe(true);
+		// Why: focus on the field would open the on-screen keyboard over the drawer.
+		expect(document.activeElement).toBe(dialog);
 		const panel = panelOf(dialog);
 
 		const release = dragDown(panel, panel.offsetHeight * 0.6);
@@ -88,16 +100,39 @@ describe("Drawer", () => {
 		expect(document.activeElement).toBe(trigger);
 	});
 
-	test("stays open after a long drag and Escape when not dismissible", async () => {
+	test("stays open after a long drag, Escape, and back when not dismissible", async () => {
 		const user = userEvent.setup();
-		render(<Filters dismissible={false} />);
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(<Filters dismissible={false} onOpenChange={onOpenChange} />);
 		await user.click(screen.getByRole("button", { name: "Filters" }));
 		const dialog = await screen.findByRole("dialog", { name: "Filters" });
 		const panel = panelOf(dialog);
 		dragDown(panel, panel.offsetHeight * 0.8)();
+		// Why: the drag turns off text selection, and the spring back restores it.
+		expect(panel.style.userSelect).toBe("");
 		await user.keyboard("{Escape}");
+		// Why a `cancel` event: the back gesture sends it, with no Escape keydown.
+		dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
+		// Why the one call: the open. The drag, Escape, and back ask for no close.
+		expect(onOpenChange.mock.calls).toEqual([[true]]);
 		expect(screen.getByRole("dialog", { name: "Filters" })).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "Done" }));
 		await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+	});
+
+	test("goes back to rest when a controlled owner keeps it open after a long drag", async () => {
+		render(
+			<Drawer.Root open onOpenChange={() => {}}>
+				<Drawer.Content aria-label="Edit">
+					<Drawer.Body>Name</Drawer.Body>
+				</Drawer.Content>
+			</Drawer.Root>,
+		);
+		const dialog = await screen.findByRole("dialog", { name: "Edit" });
+		const panel = panelOf(dialog);
+		dragDown(panel, panel.offsetHeight * 0.8)();
+		await waitFor(() => expect(panel.style.translate).toBe(""));
+		expect(dialog.style.getPropertyValue("--drawer-swipe")).toBe("0");
+		expect(dialog.matches(":modal")).toBe(true);
 	});
 });

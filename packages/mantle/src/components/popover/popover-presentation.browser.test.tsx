@@ -11,7 +11,8 @@ import * as Popover from "./popover-parts.js";
 function Reminder() {
 	return (
 		<Popover.Root presentation="auto">
-			<Popover.Trigger>Add reminder</Popover.Trigger>
+			{/* Why an `id`: the drawer takes its name from the trigger's rendered `id`. */}
+			<Popover.Trigger id="add-reminder">Add reminder</Popover.Trigger>
 			<Popover.Content>
 				<label>
 					Remind me to <input defaultValue="Send the Q3 roadmap" />
@@ -23,7 +24,7 @@ function Reminder() {
 }
 
 /**
- * Opens the popover once the idle prefetch of the drawer module has loaded:
+ * Opens the popover once the prefetch of the drawer module has loaded:
  * an open before the load presents as a popover by design, so the test
  * closes it and opens again until the open presents a drawer.
  */
@@ -46,7 +47,10 @@ let styleElement: HTMLStyleElement;
 beforeAll(async () => {
 	styleElement = document.createElement("style");
 	styleElement.textContent = [
+		await commands.tailwindCss("./popover.tsx"),
 		await commands.tailwindCss("./drawer.tsx"),
+		await commands.tailwindCss("../drawer/drawer.tsx"),
+		await commands.tailwindCss("../dialog/native-primitive.tsx"),
 		await commands.tailwindCss("../sandbar/sandbar.tsx"),
 	].join("\n");
 	document.head.append(styleElement);
@@ -104,6 +108,29 @@ describe.runIf(server.browser === "chromium")('Popover presentation="auto"', () 
 
 		await user.click(screen.getByRole("button", { name: "Cancel" }));
 		await waitFor(() => expect(bar()).toBeInTheDocument());
+	});
+
+	test("gives Escape to a drawer inside a popover, and keeps the popover open", async () => {
+		await page.viewport(390, 844);
+		await commands.emulateMedia({ hover: "none" });
+		const user = userEvent.setup();
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Project</Popover.Trigger>
+				<Popover.Content>
+					<Reminder />
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		const outer = screen.getByRole("button", { name: "Project" });
+		await user.click(outer);
+		await openDrawer(user);
+
+		await user.keyboard("{Escape}");
+		await waitFor(() =>
+			expect(document.querySelector("dialog[data-slot='drawer-positioner']")).toBeNull(),
+		);
+		expect(outer).toHaveAttribute("aria-expanded", "true");
 	});
 
 	test("keeps the popover on a desktop", async () => {

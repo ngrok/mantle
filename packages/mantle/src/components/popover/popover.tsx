@@ -149,7 +149,11 @@ function Root({
 	// event here, and the decision must hold until the close and its exit.
 	// Why `Drawer` must have loaded: a tap never waits on the network, so an
 	// open before the load presents as a popover. The server renders no content.
-	const [opened, setOpened] = useState({ open, drawer: null as typeof Drawer });
+	// Why the server agrees: it renders no content, and `Drawer` loads after hydration.
+	const [opened, setOpened] = useState(() => ({
+		open,
+		drawer: open && wantsDrawer(presentation) ? Drawer : null,
+	}));
 	if (opened.open !== open) {
 		// Why keep the drawer on close: the drawer plays its exit before it unmounts.
 		const drawer = open && wantsDrawer(presentation) ? Drawer : null;
@@ -178,6 +182,11 @@ function Root({
 				if (next === open) {
 					return;
 				}
+				// Why again here: a phone that rotates below `sm`, or a failed
+				// load, loads the drawer for the next open.
+				if (Drawer == null && wantsDrawer(presentation)) {
+					loadDrawer();
+				}
 				if (openProp === undefined) {
 					setUncontrolledOpen(next);
 				}
@@ -201,6 +210,7 @@ function Root({
 			open,
 			openProp,
 			opened.drawer,
+			presentation,
 			setAnchor,
 			setTrigger,
 			triggerId,
@@ -597,7 +607,7 @@ const Content = (props: PopoverContentProps) => {
 			open={state.open}
 			onOpenChange={state.setOpen}
 			id={state.contentId}
-			triggerId={state.triggerId}
+			triggerRef={state.triggerRef}
 			{...drawerProps}
 		/>
 	);

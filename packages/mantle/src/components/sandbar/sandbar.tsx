@@ -609,7 +609,7 @@ const Root = ({
 			<LayerContainer
 				className={cx(
 					"pointer-events-none fixed inset-x-0 bottom-4 z-70 flex justify-center px-4 [&>*]:pointer-events-auto sm:bottom-10",
-					"transition-[opacity,translate,visibility] duration-200 ease-out-strong",
+					"transition-[opacity,translate,visibility] duration-200 ease-out-strong motion-reduce:transition-none",
 					"in-[[data-slot=drawer-positioner][data-open]]:invisible in-[[data-slot=drawer-positioner][data-open]]:opacity-0 in-[[data-slot=drawer-positioner][data-open]]:duration-150 motion-safe:in-[[data-slot=drawer-positioner][data-open]]:translate-y-[calc(100%+2.5rem)]",
 				)}
 				modal={false}

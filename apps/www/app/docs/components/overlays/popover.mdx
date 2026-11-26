@@ -75,7 +75,7 @@ Set `presentation="auto"` on `Popover.Root` when the popover holds a small task,
 
 Keep the default for a short list to pick from: a list that jumps to the bottom of the screen moves away from the control it belongs to. `DropdownMenu`, `Select`, and `Combobox` have no drawer.
 
-The drawer code loads at idle, and only on a phone, so a desktop page never fetches it. A tap before it loads opens a popover. Style the two shapes with `data-[presentation=drawer]:`. A `Sandbar` slides away while the drawer is open and comes back when it closes.
+The drawer code loads after the popover mounts, and only on a phone, so a desktop page never fetches it. A tap before it loads opens a popover. Style the two shapes with `data-[presentation=drawer]:`. A `Sandbar` slides away while the drawer is open and comes back when it closes.
 
 <Example name="components/overlays/popover/presentation" title="Popover presentation example">
 
