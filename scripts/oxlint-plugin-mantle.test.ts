@@ -385,6 +385,7 @@ describe("no-structural-combinator", () => {
 		'cx("has-[.row]:marker:text-x");',
 		'cx("has-[.row]:selection:text-x");',
 		'cx("peer-has-[>input]:[&>*]:block");',
+		'cx("[&:has(>li:nth-child(odd_of_.group_.item))_.line]:block");',
 		'cx("not-group-has-[.toggle]:block");',
 		'cx("not-peer-has-[.toggle]:block");',
 	])("flags %s", (source) => {
@@ -398,7 +399,7 @@ describe("no-structural-combinator", () => {
 		// A `:has()` on the subject, or one that tests only a chain of children.
 		'cx("has-[.x]:p-2 has-focus-within:p-2 has-[>.x]:*:p-2 [&:has(>a>b)_.c]:p-2");',
 		'cx("group-has-[>input:checked]/radio:bg-x peer-has-[>input:checked]:block");',
-		'cx("[:is(.a:has(>input:checked)_.b)_&]:p-2 [&:has(>li:nth-child(2n+1))_.b]:p-2 group-[:has(>input)]:p-2");',
+		'cx("[:is(.a:has(>input:checked)_.b)_&]:p-2 [&:has(>li:nth-child(2n+1))_.b]:p-2 [&:has(>li:nth-child(2n+1_of_:not(.m)))_.b]:p-2 group-[:has(>input)]:p-2");',
 		'cx("[&>*]:p-2 [&_*]:p-2 [&[data-open]>*]:p-2 [&+:is(.a)]:p-2");',
 		'cx("[&>*:last-child]:rounded-l-none [&>*:not(:first-child)]:-ml-px last:border-0");',
 		'cx("has-[>button:last-child]:pe-1 [&:has(>a:first-child_b)]:p-2");',

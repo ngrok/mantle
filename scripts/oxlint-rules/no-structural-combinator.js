@@ -140,8 +140,12 @@ function reachesPastChildren(argument) {
 	return splitTopLevel(argument).some((part) => {
 		// Why keep nested arguments: `:has(> :is(.b .c))` reaches past the children too.
 		// Why drop `An+B`: the `+` of `:nth-child(2n + 1)` is no combinator.
+		// Why keep `of <selector>`: it tests the anchor's descendants too.
 		const chain = part
-			.replace(/:nth-[a-z-]+\([^()]*\)/g, ":nth()")
+			.replace(
+				/:nth-[a-z-]+\(((?:[^()]|\([^()]*\))*)\)/gi,
+				(_, argument) => `:nth(${argument.split(/\s+of\s+/i)[1] ?? ""})`,
+			)
 			.trim()
 			// Why not after `)`: in `:not(.a) .b` that space is a descendant combinator.
 			.replace(/\s*([>+~,(])\s*/g, "$1")

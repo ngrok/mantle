@@ -71,6 +71,10 @@ async function restyledPerUpdate(run: (mark: () => void) => Promise<void>): Prom
 		const count = event.args?.elementCount ?? 0;
 		return count >= FRAME_MARKER_SIZE && count <= FRAME_MARKER_SIZE + 4;
 	})?.args?.beginData?.frame;
+	if (frame === undefined) {
+		// Why throw: with no frame, the sum would count every frame's recalcs.
+		throw new Error("No style recalc matched the frame marker.");
+	}
 	const marks = events
 		.filter((event) => event.name === UPDATE_MARK)
 		.map((event) => event.ts)
