@@ -1,9 +1,21 @@
 "use client";
 
-import type { ComponentProps, ReactElement, ReactNode } from "react";
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import type { ComponentProps, HTMLAttributes, ReactElement, ReactNode, Ref } from "react";
+import {
+	Children,
+	cloneElement,
+	createContext,
+	isValidElement,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import invariant from "tiny-invariant";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -28,18 +40,45 @@ function useFocusShortcutContext(part: string): FocusShortcutContextValue {
 function isTextControl(target: EventTarget | null): boolean {
 	return (
 		target instanceof HTMLElement &&
-		(target.isContentEditable || target.matches("input, textarea, select"))
+		(target.isContentEditable ||
+			target.matches(
+				"textarea, select, input:not([type=checkbox], [type=radio], [type=button], [type=submit], [type=reset], [type=image], [type=range], [type=color], [type=file])",
+			))
 	);
+}
+
+/** Whether a field is disabled, natively or with `aria-disabled`, which keeps it focusable. */
+function isDisabled(field: HTMLElement): boolean {
+	return field.matches(":disabled, [aria-disabled='true']");
+}
+
+/** Whether an ancestor hides the field from the user, across shadow roots. A modal does this to the page behind it. */
+function isHidden(field: HTMLElement): boolean {
+	for (let node: Element | null = field; node != null;) {
+		if (node.closest("[inert], [aria-hidden='true']") != null) {
+			return true;
+		}
+		const root = node.getRootNode();
+		node = root instanceof ShadowRoot ? root.host : null;
+	}
+	return false;
 }
 
 /** Whether the `/` hint shows for a field: it is empty, enabled, and not focused. */
 function canShowHint(field: HTMLElement): boolean {
-	if (field.matches(":focus, :disabled")) {
+	if (field.matches(":focus") || isDisabled(field)) {
 		return false;
 	}
-	return field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement
+	return field instanceof HTMLInputElement ||
+		field instanceof HTMLTextAreaElement ||
+		field instanceof HTMLSelectElement
 		? field.value === ""
 		: true;
+}
+
+/** Joins space-separated `aria-keyshortcuts` lists, without duplicates. */
+function joinKeyShortcuts(...lists: Array<string | undefined>): string {
+	return [...new Set(lists.flatMap((list) => list?.split(/\s+/) ?? []).filter(Boolean))].join(" ");
 }
 
 /**
@@ -57,8 +96,8 @@ function isFocusShortcut(event: KeyboardEvent, field: HTMLElement): boolean {
 		!event.altKey &&
 		// The composed path starts at a text field inside a shadow root, where `target` is the host.
 		!isTextControl(event.composedPath()[0] ?? null) &&
-		// A modal hides the page behind it with `inert` or `aria-hidden`, and a field there must not take focus.
-		field.closest("[inert], [aria-hidden='true']") == null
+		!isDisabled(field) &&
+		!isHidden(field)
 	);
 }
 
@@ -101,24 +140,28 @@ function Root({ children }: FocusShortcutRootProps) {
 /**
  * The props for `FocusShortcut.Field`.
  */
-type FocusShortcutFieldProps = WithDataSlot & {
-	/**
-	 * The one focusable field that `/` focuses, such as `Input`, `InputCapture`,
-	 * `TextArea`, `Combobox.Input`, or `Query.Input`. Its `ref` must reach the
-	 * element that takes focus.
-	 */
-	children: ReactElement;
-};
+type FocusShortcutFieldProps = Omit<HTMLAttributes<HTMLElement>, "children"> &
+	WithDataSlot & {
+		/**
+		 * The one focusable field that `/` focuses, such as `Input`, `InputCapture`,
+		 * `TextArea`, `Combobox.Input`, or `Query.Input`. Its `ref` must reach the
+		 * element that takes focus.
+		 */
+		children: ReactElement<{ "aria-keyshortcuts"?: string }>;
+		/** Composed with the child's own `ref`, as `Field.Control` passes one. */
+		ref?: Ref<HTMLElement>;
+	};
 
 /**
  * Makes `/` move focus into its child field from anywhere on the page. It
  * renders no element of its own: it merges `aria-keyshortcuts="/"` onto the
- * child and keeps the child's own shortcuts in the list.
+ * child and keeps the child's own shortcuts in the list. Its other props, such
+ * as the ones `Field.Control` passes, merge onto the child as `Slot` merges them.
  *
  * `/` still types a slash in any text control. It does nothing with Meta,
  * Ctrl, or Alt held, while an IME composes, or on a key repeat. A field that
- * is disabled, not displayed, or behind a modal does not take the key, and
- * leaves it to a later field. When two fields on a page have the shortcut,
+ * is disabled (natively or with `aria-disabled`), not displayed, or behind a
+ * modal does not take the key, and leaves it to a later field. When two fields on a page have the shortcut,
  * `/` goes to the field that mounted first and can take focus.
  *
  * **Data attributes:**
@@ -143,44 +186,76 @@ type FocusShortcutFieldProps = WithDataSlot & {
  * ```
  */
 // Why no asChild: the part renders no element of its own, and it always merges onto its child.
-function Field({ children, "data-slot": dataSlot }: FocusShortcutFieldProps) {
+function Field({
+	"aria-keyshortcuts": ownKeyShortcuts,
+	children,
+	"data-slot": dataSlot,
+	ref,
+	...props
+}: FocusShortcutFieldProps) {
 	const { setIsHintShown } = useFocusShortcutContext("FocusShortcut.Field");
 	const fieldRef = useRef<HTMLElement | null>(null);
 
-	// Why a ref callback: the listeners live as long as the element, with no effect.
-	const ref = useCallback(
+	// Why an effect and not the ref callback: a child that passes a new ref on each render
+	// re-attaches the ref, and a re-added listener would move behind later fields.
+	useEffect(() => {
+		const handleWindowKeyDown = (event: KeyboardEvent) => {
+			const field = fieldRef.current;
+			if (field == null || !isFocusShortcut(event, field)) {
+				return;
+			}
+			// A field that is disabled or not displayed does not take focus, and leaves the key to a later field.
+			field.focus();
+			if (!field.matches(":focus")) {
+				return;
+			}
+			// The prevented default also tells a later field that this one took the key.
+			event.preventDefault();
+		};
+		window.addEventListener("keydown", handleWindowKeyDown);
+		return () => window.removeEventListener("keydown", handleWindowKeyDown);
+	}, []);
+
+	const fieldCallbackRef = useCallback(
 		(field: HTMLElement | null) => {
 			fieldRef.current = field;
 			if (field == null) {
 				return;
 			}
-			const syncHint = () => setIsHintShown(canShowHint(field));
-			const handleWindowKeyDown = (event: KeyboardEvent) => {
-				if (!isFocusShortcut(event, field)) {
-					return;
-				}
-				// A field that is disabled or not displayed does not take focus, and leaves the key to a later field.
-				field.focus();
-				if (!field.matches(":focus")) {
-					return;
-				}
-				// The prevented default also tells a later field that this one took the key.
-				event.preventDefault();
-			};
+			const syncHint = () => setIsHintShown(field.isConnected && canShowHint(field));
+			// Why after a task: the `reset` event fires before the form restores the values.
+			const syncAfterReset = () => setTimeout(syncHint);
+			// Why observe attributes: React writes a controlled `value` and `disabled` to the
+			// attributes, so the hint follows state that only the child owns.
+			const observer = new MutationObserver(syncHint);
+			observer.observe(field, {
+				attributeFilter: ["value", "disabled"],
+				characterData: true,
+				childList: true,
+				subtree: true,
+			});
+			const form =
+				field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement
+					? field.form
+					: null;
 			field.addEventListener("focus", syncHint);
 			field.addEventListener("blur", syncHint);
 			field.addEventListener("input", syncHint);
-			window.addEventListener("keydown", handleWindowKeyDown);
+			form?.addEventListener("reset", syncAfterReset);
+			syncHint();
 			return () => {
 				fieldRef.current = null;
+				observer.disconnect();
 				field.removeEventListener("focus", syncHint);
 				field.removeEventListener("blur", syncHint);
 				field.removeEventListener("input", syncHint);
-				window.removeEventListener("keydown", handleWindowKeyDown);
+				form?.removeEventListener("reset", syncAfterReset);
+				setIsHintShown(false);
 			};
 		},
 		[setIsHintShown],
 	);
+	const composedRef = useComposedRefs(ref, fieldCallbackRef);
 
 	// Why on each render, before paint: a new `value` or `disabled` from the app fires no DOM event.
 	useIsomorphicLayoutEffect(() => {
@@ -189,13 +264,17 @@ function Field({ children, "data-slot": dataSlot }: FocusShortcutFieldProps) {
 		}
 	});
 
+	const child = Children.only(children);
 	return (
-		<Slot
-			aria-keyshortcuts="/"
-			data-slot={joinDataSlot(dataSlot, "focus-shortcut-field")}
-			ref={ref}
-		>
-			{children}
+		<Slot {...props} data-slot={joinDataSlot(dataSlot, "focus-shortcut-field")} ref={composedRef}>
+			{/* Why clone: `Slot` lets the child's own `aria-keyshortcuts` replace the part's. */}
+			{cloneElement(child, {
+				"aria-keyshortcuts": joinKeyShortcuts(
+					child.props["aria-keyshortcuts"],
+					ownKeyShortcuts,
+					"/",
+				),
+			})}
 		</Slot>
 	);
 }
@@ -255,9 +334,16 @@ function Hint({
 	};
 
 	if (asChild) {
+		// Why clone: `Slot` lets the child's props win, and the part owns `hidden`, `aria-hidden`, and `translate`.
 		return (
-			<Slot data-slot={joinDataSlot(dataSlot, "focus-shortcut-hint")} {...hintProps} translate="no">
-				{children}
+			<Slot data-slot={joinDataSlot(dataSlot, "focus-shortcut-hint")} {...hintProps}>
+				{isValidElement<HTMLAttributes<HTMLElement>>(children)
+					? cloneElement(children, {
+							"aria-hidden": true,
+							hidden: hintProps.hidden,
+							translate: "no",
+						})
+					: children}
 			</Slot>
 		);
 	}

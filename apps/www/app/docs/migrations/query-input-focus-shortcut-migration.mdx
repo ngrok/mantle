@@ -23,9 +23,13 @@ In a project that installs `@ngrok/mantle`:
 npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/query-input-focus-shortcut.yml --update-all <path>
 ```
 
-The rules apply steps 1, 2, and 3. They wrap each `Query.Input` that sets `keyboardShortcut` or `keyboardShortcut={true}`, put `FocusShortcut.Hint` first among its children, add the `FocusShortcut` import, and remove `keyboardShortcut={false}`. They find `Query` through its import from `@ngrok/mantle/query`, so a renamed import matches, and a part from another library or a local name that shadows the import stays. These stay manual:
+The rules apply steps 1, 2, and 3. They wrap each `Query.Input` that sets `keyboardShortcut` or `keyboardShortcut={true}`, put `FocusShortcut.Hint` first among its children, add the `FocusShortcut` import, and remove `keyboardShortcut={false}`. They remove the attribute through the syntax tree, so a string or a comment that names it stays. They find `Query` through its import from `@ngrok/mantle/query`, so a renamed import matches, and a part from another library or a local name that shadows the import stays. These stay manual:
 
 - Step 4, because a forwarded value such as `keyboardShortcut={enabled}` is known only at runtime. The type checker names each one.
+- A `Query.Input` with a `key`, such as one in a `.map()`, because the key must move to the new outer element. Move it to `FocusShortcut.Root` by hand.
+- A `Query.Input` with a spread after the prop, because the spread can turn the shortcut off. A flag inside a spread object is also manual.
+- A `Query.Input` with a `children` prop, or with text or an expression as a child. Put the hint first, and wrap text in an element: bare text beside the hint breaks a page that a browser translated.
+- A `Query.Input` that is the direct child of `Field.Control`, because `Field.Control` passes its ref and props to its one child. Put `Field.Control` inside `FocusShortcut.Field`.
 - Step 5, because a test query is a string.
 
 The codemod leaves no `keyboardShortcut` it can rewrite, so it is safe to run twice. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
@@ -41,7 +45,7 @@ The codemod leaves no `keyboardShortcut` it can rewrite, so it is safe to run tw
    - `import { FocusShortcut } from "@ngrok/mantle/focus-shortcut";`
 3. Remove `keyboardShortcut={false}`. The shortcut was off by default.
 4. Where a component forwards its own boolean (`keyboardShortcut={keyboardShortcut}`), choose one:
-   - Keep the component's prop, and render the wrapped field from step 2 when it is true and the plain field when it is false.
+   - Keep the component's prop, and render the wrapped field from step 2 when it is true and the plain field when it is false. A change of the value at runtime then remounts the field, which loses focus and selection, so set it once per page.
    - Or remove the component's prop, and let each caller wrap the field. This is the better shape when the component already takes the field as a child.
 5. In tests: the hint's `data-slot` changes.
    - Before: `document.querySelector('[data-slot~="query-input-shortcut"]')`

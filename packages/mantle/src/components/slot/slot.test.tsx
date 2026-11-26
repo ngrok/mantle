@@ -419,18 +419,6 @@ describe("Slot render-prop className and style", () => {
 		);
 	});
 
-	it("joins the child's and the Slot's aria-keyshortcuts", () => {
-		const { getByRole } = render(
-			<Slot aria-keyshortcuts="/">
-				<input aria-label="Name" aria-keyshortcuts="Control+K" />
-			</Slot>,
-		);
-		expect(getByRole("textbox", { name: "Name" })).toHaveAttribute(
-			"aria-keyshortcuts",
-			"Control+K /",
-		);
-	});
-
 	it("runs the cleanup a child ref callback returns, and clears the Slot's ref, on unmount", () => {
 		const slotRef = createRef<HTMLAnchorElement>();
 		const cleanup = vi.fn<() => void>();

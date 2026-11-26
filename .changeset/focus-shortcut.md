@@ -10,6 +10,4 @@ Add `FocusShortcut`, and remove `keyboardShortcut` from `Query.Input`. This is a
 - `FocusShortcut.Field` merges `aria-keyshortcuts="/"` onto its child, and keeps the child's own shortcuts in the list. It joins `focus-shortcut-field` onto the child's `data-slot`.
 - `FocusShortcut.Hint` renders the `/` key as a `Kbd` (`data-slot="focus-shortcut-hint kbd"`) where you place it. It shows only while the field is empty, enabled, and not focused, on a device that can hover. Otherwise it carries the native `hidden` attribute. It takes `asChild`.
 
-`Slot` now joins the child's and its own `aria-keyshortcuts`, as it already joins `aria-describedby`.
-
 Docs: https://mantle.ngrok.com/components/forms/focus-shortcut

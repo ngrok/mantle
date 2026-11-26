@@ -29,7 +29,6 @@ type ComposedChildProps = WithDataSlot & {
 	ref?: Ref<HTMLElement>;
 	style?: CSSProperties | RenderProp<CSSProperties>;
 	"aria-describedby"?: string;
-	"aria-keyshortcuts"?: string;
 };
 
 /**
@@ -49,11 +48,8 @@ type AnyHandler = (...args: unknown[]) => unknown;
 const isHandler = (key: string, value: unknown): value is AnyHandler =>
 	/^on[A-Z]/.test(key) && typeof value === "function";
 
-/** Joins two space-separated token lists, such as `aria-describedby` ids, without duplicates. */
-const joinTokenLists = (
-	first: string | undefined,
-	second: string | undefined,
-): string | undefined => {
+/** Joins two `aria-describedby` id lists, without duplicates. */
+const joinIdLists = (first: string | undefined, second: string | undefined): string | undefined => {
 	const ids = new Set(`${first ?? ""} ${second ?? ""}`.split(/\s+/).filter(Boolean));
 	return ids.size > 0 ? [...ids].join(" ") : undefined;
 };
@@ -227,11 +223,7 @@ const Slot = ({ children, className, "data-slot": dataSlot, ref, style, ...props
 	const composed = {
 		className: composeClassName(className, child.props.className),
 		style: composeStyle(style, child.props.style),
-		"aria-describedby": joinTokenLists(child.props["aria-describedby"], props["aria-describedby"]),
-		"aria-keyshortcuts": joinTokenLists(
-			child.props["aria-keyshortcuts"],
-			props["aria-keyshortcuts"],
-		),
+		"aria-describedby": joinIdLists(child.props["aria-describedby"], props["aria-describedby"]),
 		"data-slot": joinDataSlot(dataSlot, child.props["data-slot"]),
 		ref: child.type === Fragment ? undefined : composeRefs(ref, child.props.ref),
 	};

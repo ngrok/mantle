@@ -1,10 +1,11 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { createRef, useState } from "react";
+import { type ComponentProps, createRef, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import { testGrammar } from "../../utils/query-filter/test-grammar.js";
 import * as Combobox from "../combobox/combobox-parts.js";
+import * as FieldParts from "../field/field-parts.js";
 import { Input, InputCapture } from "../input/input.js";
 import * as Query from "../query/query-parts.js";
 import { TextArea } from "../text-area/text-area.js";
@@ -123,6 +124,60 @@ describe("FocusShortcut", () => {
 		expect(screen.getByRole("textbox", { name: "Search" })).not.toHaveFocus();
 	});
 
+	test("passes over an aria-disabled field, and hides its hint", () => {
+		render(
+			<>
+				<FocusShortcut.Root>
+					<FocusShortcut.Field>
+						<input aria-label="Locked" aria-disabled="true" />
+					</FocusShortcut.Field>
+					<FocusShortcut.Hint data-testid="locked hint" />
+				</FocusShortcut.Root>
+				<SearchField label="Open" />
+			</>,
+		);
+
+		pressSlash();
+
+		expect(screen.getByRole("textbox", { name: "Open" })).toHaveFocus();
+		expect(screen.getByTestId("locked hint")).toHaveAttribute("hidden");
+	});
+
+	test("takes `/` from a focused checkbox, which cannot type it", () => {
+		render(
+			<>
+				<input type="checkbox" aria-label="Active" />
+				<SearchField />
+			</>,
+		);
+		const checkbox = screen.getByRole("checkbox", { name: "Active" });
+		checkbox.focus();
+
+		pressSlash(checkbox);
+
+		expect(screen.getByRole("textbox", { name: "Search" })).toHaveFocus();
+	});
+
+	test("passes over a field in a shadow root that aria-hidden hides", () => {
+		const host = document.createElement("div");
+		host.setAttribute("aria-hidden", "true");
+		document.body.append(host);
+		const shadowRoot = host.attachShadow({ mode: "open" });
+		const { unmount } = render(<SearchField label="Hidden" />, {
+			container: shadowRoot.appendChild(document.createElement("div")),
+		});
+		render(<SearchField label="Shown" />);
+
+		try {
+			pressSlash();
+
+			expect(screen.getByRole("textbox", { name: "Shown" })).toHaveFocus();
+		} finally {
+			unmount();
+			host.remove();
+		}
+	});
+
 	test("gives `/` to the first field that a modal does not hide", () => {
 		render(
 			<>
@@ -225,6 +280,115 @@ describe("FocusShortcut", () => {
 			expect(screen.getByTestId("hint")).not.toHaveAttribute("hidden");
 		});
 
+		test("hides while a select has a value", () => {
+			render(
+				<FocusShortcut.Root>
+					<FocusShortcut.Field>
+						<select aria-label="Region" defaultValue="us">
+							<option value="">Any</option>
+							<option value="us">US</option>
+						</select>
+					</FocusShortcut.Field>
+					<FocusShortcut.Hint data-testid="hint" />
+				</FocusShortcut.Root>,
+			);
+
+			expect(screen.getByTestId("hint")).toHaveAttribute("hidden");
+		});
+
+		test("hides once the field unmounts", async () => {
+			function Toggle() {
+				const [isShown, setIsShown] = useState(true);
+				return (
+					<>
+						<button type="button" onClick={() => setIsShown(false)}>
+							Remove
+						</button>
+						<FocusShortcut.Root>
+							{isShown && (
+								<FocusShortcut.Field>
+									<input aria-label="Search" />
+								</FocusShortcut.Field>
+							)}
+							<FocusShortcut.Hint data-testid="hint" />
+						</FocusShortcut.Root>
+					</>
+				);
+			}
+			const user = userEvent.setup();
+			render(<Toggle />);
+			expect(screen.getByTestId("hint")).not.toHaveAttribute("hidden");
+
+			await user.click(screen.getByRole("button", { name: "Remove" }));
+
+			expect(screen.getByTestId("hint")).toHaveAttribute("hidden");
+		});
+
+		test("follows a value that only the child's own state sets", async () => {
+			// Why own state: the child rerenders alone, and `Field` sees no new props.
+			function OwnStateInput(props: ComponentProps<"input">) {
+				const [value, setValue] = useState("acme");
+				return (
+					<>
+						<input {...props} value={value} onChange={(event) => setValue(event.target.value)} />
+						<button type="button" onClick={() => setValue("")}>
+							Clear
+						</button>
+					</>
+				);
+			}
+			const user = userEvent.setup();
+			render(
+				<FocusShortcut.Root>
+					<FocusShortcut.Field>
+						<OwnStateInput aria-label="Search" />
+					</FocusShortcut.Field>
+					<FocusShortcut.Hint data-testid="hint" />
+				</FocusShortcut.Root>,
+			);
+			expect(screen.getByTestId("hint")).toHaveAttribute("hidden");
+
+			await user.click(screen.getByRole("button", { name: "Clear" }));
+
+			await waitFor(() => expect(screen.getByTestId("hint")).not.toHaveAttribute("hidden"));
+		});
+
+		test("shows again after a form reset empties the field", async () => {
+			const user = userEvent.setup();
+			render(
+				<form>
+					<SearchField />
+					<button type="reset">Reset</button>
+				</form>,
+			);
+			const field = screen.getByRole("textbox", { name: "Search" });
+			await user.type(field, "acme");
+			act(() => field.blur());
+			expect(screen.getByTestId("Search hint")).toHaveAttribute("hidden");
+
+			await user.click(screen.getByRole("button", { name: "Reset" }));
+
+			await waitFor(() => expect(screen.getByTestId("Search hint")).not.toHaveAttribute("hidden"));
+		});
+
+		test("owns `hidden` and `aria-hidden` over an asChild child", () => {
+			render(
+				<FocusShortcut.Root>
+					<FocusShortcut.Field>
+						<input aria-label="Search" defaultValue="acme" />
+					</FocusShortcut.Field>
+					<FocusShortcut.Hint asChild data-testid="hint">
+						<span aria-hidden={false} hidden={false}>
+							/
+						</span>
+					</FocusShortcut.Hint>
+				</FocusShortcut.Root>,
+			);
+
+			expect(screen.getByTestId("hint")).toHaveAttribute("hidden");
+			expect(screen.getByTestId("hint")).toHaveAttribute("aria-hidden", "true");
+		});
+
 		test("merges its props onto its child with asChild", () => {
 			render(
 				<FocusShortcut.Root>
@@ -293,6 +457,57 @@ describe("FocusShortcut", () => {
 		expect(field).toHaveAttribute("aria-keyshortcuts", "/");
 		pressSlash();
 		expect(field).toHaveFocus();
+	});
+
+	test("keeps the label and description from Field.Control", () => {
+		render(
+			<FieldParts.Item name="search">
+				<FieldParts.Label>Search</FieldParts.Label>
+				<FocusShortcut.Root>
+					<FieldParts.Control>
+						<FocusShortcut.Field>
+							<input />
+						</FocusShortcut.Field>
+					</FieldParts.Control>
+				</FocusShortcut.Root>
+				<FieldParts.Description>Type a name.</FieldParts.Description>
+			</FieldParts.Item>,
+		);
+		const field = screen.getByRole("textbox", { name: "Search" });
+
+		expect(field).toHaveAccessibleDescription("Type a name.");
+		expect(field).toHaveAttribute("aria-keyshortcuts", "/");
+	});
+
+	test("keeps mount order when an earlier field's child passes a new ref", async () => {
+		function Churning() {
+			const [count, setCount] = useState(0);
+			return (
+				<>
+					<button type="button" onClick={() => setCount(count + 1)}>
+						Rerender
+					</button>
+					<FocusShortcut.Root>
+						<FocusShortcut.Field>
+							<input aria-label="First" data-count={count} ref={() => {}} />
+						</FocusShortcut.Field>
+					</FocusShortcut.Root>
+				</>
+			);
+		}
+		const user = userEvent.setup();
+		render(
+			<>
+				<Churning />
+				<SearchField label="Second" />
+			</>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Rerender" }));
+		act(() => screen.getByRole("button", { name: "Rerender" }).blur());
+		pressSlash();
+
+		expect(screen.getByRole("textbox", { name: "First" })).toHaveFocus();
 	});
 
 	test("throws outside FocusShortcut.Root", () => {
