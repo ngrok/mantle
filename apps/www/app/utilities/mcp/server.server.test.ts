@@ -870,7 +870,14 @@ describe("find for a version with no Drawer record", () => {
 			]),
 		);
 		const { result } = await rpc(
-			{ ...current, loader: { ...current.loader, load: async () => data } },
+			// Why the current loader for other versions: its data exports Drawer, so `find` must read the pinned exports.
+			{
+				...current,
+				loader: {
+					...current.loader,
+					load: async (version) => (version === "0.96.0" ? data : current.loader.load(version)),
+				},
+			},
 			"tools/call",
 			{ name: "find", arguments: { query: "drawer", version: "0.96.0" } },
 		);
