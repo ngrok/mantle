@@ -45,10 +45,8 @@ test("a streamed fence keeps its gutter and folds once the answer ends", async (
 	const opener = container.querySelector(".mantle-code-line-opener");
 	expect(opener?.getAttribute("data-line-number")).toBe("1");
 	// The opener line drops its gutter margin because its toggle fills the gutter.
+	expect(firstContent()?.getBoundingClientRect().left).toBe(leftWhileStreaming);
 	const lines = [...container.querySelectorAll<HTMLElement>(".mantle-code-line")];
-	expect(lines[1]?.querySelector(".mantle-code-line-content")?.getBoundingClientRect().left).toBe(
-		leftWhileStreaming,
-	);
 
 	container.querySelector<HTMLButtonElement>(".mantle-code-fold-toggle")?.click();
 	await expect
@@ -60,4 +58,15 @@ test("a streamed fence keeps its gutter and folds once the answer ends", async (
 	);
 	// Copy, find in page, and crawlers still read the whole code.
 	expect(container.querySelector("pre code")?.textContent).toBe(code);
+
+	// A stream that resumes drops the toggles, so no line may stay folded.
+	rerender(<Markdown streaming>{answer}</Markdown>);
+	await expect.poll(() => container.querySelectorAll(".mantle-code-fold-toggle").length).toBe(0);
+	expect(lines.map((line) => getComputedStyle(line).display !== "none" && !line.inert)).toEqual([
+		true,
+		true,
+		true,
+		true,
+		true,
+	]);
 });

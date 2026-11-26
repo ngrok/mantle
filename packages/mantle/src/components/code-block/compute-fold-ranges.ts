@@ -139,7 +139,9 @@ function isInertScope(scopes: FoldScope[]): boolean {
 		innermost === "comment" ||
 		innermost.startsWith("string.") ||
 		innermost.startsWith("comment.") ||
-		innermost.startsWith("constant.character.escape")
+		innermost.startsWith("constant.character.escape") ||
+		// Why any scope here: a regex has no interpolation, and its inner scopes, such as a character class, are not `string.*`.
+		scopes.some((scope) => scope.scopeName.startsWith("string.regexp"))
 	);
 }
 

@@ -1492,7 +1492,7 @@
         "part": "CodeBlock.Code",
         "name": "data-foldable",
         "value": "present when foldable",
-        "description": "Presence-only. The pre-rendered HTML has fold toggles, so each line makes room for the fold gutter."
+        "description": "Presence-only. The pre-rendered HTML has fold toggles, or `useCodeBlockStream` got `complete` for a language that folds, so each line makes room for the fold gutter."
       },
       {
         "part": "CodeBlock.Code",

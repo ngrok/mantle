@@ -656,7 +656,7 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	// value here: a line that closes a fold sets the line counter again, as
 	// in `decorateHighlightedHtml`.
 	const lineFolds = useMemo(() => {
-		if (lines == null || foldableRanges == null || foldableRanges.length === 0) {
+		if (!hasLines || foldableRanges == null || foldableRanges.length === 0) {
 			return undefined;
 		}
 		const folds = new Map<number, LineFold>();
@@ -668,7 +668,8 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 			});
 		}
 		return folds;
-	}, [foldableRanges, lines]);
+		// Why `hasLines`, not `lines`: a streamed block gets a new array on each render, and a new map resets the folds.
+	}, [foldableRanges, hasLines]);
 
 	// Attach a single delegated click handler per <pre> so fold toggles do
 	// not pay the cost of N React re-renders or N event handlers (see the
@@ -684,7 +685,14 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 		if (codeElement != null) {
 			resetFoldState(codeElement);
 		}
-		return attachFoldHandler(pre);
+		const detach = attachFoldHandler(pre);
+		return () => {
+			detach();
+			// Why: a streamed block that resumes or gets new code keeps its line elements, and a folded line must not stay hidden with no toggle.
+			if (codeElement?.isConnected === true) {
+				resetFoldState(codeElement);
+			}
+		};
 	}, [lineFolds, renderedHtml]);
 
 	const isPreRendered = renderedHtml != null || hasLines;

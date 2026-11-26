@@ -103,10 +103,19 @@ function clearRegionLinesCache(codeElement: Element): void {
 	FOLD_GEOMETRY_CACHE.delete(codeElement);
 }
 
-/** Clears per-code-element runtime state after the code element's HTML is replaced. */
+/** Clears the runtime's fold state of one code element: after its HTML is replaced, or after its fold ranges change. */
 function resetFoldState(codeElement: Element): void {
 	clearRegionLinesCache(codeElement);
 	codeElement.removeAttribute("data-folded-regions");
+	// Why each line: React keeps a streamed block's line elements when its fold ranges change, so they keep the runtime's state.
+	for (const line of codeElement.querySelectorAll<HTMLElement>("[data-fold-hidden]")) {
+		line.removeAttribute("data-fold-hidden");
+		line.removeAttribute("data-fold-instant");
+		line.inert = false;
+	}
+	for (const toggle of codeElement.querySelectorAll('[data-fold-line][aria-expanded="false"]')) {
+		toggle.setAttribute("aria-expanded", "true");
+	}
 }
 
 /**

@@ -25,7 +25,9 @@ type UseCodeBlockStreamOptions = {
 	 * Whether the code is final, such as a fence whose answer finished
 	 * streaming. Pass it to fold: while `false`, each line of a language that
 	 * can fold makes room for the fold gutter; once `true`, the block folds the
-	 * same as a pre-rendered one. Leave it unset for a block that never folds.
+	 * same as a pre-rendered one, from its brackets or indentation. Folds that
+	 * only the server finds, such as JSX elements and Bash keywords, do not
+	 * show. Leave it unset for a block that never folds.
 	 */
 	complete?: boolean | undefined;
 };
@@ -83,15 +85,19 @@ function useCodeBlockStream({
 		grammar: GrammarId | undefined;
 		lines: readonly CodeLine[];
 		foldableRanges: FoldableRange[] | undefined;
-	}>({ grammar: undefined, lines: [], foldableRanges: undefined });
+		/** The code that `foldableRanges` is for. */
+		foldCode: string | undefined;
+	}>({ grammar: undefined, lines: [], foldableRanges: undefined, foldCode: undefined });
 	// Why only with `complete`: a caller that never says the code is final gets no fold gutter.
 	const canFold = complete !== undefined && grammar != null && foldStrategyFor(language) !== "none";
+	// Why a value for the effect: an alias or a block that cannot fold must not send the same code again.
+	const foldLanguage = complete === true && canFold ? language : undefined;
 
 	useEffect(() => {
 		if (grammar == null || !canUseDOM()) {
 			return;
 		}
-		openStream(id, grammar, (result) => {
+		openStream(id, grammar, (result, resultCode) => {
 			setHighlighted((previous) => ({
 				grammar,
 				lines: [
@@ -99,10 +105,11 @@ function useCodeBlockStream({
 					...result.lines,
 				],
 				foldableRanges: result.foldableRanges,
+				foldCode: resultCode,
 			}));
 		});
-		send(id, code, complete === true && canFold ? language : undefined);
-	}, [canFold, code, complete, grammar, id, language]);
+		send(id, code, foldLanguage);
+	}, [code, foldLanguage, grammar, id]);
 
 	useEffect(
 		() => () => {
@@ -112,12 +119,14 @@ function useCodeBlockStream({
 	);
 
 	const isCurrent = grammar != null && highlighted.grammar === grammar;
+	// Why the code too: ranges of the code before an edit would fold the wrong lines.
+	const hasCurrentFolds = isCurrent && highlighted.foldCode === code;
 	return createMantleCodeBlockValue({
 		code,
 		language,
 		lines: resolveLines(code, isCurrent ? highlighted.lines : []),
 		foldableRanges: canFold
-			? ((complete && isCurrent ? highlighted.foldableRanges : undefined) ?? noFolds)
+			? ((complete && hasCurrentFolds ? highlighted.foldableRanges : undefined) ?? noFolds)
 			: undefined,
 		showLineNumbers,
 	});

@@ -9,7 +9,8 @@ import type { HighlightRequest, HighlightResponse } from "./highlight-protocol.j
 import type { CodeLine, LineTokenizerResult, LineTokenizerState } from "./line-tokenizer.js";
 import type { SupportedLanguage } from "./supported-languages.js";
 
-type Listener = (result: LineTokenizerResult) => void;
+/** Gets each result with the code it is for, so fold ranges never reach other code. */
+type Listener = (result: LineTokenizerResult, code: string) => void;
 
 /**
  * One block's highlight requests for one grammar: the listener, the code of
@@ -25,8 +26,10 @@ type Stream = {
 	grammar: GrammarId;
 	inFlight: string | undefined;
 	queued: string | undefined;
-	/** Set once the code is final: each request from then on asks for fold ranges as this language. */
+	/** The language of the request in flight's fold ranges, when its code is final. */
 	foldLanguage: SupportedLanguage | undefined;
+	/** The same for the queued code. Why apart: a final request must not make the one in flight compute folds too. */
+	queuedFoldLanguage: SupportedLanguage | undefined;
 };
 
 const streams = new Map<number, Stream>();
@@ -73,11 +76,12 @@ function failWorker() {
 	worker?.terminate();
 	worker = null;
 	for (const stream of streams.values()) {
+		const isQueued = stream.queued !== undefined;
 		const code = stream.queued ?? stream.inFlight;
 		stream.inFlight = undefined;
 		stream.queued = undefined;
 		if (code !== undefined) {
-			send(stream.id, code, stream.foldLanguage);
+			send(stream.id, code, isQueued ? stream.queuedFoldLanguage : stream.foldLanguage);
 		}
 	}
 }
@@ -87,12 +91,12 @@ function deliver(stream: Stream, result: LineTokenizerResult) {
 	if (streams.get(stream.id) !== stream) {
 		return;
 	}
-	stream.listener(result);
+	stream.listener(result, stream.inFlight ?? "");
 	stream.inFlight = undefined;
 	const queued = stream.queued;
 	stream.queued = undefined;
 	if (queued !== undefined) {
-		send(stream.id, queued, stream.foldLanguage);
+		send(stream.id, queued, stream.queuedFoldLanguage);
 	}
 }
 
@@ -135,12 +139,13 @@ function send(id: number, code: string, foldLanguage?: SupportedLanguage) {
 	if (stream == null) {
 		return;
 	}
-	stream.foldLanguage = foldLanguage;
 	if (stream.inFlight !== undefined) {
 		stream.queued = code;
+		stream.queuedFoldLanguage = foldLanguage;
 		return;
 	}
 	stream.inFlight = code;
+	stream.foldLanguage = foldLanguage;
 	const target = getWorker();
 	if (target == null) {
 		void highlightOnMainThread(stream, code);
@@ -265,6 +270,7 @@ function openStream(id: number, grammar: GrammarId, listener: Listener) {
 		inFlight: undefined,
 		queued: undefined,
 		foldLanguage: undefined,
+		queuedFoldLanguage: undefined,
 	};
 	streams.set(id, stream);
 	streamsByKey.set(stream.key, stream);
