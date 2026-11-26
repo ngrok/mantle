@@ -13,7 +13,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { flushSync } from "react-dom";
 import invariant from "tiny-invariant";
 import { useFocusTrap } from "../../hooks/use-focus-trap.js";
 import { useInertSiblings } from "../../hooks/use-inert-siblings.js";
@@ -1433,36 +1432,36 @@ const SidePanel = ({
 
 	// Why a probe, not a media query: the row's container query that floats the panel also sizes the
 	// probe, so the collapse and the float read one rule, and the app's `@theme` lane moves both.
-	// Why a layout effect: the observer's first report comes before the paint that shows the panel.
-	// Why `flushSync`: a report runs after React's commit, and the collapse must land in that same frame.
+	// Why a read in a layout effect: an open, and a hydration with the panel open, collapse the sidebar
+	// in the commit that shows the panel, before its paint and before the sidebar's transition gate opens.
+	// Why no `flushSync` in the observer: a sidebar that changes width during the observer's delivery
+	// raises a "ResizeObserver loop" error for each app observer on the page. A row that resizes across
+	// the lane catches up one frame later.
 	// Why a local `holding`: the panel gives back only its own request.
 	const changeSidebarWidthRequests = useContext(SidebarWidthRequestContext);
 	const laneProbeRef = useRef<HTMLSpanElement>(null);
 	useLayoutEffect(() => {
 		const probe = laneProbeRef.current;
-		if (
-			!open ||
-			changeSidebarWidthRequests == null ||
-			probe == null ||
-			typeof ResizeObserver === "undefined"
-		) {
+		if (!open || changeSidebarWidthRequests == null || probe == null) {
 			return;
 		}
 		let holding = false;
-		const observer = new ResizeObserver(([entry]) => {
-			const needsWidth = (entry?.contentBoxSize[0]?.inlineSize ?? 0) > 0;
-			if (needsWidth === holding) {
-				return;
+		const update = (needsWidth: boolean) => {
+			if (needsWidth !== holding) {
+				holding = needsWidth;
+				changeSidebarWidthRequests(needsWidth ? 1 : -1);
 			}
-			holding = needsWidth;
-			flushSync(() => changeSidebarWidthRequests(needsWidth ? 1 : -1));
-		});
-		observer.observe(probe);
+		};
+		update(Number.parseFloat(getComputedStyle(probe).width) > 0);
+		// Why the guard: jsdom has no `ResizeObserver`.
+		const observer =
+			typeof ResizeObserver === "undefined"
+				? null
+				: new ResizeObserver(([entry]) => update((entry?.contentRect.width ?? 0) > 0));
+		observer?.observe(probe);
 		return () => {
-			observer.disconnect();
-			if (holding) {
-				changeSidebarWidthRequests(-1);
-			}
+			observer?.disconnect();
+			update(false);
 		};
 	}, [open, changeSidebarWidthRequests]);
 
@@ -1654,15 +1653,16 @@ const SidePanel = ({
 					{children}
 				</div>
 			</Panel.Root>
-			{/* The lane probe: 1px wide while the row is narrower than `--container-side-panel-lane` and a
-			    desktop `Sidebar.Nav` is in the row. The same selector floats the panel. A nav outside the row
-			    does not change the row's width, so it never yields. `box-content`: a consumer's padding on the
-			    aside's children never gives the probe width. After the card, so the card stays the first child. */}
+			{/* The lane probe: 1px wide while this panel's own row is narrower than
+			    `--container-side-panel-lane` and has a desktop `Sidebar.Nav` as a direct child. A nav outside
+			    the row does not make room for the panel, so it never yields. `invisible` and `box-content`: a
+			    consumer's styles on the aside's children neither paint the probe nor give it width. After the
+			    card, so the card stays the first child. */}
 			<span
 				ref={laneProbeRef}
 				aria-hidden
 				// oxlint-disable-next-line mantle/no-structural-combinator -- Why: as for the float rules, it styles the one probe.
-				className="pointer-events-none absolute box-content size-0 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:w-px"
+				className="pointer-events-none invisible absolute box-content size-0 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav]:not([data-mobile]))>[data-slot~=app-layout-side-panel]>&]:@max-side-panel-lane/app-layout-workspace:w-px"
 			/>
 		</aside>
 	);

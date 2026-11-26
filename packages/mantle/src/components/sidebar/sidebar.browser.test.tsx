@@ -923,22 +923,30 @@ describe("Sidebar beside an open AppLayout.SidePanel", () => {
 		panelMounted = true,
 		navInRow = true,
 		defaultOpen = true,
+		onOpenChange,
+		card,
+		navClassName = "transition-none",
 	}: {
 		rowWidth: string;
 		panelMounted?: boolean;
 		navInRow?: boolean;
 		defaultOpen?: boolean;
+		onOpenChange?: (open: boolean) => void;
+		card?: ReactNode;
+		/** `transition-none` by default, so a toggle shows in the next frame. */
+		navClassName?: string;
 	}) {
-		const nav = <Sidebar.Nav className="transition-none" data-testid="nav" />;
+		const nav = <Sidebar.Nav className={navClassName} data-testid="nav" />;
 		return (
 			<TooltipProvider>
 				<AppLayout.SidePanelRoot defaultOpen={defaultOpen}>
-					<Sidebar.Root>
+					<Sidebar.Root onOpenChange={onOpenChange}>
 						<PanelToggle />
 						<div style={{ display: "flex", width: rowWidth, height: 400 }}>
 							{!navInRow && nav}
 							<AppLayout.Workspace className="h-full flex-1">
 								{navInRow && nav}
+								{card}
 								{panelMounted && <AppLayout.SidePanel aria-label="Assistant" />}
 							</AppLayout.Workspace>
 						</div>
@@ -959,10 +967,13 @@ describe("Sidebar beside an open AppLayout.SidePanel", () => {
 	};
 	const loadStyles = async (css = "") => {
 		const style = document.createElement("style");
-		style.textContent = await commands.tailwindCss("../app-layout/app-layout.tsx", {
-			mantleCss: true,
-			css,
-		});
+		style.textContent = await commands.tailwindCss(
+			["../app-layout/app-layout.tsx", "./sidebar.tsx"],
+			{
+				mantleCss: true,
+				css,
+			},
+		);
 		document.head.append(style);
 		onTestFinished(() => style.remove());
 	};
@@ -998,7 +1009,10 @@ describe("Sidebar beside an open AppLayout.SidePanel", () => {
 		// Why 1200px: above the default lane (904px), under the app's 80rem (1280px).
 		await loadStyles("@theme { --container-side-panel-lane: 80rem; }");
 		const user = userEvent.setup();
-		const { rerender } = render(<Shell rowWidth="1200px" defaultOpen={false} />);
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		const { rerender } = render(
+			<Shell rowWidth="1200px" defaultOpen={false} onOpenChange={onOpenChange} />,
+		);
 		expect(nav()).toHaveAttribute("data-expanded");
 
 		await user.click(screen.getByRole("button", { name: "Toggle panel" }));
@@ -1016,10 +1030,11 @@ describe("Sidebar beside an open AppLayout.SidePanel", () => {
 			expect(nav()).not.toHaveAttribute("data-expanded");
 		});
 
-		rerender(<Shell rowWidth="1200px" panelMounted={false} />);
+		rerender(<Shell rowWidth="1200px" panelMounted={false} onOpenChange={onOpenChange} />);
 		await waitFor(() => {
 			expect(nav()).toHaveAttribute("data-expanded");
 		});
+		expect(onOpenChange).toHaveBeenCalledTimes(0);
 	});
 
 	test("a nav outside the panel's row stays expanded and settles", async () => {
@@ -1042,5 +1057,83 @@ describe("Sidebar beside an open AppLayout.SidePanel", () => {
 		render(<Shell rowWidth="1200px" />);
 		await frames(5);
 		expect(nav()).toHaveAttribute("data-expanded");
+	});
+
+	test("a panel in a nested row leaves the outer row's nav expanded", async () => {
+		// Why: the outer row's nav must not collapse for a panel whose own row has no nav.
+		await page.viewport(1600, 900);
+		await loadStyles("@theme { --container-side-panel-lane: 80rem; }");
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot defaultOpen>
+					<Sidebar.Root>
+						<div style={{ width: 1400, height: 400 }}>
+							<AppLayout.Workspace className="h-full">
+								<Sidebar.Nav data-testid="nav" />
+								<AppLayout.Workspace className="flex-1">
+									<AppLayout.SidePanel aria-label="Assistant" />
+								</AppLayout.Workspace>
+							</AppLayout.Workspace>
+						</div>
+					</Sidebar.Root>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		const changes: boolean[] = [];
+		const observer = new MutationObserver(() => changes.push(nav().hasAttribute("data-expanded")));
+		observer.observe(nav(), { attributes: true, attributeFilter: ["data-expanded"] });
+		onTestFinished(() => observer.disconnect());
+		await frames(10);
+		expect(nav()).toHaveAttribute("data-expanded");
+		expect(changes).toEqual([]);
+	});
+
+	test("a row that crosses the lane raises no error for an app's own observer", async () => {
+		await page.viewport(1600, 900);
+		await loadStyles("@theme { --container-side-panel-lane: 80rem; }");
+		const errors: string[] = [];
+		const onError = (event: ErrorEvent) => {
+			errors.push(event.message);
+			event.preventDefault();
+		};
+		window.addEventListener("error", onError);
+		onTestFinished(() => window.removeEventListener("error", onError));
+		const card = <div data-testid="card" style={{ flex: 1, minWidth: 0 }} />;
+		const { rerender } = render(<Shell rowWidth="1400px" card={card} />);
+		const cardObserver = new ResizeObserver(() => {});
+		cardObserver.observe(screen.getByTestId("card"));
+		onTestFinished(() => cardObserver.disconnect());
+		await frames(2);
+
+		rerender(<Shell rowWidth="1200px" card={card} />);
+		await waitFor(() => {
+			expect(nav()).not.toHaveAttribute("data-expanded");
+		});
+		await frames(2);
+		expect(errors).toEqual([]);
+	});
+
+	test("hydration with the panel open collapses the sidebar with no transition", async () => {
+		await page.viewport(1600, 900);
+		await loadStyles("@theme { --container-side-panel-lane: 80rem; }");
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(<Shell rowWidth="1200px" navClassName="" />);
+		document.body.append(container);
+		onTestFinished(() => container.remove());
+		const serverNav = container.querySelector('[data-slot~="sidebar-nav"]');
+		if (!(serverNav instanceof HTMLElement)) {
+			throw new Error("The server markup has no Sidebar.Nav.");
+		}
+		expect(serverNav).toHaveAttribute("data-expanded");
+		const runs: string[] = [];
+		serverNav.addEventListener("transitionrun", (event) => runs.push(event.propertyName));
+
+		render(<Shell rowWidth="1200px" navClassName="" />, { container, hydrate: true });
+		await waitFor(() => {
+			expect(serverNav).toHaveAttribute("data-hydrated");
+		});
+		expect(serverNav).not.toHaveAttribute("data-expanded");
+		await frames(2);
+		expect(runs).not.toContain("width");
 	});
 });
