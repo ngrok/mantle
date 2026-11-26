@@ -20,7 +20,8 @@ export {
  * collapsing to its icons, and a left-side `Sheet` below the root's
  * `mobileBreakpoint`. `Sidebar.Trigger` toggles it from anywhere under the
  * root (typically an `AppLayout.Header`). Navigation is grouped with
- * `Sidebar.Group`/`Sidebar.GroupLabel`/`Sidebar.List`, and the switcher rows
+ * `Sidebar.Group`/`Sidebar.GroupLabel`/`Sidebar.List`, a group of pages folds
+ * under a `Sidebar.Disclosure`, and the switcher rows
  * (app switcher up top, account/user down bottom) compose
  * `Sidebar.SwitcherTrigger` with your own `DropdownMenu` or `Dialog`.
  *
@@ -54,9 +55,14 @@ export {
  * │   │   └── Sidebar.Group
  * │   │       ├── Sidebar.GroupLabel
  * │   │       └── Sidebar.List
- * │   │           └── Sidebar.Item
- * │   │               └── Sidebar.Tooltip
- * │   │                   └── Sidebar.ItemButton
+ * │   │           ├── Sidebar.Item
+ * │   │           │   └── Sidebar.Tooltip
+ * │   │           │       └── Sidebar.ItemButton
+ * │   │           └── Sidebar.Disclosure
+ * │   │               ├── Sidebar.DisclosureTrigger
+ * │   │               └── Sidebar.DisclosureList
+ * │   │                   └── Sidebar.Item
+ * │   │                       └── Sidebar.ItemButton
  * │   └── Sidebar.Footer
  * │       ├── Sidebar.ItemButton
  * │       ├── Sidebar.Separator

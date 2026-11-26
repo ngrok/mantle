@@ -537,7 +537,10 @@ function useFloat({
 					} else if (focusWasInside && !next.contains(document.activeElement)) {
 						next.focus({ preventScroll: true });
 					}
-					if (shown && hasPopoverApi) {
+					// Why `:popover-open`: a float that loses its `popover` attribute while
+					// open, as a sidebar flyout does when the sidebar expands, is already
+					// hidden, and `hidePopover` throws on it.
+					if (shown && hasPopoverApi && floating.matches(":popover-open")) {
 						shown = false;
 						floating.hidePopover();
 					}

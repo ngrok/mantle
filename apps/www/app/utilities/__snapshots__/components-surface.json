@@ -5257,7 +5257,7 @@
     "summary": "A composable, collapsible app-navigation sidebar with a mobile sheet presentation and a trigger that mounts anywhere in your app shell.",
     "jsdoc": "A composable, collapsible app-navigation sidebar. `Sidebar.Root` owns the state (no DOM). `Sidebar.Nav` renders the panel: inline on desktop, collapsing to its icons, and a left-side `Sheet` below the root's `mobileBreakpoint`. `Sidebar.Trigger` toggles it from anywhere under the root (typically an `AppLayout.Header`).",
     "examples": [
-      "Composition:\n```\nSidebar.Root\n├── Sidebar.Nav\n│   ├── Sidebar.Header\n│   │   └── Sidebar.SwitcherTrigger\n│   ├── Sidebar.Body\n│   │   ├── Sidebar.SearchTrigger\n│   │   └── Sidebar.Group\n│   │       ├── Sidebar.GroupLabel\n│   │       └── Sidebar.List\n│   │           └── Sidebar.Item\n│   │               └── Sidebar.Tooltip\n│   │                   └── Sidebar.ItemButton\n│   └── Sidebar.Footer\n│       ├── Sidebar.ItemButton\n│       ├── Sidebar.Separator\n│       └── Sidebar.SwitcherTrigger\n└── Sidebar.Trigger\n```",
+      "Composition:\n```\nSidebar.Root\n├── Sidebar.Nav\n│   ├── Sidebar.Header\n│   │   └── Sidebar.SwitcherTrigger\n│   ├── Sidebar.Body\n│   │   ├── Sidebar.SearchTrigger\n│   │   └── Sidebar.Group\n│   │       ├── Sidebar.GroupLabel\n│   │       └── Sidebar.List\n│   │           ├── Sidebar.Item\n│   │           │   └── Sidebar.Tooltip\n│   │           │       └── Sidebar.ItemButton\n│   │           └── Sidebar.Disclosure\n│   │               ├── Sidebar.DisclosureTrigger\n│   │               └── Sidebar.DisclosureList\n│   │                   └── Sidebar.Item\n│   │                       └── Sidebar.ItemButton\n│   └── Sidebar.Footer\n│       ├── Sidebar.ItemButton\n│       ├── Sidebar.Separator\n│       └── Sidebar.SwitcherTrigger\n└── Sidebar.Trigger\n```",
       "```tsx\n<Sidebar.Root>\n  <Sidebar.Nav aria-label=\"Main\">\n    <Sidebar.Header>\n      <DropdownMenu.Root>\n        <DropdownMenu.Trigger asChild>\n          <Sidebar.SwitcherTrigger>\n            <GlobeIcon />\n            <span className=\"text-strong min-w-0 flex-1 truncate text-base\">Universal Gateway</span>\n            <CaretDownIcon className=\"text-muted size-4 shrink-0\" />\n          </Sidebar.SwitcherTrigger>\n        </DropdownMenu.Trigger>\n        <DropdownMenu.Content width=\"trigger\" className=\"min-w-(--sidebar-row-width)\">…</DropdownMenu.Content>\n      </DropdownMenu.Root>\n    </Sidebar.Header>\n    <Sidebar.Body>\n      <Sidebar.Group>\n        <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>\n        <Sidebar.List>\n          <Sidebar.Item>\n            <Sidebar.ItemButton asChild current>\n              <a href=\"/endpoints\">\n                <GraphIcon />\n                Endpoints\n              </a>\n            </Sidebar.ItemButton>\n          </Sidebar.Item>\n        </Sidebar.List>\n      </Sidebar.Group>\n    </Sidebar.Body>\n    <Sidebar.Footer>\n      <Sidebar.Separator />\n      <DropdownMenu.Root>\n        <DropdownMenu.Trigger asChild>\n          <Sidebar.SwitcherTrigger>\n            <Avatar.Root appearance=\"square\" colorSeed=\"acc_123\">\n              <Avatar.Fallback name=\"Acme Corp\" />\n            </Avatar.Root>\n            <span className=\"text-strong min-w-0 flex-1 truncate text-sm font-medium\">Acme Corp</span>\n          </Sidebar.SwitcherTrigger>\n        </DropdownMenu.Trigger>\n        <DropdownMenu.Content width=\"trigger\" className=\"min-w-(--sidebar-row-width)\">…</DropdownMenu.Content>\n      </DropdownMenu.Root>\n    </Sidebar.Footer>\n  </Sidebar.Nav>\n  <Sidebar.Trigger />\n</Sidebar.Root>\n```"
     ],
     "aliases": [
@@ -5396,6 +5396,60 @@
         "name": "data-slot",
         "value": "`\"sidebar-item-button\"`",
         "description": "Names the part, with any composing ancestor's chain ahead of it."
+      },
+      {
+        "part": "Sidebar.Disclosure",
+        "name": "data-slot",
+        "value": "`\"sidebar-disclosure\"`",
+        "description": "Names the part, with any composing ancestor's chain ahead of it."
+      },
+      {
+        "part": "Sidebar.DisclosureTrigger",
+        "name": "data-slot",
+        "value": "`\"sidebar-disclosure-trigger\"`",
+        "description": "Names the part, with any composing ancestor's chain ahead of it."
+      },
+      {
+        "part": "Sidebar.DisclosureTrigger",
+        "name": "data-slot",
+        "value": "`\"sidebar-disclosure-trigger-label\"`",
+        "description": "On the `<span>` that wraps `children`. Absent under `asChild`. A flex row that clips a long name before the caret."
+      },
+      {
+        "part": "Sidebar.DisclosureTrigger",
+        "name": "data-slot",
+        "value": "`\"sidebar-disclosure-trigger-caret\"`",
+        "description": "On the caret icon. Absent under `asChild`."
+      },
+      {
+        "part": "Sidebar.DisclosureTrigger",
+        "name": "data-current",
+        "value": "present while it marks the current page",
+        "description": "Presence-only. A row in the group is the current page and the list does not show in place. Style with `data-current:`."
+      },
+      {
+        "part": "Sidebar.DisclosureList",
+        "name": "data-slot",
+        "value": "`\"sidebar-disclosure-list\"`",
+        "description": "Names the part, with any composing ancestor's chain ahead of it."
+      },
+      {
+        "part": "Sidebar.DisclosureList",
+        "name": "data-slot",
+        "value": "`\"sidebar-disclosure-list-label\"`",
+        "description": "On the flyout's header, the first `<li>`. `aria-hidden`: the trigger already names the list. Hidden in place."
+      },
+      {
+        "part": "Sidebar.DisclosureList",
+        "name": "data-open",
+        "value": "present while it shows",
+        "description": "Presence-only. In place: the list is open. In the collapsed sidebar: the flyout is open. Drives the height, opacity, and float motion."
+      },
+      {
+        "part": "Sidebar.DisclosureList",
+        "name": "data-flyout",
+        "value": "present in the collapsed sidebar",
+        "description": "Presence-only. The list is a flyout. Style the flyout with `data-flyout:`."
       },
       {
         "part": "Sidebar.SearchTrigger",

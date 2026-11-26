@@ -6,12 +6,16 @@ import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { BookOpenIcon } from "@phosphor-icons/react/BookOpen";
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
+import { CpuIcon } from "@phosphor-icons/react/Cpu";
 import { GearIcon } from "@phosphor-icons/react/Gear";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { HashIcon } from "@phosphor-icons/react/Hash";
+import { PlugsIcon } from "@phosphor-icons/react/Plugs";
 import { QuestionIcon } from "@phosphor-icons/react/Question";
+import { RocketIcon } from "@phosphor-icons/react/Rocket";
 import { SignOutIcon } from "@phosphor-icons/react/SignOut";
+import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
 import { UserIcon } from "@phosphor-icons/react/User";
 import { useState } from "react";
 
@@ -390,6 +394,90 @@ export function SidebarPersistenceDemo() {
 					</AppLayout.Content>
 				</AppLayout.Workspace>
 			</AppLayout.Root>
+		</Sidebar.Root>
+	);
+}
+
+const disclosureGroups = [
+	{
+		name: "AI Gateway",
+		path: "/ai",
+		icon: <SparkleIcon />,
+		pages: ["Overview", "Models", "Usage"],
+	},
+	{
+		name: "MCP Gateway",
+		path: "/mcp",
+		icon: <PlugsIcon />,
+		pages: ["Overview", "Servers", "Usage", "Activity"],
+	},
+	{
+		name: "Dedicated Inference",
+		path: "/dedicated",
+		icon: <CpuIcon />,
+		pages: ["Overview", "Deployments"],
+	},
+];
+
+/**
+ * Groups that fold in place in the expanded sidebar and open as a flyout
+ * beside their icon in the collapsed sidebar. Mirrors the docs page's
+ * "Collapsible groups" code block exactly.
+ */
+export function SidebarCollapsibleGroupsExample() {
+	const [pathname, setPathname] = useState("/mcp/servers");
+
+	return (
+		<Sidebar.Root defaultOpen={false} mobileBreakpoint="sm">
+			<div className="border-card-muted bg-base flex h-96 w-full max-w-lg overflow-hidden rounded-lg border">
+				<Sidebar.Nav aria-label="Main">
+					<Sidebar.Body>
+						<Sidebar.Group>
+							<Sidebar.List>
+								<Sidebar.Item>
+									<Sidebar.ItemButton
+										current={pathname === "/setup"}
+										onClick={() => setPathname("/setup")}
+									>
+										<RocketIcon />
+										Setup guide
+									</Sidebar.ItemButton>
+								</Sidebar.Item>
+								{disclosureGroups.map((group) => (
+									<Sidebar.Disclosure
+										key={group.path}
+										defaultOpen={pathname.startsWith(`${group.path}/`)}
+									>
+										<Sidebar.DisclosureTrigger>
+											{group.icon}
+											{group.name}
+										</Sidebar.DisclosureTrigger>
+										<Sidebar.DisclosureList>
+											{group.pages.map((page) => {
+												const path = `${group.path}/${page.toLowerCase()}`;
+												return (
+													<Sidebar.Item key={path}>
+														<Sidebar.ItemButton
+															current={pathname === path}
+															onClick={() => setPathname(path)}
+														>
+															{page}
+														</Sidebar.ItemButton>
+													</Sidebar.Item>
+												);
+											})}
+										</Sidebar.DisclosureList>
+									</Sidebar.Disclosure>
+								))}
+							</Sidebar.List>
+						</Sidebar.Group>
+					</Sidebar.Body>
+				</Sidebar.Nav>
+				<div className="flex flex-1 flex-col gap-2 p-3">
+					<Sidebar.Trigger />
+					<p className="text-muted text-sm">{pathname}</p>
+				</div>
+			</div>
 		</Sidebar.Root>
 	);
 }
