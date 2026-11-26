@@ -224,7 +224,8 @@ const Root = ({
 
 /**
  * The body of the `CodeBlock`. This is where `CodeBlock.Code` and
- * the optional `CodeBlock.CopyButton` are rendered.
+ * the optional `CodeBlock.CopyButton` are rendered. Put the copy button
+ * before the code: the first two lines of the code after it make room for it.
  *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockbody
  *
@@ -264,10 +265,12 @@ const Body = ({
 				// button sits at `right-3 top-3`, over the first two text-mono lines
 				// only. Per-line padding adds to the max-content width of the `w-max`
 				// <code>, so a blanket reserve forced a horizontal scrollbar even when
-				// every line fit the container. The `:has()` scope drops the reserve
-				// when no copy button is rendered. This rule outranks the breathing
-				// room above on specificity.
-				"[&:has([data-slot=code-block-copy-button])_.mantle-code-line:nth-child(-n+2)]:pr-14",
+				// every line fit the container. Why a sibling selector: a `:has()` on
+				// Body made each line that a stream inserted restyle the lines of the
+				// block. The `:has(>…)` tests only the children of the button's
+				// wrapper, so an insert in the code does not recheck it. This rule
+				// outranks the breathing room above on specificity.
+				"[&_:is([data-slot~=code-block-copy-button],:has(>[data-slot~=code-block-copy-button]))~*_.mantle-code-line:nth-child(-n+2)]:pr-14",
 				className,
 			)}
 			ref={ref}
@@ -275,6 +278,9 @@ const Body = ({
 		/>
 	);
 };
+
+/** A fold toggle `<button>` in highlighted HTML, whatever the order of its attributes. */
+const FOLD_TOGGLE = /<button\b[^>]*\bclass="mantle-code-fold-toggle"/;
 
 /**
  * Matches `SHIKI_VAL_<index>` placeholders injected by the Vite plugin for
@@ -517,6 +523,7 @@ const CodeLineGroup = memo(function CodeLineGroup({
  * | --- | --- | --- |
  * | `data-expanded` | present when expanded | Presence-only. Only with a composed `CodeBlock.ExpanderButton`, which carries `aria-expanded`. |
  * | `data-syntax-highlighted` | present when highlighted | Presence-only. The value carried pre-rendered Shiki HTML. |
+ * | `data-foldable` | present when foldable | Presence-only. The pre-rendered HTML has fold toggles, so each line makes room for the fold gutter. |
  * | `data-lang` | the language id | The value's language. |
  * | `data-mantle-line-numbers` | `"true"` \| `"false"` | Whether the gutter shows line numbers. |
  * | `data-mantle-line-number-start` | a number as a string | The first line number. |
@@ -647,6 +654,10 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 				className,
 			)}
 			data-syntax-highlighted={isPreRendered ? "" : undefined}
+			// Why an attribute and not `pre:has(.mantle-code-fold-toggle)` in `mantle.css`:
+			// with `:has()`, each line that a stream inserted restyled the lines of the block.
+			// Why the button tag: code text can hold the class name, but its `<` is escaped.
+			data-foldable={renderedHtml != null && FOLD_TOGGLE.test(renderedHtml) ? "" : undefined}
 			data-lang={language}
 			data-mantle-highlight-lines={
 				isPreRendered && effectiveHighlightLines != null && effectiveHighlightLines.length > 0
