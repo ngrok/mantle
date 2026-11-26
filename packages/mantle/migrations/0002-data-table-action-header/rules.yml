@@ -714,9 +714,85 @@ utils:
     has:
       field: key
       regex: ^header$
-  # The read of `$P` in `column={$P.column}` that `drop-column` removes: a
-  # direct attribute of the `.Header` element that the rules above rewrite,
-  # under the same import and shadow checks.
+  # The column's `header` arrow.
+  header-arrow:
+    kind: arrow_function
+    inside:
+      field: value
+      matches: header-property
+  # The value that the `header` arrow returns: its expression body, in
+  # parentheses or not, or a `return` in its block body.
+  header-return:
+    any:
+      - inside:
+          field: body
+          matches: header-arrow
+      - inside:
+          kind: parenthesized_expression
+          inside:
+            field: body
+            matches: header-arrow
+      - inside:
+          kind: return_statement
+          inside:
+            kind: statement_block
+            inside:
+              field: body
+              matches: header-arrow
+  # The `.Header` element that the arrow returns and the rules above rewrite,
+  # under the same import and shadow checks. A `.Header` anywhere else, such
+  # as in children or in a local, keeps its `column`.
+  returned-header:
+    any:
+      - kind: jsx_self_closing_element
+        matches: header-return
+      - kind: jsx_opening_element
+        inside:
+          kind: jsx_element
+          matches: header-return
+    has:
+      field: name
+      regex: \.\s*Header$
+      any:
+        - pattern: $DT.Header
+        - pattern: $TABLE.Header
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              matches: table-import
+          # Why: the rewrite writes `$DT.ActionHeader`, so `$TABLE` and `$DT`
+          # must both be unshadowed.
+          not:
+            inside:
+              stopBy: end
+              matches: scope
+              has:
+                stopBy:
+                  matches: scope
+                any:
+                  - matches: binding-name
+                    pattern: $TABLE
+                  - matches: function-declaration
+                    has:
+                      field: name
+                      pattern: $TABLE
+    not:
+      inside:
+        stopBy: end
+        matches: scope
+        has:
+          stopBy:
+            matches: scope
+          any:
+            - matches: binding-name
+              pattern: $DT
+            - matches: function-declaration
+              has:
+                field: name
+                pattern: $DT
+  # The read of `$P` in `column={$P.column}` on the returned `.Header`, which
+  # `drop-column` removes.
   removed-column-read:
     kind: identifier
     pattern: $P
@@ -734,54 +810,19 @@ utils:
             kind: property_identifier
             regex: ^column$
           inside:
-            any:
-              - kind: jsx_opening_element
-              - kind: jsx_self_closing_element
-            not:
-              inside:
-                stopBy:
-                  kind: pair
-                kind: jsx_attribute
-            has:
-              field: name
-              any:
-                - pattern: $DT.Header
-                  not:
-                    inside:
-                      stopBy: end
-                      matches: scope
-                      has:
-                        stopBy:
-                          matches: scope
-                        any:
-                          - matches: binding-name
-                            pattern: $DT
-                          - matches: function-declaration
-                            has:
-                              field: name
-                              pattern: $DT
-                - pattern: $TABLE.Header
-                  inside:
-                    stopBy: end
-                    kind: program
-                    has:
-                      matches: table-import
-                  not:
-                    inside:
-                      stopBy: end
-                      matches: scope
-                      has:
-                        stopBy:
-                          matches: scope
-                        any:
-                          - matches: binding-name
-                            pattern: $TABLE
-                          - matches: function-declaration
-                            has:
-                              field: name
-                              pattern: $TABLE
+            matches: returned-header
+  # Any read of `$P` other than the removed one. A nested binding under the
+  # same name counts too, so the rule keeps the parameter.
+  surviving-read:
+    any:
+      - kind: identifier
+      - kind: shorthand_property_identifier
+      - kind: shorthand_property_identifier_pattern
+    pattern: $P
+    not:
+      matches: removed-column-read
   # The column's `header` arrow, after the rules above rewrite it. It reads
-  # `$P` only in a removed `column`, so the rewrite leaves `$P` unread.
+  # `$P` only in the removed `column`, in its body and in its return type.
   rewritten-header-arrow:
     kind: arrow_function
     all:
@@ -790,41 +831,27 @@ utils:
           stopBy:
             kind: object
           matches: action-column
-      - inside:
-          field: value
-          matches: header-property
+      - matches: header-arrow
       - inside:
           stopBy: end
           kind: program
           has:
             matches: datatable-import
-      # Why: a dropped parameter can leave a type parameter unused.
-      - not:
-          has:
-            field: type_parameters
-            kind: type_parameters
       - has:
           stopBy: end
           matches: removed-column-read
-      # Any other read keeps the parameter: in the body, in the return type,
-      # or as a shorthand property. A nested binding under the same name counts
-      # as a read, so the rule keeps the parameter.
       - not:
           has:
-            stopBy: end
-            any:
-              - kind: identifier
-              - kind: shorthand_property_identifier
-            pattern: $P
-            not:
-              any:
-                - matches: removed-column-read
-                - inside:
-                    kind: required_parameter
-                    field: pattern
-                - inside:
-                    kind: arrow_function
-                    field: parameter
+            field: body
+            has:
+              stopBy: end
+              matches: surviving-read
+      - not:
+          has:
+            field: return_type
+            has:
+              stopBy: end
+              matches: surviving-read
 # Why: the rewrite drops `column={props.column}`, and with it the arrow's only
 # read of `props`. An app with `noUnusedParameters` then fails typecheck, so
 # the parameter list becomes `()`. This edit does not overlap the element's
@@ -833,13 +860,19 @@ rule:
   any:
     - kind: formal_parameters
       all:
-        # Why: a default value can have effects, so it stays.
+        # Why: a default value can have effects, and a type annotation can
+        # hold the only use of a type import or a type parameter, so a
+        # parameter with either stays.
         - has:
             kind: required_parameter
             not:
-              has:
-                field: value
-                regex: .
+              any:
+                - has:
+                    field: value
+                    regex: .
+                - has:
+                    field: type
+                    kind: type_annotation
             has:
               field: pattern
               kind: identifier

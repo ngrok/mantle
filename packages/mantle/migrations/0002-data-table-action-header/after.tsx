@@ -62,10 +62,12 @@ export const columns = columnHelper.columns([
 		header: () => <DataTable.ActionHeader className="w-0" />,
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	}),
-	// A typed parameter that only fed `column` is dropped too.
+	// Negative case: a type annotation can hold the only use of a type, so a
+	// typed parameter stays.
 	columnHelper.display({
 		id: "typed-column-actions",
-		header: () => <DataTable.ActionHeader />,
+		// oxlint-disable-next-line no-unused-vars -- a typed parameter stays manual
+		header: (props: { column: unknown }) => <DataTable.ActionHeader />,
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	}),
 	// A bare parameter, without parentheses.
@@ -232,7 +234,7 @@ export const nestedColumns = columnHelper.columns([
 export function shadowedColumn(DataTable: typeof Grid) {
 	return columnHelper.display({
 		id: "actions",
-		header: () => <DataTable.Header />,
+		header: (props) => <DataTable.Header column={props.column} />,
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	});
 }
