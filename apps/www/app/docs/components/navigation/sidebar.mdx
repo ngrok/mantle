@@ -2002,13 +2002,12 @@ All props from `button` plus:
 
 **Data attributes**
 
-| Data Attribute  | Value                                   | Description                                                                                                                    |
-| --------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `data-slot`     | `"sidebar-disclosure-trigger"`          | Names the part, with any composing ancestor's chain ahead of it.                                                               |
-| `data-slot`     | `"sidebar-disclosure-trigger-label"`    | On the `<span>` that wraps `children`. Absent under `asChild`. A flex row that clips a long name before the caret.             |
-| `data-slot`     | `"sidebar-disclosure-trigger-caret"`    | On the caret icon. Absent under `asChild`.                                                                                     |
-| `data-current`  | present while it marks the current page | Presence-only. A row in the group is the current page and the list does not show in place. Style with `data-current:`.         |
-| `aria-expanded` | `"true"` \| `"false"`                   | Whether the list shows: in place in the expanded sidebar, as the flyout in the collapsed sidebar. Style with `aria-expanded:`. |
+| Data Attribute  | Value                                | Description                                                                                                                    |
+| --------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `data-slot`     | `"sidebar-disclosure-trigger"`       | Names the part, with any composing ancestor's chain ahead of it.                                                               |
+| `data-slot`     | `"sidebar-disclosure-trigger-label"` | On the `<span>` that wraps `children`. Absent under `asChild`. A flex row that clips a long name before the caret.             |
+| `data-slot`     | `"sidebar-disclosure-trigger-caret"` | On the caret icon. Absent under `asChild`.                                                                                     |
+| `aria-expanded` | `"true"` \| `"false"`                | Whether the list shows: in place in the expanded sidebar, as the flyout in the collapsed sidebar. Style with `aria-expanded:`. |
 
 ### Sidebar.DisclosureList
 
@@ -2020,12 +2019,13 @@ All props from `ul`.
 
 **Data attributes**
 
-| Data Attribute | Value                             | Description                                                                                                                            |
-| -------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"sidebar-disclosure-list"`       | Names the part, with any composing ancestor's chain ahead of it.                                                                       |
-| `data-slot`    | `"sidebar-disclosure-list-label"` | On the flyout's header, the first `<li>`. `aria-hidden`: the trigger already names the list. Hidden in place.                          |
-| `data-open`    | present while it shows            | Presence-only. In place: the list is open. In the collapsed sidebar: the flyout is open. Drives the height, opacity, and float motion. |
-| `data-flyout`  | present in the collapsed sidebar  | Presence-only. The list is a flyout. Style the flyout with `data-flyout:`.                                                             |
+| Data Attribute | Value                                          | Description                                                                                                                            |
+| -------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"sidebar-disclosure-list"`                    | Names the part, with any composing ancestor's chain ahead of it.                                                                       |
+| `data-slot`    | `"sidebar-disclosure-list-label"`              | On the flyout's header, the first `<li>`. `aria-hidden`: the trigger already names the list. Hidden in place.                          |
+| `data-open`    | present while it shows                         | Presence-only. In place: the list is open. In the collapsed sidebar: the flyout is open. Drives the height, opacity, and float motion. |
+| `data-flyout`  | present in the collapsed sidebar               | Presence-only. The list is a flyout. Style the flyout with `data-flyout:`.                                                             |
+| `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | On the flyout only: the side of the trigger it shows on, after it flips to fit. Removed in place.                                      |
 
 ### Sidebar.SearchTrigger
 

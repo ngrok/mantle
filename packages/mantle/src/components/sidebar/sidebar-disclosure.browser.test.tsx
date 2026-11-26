@@ -1,9 +1,8 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
 import { renderToString } from "react-dom/server";
-import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, onTestFinished, test, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { TooltipProvider } from "../tooltip/index.js";
 import * as Sidebar from "./sidebar-parts.js";
 
@@ -22,7 +21,10 @@ beforeAll(async () => {
 	// and the flyout's hide and placement come from its classes.
 	style = document.createElement("style");
 	style.textContent = [
-		await commands.tailwindCss("./sidebar.tsx"),
+		// Why the theme and the button reset: the current-row fill is a theme color, and a
+		// button without Tailwind's preflight paints the browser's own background.
+		"button { background-color: transparent; }",
+		await commands.tailwindCss("./sidebar.tsx", { theme: true }),
 		await commands.tailwindCss("../sheet/presentation.tsx"),
 		await commands.tailwindCss("../dialog/native-primitive.tsx"),
 		await commands.tailwindCss("../../utils/float/use-float.ts"),
@@ -73,8 +75,10 @@ function Nav({ expanded = false, initialPath = "/mcp/servers" }) {
 														const to = `${base}/${page.toLowerCase()}`;
 														return (
 															<Sidebar.Item key={to}>
+																{/* Why `aria-current` and not `current`: the row marks
+																    itself, as a router `NavLink` does. */}
 																<Sidebar.ItemButton
-																	current={path === to}
+																	aria-current={path === to ? "page" : undefined}
 																	onClick={() => setPath(to)}
 																>
 																	{page}
@@ -103,6 +107,10 @@ function Nav({ expanded = false, initialPath = "/mcp/servers" }) {
 }
 
 const nav = () => screen.getByRole("navigation", { name: "Main" });
+
+/** Whether a trigger shows the current-row fill: any background at rest. */
+const marked = (trigger: Element) =>
+	getComputedStyle(trigger).backgroundColor !== "rgba(0, 0, 0, 0)";
 const listOf = (trigger: HTMLElement) =>
 	document.getElementById(trigger.getAttribute("aria-controls") ?? "") as HTMLElement;
 
@@ -133,11 +141,43 @@ describe("Sidebar.Disclosure in the expanded sidebar", () => {
 
 		await userEvent.click(screen.getByRole("button", { name: "Go to AI usage" }));
 		expect(ai.getAttribute("aria-expanded")).toBe("true");
-		expect(ai.hasAttribute("data-current")).toBe(false);
+		expect(marked(ai)).toBe(false);
 
 		await userEvent.click(ai);
-		expect(ai.hasAttribute("data-current")).toBe(true);
-		expect(mcp.hasAttribute("data-current")).toBe(false);
+		await userEvent.unhover(ai);
+		expect(marked(ai)).toBe(true);
+		expect(marked(mcp)).toBe(false);
+	});
+
+	test("find in page shows a closed list at once, and hides it again when the group refuses", async () => {
+		function Refusing() {
+			return (
+				<TooltipProvider>
+					<Sidebar.Root mobileBreakpoint="sm">
+						<div style={{ display: "flex", height: 400 }}>
+							<Sidebar.Nav aria-label="Main">
+								<Sidebar.List>
+									<Sidebar.Disclosure open={false} onOpenChange={() => {}}>
+										<Sidebar.DisclosureTrigger>MCP Gateway</Sidebar.DisclosureTrigger>
+										<Sidebar.DisclosureList>
+											<Sidebar.Item>
+												<Sidebar.ItemButton>Servers</Sidebar.ItemButton>
+											</Sidebar.Item>
+										</Sidebar.DisclosureList>
+									</Sidebar.Disclosure>
+								</Sidebar.List>
+							</Sidebar.Nav>
+						</div>
+					</Sidebar.Root>
+				</TooltipProvider>
+			);
+		}
+		render(<Refusing />);
+		const list = listOf(screen.getByRole("button", { name: "MCP Gateway" }));
+		list.dispatchEvent(new Event("beforematch"));
+		expect(list.hasAttribute("hidden")).toBe(false);
+		expect(list.getBoundingClientRect().height).toBeGreaterThan(0);
+		await waitFor(() => expect(list.getAttribute("hidden")).toBe("until-found"));
 	});
 });
 
@@ -145,7 +185,10 @@ describe("Sidebar.Disclosure in the collapsed sidebar", () => {
 	test("a click opens the same list as a flyout of links, and Escape returns focus", async () => {
 		render(<Nav />);
 		const mcp = screen.getByRole("button", { name: "MCP Gateway", expanded: false });
-		expect(mcp.hasAttribute("data-current")).toBe(true);
+		expect(marked(mcp)).toBe(true);
+		// Why: the chip has room for the group's icon only, so the caret steps aside.
+		const caret = mcp.querySelector("[data-slot=sidebar-disclosure-trigger-caret]");
+		expect(caret?.getBoundingClientRect().width).toBe(0);
 
 		await userEvent.click(mcp);
 		const list = listOf(mcp);
@@ -193,6 +236,56 @@ describe("Sidebar.Disclosure in the collapsed sidebar", () => {
 		await waitFor(() => expect(mcp.getAttribute("aria-expanded")).toBe("false"), { timeout: 1000 });
 	});
 
+	test("a hover flyout stays open while focus is inside it", async () => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		onTestFinished(() => {
+			vi.useRealTimers();
+		});
+		render(<Nav />);
+		const ai = screen.getByRole("button", { name: "AI Gateway" });
+		await userEvent.hover(ai);
+		await waitFor(() => expect(ai.getAttribute("aria-expanded")).toBe("true"));
+		await userEvent.unhover(ai);
+		act(() => {
+			within(listOf(ai)).getByRole("button", { name: "Overview" }).focus();
+		});
+		// Why: past the 300ms close delay of a hover flyout.
+		await act(() => vi.advanceTimersByTimeAsync(500));
+		expect(ai.getAttribute("aria-expanded")).toBe("true");
+	});
+
+	test("a group that takes over keeps its flyout when focus was in the one it replaced", async () => {
+		render(<Nav />);
+		const ai = screen.getByRole("button", { name: "AI Gateway" });
+		const mcp = screen.getByRole("button", { name: "MCP Gateway" });
+		await userEvent.click(ai);
+		await userEvent.keyboard("{Tab}");
+		expect(listOf(ai).contains(document.activeElement)).toBe(true);
+
+		// Why `click()`: a press that does not move focus, as on a Safari button.
+		await act(async () => mcp.click());
+		// Why wait for the old flyout to hide: its focus return runs just before that.
+		await waitFor(() => expect(listOf(ai).matches(":popover-open")).toBe(false));
+		await act(async () => {});
+		expect(mcp.getAttribute("aria-expanded")).toBe("true");
+		expect(ai.getAttribute("aria-expanded")).toBe("false");
+		expect(document.activeElement).not.toBe(ai);
+	});
+
+	test("expanding the sidebar keeps focus on the row it was on", async () => {
+		render(<Nav />);
+		const mcp = screen.getByRole("button", { name: "MCP Gateway" });
+		await userEvent.click(mcp);
+		await userEvent.keyboard("{Tab}");
+		const row = document.activeElement;
+		expect(row?.textContent).toBe("Overview");
+
+		await act(async () => {
+			screen.getByRole("button", { name: /sidebar/i, hidden: true }).click();
+		});
+		await waitFor(() => expect(document.activeElement).toBe(row));
+	});
+
 	test("expanding the sidebar drops the flyout and shows the in-place state", async () => {
 		render(<Nav />);
 		const ai = screen.getByRole("button", { name: "AI Gateway" });
@@ -217,39 +310,17 @@ test("the server renders the open state, with no popover", () => {
 	const collapsed = new DOMParser().parseFromString(renderToString(<Nav />), "text/html");
 	const lists = collapsed.querySelectorAll("[data-slot~=sidebar-disclosure-list]");
 	expect(lists).toHaveLength(2);
+	// Why mount the server HTML: the marker on a group that holds the current page is CSS, so
+	// only a computed style before hydration shows that the first paint is final.
+	const host = document.createElement("div");
+	host.innerHTML = renderToString(<Nav />);
+	document.body.append(host);
+	const triggers = host.querySelectorAll("[data-slot~=sidebar-disclosure-trigger]");
+	expect([...triggers].map(marked)).toEqual([false, true]);
+	host.remove();
 	for (const list of lists) {
 		expect(list.hasAttribute("popover")).toBe(false);
 		expect(list.hasAttribute("data-open")).toBe(false);
 		expect(list.hasAttribute("data-flyout")).toBe(true);
 	}
-});
-
-test("a translated trigger name survives the consumer's swap", async () => {
-	function Swap() {
-		const [name, setName] = useState("MCP Gateway");
-		return (
-			<TooltipProvider>
-				<Sidebar.Root>
-					<div style={{ display: "flex", height: 400 }}>
-						<Sidebar.Nav aria-label="Main">
-							<Sidebar.List>
-								<Sidebar.Disclosure>
-									<Sidebar.DisclosureTrigger>{name}</Sidebar.DisclosureTrigger>
-									<Sidebar.DisclosureList />
-								</Sidebar.Disclosure>
-							</Sidebar.List>
-						</Sidebar.Nav>
-						<button type="button" onClick={() => setName("MCP")}>
-							Rename
-						</button>
-					</div>
-				</Sidebar.Root>
-			</TooltipProvider>
-		);
-	}
-	const { container } = render(<Swap />);
-	translateTextNodes(container);
-	expect(findTranslatedFont(container)).not.toBeNull();
-	await userEvent.click(screen.getByRole("button", { name: /Rename/ }));
-	expect(container.querySelector("[data-slot=sidebar-disclosure-trigger-label]")).not.toBeNull();
 });

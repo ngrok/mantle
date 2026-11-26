@@ -30,10 +30,17 @@ import { useIsApplePlatform } from "../../hooks/use-is-apple-platform.js";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { useIsHydratedAfterPaint } from "../../hooks/use-is-hydrated-after-paint.js";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
+import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
-import { floatClassName, hasPopoverApi, useFloat } from "../../utils/float/use-float.js";
+import {
+	floatClassName,
+	hasPopoverApi,
+	useFloat,
+	useReconcileOnTriggerChange,
+	useTriggerRef,
+} from "../../utils/float/use-float.js";
 import {
 	Content as NativeContent,
 	closeAfterExit,
@@ -1508,21 +1515,22 @@ type SidebarDisclosureContextValue = {
 	open: boolean;
 	/** Opens the list in place. Keeps one identity across renders. */
 	reveal: () => void;
-	/**
-	 * Marks that a row of the list is the current page, and returns the call
-	 * that clears the mark. Keeps one identity across renders.
-	 */
-	holdCurrent: () => () => void;
-	/** Whether a row of the list is the current page. */
-	holdsCurrent: boolean;
 	/** Whether the sidebar is the collapsed rail, where the list is a flyout. */
 	rail: boolean;
 	/** Whether the flyout is open. Only `true` in the rail. */
 	flyoutOpen: boolean;
 	/** Closes the flyout. Keeps one identity across renders. */
 	hideFlyout: () => void;
+	/** Keeps a hover flyout open, as a click does. Keeps one identity across renders. */
+	pinFlyout: () => void;
 	/** The element of the trigger, which the flyout sits next to. */
-	triggerRef: RefObject<HTMLButtonElement | null>;
+	triggerRef: RefObject<HTMLElement | null>;
+	/** True when another group's flyout closed this one. Focus then stays where it is. */
+	yieldedRef: RefObject<boolean>;
+	/** Sets the trigger's element, and places an open flyout again when it changes. */
+	setTrigger: (element: HTMLElement | null) => void;
+	/** Runs when the trigger's element changes. The list sets it. */
+	onTriggerChangeRef: RefObject<(() => void) | null>;
 	/** The trigger's click, Enter, and Space. */
 	onTriggerClick: () => void;
 	/** A mouse that enters the trigger or the flyout. */
@@ -1541,6 +1549,9 @@ let closeOpenFlyout: (() => void) | null = null;
 
 /** How long a mouse rests on a group's icon before its flyout opens, in milliseconds. */
 const FLYOUT_OPEN_DELAY = 150;
+
+/** How long an in-place list folds, in milliseconds. It matches the list's `duration-200`. */
+const FOLD_DURATION = 200;
 
 /** How long a hover flyout stays open after the mouse leaves it, in milliseconds. It matches `HoverCard`. */
 const FLYOUT_CLOSE_DELAY = 300;
@@ -2076,20 +2087,6 @@ const ItemButton = ({
 }: SidebarItemButtonProps) => {
 	const Comp = asChild ? Slot : "button";
 	const disclosure = useContext(SidebarDisclosureContext);
-	const revealInGroup = disclosure?.reveal;
-	// Why only on a change: the server render of a group comes from its
-	// `defaultOpen`, so a group that opened on mount would shift the page after
-	// it painted. A row that becomes current later, as on a client navigation,
-	// opens its group before the browser paints.
-	const wasCurrent = useRef(current);
-	useIsomorphicLayoutEffect(() => {
-		if (current && !wasCurrent.current) {
-			revealInGroup?.();
-		}
-		wasCurrent.current = current;
-	}, [current, revealInGroup]);
-	const holdCurrent = disclosure?.holdCurrent;
-	useIsomorphicLayoutEffect(() => (current ? holdCurrent?.() : undefined), [current, holdCurrent]);
 
 	return (
 		<Comp
@@ -2200,35 +2197,41 @@ const Disclosure = ({
 		onChange: onOpenChange,
 	});
 	const reveal = useCallbackRef(() => setOpen(true));
-	const [currentRows, setCurrentRows] = useState(0);
-	const holdCurrent = useCallback(() => {
-		setCurrentRows((count) => count + 1);
-		return () => setCurrentRows((count) => count - 1);
-	}, []);
+	const baseId = useId();
 	const [flyout, setFlyout] = useState<FlyoutMode | null>(null);
 	// Why in render: the flyout belongs to the rail. A sidebar that expands drops it.
 	if (!rail && flyout != null) {
 		setFlyout(null);
 	}
 	const flyoutOpen = rail && flyout != null;
-	const hideFlyout = useCallback(() => setFlyout(null), []);
-	const triggerRef = useRef<HTMLButtonElement | null>(null);
+	const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
 	const openTimer = useRef(0);
 	const closeTimer = useRef(0);
-	const baseId = useId();
+	const hideFlyout = useCallback(() => setFlyout(null), []);
+	/** True when another group's flyout took this one's place, so focus stays with the new one. */
+	const yieldedRef = useRef(false);
+	const yieldFlyout = useCallback(() => {
+		yieldedRef.current = true;
+		setFlyout(null);
+	}, []);
+	const pinFlyout = useCallback(() => {
+		clearTimeout(closeTimer.current);
+		setFlyout((mode) => (mode == null ? null : "click"));
+	}, []);
 
 	useEffect(() => {
 		if (!flyoutOpen) {
 			return;
 		}
+		yieldedRef.current = false;
 		closeOpenFlyout?.();
-		closeOpenFlyout = hideFlyout;
+		closeOpenFlyout = yieldFlyout;
 		return () => {
-			if (closeOpenFlyout === hideFlyout) {
+			if (closeOpenFlyout === yieldFlyout) {
 				closeOpenFlyout = null;
 			}
 		};
-	}, [flyoutOpen, hideFlyout]);
+	}, [flyoutOpen, yieldFlyout]);
 
 	useEffect(
 		() => () => {
@@ -2255,7 +2258,14 @@ const Disclosure = ({
 			return;
 		}
 		clearTimeout(closeTimer.current);
-		if (flyout != null) {
+		// Why: a disabled trigger opens nothing, and a hover must not take a
+		// flyout away from a reader whose focus is in it.
+		const focusedFlyout = document.activeElement?.closest("[data-flyout][data-open]");
+		if (
+			flyout != null ||
+			triggerRef.current?.matches(":disabled, [aria-disabled='true']") === true ||
+			(focusedFlyout != null && focusedFlyout.id !== `${baseId}-list`)
+		) {
 			return;
 		}
 		clearTimeout(openTimer.current);
@@ -2275,7 +2285,6 @@ const Disclosure = ({
 		}
 	});
 
-	const holdsCurrent = currentRows > 0;
 	// Why a memo: each row of the list reads this context, so a new object
 	// would render every row on each hover timer.
 	const contextValue = useMemo<SidebarDisclosureContextValue>(
@@ -2284,12 +2293,14 @@ const Disclosure = ({
 			listId: `${baseId}-list`,
 			open,
 			reveal,
-			holdCurrent,
-			holdsCurrent,
 			rail,
 			flyoutOpen,
 			hideFlyout,
+			pinFlyout,
 			triggerRef,
+			yieldedRef,
+			setTrigger,
+			onTriggerChangeRef,
 			onTriggerClick,
 			onPointerEnter,
 			onPointerLeave,
@@ -2298,11 +2309,14 @@ const Disclosure = ({
 			baseId,
 			open,
 			reveal,
-			holdCurrent,
-			holdsCurrent,
 			rail,
 			flyoutOpen,
 			hideFlyout,
+			pinFlyout,
+			triggerRef,
+			yieldedRef,
+			setTrigger,
+			onTriggerChangeRef,
 			onTriggerClick,
 			onPointerEnter,
 			onPointerLeave,
@@ -2314,7 +2328,7 @@ const Disclosure = ({
 		<SidebarDisclosureContext.Provider value={contextValue}>
 			<Comp
 				data-slot={joinDataSlot(dataSlot, "sidebar-disclosure")}
-				className={cx("list-none", className)}
+				className={cx("group/sidebar-disclosure-item list-none", className)}
 				{...props}
 			>
 				{children}
@@ -2352,9 +2366,8 @@ type SidebarDisclosureTriggerProps = ComponentProps<"button"> & WithAsChild & Wi
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"sidebar-disclosure-trigger"` | On the button. |
- * | `data-slot` | `"sidebar-disclosure-trigger-label"` | On the `<span>` that wraps `children`. Absent under `asChild`. `display: contents`, so your icon and name stay flex items of the row. |
+ * | `data-slot` | `"sidebar-disclosure-trigger-label"` | On the `<span>` that wraps `children`. Absent under `asChild`. A flex row that clips a long name before the caret. |
  * | `data-slot` | `"sidebar-disclosure-trigger-caret"` | On the caret icon. Absent under `asChild`. |
- * | `data-current` | present while it marks the current page | Presence-only. A row in the group is the current page and the list does not show in place. Style with `data-current:`. |
  * | `aria-expanded` | `"true"` \| `"false"` | Whether the list shows: in place in the expanded sidebar, as the flyout in the collapsed sidebar. Style with `aria-expanded:`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebardisclosuretrigger
@@ -2408,9 +2421,22 @@ const DisclosureTrigger = ({
 	...props
 }: SidebarDisclosureTriggerProps) => {
 	const disclosure = useSidebarDisclosureContext("DisclosureTrigger");
-	const composedRef = useComposedRefs(disclosure.triggerRef, ref);
+	const composedRef = useComposedRefs<HTMLButtonElement>(disclosure.setTrigger, ref);
 	const expanded = disclosure.rail ? disclosure.flyoutOpen : disclosure.open;
-	const marksCurrent = disclosure.holdsCurrent && (disclosure.rail || !disclosure.open);
+	// Why each render while the flyout is open: the header copies the group's
+	// name, which can change while it shows. A `textContent` write is safe on a
+	// translated page. The header is aria-hidden, so only the eye reads it.
+	useIsomorphicLayoutEffect(() => {
+		if (!disclosure.flyoutOpen) {
+			return;
+		}
+		const label = document
+			.getElementById(disclosure.listId)
+			?.querySelector("[data-slot=sidebar-disclosure-list-label]");
+		if (label != null) {
+			label.textContent = disclosure.triggerRef.current?.textContent ?? "";
+		}
+	});
 	const Comp = asChild ? Slot : "button";
 
 	// Why the label span: the caret never unmounts, so without it a bare text
@@ -2430,7 +2456,7 @@ const DisclosureTrigger = ({
 			<CaretRightIcon
 				aria-hidden
 				data-slot="sidebar-disclosure-trigger-caret"
-				className="text-muted ml-auto size-4 shrink-0 transition-[rotate] duration-200 ease-out-strong group-aria-expanded/sidebar-disclosure:rotate-90 motion-reduce:transition-none"
+				className="text-muted ml-auto size-4 shrink-0 group-not-data-expanded/sidebar-nav:hidden transition-[rotate] duration-200 ease-out-strong group-aria-expanded/sidebar-disclosure:rotate-90 motion-reduce:transition-none"
 			/>
 		</>
 	);
@@ -2445,8 +2471,9 @@ const DisclosureTrigger = ({
 			aria-controls={disclosure.listId}
 			aria-expanded={expanded}
 			data-slot={joinDataSlot(dataSlot, "sidebar-disclosure-trigger")}
-			data-current={marksCurrent ? "" : undefined}
-			type={asChild ? type : (type ?? "button")}
+			// Why also under `asChild`: the trigger only toggles, so a `<button>` child in
+			// a form must not submit it. A `type` on the child still wins.
+			type={type ?? "button"}
 			className={cx(
 				"group/sidebar-disclosure",
 				rowShapeClassName,
@@ -2454,7 +2481,11 @@ const DisclosureTrigger = ({
 				// Why only in the collapsed sidebar: an open flyout marks its icon, as a
 				// menu trigger does. In place, the open list below already shows it.
 				"group-not-data-expanded/sidebar-nav:aria-expanded:bg-neutral-500/15 group-not-data-expanded/sidebar-nav:aria-expanded:text-strong",
-				"data-current:bg-neutral-500/15 data-current:text-strong",
+				// Why CSS: the server render already marks a closed group that holds
+				// the current page, and a router link that sets `aria-current` itself
+				// counts too. The test reads a chain of children, so a row that
+				// streams in restyles no more than its own group.
+				"not-aria-expanded:group-has-[>ul>li>[aria-current=page]]/sidebar-disclosure-item:bg-neutral-500/15 not-aria-expanded:group-has-[>ul>li>[aria-current=page]]/sidebar-disclosure-item:text-strong",
 				"[&>svg:first-child]:text-muted hover:[&>svg:first-child]:text-strong [&>svg:first-child]:size-5",
 				"[&>[data-slot=sidebar-disclosure-trigger-label]>svg:first-child]:text-muted",
 				"hover:[&>[data-slot=sidebar-disclosure-trigger-label]>svg:first-child]:text-strong",
@@ -2490,6 +2521,19 @@ function supportsBeforeMatch(): boolean {
 	return document.body != null && "onbeforematch" in document.body;
 }
 
+/**
+ * Applies a style change with the transition off, so the box is at its end
+ * values when the browser next reads it, then restores the transition. It
+ * matches the helper in `Accordion`.
+ */
+function settle(node: HTMLElement, apply: () => void): void {
+	const { transitionProperty } = node.style;
+	node.style.transitionProperty = "none";
+	apply();
+	node.getBoundingClientRect();
+	node.style.transitionProperty = transitionProperty;
+}
+
 type SidebarDisclosureListProps = ComponentProps<"ul"> & WithDataSlot;
 
 /**
@@ -2516,6 +2560,7 @@ type SidebarDisclosureListProps = ComponentProps<"ul"> & WithDataSlot;
  * | `data-slot` | `"sidebar-disclosure-list-label"` | On the flyout's header, the first `<li>`. `aria-hidden`: the trigger already names the list. Hidden in place. |
  * | `data-open` | present while it shows | Presence-only. In place: the list is open. In the collapsed sidebar: the flyout is open. Drives the height, opacity, and float motion. |
  * | `data-flyout` | present in the collapsed sidebar | Presence-only. The list is a flyout. Style the flyout with `data-flyout:`. |
+ * | `data-side` | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | On the flyout only: the side of the trigger it shows on, after it flips to fit. Removed in place. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebardisclosurelist
  *
@@ -2559,16 +2604,19 @@ const DisclosureList = ({
 	children,
 	className,
 	"data-slot": dataSlot,
+	onFocus,
 	onPointerEnter,
 	onPointerLeave,
 	ref,
 	...props
 }: SidebarDisclosureListProps) => {
 	const disclosure = useSidebarDisclosureContext("DisclosureList");
-	const { rail, open, flyoutOpen, hideFlyout, reveal, triggerRef } = disclosure;
+	const { rail, open, flyoutOpen, hideFlyout, pinFlyout, reveal, triggerRef } = disclosure;
 	const hydrated = useIsHydrated();
 	const listRef = useRef<HTMLUListElement | null>(null);
-	const { floatingRef } = useFloat({
+	/** The row that last had focus, so focus can stay on it when the sidebar expands. */
+	const lastFocused = useRef<HTMLElement | null>(null);
+	const { floatingRef, reconcile } = useFloat({
 		open: flyoutOpen,
 		onDismiss: hideFlyout,
 		getAnchor: () => triggerRef.current,
@@ -2578,20 +2626,26 @@ const DisclosureList = ({
 		side: "right",
 		align: "start",
 		sideOffset: 8,
-		onShow: (floating) => {
-			// Why a text write: the header is aria-hidden and copies the trigger's
-			// name. A `textContent` write is safe on a translated page.
-			const label = floating.querySelector("[data-slot=sidebar-disclosure-list-label]");
-			if (label != null) {
-				label.textContent = triggerRef.current?.textContent ?? "";
+		onHide: (floating, focusWasInside) => {
+			if (!focusWasInside || disclosure.yieldedRef.current) {
+				return;
 			}
-		},
-		onHide: (_floating, focusWasInside) => {
-			if (focusWasInside) {
+			// Why: a sidebar that expands shows the same rows in place, so focus
+			// stays on the row it was on.
+			const row = lastFocused.current;
+			if (
+				!floating.hasAttribute("data-flyout") &&
+				floating.hasAttribute("data-open") &&
+				row != null &&
+				floating.contains(row)
+			) {
+				row.focus({ preventScroll: true });
+			} else {
 				triggerRef.current?.focus();
 			}
 		},
 	});
+	useReconcileOnTriggerChange(disclosure.onTriggerChangeRef, reconcile);
 	const composedRef = useComposedRefs(listRef, floatingRef, ref);
 	const shown = rail ? flyoutOpen : open;
 
@@ -2611,31 +2665,134 @@ const DisclosureList = ({
 		return () => node.removeEventListener("click", onRowPress);
 	}, [rail, hideFlyout]);
 
+	// Why a check two frames later: a controlled group can refuse the open.
+	// Then the list hides again, so its links never sit in the tab order
+	// while they are invisible.
+	const checkFrame = useRef(0);
 	useEffect(() => {
 		const node = listRef.current;
-		if (node == null || rail || !supportsBeforeMatch()) {
+		if (node == null) {
 			return;
 		}
-		node.addEventListener("beforematch", reveal);
-		return () => node.removeEventListener("beforematch", reveal);
+		const settleOpen = () => {
+			// Why now: the browser paints its find highlight right after this
+			// event, before React commits the open, and a closed list has no height.
+			settle(node, () => {
+				node.removeAttribute("hidden");
+				node.style.height = "auto";
+				node.style.opacity = "1";
+			});
+			cancelAnimationFrame(checkFrame.current);
+			reveal();
+			checkFrame.current = requestAnimationFrame(() => {
+				checkFrame.current = requestAnimationFrame(() => {
+					if (!node.hasAttribute("data-open")) {
+						settle(node, () => {
+							node.setAttribute("hidden", "until-found");
+							node.style.height = "";
+							node.style.opacity = "";
+						});
+					}
+				});
+			});
+		};
+		// Why an observer: a row that becomes the current page opens its group,
+		// also when a router link sets `aria-current` itself. The observer runs
+		// before the browser paints.
+		const observer = new MutationObserver((records) => {
+			const nowCurrent = records.some((record) =>
+				record.type === "childList"
+					? Array.from(record.addedNodes).some(
+							(added) =>
+								added instanceof Element &&
+								(added.matches("[aria-current=page]") ||
+									added.querySelector("[aria-current=page]") != null),
+						)
+					: record.target instanceof Element &&
+						record.target.getAttribute("aria-current") === "page" &&
+						record.oldValue !== "page",
+			);
+			// Why only the state in the collapsed sidebar: the list there is the
+			// flyout, and the group shows open once the sidebar expands.
+			if (nowCurrent && rail) {
+				reveal();
+			} else if (nowCurrent && !node.hasAttribute("data-open")) {
+				settleOpen();
+			}
+		});
+		observer.observe(node, {
+			attributeFilter: ["aria-current"],
+			attributeOldValue: true,
+			childList: true,
+			subtree: true,
+		});
+		const onBeforeMatch = !rail && supportsBeforeMatch() ? settleOpen : null;
+		if (onBeforeMatch != null) {
+			node.addEventListener("beforematch", onBeforeMatch);
+		}
+		return () => {
+			observer.disconnect();
+			cancelAnimationFrame(checkFrame.current);
+			if (onBeforeMatch != null) {
+				node.removeEventListener("beforematch", onBeforeMatch);
+			}
+		};
 	}, [rail, reveal]);
 
 	// Why imperative: React types `hidden` as a boolean, with no `"until-found"`.
 	// Why a layout effect: a closed list is hidden before the browser paints.
+	const inertTimer = useRef(0);
 	useIsomorphicLayoutEffect(() => {
 		const node = listRef.current;
-		if (node == null || !supportsBeforeMatch()) {
+		if (node == null) {
 			return;
 		}
-		// Why: `inert` also hides text from find in page, and `hidden` already
-		// takes the list out of the accessibility tree.
-		node.removeAttribute("inert");
-		if (rail || open) {
-			node.removeAttribute("hidden");
+		clearTimeout(inertTimer.current);
+		if (rail) {
+			// Why: a list that held focus is now a closed flyout, which the browser
+			// does not render, so focus moves to the group's icon.
+			if (node.contains(document.activeElement)) {
+				triggerRef.current?.focus({ preventScroll: true });
+			}
 		} else {
-			node.setAttribute("hidden", "until-found");
+			// Why: the flyout placed the list with inline offsets and a side.
+			node.style.removeProperty("top");
+			node.style.removeProperty("left");
+			delete node.dataset.side;
 		}
+		// Why: an open from find in page or a current row set these to show the
+		// list at once. The classes own the motion after that.
+		node.style.height = "";
+		node.style.opacity = "";
+		if (rail || !supportsBeforeMatch()) {
+			node.removeAttribute("hidden");
+			return;
+		}
+		if (open) {
+			node.removeAttribute("inert");
+			node.removeAttribute("hidden");
+			return;
+		}
+		node.setAttribute("hidden", "until-found");
+		// Why `inert` until the fold ends: the list stays rendered while it folds,
+		// and Tab must not reach a row that is about to hide. Why remove it then:
+		// `inert` also hides the rows from find in page.
+		node.setAttribute("inert", "");
+		inertTimer.current = window.setTimeout(
+			() => node.removeAttribute("inert"),
+			getPrefersReducedMotion() ? 0 : FOLD_DURATION,
+		);
 	}, [open, rail]);
+	useEffect(() => () => clearTimeout(inertTimer.current), []);
+
+	// Why after each render: under `asChild` a consumer's `id` on the trigger
+	// replaces the generated one, and the list must name the element that exists.
+	useIsomorphicLayoutEffect(() => {
+		const id = triggerRef.current?.id;
+		if (id) {
+			listRef.current?.setAttribute("aria-labelledby", id);
+		}
+	});
 
 	return (
 		<ul
@@ -2657,12 +2814,20 @@ const DisclosureList = ({
 				rail
 					? // Why `hidden` while closed: before hydration, and without the
 						// popover API, nothing else hides the flyout.
-						`${floatClassName} not-data-open:hidden border-popover bg-popover flex min-w-44 flex-col gap-px rounded-md border p-1 shadow-xl`
+						`${floatClassName} not-data-open:hidden border-popover bg-popover flex max-h-(--available-height) min-w-44 flex-col gap-px overflow-y-auto rounded-md border p-1 shadow-xl`
 					: // The height and opacity ease open together, as in `Accordion`.
 						// `interpolate-size` is Chromium only; other engines snap.
 						"h-0 overflow-hidden opacity-0 transition-[height,opacity,content-visibility] duration-200 ease-out-strong [interpolate-size:allow-keywords] transition-discrete data-open:h-auto data-open:opacity-100 motion-reduce:transition-none group-not-data-hydrated/sidebar-nav:transition-none [&>li]:pl-7",
 				className,
 			)}
+			onFocus={(event) => {
+				onFocus?.(event);
+				if (event.target instanceof HTMLElement) {
+					lastFocused.current = event.target;
+				}
+				// Why: a hover flyout must not close under focus that a reader moved into it.
+				pinFlyout();
+			}}
 			onPointerEnter={(event) => {
 				onPointerEnter?.(event);
 				disclosure.onPointerEnter(event);
