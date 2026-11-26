@@ -182,6 +182,37 @@ describe("Sidebar.Disclosure in the expanded sidebar", () => {
 	});
 });
 
+/** A collapsed sidebar whose one group holds a row that opens its own menu. */
+function AccountNav() {
+	return (
+		<TooltipProvider>
+			<Sidebar.Root defaultOpen={false} mobileBreakpoint="sm">
+				<div style={{ display: "flex", height: 400 }}>
+					<Sidebar.Nav aria-label="Main">
+						<Sidebar.List>
+							<Sidebar.Disclosure>
+								<Sidebar.DisclosureTrigger>Account</Sidebar.DisclosureTrigger>
+								<Sidebar.DisclosureList>
+									<Sidebar.Item>
+										<DropdownMenu.Root modal={false}>
+											<DropdownMenu.Trigger asChild>
+												<Sidebar.ItemButton>Profile</Sidebar.ItemButton>
+											</DropdownMenu.Trigger>
+											<DropdownMenu.Content>
+												<DropdownMenu.Item>Sign out</DropdownMenu.Item>
+											</DropdownMenu.Content>
+										</DropdownMenu.Root>
+									</Sidebar.Item>
+								</Sidebar.DisclosureList>
+							</Sidebar.Disclosure>
+						</Sidebar.List>
+					</Sidebar.Nav>
+				</div>
+			</Sidebar.Root>
+		</TooltipProvider>
+	);
+}
+
 describe("Sidebar.Disclosure in the collapsed sidebar", () => {
 	test("a click opens the same list as a flyout of links, and Escape returns focus", async () => {
 		render(<Nav />);
@@ -270,7 +301,8 @@ describe("Sidebar.Disclosure in the collapsed sidebar", () => {
 		await act(async () => {});
 		expect(mcp.getAttribute("aria-expanded")).toBe("true");
 		expect(ai.getAttribute("aria-expanded")).toBe("false");
-		expect(document.activeElement).not.toBe(ai);
+		// Why the new trigger: Tab reaches the links of the group that took over next.
+		expect(document.activeElement).toBe(mcp);
 	});
 
 	test("a row that becomes current leaves focus on the flyout row it was on", async () => {
@@ -288,39 +320,23 @@ describe("Sidebar.Disclosure in the collapsed sidebar", () => {
 	});
 
 	test("a row's own menu keeps the flyout open while it holds focus", async () => {
-		render(
-			<TooltipProvider>
-				<Sidebar.Root defaultOpen={false} mobileBreakpoint="sm">
-					<div style={{ display: "flex", height: 400 }}>
-						<Sidebar.Nav aria-label="Main">
-							<Sidebar.List>
-								<Sidebar.Disclosure>
-									<Sidebar.DisclosureTrigger>Account</Sidebar.DisclosureTrigger>
-									<Sidebar.DisclosureList>
-										<Sidebar.Item>
-											<DropdownMenu.Root modal={false}>
-												<DropdownMenu.Trigger asChild>
-													<Sidebar.ItemButton>Profile</Sidebar.ItemButton>
-												</DropdownMenu.Trigger>
-												<DropdownMenu.Content>
-													<DropdownMenu.Item>Sign out</DropdownMenu.Item>
-												</DropdownMenu.Content>
-											</DropdownMenu.Root>
-										</Sidebar.Item>
-									</Sidebar.DisclosureList>
-								</Sidebar.Disclosure>
-							</Sidebar.List>
-						</Sidebar.Nav>
-					</div>
-				</Sidebar.Root>
-			</TooltipProvider>,
-		);
+		render(<AccountNav />);
 		const account = screen.getByRole("button", { name: "Account" });
 		await userEvent.click(account);
 		await userEvent.keyboard("{Tab}{Enter}");
 		const signOut = await screen.findByRole("menuitem", { name: "Sign out" });
 		await waitFor(() => expect(document.activeElement).toBe(signOut));
 
+		expect(account.getAttribute("aria-expanded")).toBe("true");
+	});
+
+	test("a press on a row that opens a menu keeps the flyout open", async () => {
+		render(<AccountNav />);
+		const account = screen.getByRole("button", { name: "Account" });
+		await userEvent.click(account);
+		await userEvent.click(screen.getByRole("button", { name: "Profile" }));
+
+		await screen.findByRole("menuitem", { name: "Sign out" });
 		expect(account.getAttribute("aria-expanded")).toBe("true");
 	});
 

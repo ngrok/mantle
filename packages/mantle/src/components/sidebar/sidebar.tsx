@@ -2253,10 +2253,10 @@ const Disclosure = ({
 	 * a hover must not take a flyout away from a reader whose focus is in it.
 	 */
 	const canHoverOpen = () => {
-		const focusedFlyout = document.activeElement?.closest("[data-flyout][data-open]");
+		const openFlyout = document.querySelector("[data-flyout][data-open]");
 		return (
 			triggerRef.current?.matches(":disabled, [aria-disabled='true']") !== true &&
-			(focusedFlyout == null || focusedFlyout.id === `${baseId}-list`)
+			(openFlyout == null || openFlyout.id === `${baseId}-list` || !holdsFocus(openFlyout))
 		);
 	};
 
@@ -2536,6 +2536,21 @@ function supportsBeforeMatch(): boolean {
 	return document.body != null && "onbeforematch" in document.body;
 }
 
+/** The open popups of the list's rows, such as a row's menu, which renders outside the list. */
+function popupsOf(list: Element): (HTMLElement | null)[] {
+	return Array.from(list.querySelectorAll("[aria-expanded='true'][aria-controls]"), (control) =>
+		list.ownerDocument.getElementById(control.getAttribute("aria-controls") ?? ""),
+	);
+}
+
+/** Whether focus is in the list or in an open popup of one of its rows. */
+function holdsFocus(list: Element): boolean {
+	const focused = list.ownerDocument.activeElement;
+	return (
+		list.contains(focused) || popupsOf(list).some((popup) => popup?.contains(focused) === true)
+	);
+}
+
 /**
  * Applies a style change with the transition off, so the box is at its end
  * values when the browser next reads it, then restores the transition. It
@@ -2650,10 +2665,7 @@ const DisclosureList = ({
 		// the list, and focus that moves into that menu stays in the flyout.
 		getInsideElements: () => [
 			triggerRef.current,
-			...Array.from(
-				listRef.current?.querySelectorAll("[aria-expanded='true'][aria-controls]") ?? [],
-				(control) => document.getElementById(control.getAttribute("aria-controls") ?? ""),
-			),
+			...(listRef.current == null ? [] : popupsOf(listRef.current)),
 		],
 		dismissOnOutside: true,
 		dismissWhenCovered: true,
@@ -2663,7 +2675,16 @@ const DisclosureList = ({
 		onHide: (floating, focusWasInside) => {
 			const pressed = pressedOutside.current;
 			pressedOutside.current = null;
-			if (!focusWasInside || disclosure.yieldedRef.current) {
+			if (!focusWasInside) {
+				return;
+			}
+			// Why: a press that did not move focus switched groups, so focus goes to
+			// the trigger of the group that took over, and Tab reaches its links next.
+			if (disclosure.yieldedRef.current) {
+				const next = document.querySelector("[data-flyout][data-open]");
+				document.getElementById(next?.getAttribute("aria-labelledby") ?? "")?.focus({
+					preventScroll: true,
+				});
 				return;
 			}
 			if (pressed?.isConnected === true) {
@@ -2697,7 +2718,9 @@ const DisclosureList = ({
 			return;
 		}
 		const onRowPress = (event: Event) => {
-			if (event.target instanceof Element && event.target.closest("a[href], button") != null) {
+			const row = event.target instanceof Element ? event.target.closest("a[href], button") : null;
+			// Why not a row that opens a popup, such as its menu: the reader is not done.
+			if (row != null && !row.matches("[aria-haspopup]:not([aria-haspopup='false'])")) {
 				hideFlyout();
 			}
 		};
@@ -2707,17 +2730,18 @@ const DisclosureList = ({
 
 	// Why an observer: a row that becomes the current page opens its group,
 	// also when a router link sets `aria-current` itself. Why it compares the
-	// element: a row that only moves is not a new current page. Why it keeps
+	// elements: a row that only moves is not a new current page. Why it keeps
 	// observing through a mode change: a route change in the same commit counts.
 	useEffect(() => {
 		const node = listRef.current;
 		if (node == null) {
 			return;
 		}
-		let current = node.querySelector("[aria-current=page]");
+		const currentRows = () => new Set(node.querySelectorAll("[aria-current=page]"));
+		let current = currentRows();
 		const observer = new MutationObserver(() => {
-			const next = node.querySelector("[aria-current=page]");
-			if (next != null && next !== current) {
+			const next = currentRows();
+			if (Array.from(next).some((row) => !current.has(row))) {
 				reveal();
 			}
 			current = next;
@@ -2781,10 +2805,10 @@ const DisclosureList = ({
 		wasRail.current = rail;
 		// Why: a list that held focus stops showing when the sidebar collapses or
 		// the group closes, so focus moves to the group's trigger.
-		if ((rail ? railChanged : !open) && node.contains(document.activeElement)) {
+		if ((rail ? railChanged : !open) && holdsFocus(node)) {
 			triggerRef.current?.focus({ preventScroll: true });
 		}
-		if (!rail) {
+		if (!rail && railChanged) {
 			// Why: the flyout placed the list with inline offsets and a side.
 			node.style.removeProperty("top");
 			node.style.removeProperty("left");
@@ -2812,10 +2836,13 @@ const DisclosureList = ({
 		// and Tab must not reach a row that is about to hide. Why remove it then:
 		// `inert` also hides the rows from find in page.
 		// Why the list's own transitions: they set how long the fold runs, also
-		// under reduced motion or a consumer's duration.
+		// under reduced motion or a consumer's duration. Other animations can run forever.
 		node.setAttribute("inert", "");
 		void Promise.allSettled(
-			node.getAnimations?.().map((animation) => animation.finished) ?? [],
+			node
+				.getAnimations?.()
+				.filter((animation) => animation instanceof CSSTransition)
+				.map((animation) => animation.finished) ?? [],
 		).then(() => fold.current === token && node.removeAttribute("inert"));
 	}, [open, rail]);
 
@@ -2848,7 +2875,7 @@ const DisclosureList = ({
 				rail
 					? // Why `hidden` while closed: before hydration, and without the
 						// popover API, nothing else hides the flyout.
-						`${floatClassName} not-data-open:hidden border-popover bg-popover flex max-h-(--available-height) max-w-(--available-width) min-w-44 flex-col gap-px overflow-y-auto rounded-md border p-1 shadow-xl`
+						`${floatClassName} not-data-open:hidden border-popover bg-popover flex max-h-(--available-height) max-w-[min(--spacing(72),var(--available-width))] min-w-44 flex-col gap-px overflow-y-auto rounded-md border p-1 shadow-xl`
 					: // The height and opacity ease open together, as in `Accordion`.
 						// `interpolate-size` is Chromium only; other engines snap.
 						"h-0 overflow-hidden opacity-0 transition-[height,opacity,content-visibility] duration-200 ease-out-strong [interpolate-size:allow-keywords] transition-discrete data-open:h-auto data-open:opacity-100 motion-reduce:transition-none group-not-data-hydrated/sidebar-nav:transition-none [&>li]:pl-7",
@@ -2864,11 +2891,15 @@ const DisclosureList = ({
 			}}
 			onPointerEnter={(event) => {
 				onPointerEnter?.(event);
-				disclosure.onPointerEnter(event);
+				if (!event.defaultPrevented) {
+					disclosure.onPointerEnter(event);
+				}
 			}}
 			onPointerLeave={(event) => {
 				onPointerLeave?.(event);
-				disclosure.onPointerLeave(event);
+				if (!event.defaultPrevented) {
+					disclosure.onPointerLeave(event);
+				}
 			}}
 		>
 			<li
