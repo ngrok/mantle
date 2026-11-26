@@ -114,6 +114,7 @@ runs:
           echo "from=${from}"
           echo "to=${to}"
           echo "force=${force}"
+          echo "base=$(git rev-parse HEAD^1)"
         } >> "${GITHUB_OUTPUT}"
 
     # The comparison fails when the baseline predates the app. The app then
@@ -128,6 +129,20 @@ runs:
         from: ${{ steps.range.outputs.from }}
         to: ${{ steps.range.outputs.to }}
 
+    # A preview serves what the PR changes. When the PR leaves the app as it is
+    # on the base, the app needs no preview, even when the PR head moved, for
+    # example after a rebase onto a newer base. The comparison above already
+    # covers this range when it compares the merge commit with the base.
+    - name: Compare build hashes with the base
+      id: base
+      if: github.event_name == 'pull_request' && (steps.range.outputs.force == 'true' || steps.range.outputs.from != steps.range.outputs.base)
+      continue-on-error: true
+      uses: $/.github/actions/turbo-build-changed
+      with:
+        package: ${{ inputs.package }}
+        from: ${{ steps.range.outputs.base }}
+        to: HEAD
+
     # The image also depends on files the turbo hash leaves out: the root
     # package files, which the Dockerfile copies, and the ship workflow and its
     # actions.
@@ -141,11 +156,23 @@ runs:
         WORKFLOW: ${{ steps.range.outputs.workflow }}
         FROM: ${{ steps.range.outputs.from }}
         TO: ${{ steps.range.outputs.to }}
+        BASE: ${{ steps.range.outputs.base }}
+        BASE_CHANGED: ${{ steps.base.outputs.changed }}
+        BASE_OUTCOME: ${{ steps.base.outcome }}
       run: |
-        if [[ "${FORCE}" == "true" || "${HASH_CHANGED}" == "true" || "${HASH_OUTCOME}" == "failure" ]] \
-          || ! git diff --quiet "${FROM}" "${TO}" -- "${WORKFLOW}" .github/actions/ship-build-changed .github/actions/turbo-build-changed \
-            package.json pnpm-workspace.yaml scripts/package-manager-version; then
-          echo "changed=true" >> "${GITHUB_OUTPUT}"
-        else
-          echo "changed=false" >> "${GITHUB_OUTPUT}"
+        extra=("${WORKFLOW}" .github/actions/ship-build-changed .github/actions/turbo-build-changed package.json pnpm-workspace.yaml scripts/package-manager-version)
+        # differs FROM TO HASH_CHANGED HASH_OUTCOME
+        differs() {
+          [[ "$3" == "true" || "$4" == "failure" ]] || ! git diff --quiet "$1" "$2" -- "${extra[@]}"
+        }
+
+        changed=false
+        if [[ "${FORCE}" == "true" ]] || differs "${FROM}" "${TO}" "${HASH_CHANGED}" "${HASH_OUTCOME}"; then
+          changed=true
         fi
+        if [[ "${changed}" == "true" && "${BASE_OUTCOME}" != "skipped" ]] \
+          && ! differs "${BASE}" HEAD "${BASE_CHANGED}" "${BASE_OUTCOME}"; then
+          echo "The PR leaves the app as it is on the base, so it needs no preview."
+          changed=false
+        fi
+        echo "changed=${changed}" >> "${GITHUB_OUTPUT}"
