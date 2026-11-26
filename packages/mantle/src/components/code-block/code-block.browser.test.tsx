@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
 import { useState } from "react";
+import { renderToString } from "react-dom/server";
 import type { ComponentProps, CSSProperties } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { commands, userEvent as browserUserEvent } from "vitest/browser";
@@ -11,6 +12,7 @@ import mantleCss from "../../mantle.css?raw";
 import * as CodeBlock from "./code-block-parts.js";
 import type { FoldableRange } from "./compute-json-fold-ranges.js";
 import { decorateHighlightedHtml } from "./decorate-highlighted-html.js";
+import { pendingFoldRanges } from "./fold-range-utils.js";
 import { createMantleCodeBlockValue } from "./mantle-code.js";
 
 function makeValue(code: string, preHtml?: string) {
@@ -280,12 +282,33 @@ describe("CodeBlock (browser)", () => {
 		return match[0];
 	}
 
+	/**
+	 * The gutter rules of streamed lines, read from `mantle.css` and not
+	 * mirrored: the sticky column of each group, its numbers, and the space
+	 * that each line keeps for its number.
+	 */
+	function streamedGutterCss(): string {
+		const match =
+			/pre\[data-mantle-line-numbers="true"\][^{]*?>\s+code\[data-mantle-gutter\]\s+\.mantle-code-gutter \{[\s\S]*?>\s+\.mantle-code-line::before \{[\s\S]*?\n\}/.exec(
+				mantleCss,
+			);
+		if (match == null) {
+			throw new Error("mantle.css holds no gutter rules for streamed lines.");
+		}
+		return match[0];
+	}
+
 	let styleElement: HTMLStyleElement;
 
 	beforeAll(() => {
 		styleElement = document.createElement("style");
 		styleElement.textContent =
-			LAYOUT_STYLE + TAB_LAYOUT_STYLE + foldToggleCss() + foldHitAreaCss() + foldLineHeightCss();
+			LAYOUT_STYLE +
+			TAB_LAYOUT_STYLE +
+			foldToggleCss() +
+			foldHitAreaCss() +
+			foldLineHeightCss() +
+			streamedGutterCss();
 		document.head.appendChild(styleElement);
 	});
 
@@ -526,6 +549,181 @@ describe("CodeBlock (browser)", () => {
 
 			expect(gutterHit()).toBe(line);
 			expect(content.getBoundingClientRect().left).toBe(contentLeftBefore - 100);
+		});
+
+		test("streamed lines pin one gutter for each group of 64 lines while the code scrolls", () => {
+			const lines = Array.from({ length: 70 }, (_, index) =>
+				index === 65 ? "x".repeat(120) : `line ${index + 1}`,
+			);
+			render(
+				<div style={{ width: 340 }}>
+					<CodeBlock.Root>
+						<CodeBlock.Body>
+							<CodeBlock.Code
+								value={createMantleCodeBlockValue({
+									language: "text",
+									code: lines.join("\n"),
+									lines,
+									showLineNumbers: true,
+								})}
+							/>
+						</CodeBlock.Body>
+					</CodeBlock.Root>
+				</div>,
+			);
+
+			const pre = getPre();
+			const rows = Array.from(pre.querySelectorAll(".mantle-code-line"));
+			const gutters = Array.from(pre.querySelectorAll(".mantle-code-gutter"));
+			expect(gutters.map((gutter) => gutter.parentElement)).toEqual([rows[0], rows[64]]);
+
+			// Why the height: the numbers of a group fill the rows of its lines, and no more.
+			for (const [gutter, first, last] of [
+				[gutters[0], rows[0], rows[63]],
+				[gutters[1], rows[64], rows[69]],
+			] as const) {
+				if (gutter == null || first == null || last == null) {
+					throw new Error("expected two groups of lines");
+				}
+				const span = last.getBoundingClientRect().bottom - first.getBoundingClientRect().top;
+				expect(Number.parseFloat(getComputedStyle(gutter, "::before").height)).toBeCloseTo(span, 0);
+			}
+
+			// Why the box: the gutter takes no clicks, so a hit test passes through it. A gutter that scrolled away moves its box.
+			const preLeft = pre.getBoundingClientRect().left;
+			const gutterLeft = (gutter: Element | undefined) => {
+				if (gutter == null) {
+					throw new Error("expected the gutter");
+				}
+				return gutter.getBoundingClientRect().left - preLeft;
+			};
+			pre.scrollLeft = 100;
+			expect(pre.scrollLeft).toBe(100);
+			expect(gutterLeft(gutters[0])).toBe(0);
+			expect(gutterLeft(gutters[1])).toBe(0);
+
+			// Why: a click on a number lands on its own line, as it did with a number on each line.
+			const row = rows[65];
+			if (row == null) {
+				throw new Error("expected the line");
+			}
+			row.scrollIntoView({ block: "center" });
+			const { top, height } = row.getBoundingClientRect();
+			expect(row.contains(document.elementFromPoint(preLeft + 2, top + height / 2))).toBe(true);
+		});
+
+		test("server-rendered streamed lines draw their numbers under a CSP that blocks style attributes", async () => {
+			const lines = ["a", "b", "c"];
+			const html = renderToString(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code
+							value={createMantleCodeBlockValue({
+								language: "text",
+								code: lines.join("\n"),
+								lines,
+								showLineNumbers: true,
+							})}
+						/>
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+			const frame = document.createElement("iframe");
+			frame.srcdoc = `<meta http-equiv="Content-Security-Policy" content="style-src-elem 'unsafe-inline'; style-src-attr 'none'"><style>${mantleCss}</style>${html}`;
+			const loaded = new Promise((resolve) => {
+				frame.addEventListener("load", resolve, { once: true });
+			});
+			document.body.append(frame);
+			await loaded;
+
+			const gutter = frame.contentDocument?.querySelector(".mantle-code-gutter");
+			if (gutter == null) {
+				throw new Error("expected the gutter");
+			}
+			const content = getComputedStyle(gutter, "::before").content;
+			expect(content).toMatch(/1[\s\S]*2[\s\S]*3/);
+			frame.remove();
+		});
+
+		test("streamed lines draw one group gutter until the fold ranges arrive, then a number on each line", () => {
+			const lines = ["{", "\f", "}"];
+			const view = (foldableRanges: readonly FoldableRange[]) => (
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code
+							value={createMantleCodeBlockValue({
+								language: "json",
+								code: lines.join("\n"),
+								lines,
+								foldableRanges,
+								showLineNumbers: true,
+							})}
+						/>
+					</CodeBlock.Body>
+				</CodeBlock.Root>
+			);
+			const { rerender } = render(view(pendingFoldRanges));
+			const pre = getPre();
+			expect(pre.querySelectorAll(".mantle-code-gutter")).toHaveLength(1);
+			// Why a form feed: it has no height of its own, and the gutter draws a number for its row.
+			const [firstRow, ...otherRows] = Array.from(
+				pre.querySelectorAll(".mantle-code-line"),
+				(row) => row.getBoundingClientRect().height,
+			);
+			expect(firstRow).toBeGreaterThan(0);
+			expect(otherRows).toEqual([firstRow, firstRow]);
+
+			// Why: a fold hides its lines with `display: none`, and a group gutter would still draw their numbers.
+			rerender(view([{ id: "1", startLine: 1, endLine: 3 }]));
+			expect(pre.querySelector(".mantle-code-gutter")).toBeNull();
+			expect(pre.querySelector("code[data-mantle-gutter]")).toBeNull();
+			const contents = Array.from(
+				pre.querySelectorAll(".mantle-code-line"),
+				(row) => getComputedStyle(row, "::before").content,
+			);
+			expect(contents).toHaveLength(3);
+			for (const content of contents) {
+				expect(content).toMatch(/^counter\(mantle-line\)/);
+			}
+		});
+
+		test("code reads left to right in a right-to-left page, and a right-to-left block numbers each line", () => {
+			const lines = ["a", "b", "c"];
+			const view = (dir?: "rtl") => (
+				<div dir="rtl">
+					<CodeBlock.Root>
+						<CodeBlock.Body>
+							<CodeBlock.Code
+								dir={dir}
+								value={createMantleCodeBlockValue({
+									language: "text",
+									code: lines.join("\\n"),
+									lines,
+									showLineNumbers: true,
+								})}
+							/>
+						</CodeBlock.Body>
+					</CodeBlock.Root>
+				</div>
+			);
+			const { rerender } = render(view());
+			const pre = getPre();
+			const gutter = () => {
+				const element = pre.querySelector(".mantle-code-gutter");
+				if (element == null) {
+					throw new Error("expected the gutter");
+				}
+				return getComputedStyle(element, "::before").content;
+			};
+			expect(getComputedStyle(pre).direction).toBe("ltr");
+			expect(gutter()).toMatch(/1[\s\S]*2[\s\S]*3/);
+
+			// Why: right to left, one column cannot move the first two numbers clear of the copy button.
+			rerender(view("rtl"));
+			expect(gutter()).toBe("none");
+			for (const row of pre.querySelectorAll(".mantle-code-line")) {
+				expect(getComputedStyle(row, "::before").content).toMatch(/^counter\(mantle-line\)/);
+			}
 		});
 
 		test("fold toggles pin with the line numbers while the code scrolls", () => {

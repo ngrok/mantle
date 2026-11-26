@@ -81,6 +81,7 @@ Codemod: manual: every step is a CSS selector, a regular expression over an HTML
 ## Edge cases & gotchas
 
 - The line number comes from a CSS counter. A line hidden by a fold is not counted, so the line that closes a fold sets the counter again from `--mantle-line-number-start` with an inline `counter-set`. Keep that attribute when you rewrite the markup.
+- While a block streams in through `useCodeBlockStream`, such as a fence in a `Markdown` answer, one `.mantle-code-gutter` for each 64 lines draws the numbers, and `.mantle-code-line::before` draws none. A rule on `.mantle-code-line::before`, and a `--mantle-line-number-start` that you set in CSS, apply once the stream ends and the block has its fold ranges. A block keeps the gutter when its caller never passes `complete`, or when its language does not fold. The streaming numbers start at 1, because `useCodeBlockStream` has no start option. Style the streaming numbers through `.mantle-code-gutter::before`.
 - The number and the ellipsis have empty alternative text, so a screen reader reads neither. A browser without alternative text in `content` shows them all the same.
 
 ## How to verify

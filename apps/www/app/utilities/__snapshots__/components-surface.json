@@ -1526,6 +1526,18 @@
       },
       {
         "part": "CodeBlock.Code",
+        "name": "data-mantle-gutter",
+        "value": "present with a gutter",
+        "description": "Presence-only. On the `<code>` of streamed lines with line numbers, until the block gets its fold ranges at the end of the stream. The first line of each group of 64 holds one sticky `.mantle-code-gutter` that draws the group's numbers, in place of a number on each line."
+      },
+      {
+        "part": "CodeBlock.Code",
+        "name": "data-numbers",
+        "value": "the group's line numbers",
+        "description": "On each `.mantle-code-gutter`. The numbers of its group, one on each row, that `mantle.css` draws with `attr()`."
+      },
+      {
+        "part": "CodeBlock.Code",
         "name": "data-fold-line",
         "value": "a fold id",
         "description": "On each fold toggle `<button>`. The URI-encoded id of the region the button folds."

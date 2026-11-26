@@ -46,6 +46,7 @@ import { indexFoldRanges, type LineFold as FoldMarkup } from "./decorate-highlig
 import { attachFoldHandler, resetFoldState } from "./fold-runtime.js";
 import type { Mode } from "./resolve-pre-rendered-props.js";
 import type { CodeLine, CodeToken } from "./line-tokenizer.js";
+import { pendingFoldRanges } from "./fold-range-utils.js";
 import type { MantleCodeBlockValue } from "./mantle-code.js";
 
 type CodeBlockContextType = {
@@ -437,10 +438,13 @@ const CodeLineView = memo(function CodeLineView({
 	line,
 	lineNumber,
 	fold,
+	gutter,
 }: {
 	line: CodeLine | string;
 	lineNumber: number;
 	fold: LineFold | undefined;
+	/** The numbers of this line's group, one on each row, on the first line of a group with line numbers. */
+	gutter?: string | undefined;
 }) {
 	// Why a space: an empty line keeps its height, and each browser copies it as a blank line (see `decorateHighlightedHtml`).
 	let content: ReactNode;
@@ -454,8 +458,8 @@ const CodeLineView = memo(function CodeLineView({
 			<TokenView key={index} token={token} />
 		));
 	}
-	// Why no number element: `mantle.css` counts the lines and draws each
-	// number, so the digits stay out of the code's text.
+	// Why no number element: `mantle.css` draws the numbers from a counter or
+	// from the gutter string, so the digits stay out of the code's text.
 	// Why the same fold markup as `decorateHighlightedHtml`: the fold runtime and `mantle.css` read only these attributes.
 	return (
 		<span
@@ -465,6 +469,9 @@ const CodeLineView = memo(function CodeLineView({
 			data-fold-regions={fold?.regions}
 			style={fold?.closer === true ? { counterSet: fold.counterSet } : undefined}
 		>
+			{gutter != null && (
+				<span aria-hidden="true" className="mantle-code-gutter" data-numbers={gutter} />
+			)}
 			{fold?.opener != null && (
 				<button
 					type="button"
@@ -479,6 +486,18 @@ const CodeLineView = memo(function CodeLineView({
 	);
 });
 
+/**
+ * The line numbers of `count` lines from `start`, one on each row.
+ * `mantle.css` draws them in a group's sticky gutter.
+ */
+function gutterNumbers(start: number, count: number): string {
+	let numbers = String(start);
+	for (let index = 1; index < count; index += 1) {
+		numbers += `\n${start + index}`;
+	}
+	return numbers;
+}
+
 /** How many lines of browser-highlighted code render in one group. */
 const LINE_GROUP_SIZE = 64;
 
@@ -489,6 +508,8 @@ type CodeLineGroupProps = {
 	folds: ReadonlyMap<number, LineFold> | undefined;
 	start: number;
 	lineNumberStart: number;
+	/** Whether the group draws the numbers of its lines in its gutter. */
+	showLineNumbers: boolean;
 };
 
 /**
@@ -501,6 +522,7 @@ function isSameLineGroup(previous: CodeLineGroupProps, next: CodeLineGroupProps)
 		previous.start !== next.start ||
 		previous.folds !== next.folds ||
 		previous.lineNumberStart !== next.lineNumberStart ||
+		previous.showLineNumbers !== next.showLineNumbers ||
 		previous.lines.length !== next.lines.length
 	) {
 		return false;
@@ -516,13 +538,18 @@ function isSameLineGroup(previous: CodeLineGroupProps, next: CodeLineGroupProps)
 /**
  * A run of lines, with no element of its own. Why groups: each update of a
  * streamed block then renders only the group that changed, not an element
- * for each line of the block.
+ * for each line of the block. Why a gutter for each group: a full group's
+ * numbers never change, so a new line lays out only the numbers of the last
+ * group. Why in the group's first line: the lines stay the only elements in
+ * the `<code>`, and a new line goes at its end, so no sibling rule restyles
+ * the lines after an insert.
  */
 const CodeLineGroup = memo(function CodeLineGroup({
 	lines,
 	folds,
 	start,
 	lineNumberStart,
+	showLineNumbers,
 }: CodeLineGroupProps) {
 	return lines.map((line, index) => (
 		// oxlint-disable-next-line react/no-array-index-key -- Why: a line has no identity but its position, and an appended line must not remount the lines above it.
@@ -533,6 +560,11 @@ const CodeLineGroup = memo(function CodeLineGroup({
 				line={line}
 				lineNumber={lineNumberStart + (start + index)}
 				fold={folds?.get(start + index)}
+				gutter={
+					showLineNumbers && index === 0
+						? gutterNumbers(lineNumberStart + start, lines.length)
+						: undefined
+				}
 			/>
 		</Fragment>
 	));
@@ -547,6 +579,9 @@ const CodeLineGroup = memo(function CodeLineGroup({
  * as React elements with the same markup, and a line that did not change
  * does not render again. Streamed lines fold once `useCodeBlockStream` gets
  * `complete: true`.
+ *
+ * The `<pre>` is `dir="ltr"` unless the call site sets `dir`, so code reads left
+ * to right in a right-to-left page.
  *
  * The `<pre>` always carries `translate="no"`, so a browser translation engine
  * skips the code. A translated CLI flag, env var, or YAML key is wrong, and the
@@ -566,6 +601,8 @@ const CodeLineGroup = memo(function CodeLineGroup({
  * | `data-mantle-line-number-start` | a number as a string | The first line number. |
  * | `data-mantle-highlight-lines` | comma-separated line numbers | Present when lines are highlighted. |
  * | `data-line-number` | a number | On each `.mantle-code-line`. The line number the gutter shows. |
+ * | `data-mantle-gutter` | present with a gutter | Presence-only. On the `<code>` of streamed lines with line numbers, until the block gets its fold ranges at the end of the stream. The first line of each group of 64 holds one sticky `.mantle-code-gutter` that draws the group's numbers, in place of a number on each line. |
+ * | `data-numbers` | the group's line numbers | On each `.mantle-code-gutter`. The numbers of its group, one on each row, that `mantle.css` draws with `attr()`. |
  * | `data-fold-line` | a fold id | On each fold toggle `<button>`. The URI-encoded id of the region the button folds. |
  * | `data-fold-regions` | space-separated fold ids | On each line inside a foldable region. The id of each region that holds it. |
  * | `data-folded-regions` | space-separated fold ids | On the `<code>` while a region is folded. The id of each folded region. |
@@ -599,7 +636,7 @@ const CodeLineGroup = memo(function CodeLineGroup({
  * </CodeBlock.Root>
  * ```
  */
-const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) => {
+const Code = ({ className, dir, style, value, ref, ...props }: CodeBlockCodeProps) => {
 	const preRef = useRef<HTMLPreElement>(null);
 	const composedRef = useComposedRefs(preRef, ref);
 	const { codeId, copyTextRef, hasCodeExpander, isCodeExpanded, registerCode, unregisterCode } =
@@ -620,6 +657,10 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	const effectiveHighlightLines = __highlightLines;
 	const effectiveLineNumberStart = __lineNumberStart ?? 1;
 	const effectiveShowLineNumbers = __showLineNumbers ?? false;
+	// Why only while the fold ranges are pending or absent: a fold hides lines
+	// with `display: none`, and a group's gutter would still draw their numbers.
+	const showGutter =
+		effectiveShowLineNumbers && (foldableRanges == null || foldableRanges === pendingFoldRanges);
 	const copyText = useMemo(
 		() =>
 			__preVals != null && __preVals.length > 0
@@ -681,7 +722,10 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	// performance rationale in `fold-runtime.ts`). Re-attaches when the
 	// rendered HTML changes since `<code>` gets a new dangerouslySetInnerHTML.
 	// Only highlighted HTML has fold toggles, so plain text gets no handler.
-	useEffect(() => {
+	// Why a layout effect: a passive effect runs after paint, so a click on a
+	// new toggle can land before its handler. And a stream that resumes must
+	// show its folded lines in the same frame that its gutter comes back.
+	useIsomorphicLayoutEffect(() => {
 		const pre = preRef.current;
 		if (pre == null || (renderedHtml == null && lineFolds == null)) {
 			return undefined;
@@ -757,6 +801,9 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 					tabSize: 2,
 				} as ComponentProps<"pre">["style"]
 			}
+			// Why: code reads left to right in a right-to-left page too. Without it the
+			// lines align right and the bidi algorithm moves their punctuation.
+			dir={dir ?? "ltr"}
 			{...props}
 			// Why after the spread: a wider props object can still carry `translate`
 			// past the type, and translated code is wrong at every call site.
@@ -768,7 +815,10 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 					dangerouslySetInnerHTML={innerHtmlProp}
 				/>
 			) : (
-				<code className="text-size-inherit block min-w-full w-max">
+				<code
+					className="text-size-inherit block min-w-full w-max"
+					data-mantle-gutter={showGutter ? "" : undefined}
+				>
 					{Array.from({ length: Math.ceil(lines.length / LINE_GROUP_SIZE) }, (_, group) => (
 						<CodeLineGroup
 							// oxlint-disable-next-line react/no-array-index-key -- Why: a group holds the same lines for the life of the block, and an appended line must not remount the lines above it.
@@ -777,6 +827,7 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 							folds={lineFolds}
 							start={group * LINE_GROUP_SIZE}
 							lineNumberStart={effectiveLineNumberStart}
+							showLineNumbers={showGutter}
 						/>
 					))}
 				</code>

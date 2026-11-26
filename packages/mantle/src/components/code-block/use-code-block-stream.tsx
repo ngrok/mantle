@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { canUseDOM } from "../browser-only/can-use-dom.js";
 import { grammarForLanguage, type GrammarId } from "./grammars.js";
 import { foldStrategyFor } from "./compute-fold-ranges.js";
-import type { FoldableRange } from "./fold-range-utils.js";
+import { pendingFoldRanges, type FoldableRange } from "./fold-range-utils.js";
 import { createStreamId, dispose, openStream, resolveLines, send } from "./highlight-client.js";
 import type { CodeLine } from "./line-tokenizer.js";
 import { createMantleCodeBlockValue, type MantleCodeBlockValue } from "./mantle-code.js";
@@ -31,9 +31,6 @@ type UseCodeBlockStreamOptions = {
 	 */
 	complete?: boolean | undefined;
 };
-
-/** The fold ranges of a block that can fold but has none yet. Why shared: `Code` compares it by reference. */
-const noFolds: FoldableRange[] = [];
 
 /**
  * Highlights code in the browser as it changes, for code that streams in,
@@ -127,7 +124,8 @@ function useCodeBlockStream({
 		language,
 		lines: resolveLines(code, isCurrent ? highlighted.lines : []),
 		foldableRanges: canFold
-			? ((complete && hasCurrentFolds ? highlighted.foldableRanges : undefined) ?? noFolds)
+			? ((complete && hasCurrentFolds ? highlighted.foldableRanges : undefined) ??
+				pendingFoldRanges)
 			: undefined,
 		showLineNumbers,
 	});
