@@ -365,6 +365,7 @@ type ConversationOutlineItemProps = Omit<ComponentProps<typeof Popover.Close>, "
  * | -------------- | -------------------------------------- | ---------------------------------------------------- |
  * | `data-in-view` | present while its message is in view   | Presence-only. The item shows in the strong color.   |
  * | `aria-current` | `"location"` on the current message    | The message the reader is at: the first in view, else the last above the view. |
+ * | `data-target` | the `target` prop | The `id` of the message the item jumps to. The outline watches it to update `data-in-view`. |
  *
  * @see https://mantle.ngrok.com/components/ai/conversation-outline#conversationoutlineitem
  *

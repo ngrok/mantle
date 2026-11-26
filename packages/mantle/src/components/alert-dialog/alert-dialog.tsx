@@ -197,6 +197,16 @@ type AlertDialogContentProps = Omit<
  * stays there. Escape moves focus into the popup and does not close the alert
  * dialog.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-open` | present while open | Presence-only. On the `<dialog>` positioner and the panel. Drives the open animation. |
+ * | `data-closing` | present while the exit plays | Presence-only. On the `<dialog>` positioner and the panel. Drives the close animation. |
+ * | `data-overlay` | `""` | On the `<dialog>` positioner. A press on the backdrop targets it. |
+ * | `data-mantle-modal-content` | `""` | On the panel inside the `<dialog>`. Floats and an enclosing dialog find the panel by it. |
+ * | `data-mantle-scroll-lock` | present while a modal is open | Presence-only. On `<html>`, while any modal dialog is open. The page stops scrolling. |
+ *
  * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogcontent
  *
  * @example

@@ -127,6 +127,12 @@ type CodeBlockRootProps = Omit<ComponentProps<"div">, "align"> &
  * For tabbed code blocks, pass `defaultTab` (uncontrolled) or `activeTab` / `onActiveTabChange`
  * (controlled) to enable tab switching with `CodeBlock.TabList` and `CodeBlock.TabContent`.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-orientation` | `"horizontal"` | Present when `defaultTab` or `activeTab` is set. Omitted otherwise. |
+ *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockroot
  *
  * @example
@@ -567,6 +573,12 @@ const CodeLineGroup = memo(function CodeLineGroup({
  * | `data-mantle-line-numbers` | `"true"` \| `"false"` | Whether the gutter shows line numbers. |
  * | `data-mantle-line-number-start` | a number as a string | The first line number. |
  * | `data-mantle-highlight-lines` | comma-separated line numbers | Present when lines are highlighted. |
+ * | `data-line-number` | a number | On each `.mantle-code-line`. The line number the gutter shows. |
+ * | `data-fold-line` | a fold id | On each fold toggle `<button>`. The URI-encoded id of the region the button folds. |
+ * | `data-fold-regions` | space-separated fold ids | On each line inside a foldable region. The id of each region that holds it. |
+ * | `data-folded-regions` | space-separated fold ids | On the `<code>` while a region is folded. The id of each folded region. |
+ * | `data-fold-hidden` | `"true"` \| `"false"` | On a line a fold changed. `"true"` while a folded region hides it; `"false"` only while it opens, then removed. |
+ * | `data-fold-instant` | present on a large fold | Presence-only. On each line past the first 50 that a fold changes. The line hides or shows with no motion. |
  *
  * Inside the highlighted HTML, each line is a `.mantle-code-line` with
  * `data-line-number`, and `mantle.css` draws the gutter number, the fold caret,
@@ -868,6 +880,12 @@ type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "aria-label" | "c
  * The optional copy button. Copies the raw source of the mounted
  * `CodeBlock.Code` to the clipboard (in a tabbed block, the active tab's code).
  * Omit it to render the code block without a copy control.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-copied` | present after a copy | Presence-only. Set when a copy succeeds and cleared a moment later. The check icon shows while it is present. |
  *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockcopybutton
  *

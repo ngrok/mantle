@@ -120,9 +120,10 @@ The component that pops out when the tooltip is open.
 
 #### Data attributes
 
-| Data Attribute | Value                                          | Description                                                          |
-| -------------- | ---------------------------------------------- | -------------------------------------------------------------------- |
-| `data-slot`    | `"tooltip-content"`                            | On the tooltip surface, with any composing part's chain ahead of it. |
-| `data-slot`    | `"tooltip-label"`                              | On the `<div>` wrapping `children`.                                  |
-| `data-open`    | present while open                             | Presence-only. Absent while the exit plays.                          |
-| `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | Which side of the trigger the surface resolved to.                   |
+| Data Attribute     | Value                                          | Description                                                                     |
+| ------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------- |
+| `data-slot`        | `"tooltip-content"`                            | On the tooltip surface, with any composing part's chain ahead of it.            |
+| `data-slot`        | `"tooltip-label"`                              | On the `<div>` wrapping `children`.                                             |
+| `data-open`        | present while open                             | Presence-only. Absent while the exit plays.                                     |
+| `data-side`        | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | Which side of the trigger the surface resolved to.                              |
+| `data-float-arrow` | `""`                                           | On the arrow's `<span>`. The float moves it to the edge that faces the trigger. |

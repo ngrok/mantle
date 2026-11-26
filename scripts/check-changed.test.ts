@@ -27,6 +27,7 @@ describe("planChecks", () => {
 			"fmt",
 			"agent docs",
 			"prose",
+			"data attributes",
 			"typecheck",
 			"test",
 		]);
@@ -77,6 +78,13 @@ describe("planChecks", () => {
 		expect(step?.args).toEqual(["./scripts/check-css-selectors.ts"]);
 	});
 
+	it.each([
+		"packages/mantle/src/components/tabs/tabs.tsx",
+		"apps/www/app/docs/components/navigation/tabs.mdx",
+	])("checks every data-attribute table when %s changes", (file) => {
+		expect(stepNames([file])).toContain("data attributes");
+	});
+
 	it("runs the root script tasks too for a shared tsconfig, which the scripts tsconfig extends", () => {
 		expect(stepNames(["config/tsconfig/tsconfig.client-package.json"])).toEqual([
 			"fmt",
@@ -89,7 +97,7 @@ describe("planChecks", () => {
 	it("typechecks and tests a deleted source file, and formats and lints none", () => {
 		const file = "packages/mantle/src/components/button/button.tsx";
 
-		expect(stepNames([file], [file])).toEqual(["typecheck", "test"]);
+		expect(stepNames([file], [file])).toEqual(["data attributes", "typecheck", "test"]);
 	});
 
 	it("checks the budget when an agent doc is deleted", () => {
@@ -198,6 +206,11 @@ describe("planChecks", () => {
 				name: "prose",
 				command: "node",
 				args: ["./scripts/check-prose.ts", "README.md"],
+			},
+			{
+				name: "data attributes",
+				command: "node",
+				args: ["./scripts/check-data-attributes.ts"],
 			},
 			{
 				name: "typecheck",

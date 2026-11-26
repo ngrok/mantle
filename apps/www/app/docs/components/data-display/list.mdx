@@ -202,6 +202,14 @@ A clickable row. Accepts all `<button>` props (minus `type`), plus:
 | `disabled?` | `boolean` | `false` | Disables the row (dimmed). `disabled` on the button; with `asChild`, `aria-disabled` + removal from the tab order, and clicks are swallowed. Prefer omitting `href` for a disabled link. |
 | `asChild?`  | `boolean` | `false` | Render the row as the child element you pass (e.g. an `<a>`) instead of a `<button>`.                                                                                                    |
 
+| Data Attribute  | Value                   | Description                                               |
+| --------------- | ----------------------- | --------------------------------------------------------- |
+| `data-slot`     | `"list-item"`           | The row.                                                  |
+| `data-slot`     | `"list-item-control"`   | The `<button>`, or the `asChild` element, inside the row. |
+| `data-index`    | a number                | On the row. Its position in the list.                     |
+| `data-selected` | present when `current`  | Presence-only. On the row. Draws the tinted pill.         |
+| `data-disabled` | present when `disabled` | Presence-only. On the row.                                |
+
 ### List.ItemTitle / List.ItemDescription
 
 Styled `<span>`s for the title and de-emphasized sub-line inside an `Item`. Both accept all `<span>` props.

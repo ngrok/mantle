@@ -145,8 +145,15 @@ import { Label } from "@ngrok/mantle/label";
 
 ## API Reference
 
+### Label
+
 The `Label` accepts the following props in addition to the [standard HTML label attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/label#attributes).
 
 | Prop       | Type      | Default | Description                                                                 |
 | ---------- | --------- | ------- | --------------------------------------------------------------------------- |
 | `disabled` | `boolean` | `false` | Use the `disabled` prop to explicitly render the label in a disabled state. |
+
+| Data Attribute  | Value                 | Description                                                                                                                          |
+| --------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `data-slot`     | `"label"`             | The `<label>`.                                                                                                                       |
+| `data-disabled` | present when disabled | Presence-only. Set by `disabled` or `aria-disabled`, since `aria-disabled` is not valid on a `<label>`. Style with `data-disabled:`. |

@@ -225,6 +225,7 @@ type SandbarRootProps = ComponentProps<"div"> &
  * | -------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
  * | `data-slot`    | `"sandbar"`            | Stable styling hook for the panel. Survives `className` overrides.                                                                               |
  * | `data-open`    | present while open     | Presence-only, and only at the resting open pose. Absent in both the pre-enter frame and the exit transition, which is what drives the slide/fade. |
+ * | `data-shake` | present while it shakes | Presence-only. Set by the handle's `shake()`. Not set under reduced motion. |
  *
  * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarroot
  *

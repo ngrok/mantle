@@ -264,7 +264,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 `Table.Root` stamps these data attributes on its outer element for your own CSS to target:
 
-| Attribute            | Value              | Description                                                                                                                                                                       |
+| Data Attribute       | Value              | Description                                                                                                                                                                       |
 | -------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `data-x-overflow`    | present, or absent | Present while the content is wider than the container.                                                                                                                            |
 | `data-x-scroll-end`  | present, or absent | Present while an overflowing container is scrolled to its right edge.                                                                                                             |
@@ -320,6 +320,11 @@ Defines a cell as the header of a group of table cells and may be used as a chil
 
 All other props from [th](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/th#attributes), except `width`.
 
+| Data Attribute      | Value               | Description                 |
+| ------------------- | ------------------- | --------------------------- |
+| `data-slot`         | `"table-header"`    | On the `<th>`.              |
+| `data-column-width` | `"fit"` \| `"wrap"` | The `width` prop, when set. |
+
 ### Table.Cell
 
 Defines a cell of a table that contains data and may be used as a child of a `Table.Row`.
@@ -329,6 +334,11 @@ Defines a cell of a table that contains data and may be used as a child of a `Ta
 | `width?` | `"fit" \| "wrap"` |         | How the column sizes. When omitted, the cell stays on one line and truncates a value that does not fit. See [Sizing a column](#sizing-a-column). |
 
 All other props from [td](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/td#attributes), except `width`.
+
+| Data Attribute      | Value               | Description                 |
+| ------------------- | ------------------- | --------------------------- |
+| `data-slot`         | `"table-cell"`      | On the `<td>`.              |
+| `data-column-width` | `"fit"` \| `"wrap"` | The `width` prop, when set. |
 
 ### Table.Caption
 

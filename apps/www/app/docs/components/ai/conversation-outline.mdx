@@ -166,7 +166,8 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 | `target`   | `string`  | –       | The `id` of the message this item jumps to, such as its `Message.Root`'s `id`. |
 | `asChild?` | `boolean` | `false` | Render as a different element by passing a child.                              |
 
-| Data Attribute | Value                                | Description                                                                    |
-| -------------- | ------------------------------------ | ------------------------------------------------------------------------------ |
-| `data-in-view` | present while its message is in view | Presence-only. The item shows in the strong color.                             |
-| `aria-current` | `"location"` on the current message  | The message the reader is at: the first in view, else the last above the view. |
+| Data Attribute | Value                                | Description                                                                                 |
+| -------------- | ------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `data-in-view` | present while its message is in view | Presence-only. The item shows in the strong color.                                          |
+| `aria-current` | `"location"` on the current message  | The message the reader is at: the first in view, else the last above the view.              |
+| `data-target`  | the `target` prop                    | The `id` of the message the item jumps to. The outline watches it to update `data-in-view`. |

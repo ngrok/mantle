@@ -506,6 +506,11 @@ with the `Trigger` beside a separate, non-toggling action button. Accepts all `<
 | :------ | :------- | :------ | :------------------------------------------------------------------ |
 | `value` | `string` |         | **Required.** Unique identifier for this item within its accordion. |
 
+| Data Attribute | Value              | Description                                |
+| -------------- | ------------------ | ------------------------------------------ |
+| `data-slot`    | `"accordion-item"` | The item.                                  |
+| `data-open`    | present while open | Presence-only. The item's section is open. |
+
 ### Accordion.Trigger
 
 The clickable header that toggles its section, rendered as a `<button aria-expanded>`: the disclosure semantics a
@@ -534,6 +539,11 @@ listener opens the section when the browser reveals a match; in other browsers, 
 here. It holds no padding of its own so its `h-0 ↔ h-auto` slide can collapse to zero height: put the section's content
 inside an `Accordion.Body`. It is flow content, so it may contain **anything**, including interactive elements
 (buttons, links, inputs) or a nested `Accordion`. Accepts all `<div>` props except `id`.
+
+| Data Attribute | Value                 | Description                                         |
+| -------------- | --------------------- | --------------------------------------------------- |
+| `data-slot`    | `"accordion-content"` | The collapsible region.                             |
+| `data-open`    | present while open    | Presence-only. Drives the height and opacity slide. |
 
 ### Accordion.Body
 

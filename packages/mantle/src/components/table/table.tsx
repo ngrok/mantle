@@ -114,12 +114,11 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  *
  * Data attributes it stamps on the outer element, for your own CSS to target:
  *
- * - `data-x-overflow`: present while the content is wider than the container.
- * - `data-x-scroll-end`: present while an overflowing container is scrolled to
- *   its right edge.
- * - `data-sticky-active`: present only while the container overflows and is not
- *   scrolled to the end. `DataTable`'s pinned action column keys its shadow off
- *   this through `group-data-sticky-active/table:`.
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-x-overflow` | present while it overflows | Presence-only. The content is wider than the container. |
+ * | `data-x-scroll-end` | present at the right edge | Presence-only. An overflowing container is scrolled to its right edge. |
+ * | `data-sticky-active` | present while it overflows, short of the end | Presence-only. `DataTable`'s pinned action column keys its shadow off it through `group-data-sticky-active/table:`. |
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tableroot
  */
@@ -595,6 +594,13 @@ const Row = ({
  * Permitted Content:
  * 1. Flow content, but with no header, footer, sectioning content, or heading
  * content descendants.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"table-header"` | On the `<th>`. |
+ * | `data-column-width` | `"fit"` \| `"wrap"` | The `width` prop, when set. |
  *
  * @example
  * ```tsx

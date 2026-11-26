@@ -660,6 +660,14 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `side?`           | `"left" \| "right"`        | `"right"`        | The side of the screen the sheet slides in from.                                                                                                                                                                                                                              |
 | `forceMount?`     | `true`                     |                  | Keeps the content mounted while the sheet is closed, so the server renders it and a tap opens it with no React render. See [Keep the sheet mounted](#keep-the-sheet-mounted).                                                                                                 |
 
+| Data Attribute              | Value                         | Description                                                                              |
+| --------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------- |
+| `data-open`                 | present while open            | Presence-only. On the `<dialog>` positioner and the panel. Drives the open animation.    |
+| `data-closing`              | present while the exit plays  | Presence-only. On the `<dialog>` positioner and the panel. Drives the close animation.   |
+| `data-overlay`              | `""`                          | On the `<dialog>` positioner. A press on the backdrop targets it.                        |
+| `data-mantle-modal-content` | `""`                          | On the panel inside the `<dialog>`. Floats and an enclosing dialog find the panel by it. |
+| `data-mantle-scroll-lock`   | present while a modal is open | Presence-only. On `<html>`, while any modal dialog is open. The page stops scrolling.    |
+
 ### Sheet.CloseIconButton
 
 An icon button that closes the `Sheet` when clicked. Should be rendered within the `Sheet.Header` as a child of `Sheet.Actions`.

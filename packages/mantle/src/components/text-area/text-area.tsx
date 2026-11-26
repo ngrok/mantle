@@ -29,6 +29,13 @@ type Props = ComponentProps<"textarea"> &
  * field, or `6rem` without `rows`. A drag on the resize handle cannot make it
  * shorter than that minimum.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | The resolved `validation`. Omitted when unset. |
+ * | `data-drag-over` | present during a drag | Presence-only. A drag holds content over the text area. The border turns dashed. |
+ *
  * @useWhen Accept several lines of free-form text, such as a comment or a description.
  *
  * @siblings

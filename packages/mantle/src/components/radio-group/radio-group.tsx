@@ -145,6 +145,12 @@ const defaultRadioIndicator = (
  *   For hover and keyboard focus, style with `group-hover/radio:` and
  *   `group-has-[>input:focus-visible]/radio:`.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-radio-default-indicator` | `""` | On the default circle, when the indicator has no children. The item drops its own focus ring while it holds one. |
+ *
  * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupindicator
  *
  * @example

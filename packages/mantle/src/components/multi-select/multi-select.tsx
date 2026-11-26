@@ -121,6 +121,12 @@ type MultiSelectTriggerProps = ComponentProps<"div"> & WithValidation & WithData
  * `MultiSelect.TagValues` list carry the semantics, and the input's label
  * (`Field.Label` or `aria-label`) names the whole control.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | The resolved `validation`. Omitted when unset. |
+ *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttrigger
  *
  * @example
@@ -259,6 +265,7 @@ type TagProps = Omit<ComponentProps<"span">, "children"> & {
  * | `data-locked` | present when `locked` | The tag cannot be removed. |
  * | `data-appearance` | `"square"` | The `Chip` appearance of the tag. |
  * | `data-size` | `"sm"` | The `Chip` size of the tag. |
+ * | `data-shake` | present while it shakes | Presence-only. A locked tag shakes on **Backspace** or **Delete**. Not set under reduced motion. |
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttag
  *
@@ -742,6 +749,17 @@ type MultiSelectContentProps = ComponentProps<"div"> &
  * scrolls, and assistive technology can reach it. A press outside the trigger
  * and the list closes the list, and its click does not reach the page.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-mantle-popup` | `""` | On the popover box. An enclosing `Dialog` leaves **Escape** from a footer control to the popup. |
+ * | `data-open` | `""` | On the popover box and the listbox while open. An enclosing `Dialog` reads it to leave **Escape** to the list. |
+ * | `data-side` | `"top"` \| `"bottom"` | On the popover box. The side of the anchor the popup opened on. |
+ * | `data-float-scroll` | `""` | On the listbox. The element that scrolls when the popup is shorter than its content. |
+ * | `data-overflow-top` | present while scrolled down | Presence-only. On the listbox. The first item sits past the top edge, so `scroll-cue-y` shows a fade there. |
+ * | `data-overflow-bottom` | present while more is below | Presence-only. On the listbox. The last item sits past the bottom edge, so `scroll-cue-y` shows a fade there. |
+ *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontent
  *
  * @example
@@ -904,6 +922,8 @@ type MultiSelectItemProps = Omit<ComponentProps<"div">, "children" | "value"> &
  * | --- | --- | --- |
  * | `data-slot` | `"multi-select-item"` | On the option element. |
  * | `data-slot` | `"multi-select-item-label"` | On the `<div>` wrapping `children`. |
+ * | `data-value` | the `value` prop | The option's value. |
+ * | `data-highlighted` | present when highlighted | Presence-only. The item under the pointer or the keyboard focus. |
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectitem
  *
@@ -1230,6 +1250,12 @@ type MultiSelectContentFooterProps = ComponentProps<"div"> & WithDataSlot;
  * listbox and not in it, with a separator border at the top. Tab from the input
  * moves to its first control, and the list stays open. Shift+Tab from that
  * control returns to the input, and Escape closes the list.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-content-footer` | `"true"` | Always present. Marks the footer apart from the listbox. |
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontentfooter
  *

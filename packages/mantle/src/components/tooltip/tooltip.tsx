@@ -525,6 +525,7 @@ type TooltipContentProps = Omit<ComponentProps<"div">, "id"> &
  * | `data-slot`      | `"tooltip-label"`                                  | On the `<div>` wrapping `children`.               |
  * | `data-open`      | present while open                                 | Presence-only. Absent while the exit plays.       |
  * | `data-side`      | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Which side of the trigger the surface resolved to. |
+ * | `data-float-arrow` | `""` | On the arrow's `<span>`. The float moves it to the edge that faces the trigger. |
  *
  * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltipcontent
  *

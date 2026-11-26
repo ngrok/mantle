@@ -360,6 +360,11 @@ All props from [input\[type="checkbox"\]](https://developer.mozilla.org/en-US/do
 
 For a checkbox with a titled, multi-line label and a description, see [`Choice`](/components/forms/choice).
 
+| Data Attribute    | Value                                   | Description                                    |
+| ----------------- | --------------------------------------- | ---------------------------------------------- |
+| `data-slot`       | `"checkbox"`                            | The `<input type="checkbox">`.                 |
+| `data-validation` | `"error"` \| `"success"` \| `"warning"` | The resolved `validation`. Omitted when unset. |
+
 ### CheckboxGroup.Root
 
 A group of checkbox cards. The user checks any number of cards, and the group holds the checked values. Give it an accessible name with `aria-label`, or wrap it in `Field.Set` and `Field.Legend`.

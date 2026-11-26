@@ -92,6 +92,9 @@ jobs:
       - name: CSS Selectors 🎯
         run: pnpm run check:css-selectors
 
+      - name: Data Attributes 🏷️
+        run: pnpm run check:data-attributes
+
   mise-lock-check:
     name: Mise Lockfile
     runs-on: ubuntu-latest

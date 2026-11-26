@@ -437,6 +437,7 @@ function TagChip(props: RemovableChipProps) {
  * | `data-appearance` | `"pill"` \| `"square"` | The shape of the chip. |
  * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The size of the chip. |
  * | `data-locked` | present when locked | Removal is blocked. |
+ * | `data-shake` | present while it shakes | Presence-only. A locked chip shakes when the user tries to remove it. Not set under reduced motion. |
  *
  * @useWhen Show a compact value, let a user remove it, or turn a choice on or off.
  *

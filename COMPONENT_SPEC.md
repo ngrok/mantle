@@ -944,9 +944,12 @@ DARK DEFS) or it resolves to nothing outside light mode. No §9 command catches 
   in `mantle.css` (`check:css-selectors`). Internal markers that mantle code reads (`data-mantle-*`,
   `data-value`, `data-closing`) keep their names.
 
-No shipped docs page has a data-attribute table yet. New components ship one; add one to an existing component
-when you are already touching it, starting with the highest-traffic hooks (`data-validation`, Button and
-IconButton's `data-appearance`/`data-intent`/`data-size`). This is not an audit auto-fix.
+- **Every `data-*` a part renders is documented**, internal markers included (`data-mantle-*`, `data-value`,
+  `data-closing`): mantle owns its consumers, so a marker a consumer can see is API. Put the docs-page table
+  under the part's `###` heading inside `## API Reference`. The agent manifest reads those tables into each
+  component's `dataAttributes`, which `/api/components.json`, `dist/agent.json`, and the MCP `get` tool serve;
+  a table elsewhere on the page is not read. (`pnpm run check:data-attributes` fails when a part stamps an
+  attribute that its JSDoc or its docs page leaves out.)
 
 ---
 
@@ -1318,8 +1321,8 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Compound: composition tree first, then full-tree JSX, repeated on every part declaration.
 - [ ] Every public CSS variable documented in **both** the JSDoc and the docs-page API reference, with the
       default a consumer actually observes. Private variables use `--_` and stay undocumented.
-- [ ] Every `data-*` the component stamps for styling or coordination appears in the JSDoc and the API
-      reference; boolean states use presence semantics.
+- [ ] Every `data-*` the component renders appears in the JSDoc and in a `Data Attribute` table under the
+      part's heading in the API reference; boolean states use presence semantics.
 - [ ] Every label slot a part renders is documented under that part, in both the JSDoc and the API reference,
       with the wrapper's `display` stated.
 - [ ] Docs page has the required sections in order; `title:` is the Title Case display name; every example is
