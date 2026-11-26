@@ -1490,6 +1490,12 @@
       },
       {
         "part": "CodeBlock.Code",
+        "name": "data-foldable",
+        "value": "present when foldable",
+        "description": "Presence-only. The pre-rendered HTML has fold toggles, so each line makes room for the fold gutter."
+      },
+      {
+        "part": "CodeBlock.Code",
         "name": "data-lang",
         "value": "the language id",
         "description": "The value's language."
