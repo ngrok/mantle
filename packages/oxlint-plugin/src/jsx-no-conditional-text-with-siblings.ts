@@ -1,5 +1,12 @@
-import { canChange, isTranslateNoSubtree, renderedChildren, renderKinds, unwrap } from "./ast.ts";
-import type { JsxElement, JsxFragment, Rule } from "./types.ts";
+import {
+	canChange,
+	holdsListOrFragment,
+	isTranslateNoSubtree,
+	renderedChildren,
+	textHazard,
+	unwrap,
+} from "./ast.ts";
+import type { JsxChild, JsxElement, JsxFragment, Rule } from "./types.ts";
 
 /**
  * Reports a conditional text child that can unmount, or change into an element, while a sibling
@@ -34,6 +41,14 @@ import type { JsxElement, JsxFragment, Rule } from "./types.ts";
  *   <Icon svg={caret} />
  * </button>
  */
+function isLonePrimitive(child: JsxChild | undefined): boolean {
+	return (
+		child?.type !== "JSXExpressionContainer" ||
+		child.expression.type === "JSXEmptyExpression" ||
+		!holdsListOrFragment(child.expression)
+	);
+}
+
 export const jsxNoConditionalTextWithSiblings: Rule = {
 	meta: {
 		type: "problem",
@@ -44,7 +59,7 @@ export const jsxNoConditionalTextWithSiblings: Rule = {
 		},
 		messages: {
 			textCanUnmount:
-				"This conditional renders text in one branch and nothing in another. When the text unmounts while a sibling remains, React removes a text node that a browser translation engine reparented, the DOM raises `NotFoundError`, and the page goes blank. Wrap the text in an element that stays mounted,.",
+				"This conditional renders text in one branch and nothing in another. When the text unmounts while a sibling remains, React removes a text node that a browser translation engine reparented, the DOM raises `NotFoundError`, and the page goes blank. Wrap the text in an element that stays mounted.",
 			textBecomesElement:
 				"This conditional renders text in one branch and an element in another. When the text changes type, React replaces a text node that a browser translation engine reparented, the DOM raises `NotFoundError`, and the page goes blank. Render an element in both branches.",
 		},
@@ -55,9 +70,9 @@ export const jsxNoConditionalTextWithSiblings: Rule = {
 				return;
 			}
 			const children = renderedChildren(node.children);
-			// Why only an element: React writes the lone child of an element through
-			// `setTextContent`, which repairs the subtree. A fragment owns no host node.
-			if (node.type === "JSXElement" && children.length < 2) {
+			// Why only a lone primitive of an element: React writes a lone string or number through
+			// `setTextContent`, which repairs the subtree. A list and a fragment own no host node.
+			if (node.type === "JSXElement" && children.length < 2 && isLonePrimitive(children[0])) {
 				return;
 			}
 			for (const child of children) {
@@ -71,17 +86,12 @@ export const jsxNoConditionalTextWithSiblings: Rule = {
 				if (!canChange(expression)) {
 					continue;
 				}
-				const kinds = renderKinds(expression);
-				if (!kinds.text) {
-					continue;
-				}
-				if (kinds.nothing) {
-					context.report({ node: child, messageId: "textCanUnmount" });
-					continue;
-				}
-				// Both branches render something, so the only hazard left is a change of type.
-				if (kinds.element) {
-					context.report({ node: child, messageId: "textBecomesElement" });
+				const hazard = textHazard(expression);
+				if (hazard != null) {
+					context.report({
+						node: child,
+						messageId: hazard === "unmount" ? "textCanUnmount" : "textBecomesElement",
+					});
 				}
 			}
 		}

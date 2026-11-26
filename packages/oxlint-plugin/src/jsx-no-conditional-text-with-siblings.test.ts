@@ -3,6 +3,17 @@ import { ruleTester } from "./rule-tester.ts";
 
 ruleTester.run("jsx-no-conditional-text-with-siblings", jsxNoConditionalTextWithSiblings, {
 	valid: [
+		// Round 2, finding 1 control: a lone primitive goes through `setTextContent`.
+		'<span>{on && "Row"}</span>',
+		// Round 2, finding 3: two fragments of the same shape update their text in place.
+		"<p>{on ? <><b />On</> : <><b />Off</>}<i /></p>",
+		// Round 2, finding 6: `||` replaces a falsy `0`, so only the element renders.
+		"<p>{(on ? 0 : null) || <i />}<b /></p>",
+		// Round 2, finding 7: a `size` prop is most often a string, never `0`.
+		"<p>{props.size && <i />}<b /></p>",
+		// Round 2, finding 15, known gap: text passed straight to a portal or held in an array literal.
+		'<p>{createPortal(on && "Dialog", target)}</p>',
+		'<p>{on && ["Save"]}<i /></p>',
 		// Known gap: a mapped value this package cannot read stays unknown, like any other.
 		"<button>{items.map((item) => item.label)}<Icon /></button>",
 		// Qodo: React renders no node for `""`, so this conditional never holds text.
@@ -42,6 +53,40 @@ ruleTester.run("jsx-no-conditional-text-with-siblings", jsxNoConditionalTextWith
 		"<button>{label}<Icon svg={caret} /></button>",
 	],
 	invalid: [
+		{
+			// Round 2, finding 1: a `.map()` child is an array, not a primitive React writes as text.
+			code: '<span>{ids.map(() => "Row")}</span>',
+			errors: [{ messageId: "textCanUnmount" }],
+		},
+		{
+			code: "<span>{on && <>Row</>}</span>",
+			errors: [{ messageId: "textCanUnmount" }],
+		},
+		{
+			// Round 2, finding 3: a fragment branch against a string branch remounts.
+			code: '<p>{on ? <>On</> : "Off"}<i /></p>',
+			errors: [{ messageId: "textBecomesElement" }],
+		},
+		{
+			// Round 2, finding 5: an explicit `React.Fragment` owns no host node.
+			code: "<p>{ids.map((id) => <React.Fragment key={id}><i />Row</React.Fragment>)}<b /></p>",
+			errors: [{ messageId: "textCanUnmount" }],
+		},
+		{
+			// Round 2, finding 6: `??` keeps `false`, so the text unmounts.
+			code: '<p>{(on && "On") ?? "Off"}<i /></p>',
+			errors: [{ messageId: "textCanUnmount" }],
+		},
+		{
+			// Round 2, finding 7: an optional count can be `undefined`.
+			code: '<p>{items?.length && "Items"}<i /></p>',
+			errors: [{ messageId: "textCanUnmount" }],
+		},
+		{
+			// Round 2, finding 14: an interpolation with no fixed text can be `""`.
+			code: '<p>{on ? "Value" : `${label}`}<i /></p>',
+			errors: [{ messageId: "textCanUnmount" }],
+		},
 		{
 			// Review finding 1: React drops `""` from a child list, so the text node unmounts.
 			code: '<h1>Charts{show ? " / List" : ""}</h1>',

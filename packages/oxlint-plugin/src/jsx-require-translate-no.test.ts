@@ -35,13 +35,16 @@ describe("configuredElements", () => {
 
 ruleTester.run("jsx-require-translate-no", jsxRequireTranslateNo, {
 	valid: [
+		// Round 2, finding 11: a host element renders its `children` prop as its children.
+		'<aside translate="no"><div children={<kbd>K</kbd>} /></aside>',
+		// Round 2, finding 12: a type assertion on an object spread changes nothing.
+		'<kbd {...({ translate: "no" } as const)}>K</kbd>',
 		// Review finding 8: a static expression value is static, and the last assignment wins.
 		'<kbd translate={"no"}>{shortcut}</kbd>',
 		'<kbd {...props} translate="no">{shortcut}</kbd>',
 		'<kbd translate="no">{shortcut}</kbd>',
 		'<samp translate="no">{output}</samp>',
-		// A bare or dynamic `translate` says the author decided, so the rule stays quiet.
-		"<kbd translate>{shortcut}</kbd>",
+		// A dynamic `translate` says the author decided, so the rule stays quiet.
 		"<kbd translate={translate}>{shortcut}</kbd>",
 		// Descendants inherit the attribute, so an enclosing lock is enough.
 		'<div translate="no"><kbd>{shortcut}</kbd></div>',
@@ -67,6 +70,25 @@ ruleTester.run("jsx-require-translate-no", jsxRequireTranslateNo, {
 		},
 	],
 	invalid: [
+		{
+			// Round 2, finding 11: an element in a spread prop renders where the component puts it.
+			code: '<aside translate="no"><Tooltip {...{ content: <kbd>K</kbd> }} /></aside>',
+			errors: [{ messageId: "missingTranslateNo", data: { name: "kbd" } }],
+		},
+		{
+			// Round 2, finding 12: a computed key with a string value is still `translate`.
+			code: '<kbd translate="no" {...{ ["translate"]: "yes" }}>K</kbd>',
+			errors: [{ messageId: "missingTranslateNo", data: { name: "kbd" } }],
+		},
+		{
+			// Round 2, finding 13: React renders no attribute for `undefined` or a bare boolean.
+			code: "<kbd translate={undefined}>K</kbd>",
+			errors: [{ messageId: "missingTranslateNo", data: { name: "kbd" } }],
+		},
+		{
+			code: "<kbd translate>K</kbd>",
+			errors: [{ messageId: "missingTranslateNo", data: { name: "kbd" } }],
+		},
 		{
 			// Review finding 11: a static value other than `no` leaves the key translatable.
 			code: '<kbd translate="yes">{shortcut}</kbd>',

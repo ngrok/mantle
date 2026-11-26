@@ -1,11 +1,26 @@
 import {
 	firstNodeKinds,
+	isFragmentElement,
 	isTranslateNoSubtree,
 	mountsElement,
 	renderedChildren,
 	textRange,
 } from "./ast.ts";
 import type { JsxChild, JsxElement, JsxFragment, Rule } from "./types.ts";
+
+function isFragment(node: JsxChild): node is JsxElement | JsxFragment {
+	return node.type === "JSXFragment" || (node.type === "JSXElement" && isFragmentElement(node));
+}
+
+/**
+ * The children React renders, with each fragment child opened in place. A fragment owns no host
+ * node, so an insert inside it lands before the next node after it.
+ */
+function hostChildren(children: readonly JsxChild[]): JsxChild[] {
+	return renderedChildren(children).flatMap((child) =>
+		isFragment(child) ? hostChildren(child.children) : [child],
+	);
+}
 
 /**
  * The first later sibling whose first node can be a reparented text node, or `null`. React inserts
@@ -64,10 +79,15 @@ export const jsxNoConditionalBeforeText: Rule = {
 	},
 	create(context) {
 		function check(node: JsxElement | JsxFragment) {
+			// Why skip a nested fragment: its parent reads its children in place.
+			const { parent } = node;
+			if (isFragment(node) && (parent.type === "JSXElement" || parent.type === "JSXFragment")) {
+				return;
+			}
 			if (isTranslateNoSubtree(node)) {
 				return;
 			}
-			const children = renderedChildren(node.children);
+			const children = hostChildren(node.children);
 			const reported = new Set<JsxChild>();
 			for (const [index, child] of children.entries()) {
 				if (!mountsElement(child)) {

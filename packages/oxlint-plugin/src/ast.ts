@@ -30,6 +30,7 @@ const NOTHING: RenderKinds = { text: false, element: false, nothing: true, unkno
 const TEXT: RenderKinds = { text: true, element: false, nothing: false, unknown: false };
 const ELEMENT: RenderKinds = { text: false, element: true, nothing: false, unknown: false };
 const UNKNOWN: RenderKinds = { text: false, element: false, nothing: false, unknown: true };
+const NONE: RenderKinds = { text: false, element: false, nothing: false, unknown: false };
 
 function union(...kinds: RenderKinds[]): RenderKinds {
 	return {
@@ -83,15 +84,48 @@ function mapCallbackBody(expression: JsxExpression): JsxExpression | null {
 	return null;
 }
 
-/** Whether an expression reads a count, such as `items.length`, which renders `0` when falsy. */
+/** Whether a `.map()` runs over an array literal, whose rows never change. */
+function mapsFixedList(expression: JsxExpression): boolean {
+	if (expression.type !== "CallExpression" || expression.callee.type !== "MemberExpression") {
+		return false;
+	}
+	const list = unwrap(expression.callee.object);
+	return (
+		list.type === "ArrayExpression" &&
+		list.elements.length > 0 &&
+		list.elements.every((element) => element != null && element.type !== "SpreadElement")
+	);
+}
+
+/** Whether an element is `Fragment` or `React.Fragment`, which owns no host node. */
+export function isFragmentElement(node: JsxElement): boolean {
+	const name = elementName(node.openingElement.name);
+	return name === "Fragment" || name === "React.Fragment";
+}
+
+/** Whether an expression reads `.length`, which renders `0` when falsy. */
 function readsCount(expression: JsxExpression): boolean {
 	const node = unwrap(expression);
 	return (
 		node.type === "MemberExpression" &&
 		!node.computed &&
 		node.property.type === "Identifier" &&
-		(node.property.name === "length" || node.property.name === "size")
+		node.property.name === "length"
 	);
+}
+
+/** Whether an expression holds an optional chain, which yields `undefined` when it stops. */
+function isOptionalChain(expression: JsxExpression): boolean {
+	let node = expression;
+	while (
+		node.type === "TSAsExpression" ||
+		node.type === "TSSatisfiesExpression" ||
+		node.type === "TSNonNullExpression" ||
+		node.type === "TSTypeAssertion"
+	) {
+		node = node.expression;
+	}
+	return node.type === "ChainExpression";
 }
 
 function literalKinds(value: unknown): RenderKinds {
@@ -99,35 +133,111 @@ function literalKinds(value: unknown): RenderKinds {
 	if (value == null || typeof value === "boolean" || value === "") {
 		return NOTHING;
 	}
+	// Why blank text counts as an element: no engine reparents it.
+	if (typeof value === "string" && value.trim() === "") {
+		return ELEMENT;
+	}
 	if (typeof value === "string" || typeof value === "number" || typeof value === "bigint") {
 		return TEXT;
 	}
 	return UNKNOWN;
 }
 
+/** What the falsy left side of `&&` renders: `0` for a count, and nothing otherwise. */
+function falsyKinds(left: JsxExpression): RenderKinds {
+	if (!readsCount(left)) {
+		return NOTHING;
+	}
+	// Why nothing too: an optional chain such as `items?.length` can stop at `undefined`.
+	return isOptionalChain(left) ? union(TEXT, NOTHING) : TEXT;
+}
+
+/**
+ * What the left side of `??` or `||` renders once the operator replaces its value. `??` replaces
+ * only `null` and `undefined`, so it keeps `false`. `||` replaces every falsy value.
+ */
+function keptKinds(
+	expression: JsxExpression,
+	operator: "??" | "||",
+	readFragment: FragmentReader,
+): RenderKinds {
+	const node = unwrap(expression);
+	switch (node.type) {
+		case "ConditionalExpression":
+			return union(
+				keptKinds(node.consequent, operator, readFragment),
+				keptKinds(node.alternate, operator, readFragment),
+			);
+		case "LogicalExpression":
+			if (node.operator !== "&&") {
+				break;
+			}
+			return union(
+				keptKinds(node.right, operator, readFragment),
+				operator === "??" ? falsyKinds(node.left) : NONE,
+			);
+		case "Literal":
+			if (operator === "??" ? node.value == null : !node.value) {
+				return NONE;
+			}
+			break;
+		case "Identifier":
+			if (node.name === "undefined") {
+				return NONE;
+			}
+			break;
+		default:
+			break;
+	}
+	return kindsOf(node, readFragment);
+}
+
 function logicalKinds(node: LogicalExpression, readFragment: FragmentReader): RenderKinds {
 	const right = kindsOf(node.right, readFragment);
 	if (node.operator === "&&") {
 		// Why text for a count: `items.length && <Row />` renders `0` while the list is empty.
-		return union(right, readsCount(node.left) ? TEXT : NOTHING);
+		return union(right, falsyKinds(node.left));
 	}
-	// Why drop the left side's nothing: `??` and `||` replace a nullish or falsy left value.
-	return union({ ...kindsOf(node.left, readFragment), nothing: false }, right);
+	return union(keptKinds(node.left, node.operator, readFragment), right);
 }
+
+/** Whether a call is `createPortal(…)`, which renders its content in another container. */
+function isPortalCall(node: JsxExpression): boolean {
+	if (node.type !== "CallExpression") {
+		return false;
+	}
+	const { callee } = node;
+	return (
+		(callee.type === "Identifier" && callee.name === "createPortal") ||
+		(callee.type === "MemberExpression" &&
+			callee.property.type === "Identifier" &&
+			callee.property.name === "createPortal")
+	);
+}
+
+const COMPARISONS = new Set(["===", "!==", "==", "!=", "<", ">", "<=", ">=", "in", "instanceof"]);
 
 function kindsOf(expression: JsxExpression, readFragment: FragmentReader): RenderKinds {
 	const node = unwrap(expression);
 	const body = mapCallbackBody(node);
 	if (body != null) {
-		return union(kindsOf(body, readFragment), NOTHING);
+		return union(kindsOf(body, readFragment), mapsFixedList(node) ? NONE : NOTHING);
+	}
+	// Why nothing: a portal renders in another container, and a comparison renders a boolean.
+	if (isPortalCall(node) || (node.type === "BinaryExpression" && COMPARISONS.has(node.operator))) {
+		return NOTHING;
 	}
 	switch (node.type) {
 		case "JSXElement":
-			return ELEMENT;
+			return isFragmentElement(node) ? readFragment(node.children) : ELEMENT;
 		case "JSXFragment":
 			return readFragment(node.children);
 		case "TemplateLiteral":
-			return node.expressions.length === 0 ? literalKinds(node.quasis[0]?.value.cooked) : TEXT;
+			if (node.expressions.length === 0) {
+				return literalKinds(node.quasis[0]?.value.cooked);
+			}
+			// Why nothing too: with no fixed text, `${label}` renders `""` when `label` is empty.
+			return node.quasis.every((quasi) => quasi.value.cooked === "") ? union(TEXT, NOTHING) : TEXT;
 		case "Literal":
 			return literalKinds(node.value);
 		case "UnaryExpression":
@@ -145,17 +255,22 @@ function kindsOf(expression: JsxExpression, readFragment: FragmentReader): Rende
 	}
 }
 
+/** Whether JSX text is blank. The parser keeps an entity such as `&nbsp;` as written. */
+function isBlankText(value: string): boolean {
+	return value.replace(/&(?:nbsp|#160|#x0*a0);/gi, " ").trim() === "";
+}
+
 function childKinds(child: JsxChild, readFragment: FragmentReader): RenderKinds {
 	switch (child.type) {
 		case "JSXText":
 			// Why blank text counts as an element: no engine reparents it.
-			return child.value.trim() === "" ? ELEMENT : TEXT;
+			return isBlankText(child.value) ? ELEMENT : TEXT;
 		case "JSXExpressionContainer":
 			return child.expression.type === "JSXEmptyExpression"
 				? NOTHING
 				: kindsOf(child.expression, readFragment);
 		case "JSXElement":
-			return ELEMENT;
+			return isFragmentElement(child) ? readFragment(child.children) : ELEMENT;
 		case "JSXFragment":
 			return readFragment(child.children);
 		default:
@@ -230,8 +345,97 @@ export function canChange(expression: JsxExpression): boolean {
 	return (
 		node.type === "ConditionalExpression" ||
 		node.type === "LogicalExpression" ||
-		mapCallbackBody(node) != null
+		(mapCallbackBody(node) != null && !mapsFixedList(node))
 	);
+}
+
+/**
+ * Whether an expression can hold a list or a fragment. React writes only a lone string or number
+ * through `setTextContent`, so a list or a fragment is not on that repair path.
+ */
+export function holdsListOrFragment(expression: JsxExpression): boolean {
+	const node = unwrap(expression);
+	switch (node.type) {
+		case "ConditionalExpression":
+			return holdsListOrFragment(node.consequent) || holdsListOrFragment(node.alternate);
+		case "LogicalExpression":
+			return holdsListOrFragment(node.left) || holdsListOrFragment(node.right);
+		case "JSXFragment":
+		case "ArrayExpression":
+			return true;
+		case "JSXElement":
+			return isFragmentElement(node);
+		default:
+			return mapCallbackBody(node) != null;
+	}
+}
+
+/** How a conditional text child can fail: its text unmounts, or it changes into an element. */
+export type TextHazard = "unmount" | "becomesElement";
+
+function hazardOf(kinds: RenderKinds): TextHazard | null {
+	if (!kinds.text) {
+		return null;
+	}
+	if (kinds.nothing) {
+		return "unmount";
+	}
+	return kinds.element ? "becomesElement" : null;
+}
+
+/** The rendered children of an unkeyed fragment, or `null` for any other expression. */
+function fragmentChildren(expression: JsxExpression): JsxChild[] | null {
+	const node = unwrap(expression);
+	if (node.type === "JSXFragment") {
+		return renderedChildren(node.children);
+	}
+	if (node.type === "JSXElement" && isFragmentElement(node) && staticKey(node) === "") {
+		return renderedChildren(node.children);
+	}
+	return null;
+}
+
+/**
+ * How a conditional child can remove a text node that an engine reparented, or `null` when it
+ * cannot.
+ *
+ * React matches the children of two unkeyed fragments one by one, so a ternary between two
+ * fragments is read position by position. A fragment against any other branch remounts, so its
+ * text counts as removed.
+ *
+ * @example
+ * // `on && "Save"` → "unmount"
+ * // `on ? <><b />On</> : <><b />Off</>}` → null, because React writes the new text in place
+ * // `on ? <>On</> : "Off"` → "becomesElement"
+ * const hazard = textHazard(expression);
+ */
+export function textHazard(expression: JsxExpression): TextHazard | null {
+	const node = unwrap(expression);
+	if (node.type === "ConditionalExpression") {
+		const consequent = fragmentChildren(node.consequent);
+		const alternate = fragmentChildren(node.alternate);
+		if (consequent != null && alternate != null) {
+			const length = Math.max(consequent.length, alternate.length);
+			for (let index = 0; index < length; index++) {
+				const left = consequent[index];
+				const right = alternate[index];
+				const hazard = hazardOf(
+					union(
+						left == null ? NOTHING : childKinds(left, everyNode),
+						right == null ? NOTHING : childKinds(right, everyNode),
+					),
+				);
+				if (hazard != null) {
+					return hazard;
+				}
+			}
+			return null;
+		}
+		if ((consequent == null) !== (alternate == null)) {
+			return hazardOf({ ...renderKinds(node), element: true });
+		}
+	}
+	return hazardOf(renderKinds(node));
 }
 
 /**
@@ -274,21 +478,66 @@ export function elementName(name: JsxElementName): string {
 	}
 }
 
-/** An element's static `key`: `""` when it has none, and `null` when the key is dynamic. */
-function staticKey(node: JsxElement): string | null {
+type JsxAttribute = Extract<
+	JsxElement["openingElement"]["attributes"][number],
+	{ type: "JSXAttribute" }
+>;
+
+function keyAttribute(node: JsxElement): JsxAttribute | null {
 	for (const attribute of node.openingElement.attributes) {
 		if (
 			attribute.type === "JSXAttribute" &&
 			attribute.name.type === "JSXIdentifier" &&
 			attribute.name.name === "key"
 		) {
-			const { value } = attribute;
-			return value?.type === "Literal" && typeof value.value === "string"
-				? `=${value.value}`
-				: null;
+			return attribute;
 		}
 	}
-	return "";
+	return null;
+}
+
+/**
+ * An element's static key, as React compares it: `""` when it has none, and `null` when this
+ * package cannot read it. React turns a key into a string, so `key={1}` equals `key="1"`. A spread
+ * can carry a key, so it adds the name of the spread value, or makes the key unreadable.
+ */
+function staticKey(node: JsxElement): string | null {
+	let key = "";
+	for (const attribute of node.openingElement.attributes) {
+		if (attribute.type === "JSXSpreadAttribute") {
+			const argument = unwrap(attribute.argument);
+			if (argument.type !== "Identifier") {
+				return null;
+			}
+			key += `...${argument.name}`;
+		}
+	}
+	const value = keyAttribute(node)?.value;
+	if (value == null) {
+		return key;
+	}
+	const literal = value.type === "JSXExpressionContainer" ? value.expression : value;
+	if (literal.type === "JSXEmptyExpression") {
+		return null;
+	}
+	const expression = unwrap(literal);
+	if (
+		expression.type === "Literal" &&
+		(typeof expression.value === "string" || typeof expression.value === "number")
+	) {
+		return `${key}=${String(expression.value)}`;
+	}
+	return null;
+}
+
+/** Whether an element's key is a conditional, which remounts the element when it flips. */
+function hasConditionalKey(node: JsxElement): boolean {
+	const value = keyAttribute(node)?.value;
+	return (
+		value?.type === "JSXExpressionContainer" &&
+		value.expression.type !== "JSXEmptyExpression" &&
+		canChange(value.expression)
+	);
 }
 
 /**
@@ -323,11 +572,15 @@ function swapsSameElement(expression: JsxExpression): boolean {
  * @example
  * // `{icon && <Icon />}` → true
  * // `{rows.map((row) => <Row key={row.id} />)}` → true
+ * // `<Row key={open ? "a" : "b"} />` → true, because a new key remounts the element
  * // `{open ? <i title="on" /> : <i title="off" />}` → false, because React reuses the `<i>`
  * // `{open ? "Less" : "More"}` → false, because neither branch is an element
  * const mounts = mountsElement(child);
  */
 export function mountsElement(child: JsxChild): boolean {
+	if (child.type === "JSXElement") {
+		return hasConditionalKey(child);
+	}
 	if (child.type !== "JSXExpressionContainer" || child.expression.type === "JSXEmptyExpression") {
 		return false;
 	}
@@ -391,6 +644,13 @@ function expressionMode(expression: JsxExpression): TranslateMode {
 	if (node.type === "TemplateLiteral" && node.expressions.length === 0) {
 		return staticMode(node.quasis[0]?.value.cooked);
 	}
+	// Why `null`: React renders no attribute for `undefined`, `null`, or a boolean.
+	if (
+		(node.type === "Identifier" && node.name === "undefined") ||
+		(node.type === "Literal" && (node.value == null || typeof node.value === "boolean"))
+	) {
+		return null;
+	}
 	return "dynamic";
 }
 
@@ -398,15 +658,17 @@ function attributeMode(value: JsxAttributeValue): TranslateMode {
 	if (value?.type === "Literal" && typeof value.value === "string") {
 		return staticMode(value.value);
 	}
-	if (value?.type === "JSXExpressionContainer") {
+	if (value?.type === "JSXExpressionContainer" && value.expression.type !== "JSXEmptyExpression") {
 		return expressionMode(value.expression);
 	}
-	return "dynamic";
+	// Why `null` for a bare attribute: its value is `true`, and React renders no attribute for it.
+	return value == null ? null : "dynamic";
 }
 
 /** Reads one `{...spread}`. An object literal shows its keys, and any other spread can hide one. */
-function spreadMode(argument: JsxExpression, mode: TranslateMode): TranslateMode {
+function spreadMode(spread: JsxExpression, mode: TranslateMode): TranslateMode {
 	const opaque = mode == null ? null : "spread";
+	const argument = unwrap(spread);
 	if (argument.type !== "ObjectExpression") {
 		return opaque;
 	}
@@ -420,7 +682,8 @@ function spreadMode(argument: JsxExpression, mode: TranslateMode): TranslateMode
 		const isTranslate =
 			(key.type === "Identifier" && key.name === "translate") ||
 			(key.type === "Literal" && key.value === "translate");
-		if (!property.computed && isTranslate) {
+		// Why a computed key passes: `["translate"]` is a string literal.
+		if (isTranslate && (!property.computed || key.type === "Literal")) {
 			result = expressionMode(property.value);
 		}
 	}
@@ -443,26 +706,22 @@ export function translateMode(node: JsxElement): TranslateMode {
 /**
  * The `translate` mode a node inherits: the mode of the nearest enclosing element that sets one.
  *
- * The walk stops at a JSX attribute and at a `createPortal` call. Each one renders the element
- * where a component or the portal puts it, outside this subtree, so the subtree's mode does not
- * reach it.
+ * The walk stops at a JSX attribute, a props spread, and a `createPortal` call. Each one renders
+ * the element where a component or the portal puts it, outside this subtree, so the subtree's mode
+ * does not reach it. The `children` prop of a host element is the exception: it renders inside
+ * that element.
  */
 export function inheritedTranslateMode(node: JsxElement | JsxFragment): TranslateMode {
 	let current: JsxElement["parent"] | null = node.parent;
 	while (current != null) {
-		if (current.type === "JSXAttribute") {
+		if (
+			current.type === "JSXSpreadAttribute" ||
+			(current.type === "CallExpression" && isPortalCall(current))
+		) {
 			return null;
 		}
-		if (current.type === "CallExpression") {
-			const { callee } = current;
-			const isPortal =
-				(callee.type === "Identifier" && callee.name === "createPortal") ||
-				(callee.type === "MemberExpression" &&
-					callee.property.type === "Identifier" &&
-					callee.property.name === "createPortal");
-			if (isPortal) {
-				return null;
-			}
+		if (current.type === "JSXAttribute" && !isHostChildrenProp(current)) {
+			return null;
 		}
 		if (current.type === "JSXElement") {
 			const mode = translateMode(current);
@@ -473,6 +732,18 @@ export function inheritedTranslateMode(node: JsxElement | JsxFragment): Translat
 		current = "parent" in current ? current.parent : null;
 	}
 	return null;
+}
+
+/** Whether an attribute is the `children` prop of a host element such as `div`. */
+function isHostChildrenProp(attribute: JsxAttribute): boolean {
+	const owner = attribute.parent;
+	return (
+		attribute.name.type === "JSXIdentifier" &&
+		attribute.name.name === "children" &&
+		owner.type === "JSXOpeningElement" &&
+		owner.name.type === "JSXIdentifier" &&
+		/^[a-z]/.test(owner.name.name)
+	);
 }
 
 /**

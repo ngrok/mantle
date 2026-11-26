@@ -65,13 +65,17 @@ this on the first click of every submit button, because `isLoading` synthesizes 
 Two other fixes work. Move the conditional element after the text, which turns the mount into an
 `appendChild`. Or mount the element unconditionally and write text into it, which is safe and self-healing.
 
-A `.map()` counts as conditional too: a new row inserts before the next node the same way.
+A `.map()` counts as conditional too: a new row inserts before the next node the same way. A `.map()` over
+an array literal never gains a row, so it does not count. A conditional `key` counts, because a new key
+remounts the element.
 
 The rule finds the node React inserts before, so it reads past a child that can render no node, such as
-`{null}` or an empty list. It reads into a fragment, because a fragment owns no host node. It does not
-report a conditional that picks between two elements of the same type and key, because React updates that
-element in place. It reads a static `translate`, and it skips a subtree whose nearest `translate` is `no`.
-A portal and an element passed in a prop do not inherit that value.
+`{null}`, an empty list, a portal, or a comparison. It reads into a fragment, because a fragment owns no host
+node, and an insert inside a fragment lands before the next node after it. Blank text, such as `{" "}` or
+`&nbsp;`, is a safe anchor, because no engine moves it. The rule does not report a conditional that picks
+between two elements of the same type and key, because React updates that element in place. It reads a
+static `translate`, and it skips a subtree whose nearest `translate` is `no`. A portal and an element
+passed in a prop do not inherit that value.
 
 A child whose every branch renders an element or nothing is not text, so `{footer == null ? null : <div />}`
 is not reported. A branch this rule cannot read statically counts as text, because the crash costs a blank
@@ -101,14 +105,17 @@ still removes a text node. Write text into an element that stays mounted instead
 `<span>{show ? " / List" : ""}</span>`.
 
 A `.map()` counts as conditional, because an empty list unmounts every row. A fragment owns no host node, so
-the rule reads into it, and the lone child of a fragment is not exempt. A count such as
-`{items.length && <Badge />}` renders `0` as text, so the rule reports it.
+the rule reads into it. A ternary between two fragments is read child by child, because React matches their
+children in order. A fragment against any other branch remounts. A count such as
+`{items.length && <Badge />}` renders `0` as text, so the rule reports it. `??` keeps `false`, and `||`
+replaces every falsy value.
 
 Three shapes stay quiet on purpose:
 
 - **Every branch renders text:** `{open ? "Show less" : "Show more"}`. React writes the new value through
   `commitTextUpdate`, and the translation reverts.
-- **The lone child of an element:** React updates it through `setTextContent`. The failure needs a sibling.
+- **A lone string or number child of an element:** React writes it through `setTextContent`. The failure
+  needs a sibling. A lone list or fragment is not on that path, so the rule reads it.
 - **A branch this rule cannot read statically:** `{expanded && belowTheFold}` and
   `{items.map((item) => item.label)}`. Such a value holds an element far more often than a string, so the
   rule trades the recall for precision. For the same reason, `{count && <Badge />}` with a plain identifier
@@ -133,10 +140,12 @@ It is never the fix for the crash the other two rules report: fix the structure 
 ```
 
 The rule stays quiet when the element's own `translate` is `no`, or is an expression it cannot read.
-`translate="yes"` and `translate=""` both enable translation, so the rule reports them. With no value of its
-own, the element inherits the nearest enclosing `translate`. A portal and an element passed in a prop do not
-inherit it. In JSX the last assignment wins, so a props spread after `translate="no"` can undo it. Stamp the
-attribute after the spread.
+`translate="yes"` and `translate=""` both enable translation, so the rule reports them. React renders no
+attribute for `translate={undefined}` or a bare `translate`, so the rule reads both as no value. With no value
+of its own, the element inherits the nearest enclosing `translate`. A portal, an element passed in a prop,
+and an element in a props spread do not inherit it. The `children` prop of a host element does.
+In JSX the last assignment wins, so a props spread after `translate="no"` can undo it. Stamp the attribute
+after the spread.
 
 The rule treats a `translate` prop on a component as the DOM attribute, because a mantle component passes it
 to its root element.
@@ -159,6 +168,19 @@ Name a component the way the JSX spells it, including its object. Keep `kbd` and
 
 `code` stays off the default list on purpose: mantle's `Code` also styles terms that are not code, so the
 attribute is a default there rather than a lock.
+
+## Known gaps
+
+The rules read one file's JSX with no type information. They do not report these shapes. A `valid` test
+pins each of the first four:
+
+- A conditional branch they cannot read statically, such as `{expanded && belowTheFold}` or
+  `{items.map((item) => item.label)}`, beside a sibling.
+- A count in a plain identifier: `{count && <Badge />}`.
+- Text passed straight to a portal: `createPortal(open && "Dialog", target)`.
+- Text in an array literal: `{open && ["Save"]}`.
+- A component that returns bare text at its root, or that renders anything beside the `children` it
+  receives.
 
 ## Suppressing a report
 

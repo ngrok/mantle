@@ -3,6 +3,16 @@ import { ruleTester } from "./rule-tester.ts";
 
 ruleTester.run("jsx-no-conditional-before-text", jsxNoConditionalBeforeText, {
 	valid: [
+		// Round 2, finding 2: an explicit space is a blank text node, which no engine moves.
+		'<p>{on && <i />}{" "}Save</p>',
+		'<p>{on && <i />}&nbsp;{"Save"}</p>',
+		// Round 2, finding 8: React reads `key={1}` and `key="1"` as the same key.
+		'<button>{on ? <i key={1} title="on" /> : <i key="1" title="off" />}Save</button>',
+		// Round 2, finding 10: a portal and a comparison render no node in place.
+		"<p>{on && <i />}{createPortal(<b>Dialog</b>, target)}</p>",
+		"<p>{on && <i />}{on === true}</p>",
+		// Round 2, finding 16: a map over an array literal never gains or loses a row.
+		"<p>{[1, 2].map((n) => <i key={n} title={title} />)}Save</p>",
 		// Review finding 10 control: the blank text node is the insert anchor, and no engine moves it.
 		'<button>{on && <i />} {"Save"}</button>',
 		// Review finding 9: React updates a same-type, same-key element in place, so nothing inserts.
@@ -45,6 +55,26 @@ ruleTester.run("jsx-no-conditional-before-text", jsxNoConditionalBeforeText, {
 		'<pre translate="no"><code>{lines.map((line) => <>{line.first && <Gap />}{line.text}</>)}</code></pre>',
 	],
 	invalid: [
+		{
+			// Round 2, finding 2 control: `&nbsp;` joined to text is one text node.
+			code: "<p>{on && <i />}&nbsp;Save</p>",
+			errors: [{ messageId: "conditionalBeforeText" }],
+		},
+		{
+			// Round 2, finding 4: an insert inside a fragment lands before the next node after it.
+			code: "<p><>{on && <i />}</>Save</p>",
+			errors: [{ messageId: "conditionalBeforeText" }],
+		},
+		{
+			// Round 2, finding 8: a spread can carry a key, so the two elements can differ.
+			code: "<button>{on ? <i {...a} /> : <i {...b} />}Save</button>",
+			errors: [{ messageId: "conditionalBeforeText" }],
+		},
+		{
+			// Round 2, finding 9: a conditional key remounts the element.
+			code: '<p><i key={on ? "on" : "off"} />Save</p>',
+			errors: [{ messageId: "conditionalBeforeText" }],
+		},
 		{
 			// Review finding 2: an empty list renders no node, so the insert anchor is the text.
 			code: "<div>{on && <i />}{rows.map((n) => <b key={n} />)}Save</div>",
