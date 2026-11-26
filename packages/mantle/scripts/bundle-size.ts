@@ -15,6 +15,12 @@ type Sizes = Record<string, number>;
 
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, "..");
 const SCENARIO_FILE = path.join(PACKAGE_ROOT, "bundle-size.json");
+/**
+ * The chunk of Vite's `__vitePreload` helper, which wraps each `import()`. An
+ * app that loads its pages with `import()` ships it once, so no scenario pays for it.
+ */
+const PRELOAD_HELPER = "preload-helper";
+
 /** Where each scenario's build lands, so Node can import it and resolve React from the package. */
 const OUT_DIR = path.join(PACKAGE_ROOT, "node_modules", ".cache", "bundle-size");
 
@@ -85,7 +91,7 @@ const formatReport = ({ base, head }: { base: Sizes; head: Sizes }): string => {
 					"",
 				]
 			: []),
-		`Gzip bytes of the mantle JavaScript each scenario loads before render, as a consumer's Vite production build bundles it. All scenarios: ${formatBytes(totalBase)} → ${formatBytes(total)}. This report never blocks a merge.`,
+		`Gzip bytes of the mantle JavaScript each scenario loads before render, as a page of a consumer's Vite production app bundles it. Vite's preload helper counts as the app's, not the scenario's. All scenarios: ${formatBytes(totalBase)} → ${formatBytes(total)}. This report never blocks a merge.`,
 		"",
 	].join("\n");
 };
@@ -240,7 +246,17 @@ const measure = async ({
 			rolldownOptions: {
 				input: virtualId,
 				external: [/^react($|\/)/, /^react-dom($|\/)/],
-				preserveEntrySignatures: "strict",
+				// Why `allow-extension`: an app loads a page from its router with
+				// `import()`, so the page's chunk can export the code that its own
+				// lazy chunks share. A strict entry would move that code to a chunk of its own.
+				preserveEntrySignatures: "allow-extension",
+				// Why a chunk of its own: an app already ships Vite's preload helper
+				// for its routes, so the report counts it as the app's, not the scenario's.
+				output: {
+					codeSplitting: {
+						groups: [{ name: PRELOAD_HELPER, test: /^\0vite\/preload-helper\.js$/ }],
+					},
+				},
 			},
 		},
 		// Why a worker build like the page's: a worker is lazy code, and its own chunks stay out of the entry.
@@ -260,8 +276,9 @@ const measure = async ({
 	});
 	const results = Array.isArray(output) ? output : [output];
 	const files = results.flatMap((result) => ("output" in result ? result.output : []));
+	// Why without the helper: it is the app's code (see `PRELOAD_HELPER`).
 	const chunks: BuiltChunk[] = files.flatMap((file) =>
-		file.type === "chunk"
+		file.type === "chunk" && file.name !== PRELOAD_HELPER
 			? [{ fileName: file.fileName, code: file.code, isEntry: file.isEntry, imports: file.imports }]
 			: [],
 	);
@@ -381,5 +398,6 @@ export {
 	//,
 	formatReport,
 	gzipBytesOf,
+	measure,
 	splitChunks,
 };
