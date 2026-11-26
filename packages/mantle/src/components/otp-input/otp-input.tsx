@@ -639,11 +639,14 @@ const OtpInputSlotImpl = ({
 			translate="no"
 		>
 			{char}
-			{isActive && char == null && (
+			{/* Why the length check: after a reset, the slots read the empty value one commit
+			before the selection collapses, so only the insertion slot may draw a caret. */}
+			{isActive && index === context.value.length && (
 				// The input's own caret is hidden, so the slot draws one like it: 1px of the
 				// text color. Why an empty inline span with a border: its box is the font's
-				// content area, which is the height a native caret takes.
-				<span aria-hidden className="animate-caret-blink">
+				// content area, which is the height a native caret takes. Why `absolute`: an
+				// empty slot keeps its height when the caret mounts; the flex box still centers it.
+				<span aria-hidden className="absolute motion-safe:animate-caret-blink">
 					<span className="border-s border-current" />
 				</span>
 			)}

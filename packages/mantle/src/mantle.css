@@ -315,8 +315,8 @@ in a plain stylesheet (a third-party widget override) resolves to nothing.
 		}
 	}
 	/* A drawn text caret's blink: on for 500ms, then off for 500ms, with no fade. It matches
-	   Chromium's default native caret. Why it runs under reduced motion: native carets blink there
-	   too in Chromium, Firefox, and WebKit, and a blink changes opacity, not position. */
+	   Chromium's default native caret. Gate it with `motion-safe:`: mantle keeps a steady caret
+	   under reduced motion, although native carets blink there. */
 	--animate-caret-blink: caret-blink 1s step-end infinite;
 	@keyframes caret-blink {
 		50% {
@@ -1563,6 +1563,8 @@ MARK: UTILITIES
 	background: transparent !important;
 	color: transparent !important;
 	caret-color: transparent !important;
+	/* Why: forced colors repaint `caret-color`, so the hidden caret shows beside the slot's drawn one. */
+	forced-color-adjust: none !important;
 	box-shadow: none !important;
 	outline: 0 solid transparent !important;
 	pointer-events: auto !important;
