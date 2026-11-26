@@ -74,6 +74,11 @@ describe("getFilterConjunction", () => {
 		expect(read("is:shared OR name:api", options).problems).toHaveLength(1);
 		expect(read("acme OR lemur", options).problems).toHaveLength(1);
 		expect(read("is:shared OR -is:new", options).problems).toHaveLength(1);
+		// The inner OR holds an AND, so the outer OR on the same key cannot join it either.
+		expect(read("name:a OR (name:b name:c OR name:d)", options).problems).toEqual([
+			{ kind: "or", text: "name:a OR (name:b name:c OR name:d" },
+			{ kind: "or", text: "name:b name:c OR name:d" },
+		]);
 		// NOT (a b) on one key is NOT a OR NOT b: each side is negated.
 		expect(read("NOT (is:shared is:new)", options).problems).toEqual([
 			{ kind: "negated-group", text: "is:shared is:new" },

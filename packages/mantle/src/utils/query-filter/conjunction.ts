@@ -6,7 +6,8 @@ type FilterConjunctionOr =
 	| "none"
 	/**
 	 * An `OR` whose sides are each one qualifier on the same key, not negated,
-	 * such as `status:404 OR status:500`. It reads as one comma list.
+	 * such as `status:404 OR status:500`. Its sides are alternatives, as the
+	 * members of a comma list are on a key that is not `prose`.
 	 */
 	| "same-key";
 
@@ -62,11 +63,17 @@ type FilterConjunction = {
 	problems: FilterConjunctionProblem[];
 };
 
-/** One clause while the descent reads it, with the span of its source. */
-type Clause = { start: number; end: number; terms: FilterConjunctionTerm[] };
+/**
+ * One clause while the descent reads it, with the span of its source.
+ * `refused` marks an OR that already has a problem, so no outer OR accepts it.
+ */
+type Clause = { start: number; end: number; terms: FilterConjunctionTerm[]; refused?: true };
 
 /** The key of a clause whose terms are each a qualifier on one key, not negated. */
 function positiveKey(clause: Clause | undefined): string | null {
+	if (clause?.refused) {
+		return null;
+	}
 	const key = clause?.terms[0]?.token.kind === "facet" ? clause.terms[0].token.key : null;
 	const same = clause?.terms.every(
 		({ token, negated }) => token.kind === "facet" && token.key === key && !negated,
@@ -124,10 +131,12 @@ function getFilterConjunction(
 			or === "same-key" &&
 			key != null &&
 			parts.every((part) => part.length === 1 && positiveKey(part[0]) === key);
+		const terms = clauses.flatMap((clause) => clause.terms);
 		if (!oneKey) {
 			problems.push({ kind: problem, start, end });
+			return [{ start, end, terms, refused: true }];
 		}
-		return [{ start, end, terms: clauses.flatMap((clause) => clause.terms) }];
+		return [{ start, end, terms }];
 	}
 
 	// The descent mirrors `parseFilterExpression`: a negation passes down, and

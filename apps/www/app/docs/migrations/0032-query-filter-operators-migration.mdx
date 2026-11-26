@@ -61,6 +61,7 @@ const { clauses, problems } = getFilterConjunction(parseFilterQuery(grammar, que
 if (problems.length > 0) {
 	return { ok: false, problems };
 }
+// With the default `or: "none"`, each clause is one term. With `or: "same-key"`, compile each clause as an OR.
 for (const { token, negated } of clauses.flat()) {
 	// Check each term yourself, such as an exclusion on a key with `negatable: false`.
 	terms.push({ ...token, negated });
