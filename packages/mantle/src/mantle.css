@@ -2414,17 +2414,19 @@ pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle)
 	}
 
 	/* The caret at the end of the streamed text: after the last paragraph, heading, or list item. */
-	/* structural-selector-ok: `:last-child` restyles only the list or quote that stops being last, once for each block. `:not(:has(+ *))` restyled about 490 elements for each node that a 665-line answer inserted. */
+	/* structural-selector-ok: `:last-child` restyles only the block that stops being last. `:not(:has(+ *))` made Chromium restyle much of the answer for each node that a stream inserted. Why `:where()`: the rule keeps the zero weight of `:not(:has(+ *))`. */
 	:where([data-slot~="markdown"][data-streaming])
-		> :is(p, h1, h2, h3, h4, h5, h6):last-child::after,
+		> :is(p, h1, h2, h3, h4, h5, h6):where(:last-child)::after,
 	:where([data-slot~="markdown"][data-streaming])
-		> :is(ul, ol):last-child
-		> li:last-child:not(:has(> p, > ul, > ol))::after,
+		> :is(ul, ol):where(:last-child)
+		> li:where(:last-child):not(:has(> p, > ul, > ol))::after,
 	:where([data-slot~="markdown"][data-streaming])
-		> :is(ul, ol):last-child
-		> li:last-child
-		> p:last-child::after,
-	:where([data-slot~="markdown"][data-streaming]) > blockquote:last-child > p:last-child::after {
+		> :is(ul, ol):where(:last-child)
+		> li:where(:last-child)
+		> p:where(:last-child)::after,
+	:where([data-slot~="markdown"][data-streaming])
+		> blockquote:where(:last-child)
+		> p:where(:last-child)::after {
 		content: "";
 		display: inline-block;
 		width: 0.5em;

@@ -2,4 +2,4 @@
 "@ngrok/mantle": patch
 ---
 
-The streaming caret of `Markdown` finds the last paragraph, heading, or list item with `:last-child`, not `:not(:has(+ *))`. With the sibling `:has()` rule on the page, Chromium restyled about 490 elements for each node that a long streamed answer inserted. The caret shows in the same places.
+The streaming caret of `Markdown` finds the last paragraph, heading, or list item with `:last-child`, not `:not(:has(+ *))`. With the sibling `:has()` rule on the page, Chromium restyled much of a long answer for each update as it streamed. The caret shows in the same places, and the rule keeps its zero specificity, so a consumer override still wins the same way.
