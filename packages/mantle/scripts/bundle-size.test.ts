@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { gzipSync } from "node:zlib";
-import { formatReport, gzipBytesOf, splitChunks } from "./bundle-size.ts";
+import { formatReport, gzipBytesOf, measure, splitChunks } from "./bundle-size.ts";
 
 describe("formatReport", () => {
 	it("lists changed bundles first, largest change first, and folds unchanged ones", () => {
@@ -50,4 +53,34 @@ describe("gzipBytesOf", () => {
 		const one = gzipSync(file, { level: 9 }).length;
 		expect(gzipBytesOf([file, file])).toBe(2 * one);
 	});
+});
+
+describe("measure", () => {
+	it("counts a page with an import() as an app does: one eager chunk, and no preload helper", async () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bundle-size-"));
+		// Why this name: only Vite's own helper is the app's, not a module whose path looks like it.
+		fs.writeFileSync(
+			path.join(dir, "preload-helper.js"),
+			"export const shared = () => 'shared code';\n",
+		);
+		fs.writeFileSync(
+			path.join(dir, "lazy.js"),
+			`import { shared } from "${dir}/preload-helper.js";\nexport const lazy = () => shared() + " lazy";\n`,
+		);
+		const result = await measure({
+			name: "import-fixture",
+			entry: `import { shared } from "${dir}/preload-helper.js";\nexport default [shared, () => import("${dir}/lazy.js")];\n`,
+			checkImports: false,
+		});
+		const files = fs.readdirSync(path.join(result.dir, "assets"));
+		const page = files.find((file) => file.startsWith("_bundle-size_import-fixture"));
+		const lazy = files.find((file) => file.startsWith("lazy"));
+		// Why the helper is still on disk: the page imports it, and Node loads it for the import check.
+		expect(files.some((file) => file.startsWith("preload-helper"))).toBe(true);
+		expect(result.lazy).toEqual([`assets/${lazy}`]);
+		// Why one chunk: the page exports the shared code to the lazy chunk, and the helper is the app's.
+		const code = fs.readFileSync(path.join(result.dir, "assets", page ?? ""), "utf8");
+		expect(code).toContain("shared code");
+		expect(result.gzipBytes).toBe(gzipBytesOf([code]));
+	}, 30_000);
 });

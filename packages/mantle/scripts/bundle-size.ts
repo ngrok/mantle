@@ -91,7 +91,7 @@ const formatReport = ({ base, head }: { base: Sizes; head: Sizes }): string => {
 					"",
 				]
 			: []),
-		`Gzip bytes of the mantle JavaScript each scenario loads before render, as a consumer's Vite production build bundles it. All scenarios: ${formatBytes(totalBase)} → ${formatBytes(total)}. This report never blocks a merge.`,
+		`Gzip bytes of the mantle JavaScript each scenario loads before render, as a page of a consumer's Vite production app bundles it. Vite's preload helper counts as the app's, not the scenario's. All scenarios: ${formatBytes(totalBase)} → ${formatBytes(total)}. This report never blocks a merge.`,
 		"",
 	].join("\n");
 };
@@ -252,7 +252,11 @@ const measure = async ({
 				preserveEntrySignatures: "allow-extension",
 				// Why a chunk of its own: an app already ships Vite's preload helper
 				// for its routes, so the report counts it as the app's, not the scenario's.
-				output: { codeSplitting: { groups: [{ name: PRELOAD_HELPER, test: /preload-helper/ }] } },
+				output: {
+					codeSplitting: {
+						groups: [{ name: PRELOAD_HELPER, test: /^\0vite\/preload-helper\.js$/ }],
+					},
+				},
 			},
 		},
 		// Why a worker build like the page's: a worker is lazy code, and its own chunks stay out of the entry.
@@ -394,5 +398,6 @@ export {
 	//,
 	formatReport,
 	gzipBytesOf,
+	measure,
 	splitChunks,
 };
