@@ -269,7 +269,7 @@ const Body = ({
 				// `:has()`: with `:has()`, each line that a stream inserted restyled
 				// the lines of the block. This rule outranks the breathing room above
 				// on specificity.
-				"[&>[data-slot~=code-block-copy-button]~*_.mantle-code-line:nth-child(-n+2)]:pr-14",
+				"[&_[data-slot~=code-block-copy-button]~*_.mantle-code-line:nth-child(-n+2)]:pr-14",
 				className,
 			)}
 			ref={ref}
@@ -277,6 +277,9 @@ const Body = ({
 		/>
 	);
 };
+
+/** A fold toggle `<button>` in highlighted HTML, whatever the order of its attributes. */
+const FOLD_TOGGLE = /<button\b[^>]*\bclass="mantle-code-fold-toggle"/;
 
 /**
  * Matches `SHIKI_VAL_<index>` placeholders injected by the Vite plugin for
@@ -600,12 +603,8 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 			data-syntax-highlighted={isPreRendered ? "" : undefined}
 			// Why an attribute and not `pre:has(.mantle-code-fold-toggle)` in `mantle.css`:
 			// with `:has()`, each line that a stream inserted restyled the lines of the block.
-			// Why the button markup: code text can hold the class name, but its `<` is escaped.
-			data-foldable={
-				renderedHtml?.includes('<button type="button" class="mantle-code-fold-toggle"')
-					? ""
-					: undefined
-			}
+			// Why the button tag: code text can hold the class name, but its `<` is escaped.
+			data-foldable={renderedHtml != null && FOLD_TOGGLE.test(renderedHtml) ? "" : undefined}
 			data-lang={language}
 			data-mantle-highlight-lines={
 				isPreRendered && effectiveHighlightLines != null && effectiveHighlightLines.length > 0

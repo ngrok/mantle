@@ -89,7 +89,18 @@ describe("CodeBlock", () => {
 				return foldable;
 			};
 
-			expect(pre(jsonCodeBlockValue({ a: [1, 2] }))).toBe(true);
+			const foldable = jsonCodeBlockValue({ a: [1, 2] });
+			expect(pre(foldable)).toBe(true);
+			// Why: HTML that a consumer serialized again can reorder the attributes.
+			expect(
+				pre({
+					...foldable,
+					"~preHtml": (foldable["~preHtml"] ?? "").replaceAll(
+						'type="button" class="mantle-code-fold-toggle"',
+						'class="mantle-code-fold-toggle" type="button"',
+					),
+				}),
+			).toBe(true);
 			// Why: the class name in the code's text is not a fold toggle.
 			expect(
 				pre(

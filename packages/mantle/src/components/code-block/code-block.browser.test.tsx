@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
 import { useState } from "react";
-import type { CSSProperties } from "react";
+import type { ComponentProps, CSSProperties } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { commands, userEvent as browserUserEvent } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
@@ -117,7 +117,7 @@ describe("CodeBlock (browser)", () => {
 	 * constant, the rule stops matching and the clearance assertions fail.
 	 */
 	const CLEARANCE_CLASS =
-		"[&>[data-slot~=code-block-copy-button]~*_.mantle-code-line:nth-child(-n+2)]:pr-14";
+		"[&_[data-slot~=code-block-copy-button]~*_.mantle-code-line:nth-child(-n+2)]:pr-14";
 
 	/**
 	 * The end-of-line breathing-room utility on `CodeBlock.Body`: every line
@@ -173,7 +173,7 @@ describe("CodeBlock (browser)", () => {
 			padding-right: 1rem;
 		}
 		.${CSS.escape(CLEARANCE_CLASS)}
-			> [data-slot~="code-block-copy-button"]
+			[data-slot~="code-block-copy-button"]
 			~ *
 			.mantle-code-line:nth-child(-n + 2) {
 			padding-right: 3.5rem;
@@ -443,16 +443,24 @@ describe("CodeBlock (browser)", () => {
 			}
 
 			// A CopyButton that a wrapper component renders, before tabbed code,
+			// in a Body whose child puts its children in an inner element,
 			// reserves the same clearance.
 			const WrappedCopyButton = () => <CodeBlock.CopyButton />;
+			const Panel = ({ children, ...props }: ComponentProps<"section">) => (
+				<section {...props}>
+					<div>{children}</div>
+				</section>
+			);
 			rerender(
 				<div style={{ width: 340 }}>
 					<CodeBlock.Root defaultTab="ts">
-						<CodeBlock.Body>
-							<WrappedCopyButton />
-							<CodeBlock.TabContent value="ts">
-								<CodeBlock.Code value={makeFixedWidthValue([100, 100, 100])} />
-							</CodeBlock.TabContent>
+						<CodeBlock.Body asChild>
+							<Panel>
+								<WrappedCopyButton />
+								<CodeBlock.TabContent value="ts">
+									<CodeBlock.Code value={makeFixedWidthValue([100, 100, 100])} />
+								</CodeBlock.TabContent>
+							</Panel>
 						</CodeBlock.Body>
 					</CodeBlock.Root>
 				</div>,
