@@ -197,26 +197,6 @@ function useIsCoveredByOverlay(
 }
 
 /**
- * Whether the top open overlay covers `floatContainer` now, for a layer that
- * decides at open whether to open as a modal of its own. An overlay that
- * plays its exit does not count: it is on its way out.
- *
- * @example
- * ```ts
- * // a sheet is open, and the popover's trigger is on the page under it
- * isCoveredByOverlay(null); // true
- * ```
- */
-function isCoveredByOverlay(floatContainer: Element | DocumentFragment | null): boolean {
-	const topOverlay = openOverlays.at(-1);
-	return (
-		topOverlay != null &&
-		topOverlay.container.hasAttribute("data-open") &&
-		coversFloat(topOverlay, floatContainer)
-	);
-}
-
-/**
  * Whether `overlay` covers a float that portals into `floatContainer`: the
  * float sits outside the overlay, so it paints under it.
  */
@@ -389,7 +369,6 @@ function listenForCoveringLayer(): void {
 export {
 	//,
 	getCoveringFrame,
-	isCoveredByOverlay,
 	LayerContainer,
 	LayerContainerContext,
 	useIsCoveredByOverlay,

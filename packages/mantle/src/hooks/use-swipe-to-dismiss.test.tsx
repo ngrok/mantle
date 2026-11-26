@@ -187,6 +187,19 @@ describe("useSwipeToDismiss", () => {
 		expect(onDismiss).not.toHaveBeenCalled();
 	});
 
+	test("a control that stops its own pointer moves keeps the drag", () => {
+		const { onDismiss, panel } = renderPanel();
+		const button = screen.getByRole("button", { name: "close" });
+		button.addEventListener("pointermove", (event) => event.stopPropagation());
+		act(() => {
+			fireEvent(button, pointerEvent("pointerdown", { x: 10, at: 0 }));
+			fireEvent(button, pointerEvent("pointermove", { x: 200, at: 16 }));
+			fireEvent(button, pointerEvent("pointerup", { x: 200, at: 32 }));
+		});
+		expect(panel.style.translate).toBe("");
+		expect(onDismiss).not.toHaveBeenCalled();
+	});
+
 	test("the target follows the pointer with its transition off while the drag runs", () => {
 		const { panel, handle } = renderPanel();
 		act(() => {

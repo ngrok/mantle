@@ -21,7 +21,6 @@ import {
 } from "../../utils/float/use-float.js";
 import type { OutsideHandlers } from "../../utils/float/use-float.js";
 import {
-	isCoveredByOverlay,
 	LayerContainer,
 	LayerContainerContext,
 } from "../../utils/layer-container/layer-container.js";
@@ -47,6 +46,16 @@ const wantsDrawer = (presentation: PopoverPresentation): boolean =>
 	presentation === "auto" &&
 	typeof matchMedia === "function" &&
 	matchMedia("(max-width: 39.99rem) and (pointer: coarse)").matches;
+
+/**
+ * Whether an open modal `<dialog>` that does not hold `container` is on the
+ * page: a drawer would open as a second modal over it and take focus. A
+ * dialog that plays its exit does not count.
+ */
+const isUnderModal = (container: Element | DocumentFragment | null): boolean =>
+	[...document.querySelectorAll("dialog:modal:not([data-closing])")].some(
+		(dialog) => !dialog.contains(container),
+	);
 
 /**
  * Loads the drawer presentation. A failed load leaves `Drawer` unset, so a
@@ -150,6 +159,10 @@ function Root({
 	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
 	const open = openProp ?? uncontrolledOpen;
 	const layerContainer = useContext(LayerContainerContext);
+	// Why not under an overlay: the drawer would open as a second modal over
+	// it and take focus. The popover stays hidden until the overlay closes.
+	const presentsDrawer = (isOpen: boolean) =>
+		isOpen && wantsDrawer(presentation) && !isUnderModal(layerContainer);
 	// Why a decision at each open, in render: a controlled `open` opens with no
 	// event here, and the decision must hold until the close and its exit.
 	// Why `Drawer` must have loaded: a tap never waits on the network, so an
@@ -157,12 +170,10 @@ function Root({
 	// renders no content, and `Drawer` loads after hydration.
 	const [opened, setOpened] = useState(() => ({
 		open,
-		drawer: open && wantsDrawer(presentation) ? Drawer : null,
+		drawer: presentsDrawer(open) ? Drawer : null,
 	}));
 	if (opened.open !== open) {
-		// Why not under an overlay: the drawer would open as a second modal over
-		// it and take focus. The popover stays hidden until the overlay closes.
-		const wanted = open && wantsDrawer(presentation) && !isCoveredByOverlay(layerContainer);
+		const wanted = presentsDrawer(open);
 		// Why a load here, in render: a phone that rotates below `sm`, or a
 		// failed load, loads the drawer for the next open. As with React's
 		// `preload`, the call only starts a fetch, and a repeat changes nothing.

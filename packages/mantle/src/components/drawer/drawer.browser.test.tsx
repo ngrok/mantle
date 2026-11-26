@@ -14,7 +14,12 @@ beforeAll(async () => {
 	styleElement = document.createElement("style");
 	// Why all of mantle.css: the exit and enter of the panel read its animations.
 	styleElement.textContent = await commands.tailwindCss(
-		["./drawer.tsx", "../dialog/native-primitive.tsx", "../dropdown-menu/dropdown-menu.tsx"],
+		[
+			"./drawer.tsx",
+			"./drawer.browser.test.tsx",
+			"../dialog/native-primitive.tsx",
+			"../dropdown-menu/dropdown-menu.tsx",
+		],
 		{ mantleCss: true },
 	);
 	document.head.append(styleElement);
@@ -176,6 +181,73 @@ describe("Drawer", () => {
 		expect(onSelect).toHaveBeenCalledTimes(1);
 		expect(onOpenChange).not.toHaveBeenCalled();
 		expect(panelOf(dialog).style.translate).toBe("");
+	});
+
+	test("lets a drag on a control with no popup move the panel", async () => {
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<Drawer.Root open onOpenChange={onOpenChange}>
+				<Drawer.Content aria-label="Edit">
+					<Drawer.Header>
+						<button type="button" aria-haspopup={false}>
+							Mark
+						</button>
+					</Drawer.Header>
+					<Drawer.Body style={{ minHeight: 200 }} />
+				</Drawer.Content>
+			</Drawer.Root>,
+		);
+		const panel = panelOf(await screen.findByRole("dialog", { name: "Edit" }));
+		await waitFor(() => expect(panel.getAnimations()).toHaveLength(0));
+		const mark = screen.getByRole("button", { name: "Mark" });
+		const { left, top } = mark.getBoundingClientRect();
+		const base = { pointerId: 1, isPrimary: true, button: 0, bubbles: true, clientX: left + 4 };
+		mark.dispatchEvent(new PointerEvent("pointerdown", { ...base, clientY: top + 4 }));
+		for (let step = 1; step <= 10; step++) {
+			document.dispatchEvent(
+				new PointerEvent("pointermove", {
+					...base,
+					clientY: top + 4 + panel.offsetHeight * 0.06 * step,
+				}),
+			);
+		}
+		document.dispatchEvent(
+			new PointerEvent("pointerup", { ...base, clientY: top + 4 + panel.offsetHeight * 0.6 }),
+		);
+
+		expect(onOpenChange.mock.calls).toEqual([[false]]);
+	});
+
+	test("puts the scrim back on a reopen during the exit with no panel transition", async () => {
+		function Controlled() {
+			const [open, setOpen] = useState(true);
+			return (
+				<>
+					<button type="button" onClick={() => setOpen(true)}>
+						Reopen
+					</button>
+					<Drawer.Root open={open} onOpenChange={setOpen}>
+						<Drawer.Content aria-label="Edit" className="transition-none">
+							<Drawer.Body style={{ minHeight: 300 }}>Name</Drawer.Body>
+						</Drawer.Content>
+					</Drawer.Root>
+				</>
+			);
+		}
+		render(<Controlled />);
+		const dialog = await screen.findByRole("dialog", { name: "Edit" });
+		const panel = panelOf(dialog);
+		await waitFor(() => expect(dialog.getAnimations({ subtree: true })).toHaveLength(0));
+		dragDown(panel, panel.offsetHeight * 0.5)();
+		await waitFor(() => expect(dialog).toHaveAttribute("data-closing"));
+		// Why two frames: the reopen comes after the release's own cleanup frame.
+		await new Promise(requestAnimationFrame);
+		await new Promise(requestAnimationFrame);
+		expect(dialog).toHaveAttribute("data-closing");
+		screen.getByRole("button", { name: "Reopen" }).click();
+
+		await waitFor(() => expect(dialog.style.getPropertyValue("--drawer-swipe")).toBe("0"));
+		expect(panel.style.userSelect).toBe("");
 	});
 
 	test("reverses from where it is when a controlled owner reopens it during the exit", async () => {

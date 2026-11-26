@@ -300,7 +300,7 @@ function useSwipeToDismiss(
 		let suppressClick = false;
 
 		const end = () => {
-			document.removeEventListener("pointermove", handleMove, true);
+			document.removeEventListener("pointermove", handleMove);
 			document.removeEventListener("pointerup", handleRelease, true);
 			document.removeEventListener("pointercancel", handleRelease, true);
 			session = null;
@@ -402,9 +402,9 @@ function useSwipeToDismiss(
 				velocity: 0,
 				offset: 0,
 			};
-			// Why capture: a control in the handle can stop its `pointerup`, and a
-			// drag that never ends would follow the mouse with no button held.
-			document.addEventListener("pointermove", handleMove, true);
+			document.addEventListener("pointermove", handleMove);
+			// Why capture for the release: a control in the handle can stop its
+			// `pointerup`, and a drag that never ends follows the mouse with no button held.
 			document.addEventListener("pointerup", handleRelease, true);
 			document.addEventListener("pointercancel", handleRelease, true);
 		};

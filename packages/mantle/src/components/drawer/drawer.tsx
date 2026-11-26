@@ -24,10 +24,15 @@ const scope = createScope();
 
 type DrawerState = {
 	dismissible: boolean;
+	open: boolean;
 	setOpen: (open: boolean) => void;
 };
 
-const DrawerContext = createContext<DrawerState>({ dismissible: true, setOpen: () => {} });
+const DrawerContext = createContext<DrawerState>({
+	dismissible: true,
+	open: false,
+	setOpen: () => {},
+});
 
 type DrawerRootProps = {
 	children?: ReactNode;
@@ -87,7 +92,7 @@ function Root({
 		}
 		onOpenChange?.(next);
 	});
-	const state = useMemo(() => ({ dismissible, setOpen }), [dismissible, setOpen]);
+	const state = useMemo(() => ({ dismissible, open, setOpen }), [dismissible, open, setOpen]);
 	// Why controlled: a swipe closes the drawer from the content, so the
 	// state lives here, where the content can reach it.
 	return (
@@ -159,7 +164,7 @@ function pressBelongsToContent(target: EventTarget | null, panel: HTMLElement): 
 		return true;
 	}
 	if (
-		target.closest("input, textarea, select, [aria-haspopup]") != null ||
+		target.closest("input, textarea, select, [aria-haspopup]:not([aria-haspopup=false])") != null ||
 		(target instanceof HTMLElement && target.isContentEditable)
 	) {
 		return true;
@@ -202,7 +207,7 @@ function rest(panel: HTMLElement, selectionOff: RefObject<boolean>): void {
  * only while open, so its effects see the panel.
  */
 function SwipeHandle() {
-	const { dismissible, setOpen } = useContext(DrawerContext);
+	const { dismissible, open, setOpen } = useContext(DrawerContext);
 	const panelRef = useRef<HTMLElement | null>(null);
 	/** Whether a drag turned off text selection on the panel. */
 	const selectionOff = useRef(false);
@@ -252,6 +257,15 @@ function SwipeHandle() {
 		},
 	});
 
+	// Why: a reopen during the exit after a swipe puts the scrim and text
+	// selection back. The panel stays mounted, so the open state tells.
+	useEffect(() => {
+		const panel = panelRef.current;
+		if (open && panel != null) {
+			rest(panel, selectionOff);
+		}
+	}, [open]);
+
 	// Why a capture listener for `cancel`: the native primitive closes on it,
 	// the close request of the back gesture, and its listener must not run.
 	const blocksBack = useCallbackRef((event: Event) => {
@@ -275,22 +289,13 @@ function SwipeHandle() {
 				dialog.style.setProperty("--drawer-keyboard-inset", `${height}px`);
 			}
 		};
-		// Why: a reopen during the exit after a swipe reverses the slide, and
-		// the scrim and text selection come back with it.
-		const reopen = (event: TransitionEvent) => {
-			if (event.target === panel && !panel.hasAttribute("data-closing")) {
-				rest(panel, selectionOff);
-			}
-		};
 		inset();
 		viewport?.addEventListener("resize", inset);
 		viewport?.addEventListener("scroll", inset);
-		panel.addEventListener("transitionrun", reopen);
 		dialog.addEventListener("cancel", blocksBack, { capture: true });
 		return () => {
 			viewport?.removeEventListener("resize", inset);
 			viewport?.removeEventListener("scroll", inset);
-			panel.removeEventListener("transitionrun", reopen);
 			dialog.removeEventListener("cancel", blocksBack, { capture: true });
 		};
 	}, [blocksBack]);
