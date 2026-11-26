@@ -350,19 +350,19 @@ describe("Table.Root edge fade", () => {
 				expect(maskOf(scroller)).toContain("linear-gradient");
 			});
 
-			// Why each edge: an all-black mask is a gradient too, and it fades nothing.
+			// Why each stop: an all-black mask is a gradient too, and it fades nothing.
+			// The middle stops keep the content between the faded edges opaque.
 			const opaque = "rgb(0, 0, 0)";
 			const clear = "rgba(0, 0, 0, 0)";
-			const edgesAt = async (scrollLeft: number) => {
+			const stopsAt = async (scrollLeft: number) => {
 				scroller.scrollLeft = scrollLeft;
 				await new Promise(requestAnimationFrame);
 				await new Promise(requestAnimationFrame);
-				const stops = maskOf(scroller).match(/rgba?\([^)]*\)/g) ?? [];
-				return [stops.at(0), stops.at(-1)];
+				return maskOf(scroller).match(/rgba?\([^)]*\)/g);
 			};
-			expect(await edgesAt(0)).toEqual([opaque, clear]);
-			expect(await edgesAt(100)).toEqual([clear, clear]);
-			expect(await edgesAt(scroller.scrollWidth)).toEqual([clear, opaque]);
+			expect(await stopsAt(0)).toEqual([opaque, opaque, opaque, clear]);
+			expect(await stopsAt(100)).toEqual([clear, opaque, opaque, clear]);
+			expect(await stopsAt(scroller.scrollWidth)).toEqual([clear, opaque, opaque, opaque]);
 		},
 	);
 });
