@@ -248,26 +248,50 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		expect(positionTransition(match)).toBeDefined();
 		await expect.poll(() => sunk(match)).toBe(0);
 
+		/**
+		 * Pauses the line's transitions when the match toggles, and returns the position one.
+		 * Why an observer: a slow keyboard round trip can outlast the transitions.
+		 */
+		const pauseOnToggle = () => {
+			const paused: CSSTransition[] = [];
+			const observer = new MutationObserver(() => {
+				for (const animation of match.getAnimations()) {
+					animation.pause();
+				}
+				const transition = positionTransition(match);
+				if (transition != null && !paused.includes(transition)) {
+					paused.push(transition);
+				}
+			});
+			observer.observe(match, { attributeFilter: ["data-user-value"] });
+			return () => {
+				observer.disconnect();
+				return paused[0];
+			};
+		};
+
 		// Halfway through the exit, a Backspace retargets from where the line is, not from out of view.
+		const takeExit = pauseOnToggle();
 		await userEvent.type(input, "x");
-		const exit = positionTransition(match);
+		const exit = takeExit();
 		if (exit == null) {
 			throw new Error("The line has no exit transition.");
 		}
-		exit.pause();
+		// Why wait: Firefox can drop a seek that lands before the pause settles.
+		await exit.ready;
 		exit.currentTime = 40;
 		const midway = sunk(match);
 		expect(midway).toBeGreaterThan(0);
 		expect(midway).toBeLessThan(2);
 		// The line sinks at its full width; it does not vanish first.
 		expect(getComputedStyle(match).backgroundSize).toBe("100% 2px");
+		const takeBack = pauseOnToggle();
 		await userEvent.keyboard("{Backspace}");
-		const back = positionTransition(match);
+		const back = takeBack();
 		if (back == null) {
 			throw new Error("The line has no return transition.");
 		}
-		// The transition runs while the Backspace resolves. Seek to its start to read the retarget origin.
-		back.pause();
+		await back.ready;
 		back.currentTime = 0;
 		expect(sunk(match)).toBeCloseTo(midway, 1);
 		back.finish();
