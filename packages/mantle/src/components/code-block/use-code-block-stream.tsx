@@ -90,8 +90,9 @@ function useCodeBlockStream({
 	}>({ grammar: undefined, lines: [], foldableRanges: undefined, foldCode: undefined });
 	// Why only with `complete`: a caller that never says the code is final gets no fold gutter.
 	const canFold = complete !== undefined && grammar != null && foldStrategyFor(language) !== "none";
-	// Why a value for the effect: an alias or a block that cannot fold must not send the same code again.
-	const foldLanguage = complete === true && canFold ? language : undefined;
+	// Why the grammar, not `language`: an alias such as `ts` for `typescript` folds the same, so a
+	// switch must not send the same code again and reset the reader's folds. Each grammar ID is a language too.
+	const foldLanguage = complete === true && canFold ? grammar : undefined;
 
 	useEffect(() => {
 		if (grammar == null || !canUseDOM()) {

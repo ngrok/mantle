@@ -6,7 +6,8 @@ import {
 	type LanguageRegistration,
 } from "@shikijs/core";
 import { createJavaScriptRegexEngine } from "@shikijs/engine-javascript";
-import { computeFoldRanges, type FoldLine } from "./compute-fold-ranges.js";
+import { computeFoldRanges, foldStrategyFor, type FoldLine } from "./compute-fold-ranges.js";
+import { computeJsonFoldRanges } from "./compute-json-fold-ranges.js";
 import type { FoldableRange } from "./fold-range-utils.js";
 import { mantleShikiThemeName, mantleShikiTokenColors } from "./shiki-theme.js";
 import type { GrammarId } from "./grammars.js";
@@ -159,6 +160,13 @@ function foldRangesOf(
 		language,
 	}: { state: LineTokenizerState; grammar: GrammarId; language: SupportedLanguage },
 ): FoldableRange[] {
+	// Why no scope pass for these: JSON keys and indentation need only the text.
+	if (language === "json") {
+		return computeJsonFoldRanges(state.lines.join("\n"));
+	}
+	if (foldStrategyFor(language) === "indentation") {
+		return computeFoldRanges({ language, tokens: state.lines.map((content) => [{ content }]) });
+	}
 	const tokens: FoldLine[] = state.lines.map(
 		(line, index) =>
 			highlighter.codeToTokensBase(line, {

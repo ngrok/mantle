@@ -177,6 +177,43 @@ describe("computeFoldRanges (bracket strategy)", () => {
 		]);
 	});
 
+	test("folds code interpolated in a regex", () => {
+		const tokens: FoldLine[] = [
+			line(
+				["pattern = ", "source.ruby"],
+				["/", "source.ruby", "string.regexp.interpolated.ruby", "punctuation.section.regexp.ruby"],
+				[
+					"#{",
+					"source.ruby",
+					"string.regexp.interpolated.ruby",
+					"meta.embedded.line.ruby",
+					"punctuation.section.embedded.begin.ruby",
+				],
+			),
+			line([
+				"  name",
+				"source.ruby",
+				"string.regexp.interpolated.ruby",
+				"meta.embedded.line.ruby",
+				"source.ruby",
+			]),
+			line(
+				[
+					"}",
+					"source.ruby",
+					"string.regexp.interpolated.ruby",
+					"meta.embedded.line.ruby",
+					"punctuation.section.embedded.end.ruby",
+				],
+				["/", "source.ruby", "string.regexp.interpolated.ruby", "punctuation.section.regexp.ruby"],
+			),
+		];
+
+		expect(computeFoldRanges({ language: "ruby", tokens })).toEqual([
+			{ id: "1", startLine: 1, endLine: 3 },
+		]);
+	});
+
 	test("keeps template-literal interpolation punctuation foldable", () => {
 		// Only the INNERMOST scope decides inertness: `${` / `}` sit under
 		// `punctuation.definition.template-expression.*` while `string.template`

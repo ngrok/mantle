@@ -32,7 +32,10 @@ test("a streamed fence keeps its gutter and folds once the answer ends", async (
 	const pre = container.querySelector("pre");
 	const firstContent = () => container.querySelector(".mantle-code-line-content");
 	await expect
-		.poll(() => container.querySelectorAll(".mantle-code-line-content > span").length)
+		.poll(() => container.querySelectorAll(".mantle-code-line-content > span").length, {
+			// Why: WebKit takes about 2 s to load the first grammar here.
+			timeout: 10_000,
+		})
 		.toBeGreaterThan(0);
 	// Why the gutter while streaming: the toggles appear at the end and must shift no code.
 	expect(pre).toHaveAttribute("data-foldable");
@@ -56,7 +59,7 @@ test("a streamed fence keeps its gutter and folds once the answer ends", async (
 		"aria-expanded",
 		"false",
 	);
-	// Copy, find in page, and crawlers still read the whole code.
+	// Copy and crawlers still read the whole code; find in page skips the folded lines.
 	expect(container.querySelector("pre code")?.textContent).toBe(code);
 
 	// A stream that resumes drops the toggles, so no line may stay folded.

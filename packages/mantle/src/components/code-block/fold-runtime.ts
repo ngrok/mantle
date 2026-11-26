@@ -108,7 +108,9 @@ function resetFoldState(codeElement: Element): void {
 	clearRegionLinesCache(codeElement);
 	codeElement.removeAttribute("data-folded-regions");
 	// Why each line: React keeps a streamed block's line elements when its fold ranges change, so they keep the runtime's state.
-	for (const line of codeElement.querySelectorAll<HTMLElement>("[data-fold-hidden]")) {
+	for (const line of codeElement.querySelectorAll<HTMLElement>(
+		"[data-fold-hidden], [data-fold-instant]",
+	)) {
 		line.removeAttribute("data-fold-hidden");
 		line.removeAttribute("data-fold-instant");
 		line.inert = false;

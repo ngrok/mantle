@@ -655,21 +655,26 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	// The fold markup of each streamed line, by its index. Why the counter
 	// value here: a line that closes a fold sets the line counter again, as
 	// in `decorateHighlightedHtml`.
+	const lineCount = lines?.length;
 	const lineFolds = useMemo(() => {
-		if (!hasLines || foldableRanges == null || foldableRanges.length === 0) {
+		if (lineCount == null || foldableRanges == null || foldableRanges.length === 0) {
 			return undefined;
 		}
 		const folds = new Map<number, LineFold>();
 		for (const [bufferLine, fold] of indexFoldRanges(foldableRanges)) {
 			const index = bufferLine - 1;
+			if (index >= lineCount) {
+				continue;
+			}
 			folds.set(index, {
 				...fold,
 				counterSet: `mantle-line calc(var(--mantle-line-number-start,1) + ${index})`,
 			});
 		}
 		return folds;
-		// Why `hasLines`, not `lines`: a streamed block gets a new array on each render, and a new map resets the folds.
-	}, [foldableRanges, hasLines]);
+		// Why the line count, not `lines`: a streamed block gets a new array on each
+		// render, and a new map resets the folds. New lines must reset them.
+	}, [foldableRanges, lineCount]);
 
 	// Attach a single delegated click handler per <pre> so fold toggles do
 	// not pay the cost of N React re-renders or N event handlers (see the
@@ -689,7 +694,7 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 		return () => {
 			detach();
 			// Why: a streamed block that resumes or gets new code keeps its line elements, and a folded line must not stay hidden with no toggle.
-			if (codeElement?.isConnected === true) {
+			if (codeElement != null) {
 				resetFoldState(codeElement);
 			}
 		};
