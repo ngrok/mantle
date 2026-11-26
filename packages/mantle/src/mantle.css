@@ -2091,8 +2091,8 @@ pre[data-mantle-line-numbers="true"] .mantle-code-line {
  * one sticky column for each group of 64 lines, in place of a sticky number
  * on each line. Why: each sticky element costs layout on each update, and a
  * 665-line stream spent 4.3 s in WebKit on style and layout with a number on
- * each line. Each column draws its numbers from one string that
- * `CodeBlock.Code` sets, and a full group's string never changes. Each line
+ * each line. Each column draws its numbers from one attribute that
+ * `CodeBlock.Code` sets, and a full group's numbers never change. Each line
  * keeps the space of its number, so the code does not move.
  *
  * Why in the group's first line, with no height and a negative margin: the
@@ -2116,17 +2116,18 @@ pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] .mantle-code-gut
 
 pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] .mantle-code-gutter::before {
 	/*
-	 * Why no empty alternative text: the column is `aria-hidden`. And a
-	 * `var()` declaration that a browser cannot read is dropped only when it
-	 * computes, so a fallback pair would draw no numbers there.
+	 * Why an attribute and not an inline custom property: a CSP that blocks
+	 * `style` attributes leaves server-rendered HTML with no numbers. Why no
+	 * empty alternative text: the column is `aria-hidden`.
 	 */
-	content: var(--mantle-code-gutter);
+	content: attr(data-numbers);
 	position: absolute;
 	top: 0;
 	inset-inline-start: 0;
 	box-sizing: content-box;
 	width: var(--mantle-code-line-number-width);
-	padding-right: var(--mantle-code-line-number-gap);
+	/* Why the overhang: the same backdrop as the number on each line, over the fold gutter too. */
+	padding-right: var(--_gutter-overhang, var(--mantle-code-line-number-gap));
 	white-space: pre;
 	user-select: none;
 	text-align: right;
@@ -2135,6 +2136,8 @@ pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] .mantle-code-gut
 }
 
 pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] > .mantle-code-line {
+	/* Why: with no number in the line, a line of only a form feed has no height of its own. */
+	min-height: 1lh;
 	padding-inline-start: calc(
 		var(--mantle-code-line-number-width) + var(--mantle-code-line-number-gap)
 	);

@@ -1532,6 +1532,12 @@
       },
       {
         "part": "CodeBlock.Code",
+        "name": "data-numbers",
+        "value": "the group's line numbers",
+        "description": "On each `.mantle-code-gutter`. The numbers of its group, one on each row, that `mantle.css` draws with `attr()`."
+      },
+      {
+        "part": "CodeBlock.Code",
         "name": "data-fold-line",
         "value": "a fold id",
         "description": "On each fold toggle `<button>`. The URI-encoded id of the region the button folds."

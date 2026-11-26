@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
 import { useState } from "react";
+import { renderToString } from "react-dom/server";
 import type { ComponentProps, CSSProperties } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { commands, userEvent as browserUserEvent } from "vitest/browser";
@@ -611,8 +612,41 @@ describe("CodeBlock (browser)", () => {
 			expect(row.contains(document.elementFromPoint(preLeft + 2, top + height / 2))).toBe(true);
 		});
 
+		test("server-rendered streamed lines draw their numbers under a CSP that blocks style attributes", async () => {
+			const lines = ["a", "b", "c"];
+			const html = renderToString(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code
+							value={createMantleCodeBlockValue({
+								language: "text",
+								code: lines.join("\n"),
+								lines,
+								showLineNumbers: true,
+							})}
+						/>
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+			const frame = document.createElement("iframe");
+			frame.srcdoc = `<meta http-equiv="Content-Security-Policy" content="style-src-elem 'unsafe-inline'; style-src-attr 'none'"><style>${mantleCss}</style>${html}`;
+			const loaded = new Promise((resolve) => {
+				frame.addEventListener("load", resolve, { once: true });
+			});
+			document.body.append(frame);
+			await loaded;
+
+			const gutter = frame.contentDocument?.querySelector(".mantle-code-gutter");
+			if (gutter == null) {
+				throw new Error("expected the gutter");
+			}
+			const content = getComputedStyle(gutter, "::before").content;
+			expect(content).toMatch(/1[\s\S]*2[\s\S]*3/);
+			frame.remove();
+		});
+
 		test("streamed lines draw one group gutter until the fold ranges arrive, then a number on each line", () => {
-			const lines = ["{", '  "a": 1', "}"];
+			const lines = ["{", "\f", "}"];
 			const view = (foldableRanges: readonly FoldableRange[]) => (
 				<CodeBlock.Root>
 					<CodeBlock.Body>
@@ -631,6 +665,13 @@ describe("CodeBlock (browser)", () => {
 			const { rerender } = render(view(pendingFoldRanges));
 			const pre = getPre();
 			expect(pre.querySelectorAll(".mantle-code-gutter")).toHaveLength(1);
+			// Why a form feed: it has no height of its own, and the gutter draws a number for its row.
+			const [firstRow, ...otherRows] = Array.from(
+				pre.querySelectorAll(".mantle-code-line"),
+				(row) => row.getBoundingClientRect().height,
+			);
+			expect(firstRow).toBeGreaterThan(0);
+			expect(otherRows).toEqual([firstRow, firstRow]);
 
 			// Why: a fold hides its lines with `display: none`, and a group gutter would still draw their numbers.
 			rerender(view([{ id: "1", startLine: 1, endLine: 3 }]));

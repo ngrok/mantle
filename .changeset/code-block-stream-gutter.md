@@ -7,6 +7,6 @@ While a `CodeBlock.Code` streams its lines in, such as a fence in a `Markdown` a
 Until the stream ends, two hooks do not apply to the numbers:
 
 - A rule on `.mantle-code-line::before`. Style the streaming numbers through `.mantle-code-gutter::before`.
-- A `--mantle-line-number-start` that you set in CSS. Set `lineNumberStart` on the value.
+- A `--mantle-line-number-start` that you set in CSS. The streaming numbers start at 1, because `useCodeBlockStream` has no start option.
 
 A streamed block keeps the gutter when its caller never passes `complete`, or when its language does not fold.

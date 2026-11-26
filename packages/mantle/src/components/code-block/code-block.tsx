@@ -29,7 +29,6 @@ import type { TabsBehavior } from "../../behaviors/use-tabs.js";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
-import { $cssProperties } from "../../types/css-properties.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -444,7 +443,7 @@ const CodeLineView = memo(function CodeLineView({
 	line: CodeLine | string;
 	lineNumber: number;
 	fold: LineFold | undefined;
-	/** The numbers of this line's group, on the first line of a group with line numbers. See `gutterNumbers`. */
+	/** The numbers of this line's group, one on each row, on the first line of a group with line numbers. */
 	gutter?: string | undefined;
 }) {
 	// Why a space: an empty line keeps its height, and each browser copies it as a blank line (see `decorateHighlightedHtml`).
@@ -471,11 +470,7 @@ const CodeLineView = memo(function CodeLineView({
 			style={fold?.closer === true ? { counterSet: fold.counterSet } : undefined}
 		>
 			{gutter != null && (
-				<span
-					aria-hidden="true"
-					className="mantle-code-gutter"
-					style={$cssProperties({ "--mantle-code-gutter": gutter })}
-				/>
+				<span aria-hidden="true" className="mantle-code-gutter" data-numbers={gutter} />
 			)}
 			{fold?.opener != null && (
 				<button
@@ -492,15 +487,15 @@ const CodeLineView = memo(function CodeLineView({
 });
 
 /**
- * The line numbers of `count` lines from `start`, as a CSS string with one
- * number on each row. `mantle.css` draws it in a group's sticky gutter.
+ * The line numbers of `count` lines from `start`, one on each row.
+ * `mantle.css` draws them in a group's sticky gutter.
  */
 function gutterNumbers(start: number, count: number): string {
 	let numbers = String(start);
 	for (let index = 1; index < count; index += 1) {
-		numbers += `\\A ${start + index}`;
+		numbers += `\n${start + index}`;
 	}
-	return `"${numbers}"`;
+	return numbers;
 }
 
 /** How many lines of browser-highlighted code render in one group. */
@@ -604,6 +599,7 @@ const CodeLineGroup = memo(function CodeLineGroup({
  * | `data-mantle-highlight-lines` | comma-separated line numbers | Present when lines are highlighted. |
  * | `data-line-number` | a number | On each `.mantle-code-line`. The line number the gutter shows. |
  * | `data-mantle-gutter` | present with a gutter | Presence-only. On the `<code>` of streamed lines with line numbers, until the block gets its fold ranges at the end of the stream. The first line of each group of 64 holds one sticky `.mantle-code-gutter` that draws the group's numbers, in place of a number on each line. |
+ * | `data-numbers` | the group's line numbers | On each `.mantle-code-gutter`. The numbers of its group, one on each row, that `mantle.css` draws with `attr()`. |
  * | `data-fold-line` | a fold id | On each fold toggle `<button>`. The URI-encoded id of the region the button folds. |
  * | `data-fold-regions` | space-separated fold ids | On each line inside a foldable region. The id of each region that holds it. |
  * | `data-folded-regions` | space-separated fold ids | On the `<code>` while a region is folded. The id of each folded region. |
