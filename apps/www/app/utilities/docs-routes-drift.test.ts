@@ -94,9 +94,12 @@ function framedDemoPaths(source: string): ReadonlyArray<string> {
 }
 
 test("each routed demo a docs page frames is a route of its own", () => {
-	const framed = globSync("**/*.mdx", { cwd: docsDirectory }).flatMap((file) =>
-		framedDemoPaths(readFileSync(path.join(docsDirectory, file), "utf8")),
-	);
+	// Why the text filter: parsing each docs page as MDX takes longer than the test timeout,
+	// and only a page that writes `path=` can frame a routed demo.
+	const framed = globSync("**/*.mdx", { cwd: docsDirectory })
+		.map((file) => readFileSync(path.join(docsDirectory, file), "utf8"))
+		.filter((source) => source.includes("path="))
+		.flatMap(framedDemoPaths);
 	// Why the cast: a route config entry has the `path`, `index`, and `children` the matcher reads.
 	const routeObjects = routes as ReadonlyArray<RouteObject> as Array<RouteObject>;
 	// Why not a splat: a `path` with a typo falls into a splat route and frames a 404 page.
