@@ -52,7 +52,7 @@ export default function EndpointDetail({ params }: Route.ComponentProps) {
 			<div className="flex flex-col gap-1">
 				{/* Why `isPending`: an unknown id resolves to `null`, and its page shows the id. */}
 				{endpointQuery.isPending ? (
-					<Skeleton className="h-8 w-80" />
+					<Skeleton className="h-8 w-80 max-w-full" />
 				) : (
 					<h1 className="text-strong text-2xl font-medium">
 						{endpointQuery.data?.url ?? endpointId}

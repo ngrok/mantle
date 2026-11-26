@@ -1,6 +1,7 @@
 import { routeBreadcrumb } from "@ngrok/mantle/breadcrumb";
 import { describe, expect, it } from "vitest";
 import {
+	canonicalPath,
 	findSelfOrigin,
 	hasOrigin,
 	MAX_ORIGIN_DEPTH,
@@ -70,6 +71,13 @@ describe("pushOrigin", () => {
 
 	it("does not push a link to the page itself", () => {
 		expect(pushOrigin([endpoint], domain, domain.to)).toEqual([endpoint]);
+	});
+
+	it("pops for a target that names the same path in another form", () => {
+		const atDomain: OriginEntry = { ...domain, id: "a@b", to: canonicalPath("/domains/a@b/") };
+		// `href` leaves `@` as is, and a reader can add a trailing slash
+		expect(pushOrigin([atDomain], endpoint, "/domains/a@b")).toEqual([]);
+		expect(pushOrigin([domain], endpoint, "/domains/rd_1/")).toEqual([]);
 	});
 
 	it("passes the trail through from a page with no identity", () => {
@@ -231,6 +239,30 @@ describe("findSelfOrigin", () => {
 		expect(self?.to).toBe("/domains/sales%23east");
 	});
 
+	it("keeps the section when the resource route contributes only that crumb", () => {
+		const self = findSelfOrigin([
+			{
+				id: "endpoint",
+				pathname: "/endpoints/ep_1",
+				handle: {
+					breadcrumb: () => [routeBreadcrumb("Endpoints", { to: "/endpoints" })],
+					origin: () => ({ kind: "endpoint", id: "ep_1" }) as const,
+				},
+			},
+		]);
+
+		expect(self?.ancestors).toEqual([{ label: "Endpoints", to: "/endpoints" }]);
+	});
+
+	it("stores the resource root without its trailing slash", () => {
+		const self = findSelfOrigin([
+			{ id: "endpoint", pathname: "/endpoints/ep_1/", handle: endpointHandle },
+		]);
+
+		expect(self?.to).toBe("/endpoints/ep_1");
+		expect(self?.ancestors).toEqual([{ label: "Endpoints", to: "/endpoints" }]);
+	});
+
 	it("prefers the deeper of two identified matches", () => {
 		const self = findSelfOrigin([
 			{
@@ -286,5 +318,22 @@ describe("hasOrigin", () => {
 	it("rejects a missing handle", () => {
 		expect(hasOrigin({ id: "a", pathname: "/", handle: undefined })).toBe(false);
 		expect(hasOrigin({ id: "a", pathname: "/", handle: null })).toBe(false);
+	});
+});
+
+describe("canonicalPath", () => {
+	it("gives one form to an encoded, a decoded, and a slash-ended path", () => {
+		expect(canonicalPath("/domains/a@b")).toBe("/domains/a%40b");
+		expect(canonicalPath("/domains/a%40b/")).toBe("/domains/a%40b");
+		expect(canonicalPath("/domains/sales#east")).toBe("/domains/sales%23east");
+	});
+
+	it("keeps the root and the case of each segment", () => {
+		expect(canonicalPath("/")).toBe("/");
+		expect(canonicalPath("/domains/rd_2Kq9a")).toBe("/domains/rd_2Kq9a");
+	});
+
+	it("keeps a lone `%` as a literal", () => {
+		expect(canonicalPath("/domains/100%")).toBe("/domains/100%25");
 	});
 });

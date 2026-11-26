@@ -11,6 +11,7 @@ import { VaultIcon } from "@phosphor-icons/react/Vault";
 import type { ReactNode } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { RouteBreadcrumbs } from "~/features/breadcrumbs/breadcrumbs";
+import { canonicalPath } from "~/features/navigation-origin/origin-trail";
 import { forwardPreviewShortcutsScript } from "~/features/preview-shortcuts";
 import type { Route } from "./+types/shell";
 import { demoPaths } from "./paths";
@@ -90,9 +91,16 @@ const navGroups: ReadonlyArray<NavGroupItems> = [
 	},
 ];
 
-/** Whether the row's destination, or a page under it, is the current URL. */
+/**
+ * Whether the row's destination, or a page under it, is the current URL.
+ * The router matches paths without case, so the compare ignores case too.
+ */
 function isCurrent(pathname: string, item: NavItem): boolean {
-	return item.currentFor.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+	const current = canonicalPath(pathname).toLowerCase();
+	return item.currentFor.some((prefix) => {
+		const row = prefix.toLowerCase();
+		return current === row || current.startsWith(`${row}/`);
+	});
 }
 
 function NavGroup({ label, items }: NavGroupItems) {

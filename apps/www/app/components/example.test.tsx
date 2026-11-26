@@ -208,6 +208,21 @@ describe("Example", () => {
 		expect(getIframe()).toBe(iframe);
 	});
 
+	it("remounts a routed demo when its frame holds a cross-origin error page", () => {
+		render(<Example path="/preview/breadcrumbs-from-routes/endpoints" title="Breadcrumbs demo" />);
+		const iframe = getIframe();
+		// a failed navigation leaves an error page whose location the docs page cannot reach
+		const reload = () => {
+			throw new DOMException("Blocked a frame with another origin", "SecurityError");
+		};
+		Object.defineProperty(iframe, "contentWindow", { value: { location: { reload } } });
+
+		fireEvent.click(screen.getByRole("button", { name: "Reload the Breadcrumbs demo preview" }));
+
+		expect(getIframe()).not.toBe(iframe);
+		expect(getIframe().getAttribute("src")).toBe("/preview/breadcrumbs-from-routes/endpoints");
+	});
+
 	it("links to the preview route in a new tab", () => {
 		render(<Example name="centered-layout" title="Centered layout demo" />);
 

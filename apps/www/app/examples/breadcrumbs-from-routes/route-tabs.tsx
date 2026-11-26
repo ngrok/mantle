@@ -1,5 +1,6 @@
 import { Tabs } from "@ngrok/mantle/tabs";
 import { Link, useLocation, useMatches } from "react-router";
+import { canonicalPath } from "~/features/navigation-origin/origin-trail";
 
 type RouteTab = {
 	value: string;
@@ -15,11 +16,15 @@ type RouteTabsProps = {
 };
 
 /**
- * Whether a tab is for a matched path. The router matches paths without
- * case, so `/Domains` is the Domains tab.
+ * Whether a tab is for a matched path. Both sides take the trail's canonical
+ * form, so a trailing slash or a decoded id still selects the tab. The router
+ * matches paths without case, so `/Domains` is the Domains tab.
  */
 function isTabOf(tab: RouteTab, pathname: string | undefined): boolean {
-	return tab.to.toLowerCase() === pathname?.toLowerCase();
+	return (
+		pathname != null &&
+		canonicalPath(tab.to).toLowerCase() === canonicalPath(pathname).toLowerCase()
+	);
 }
 
 /**

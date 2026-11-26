@@ -126,8 +126,12 @@ function Frame({ target, title, height }: FrameProps) {
 							// reader is on and its `location.state`. A remount would go back to `src`.
 							const frameWindow = iframeRef.current?.contentWindow;
 							if (target.path != null && frameWindow != null) {
-								frameWindow.location.reload();
-								return;
+								try {
+									frameWindow.location.reload();
+									return;
+								} catch {
+									// a failed load leaves a cross-origin error page, so remount at `src`
+								}
 							}
 							setReloadCount((count) => count + 1);
 						}}
@@ -237,25 +241,28 @@ type ExampleProps = (
 			 */
 			name: PreviewKey;
 			path?: never;
+			/**
+			 * `content`: the frame grows to the height of the example's
+			 * `PreviewCanvas`. `fixed`: the frame is `h-160` tall and the example
+			 * fills it. Defaults to `content` for a page example and `fixed` for a
+			 * shell demo.
+			 */
+			height?: "fixed" | "content";
 	  }
 	| {
 			/**
 			 * The page of a routed demo to open, in place of `name`. The demo
-			 * navigates inside its frame, so a reader can follow its links.
+			 * navigates inside its frame, so a reader can follow its links. Its
+			 * frame is always `fixed`: the demo's pages have no `PreviewCanvas`
+			 * to report a height.
 			 */
 			path: RoutedDemoPath;
 			name?: never;
+			height?: never;
 	  }
 ) & {
 	/** The example's name, for the frame's accessible title and toolbar labels. */
 	title: string;
-	/**
-	 * `content`: the frame grows to the height of the example's
-	 * `PreviewCanvas`. `fixed`: the frame is `h-160` tall and the example fills
-	 * it. Defaults to `content` for a page example and `fixed` for a shell demo
-	 * or a routed demo.
-	 */
-	height?: "fixed" | "content";
 	/** The example's code, as an MDX code fence. It shows in the Code tab. */
 	children?: ReactNode;
 };

@@ -104,11 +104,12 @@ function pushOrigin(
 	self: OriginEntry | null,
 	targetTo: string,
 ): ReadonlyArray<OriginEntry> {
-	const index = trail.findIndex((entry) => entry.to === targetTo);
+	const target = canonicalPath(targetTo);
+	const index = trail.findIndex((entry) => canonicalPath(entry.to) === target);
 	if (index !== -1) {
 		return trail.slice(0, index);
 	}
-	if (self == null || self.to === targetTo) {
+	if (self == null || canonicalPath(self.to) === target) {
 		return trail;
 	}
 	return [...trail, self].slice(-MAX_ORIGIN_DEPTH);
@@ -138,35 +139,53 @@ type OriginHandle<TMatch = unknown> = {
 type OriginMatch = BreadcrumbMatch;
 
 /**
+ * The one form the trail stores and compares a path in: each segment
+ * decoded, then encoded with `encodeURIComponent`, and no trailing slash.
+ * So `/domains/a@b`, `/domains/a%40b`, and `/domains/a%40b/` are one path,
+ * and an id with `#` stays in the path. Case stays, because an id can be
+ * case-sensitive.
+ *
+ * @example
+ * ```ts
+ * canonicalPath("/domains/a@b/"); // "/domains/a%40b"
+ * canonicalPath("/domains/sales#east"); // "/domains/sales%23east"
+ * ```
+ */
+function canonicalPath(path: string): string {
+	const canonical = path
+		.split("/")
+		.map((segment) => {
+			try {
+				return encodeURIComponent(decodeURIComponent(segment));
+			} catch {
+				// a decoded `%` with no hex digits after it is a literal `%`
+				return encodeURIComponent(segment);
+			}
+		})
+		.join("/");
+	return canonical.length > 1 && canonical.endsWith("/") ? canonical.slice(0, -1) : canonical;
+}
+
+/**
  * The route trail above the resource, kept to what `location.state` can
- * hold: a string label and, for a link, its `to`. The last crumb is the
- * resource itself only when the resource's route contributes it. A content
- * crumb has no serializable label, so it is skipped. A relative `to` stays a
- * label: the trail renders on another page, where it resolves to another URL.
+ * hold: a string label and, for a link, its `to`. A crumb that links to the
+ * resource itself is not above it, so it is left out. A content crumb has no
+ * serializable label, so it is skipped. A relative `to` stays a label: the
+ * trail renders on another page, where it resolves to another URL.
  */
 function serializableAncestors(
 	crumbs: ReadonlyArray<ResolvedCrumb>,
-	resourceRouteId: string,
+	resourceTo: string,
 ): ReadonlyArray<OriginAncestor> {
-	const last = crumbs.at(-1);
-	const above = last?.key.startsWith(`${resourceRouteId}:`) ? crumbs.slice(0, -1) : crumbs;
-	return above.flatMap((crumb): ReadonlyArray<OriginAncestor> => {
+	return crumbs.flatMap((crumb): ReadonlyArray<OriginAncestor> => {
 		if (crumb.kind === "content" || typeof crumb.label !== "string") {
 			return [];
 		}
 		if (crumb.kind === "link" && crumb.to.startsWith("/")) {
-			return [{ label: crumb.label, to: crumb.to }];
+			return canonicalPath(crumb.to) === resourceTo ? [] : [{ label: crumb.label, to: crumb.to }];
 		}
 		return [{ label: crumb.label }];
 	});
-}
-
-/**
- * A matched pathname as a link target. The router decodes `match.pathname`,
- * so each segment is encoded again: an id with `#` or `?` stays in the path.
- */
-function encodePathname(pathname: string): string {
-	return pathname.split("/").map(encodeURIComponent).join("/");
 }
 
 /**
@@ -214,15 +233,13 @@ function findSelfOrigin(matches: ReadonlyArray<OriginMatch>): OriginEntry | null
 	// the chain up to the resource: a crumb a deeper child contributes is below
 	// the resource, not above it
 	const chainToSelf = matches.slice(0, matches.indexOf(match) + 1);
-	return {
-		...identity,
-		to: encodePathname(match.pathname),
-		ancestors: serializableAncestors(buildCrumbs(chainToSelf), match.id),
-	};
+	const to = canonicalPath(match.pathname);
+	return { ...identity, to, ancestors: serializableAncestors(buildCrumbs(chainToSelf), to) };
 }
 
 export {
 	//,
+	canonicalPath,
 	findSelfOrigin,
 	hasOrigin,
 	MAX_ORIGIN_DEPTH,

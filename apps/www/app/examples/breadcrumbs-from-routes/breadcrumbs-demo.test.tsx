@@ -152,6 +152,14 @@ describe("domains hub", () => {
 		).toBe("true");
 	});
 
+	it("selects the tab for a URL with a trailing slash", () => {
+		render(<Stub initialEntries={[`${demoPaths.tlsCerts}/`]} />);
+
+		expect(
+			screen.getByRole("tab", { name: "TLS Certificates" }).getAttribute("aria-selected"),
+		).toBe("true");
+	});
+
 	it("keeps focus on the clicked tab across the route change", async () => {
 		const user = userEvent.setup();
 		render(<Stub initialEntries={[demoPaths.domains]} />);
