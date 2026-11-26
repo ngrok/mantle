@@ -1449,9 +1449,13 @@ const SidePanel = ({
 	// Why a layout effect: the sidebar's state is in `Sidebar.Root`, above or
 	// below the panel's root, and the request must land before the paint.
 	const requestSidebarWidth = useContext(SidebarWidthRequestContext);
-	// Why state: the lane is a stylesheet value, so the panel reads it once, not on each render.
-	const [needsSidebarWidthQuery] = useState(sidePanelNeedsSidebarWidthQuery);
-	const needsSidebarWidth = useMatchesMediaQuery(needsSidebarWidthQuery) && open;
+	// Why a read on open: the lane is a stylesheet value, so the panel reads it when it opens, not on each
+	// render, and a stylesheet that loads after mount counts from the next open. A closed panel matches nothing.
+	const needsSidebarWidthQuery = useMemo(
+		() => (open ? sidePanelNeedsSidebarWidthQuery() : "not all"),
+		[open],
+	);
+	const needsSidebarWidth = useMatchesMediaQuery(needsSidebarWidthQuery);
 	useLayoutEffect(() => {
 		if (requestSidebarWidth == null) {
 			return;

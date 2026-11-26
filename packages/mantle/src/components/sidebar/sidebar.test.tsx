@@ -1173,12 +1173,13 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 
 	test("a wider lane in the app's theme collapses the sidebar below that lane", async () => {
 		const user = userEvent.setup();
+		mockMatchMedia({ [belowTheLane]: false, "(width < 80rem)": true });
+		render(<Shell />);
+		// Why after the render: a stylesheet can load after the panel mounts, and the panel reads the lane when it opens.
 		document.documentElement.style.setProperty("--_side-panel-lane", "80rem");
 		onTestFinished(() => {
 			document.documentElement.style.removeProperty("--_side-panel-lane");
 		});
-		mockMatchMedia({ [belowTheLane]: false, "(width < 80rem)": true });
-		render(<Shell />);
 
 		await togglePanel(user);
 		expect(nav()).not.toHaveAttribute("data-expanded");
