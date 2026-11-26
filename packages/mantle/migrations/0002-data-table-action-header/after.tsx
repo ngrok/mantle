@@ -15,6 +15,7 @@ type Payment = { id: string; amount: number };
 // A part that reads `column`, nested in a header attribute.
 declare function ColumnLabel(props: { column: unknown }): null;
 declare const Labels: { Header: typeof ColumnLabel };
+declare function renderSection(props: { header: () => unknown }): null;
 
 const features = tableFeatures({});
 const columnHelper = createColumnHelper<typeof features, Payment>();
@@ -118,6 +119,16 @@ export const columns = columnHelper.columns([
 	columnHelper.display({
 		id: "unread-column-actions",
 		header: (_context: unknown) => <DataTable.ActionHeader />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	// Negative case: a nested `header` captures the parameter, so it stays.
+	columnHelper.display({
+		id: "captured-column-actions",
+		header: (props) => (
+			<DataTable.ActionHeader>
+				{renderSection({ header: () => <Labels.Header column={props.column} /> })}
+			</DataTable.ActionHeader>
+		),
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	}),
 	// Negative case: a spread still reads the parameter, so it stays.

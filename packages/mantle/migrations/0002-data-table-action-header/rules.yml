@@ -840,6 +840,12 @@ utils:
       - has:
           stopBy: end
           matches: removed-column-read
+      # Why: a nested `header` arrow can capture `$P`, and its own returned
+      # element can look like a removed read.
+      - not:
+          has:
+            stopBy: end
+            matches: header-property
       - not:
           has:
             field: body
