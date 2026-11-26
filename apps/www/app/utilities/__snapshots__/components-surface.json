@@ -3298,13 +3298,13 @@
         "part": "OtpInput.Root",
         "name": "data-input-otp-container",
         "value": "`\"true\"`",
-        "description": "On the box that holds the slots and the input. Kept from `input-otp` for page styles."
+        "description": "On the box that holds the slots and the input. A page style can select it."
       },
       {
         "part": "OtpInput.Root",
         "name": "data-input-otp",
         "value": "`\"true\"`",
-        "description": "On the `<input>`. Kept from `input-otp` for page styles and `noScriptCSSFallback`."
+        "description": "On the `<input>`. A `noScriptCSSFallback` or a page style can select it."
       },
       {
         "part": "OtpInput.Root",
@@ -3322,7 +3322,7 @@
         "part": "OtpInput.Root",
         "name": "data-input-otp-placeholder-shown",
         "value": "`\"true\"`",
-        "description": "On the `<input>` while it is empty. Kept from `input-otp`, which emitted `\"true\"`."
+        "description": "On the `<input>` while it is empty. Its value is `\"true\"`, not presence, so existing page styles still match."
       },
       {
         "part": "OtpInput.Root",
