@@ -1,5 +1,6 @@
+import { cspNonce } from "@ngrok/app-server/client";
 import { AppLayout } from "@ngrok/mantle/app-layout";
-import { Sidebar } from "@ngrok/mantle/sidebar";
+import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { CreditCardIcon } from "@phosphor-icons/react/CreditCard";
 import { GearIcon } from "@phosphor-icons/react/Gear";
@@ -10,6 +11,7 @@ import { VaultIcon } from "@phosphor-icons/react/Vault";
 import type { ReactNode } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { RouteBreadcrumbs } from "~/features/breadcrumbs/breadcrumbs";
+import { forwardPreviewShortcutsScript } from "~/features/preview-shortcuts";
 import type { Route } from "./+types/shell";
 import { demoPaths } from "./paths";
 import { RouterDebugPopover } from "./router-debug-popover";
@@ -95,6 +97,7 @@ function isCurrent(pathname: string, item: NavItem): boolean {
 
 function NavGroup({ label, items }: NavGroupItems) {
 	const { pathname } = useLocation();
+	const { setOpenMobile } = useSidebar();
 
 	return (
 		<Sidebar.Group>
@@ -103,7 +106,8 @@ function NavGroup({ label, items }: NavGroupItems) {
 				{items.map((item) => (
 					<Sidebar.Item key={item.to}>
 						<Sidebar.ItemButton asChild current={isCurrent(pathname, item)}>
-							<Link to={item.to}>
+							{/* the mobile sheet is modal: close it as the page changes */}
+							<Link to={item.to} onClick={() => setOpenMobile(false)}>
 								{item.icon}
 								{item.label}
 							</Link>
@@ -133,6 +137,12 @@ export default function BreadcrumbsRecipeShell() {
 		// `md` (not the `lg` default ngrok's dashboards use) keeps the desktop
 		// panel visible at the framed preview's desktop and tablet widths
 		<Sidebar.Root mobileBreakpoint="md">
+			{/* this shell skips `routes/preview.tsx`, so it forwards the docs shortcuts itself */}
+			<script
+				nonce={cspNonce()}
+				dangerouslySetInnerHTML={{ __html: forwardPreviewShortcutsScript }}
+				suppressHydrationWarning
+			/>
 			<AppLayout.Root className="fixed inset-0">
 				<SkipToMainLink />
 				<AppLayout.Workspace>

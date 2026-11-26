@@ -19,7 +19,11 @@ export default function SecretDetail({ params }: Route.ComponentProps) {
 	const secret = secrets.find((candidate) => candidate.id === params.secretId);
 
 	if (secret == null || secret.vaultId !== params.vaultId) {
-		return <p className="text-muted text-sm">No secret in this vault has this id.</p>;
+		return (
+			<p className="text-muted text-sm">
+				No secret in this vault has this id. Pick one from the vault&apos;s list.
+			</p>
+		);
 	}
 
 	return (

@@ -3,7 +3,7 @@
 // (happy-dom otherwise fetches iframe src documents for real; these tests
 // only assert attributes and remounting, never framed content)
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { previewHeightMessage } from "~/features/example-heights";
 import { Example, ExampleHeightsContext } from "./example";
 
@@ -193,6 +193,19 @@ describe("Example", () => {
 
 		expect(after).not.toBe(before);
 		expect(after.getAttribute("src")).toBe("/preview/centered-layout");
+	});
+
+	it("reloads a routed demo's current document in place, so it keeps the reader's page", () => {
+		render(<Example path="/preview/breadcrumbs-from-routes/endpoints" title="Breadcrumbs demo" />);
+		const iframe = getIframe();
+		const reload = vi.fn<() => void>();
+		// Why a stub window: with page loading off, the frame has no window of its own.
+		Object.defineProperty(iframe, "contentWindow", { value: { location: { reload } } });
+
+		fireEvent.click(screen.getByRole("button", { name: "Reload the Breadcrumbs demo preview" }));
+
+		expect(reload).toHaveBeenCalledTimes(1);
+		expect(getIframe()).toBe(iframe);
 	});
 
 	it("links to the preview route in a new tab", () => {

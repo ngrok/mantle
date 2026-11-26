@@ -97,16 +97,29 @@ describe("readOriginTrail", () => {
 		const emptyId = { kind: "endpoint", id: "", to: "/endpoints/", ancestors: [] };
 		const relativeTo = { kind: "domain", id: "rd_1", to: "domains/rd_1", ancestors: [] };
 		const missingTo = { kind: "domain", id: "rd_1", ancestors: [] };
-		const relativeAncestor = { ...domain, ancestors: [{ label: "Domains", to: "domains" }] };
 
-		expect(
-			readOriginTrail({ origin: [emptyId, relativeTo, missingTo, relativeAncestor, endpoint] }),
-		).toEqual([endpoint]);
+		expect(readOriginTrail({ origin: [emptyId, relativeTo, missingTo, endpoint] })).toEqual([
+			endpoint,
+		]);
+	});
+
+	it("keeps an entry whose ancestor has a relative `to`, as a label", () => {
+		const relativeAncestor = { ...domain, ancestors: [{ label: "Domains", to: ".." }] };
+		expect(readOriginTrail({ origin: [relativeAncestor] })).toEqual([
+			{ ...domain, ancestors: [{ label: "Domains" }] },
+		]);
 	});
 
 	it("reads an entry written without ancestors as one with none", () => {
 		const legacy = { kind: "domain", id: "rd_1", to: "/domains/rd_1" };
 		expect(readOriginTrail({ origin: [legacy] })).toEqual([{ ...legacy, ancestors: [] }]);
+	});
+
+	it("reads only the newest entries up to the depth limit", () => {
+		const origin = [endpoint, domain, otherEndpoint, otherDomain];
+		expect(origin.length).toBeGreaterThan(MAX_ORIGIN_DEPTH);
+
+		expect(readOriginTrail({ origin })).toEqual(origin.slice(-MAX_ORIGIN_DEPTH));
 	});
 
 	it("strips fields the entry schema does not know", () => {
@@ -173,6 +186,49 @@ describe("findSelfOrigin", () => {
 			{ label: "Apps", to: "/apps" },
 			{ label: "Endpoints", to: "/endpoints" },
 		]);
+	});
+
+	it("writes a relative ancestor as a label that the reader keeps", () => {
+		const self = findSelfOrigin([
+			{
+				id: "domain",
+				pathname: "/domains/rd_1",
+				handle: {
+					breadcrumb: () => [routeBreadcrumb("Domains", { to: ".." }), routeBreadcrumb("rd_1")],
+					origin: () => ({ kind: "domain", id: "rd_1" }) as const,
+				},
+			},
+		]);
+
+		expect(readOriginTrail({ origin: [self] })).toEqual([
+			{ kind: "domain", id: "rd_1", to: "/domains/rd_1", ancestors: [{ label: "Domains" }] },
+		]);
+	});
+
+	it("keeps every crumb as an ancestor when the resource route adds no crumb", () => {
+		const self = findSelfOrigin([
+			{ id: "domains", pathname: "/domains", handle: { breadcrumb: "Domains" } },
+			{
+				id: "domain",
+				pathname: "/domains/rd_1",
+				handle: { origin: () => ({ kind: "domain", id: "rd_1" }) as const },
+			},
+		]);
+
+		expect(self?.ancestors).toEqual([{ label: "Domains", to: "/domains" }]);
+	});
+
+	it("encodes the decoded pathname again, so a `#` in an id stays in the path", () => {
+		const self = findSelfOrigin([
+			{
+				id: "domain",
+				// the router decodes `/domains/sales%23east` to this
+				pathname: "/domains/sales#east",
+				handle: { origin: () => ({ kind: "domain", id: "sales#east" }) as const },
+			},
+		]);
+
+		expect(self?.to).toBe("/domains/sales%23east");
 	});
 
 	it("prefers the deeper of two identified matches", () => {

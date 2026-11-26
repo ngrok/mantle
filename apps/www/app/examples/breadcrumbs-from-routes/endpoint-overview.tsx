@@ -14,15 +14,18 @@ export default function EndpointOverview({ params }: Route.ComponentProps) {
 	const domain = domains.find((candidate) => candidate.id === endpoint?.domainId);
 
 	if (endpoint == null || domain == null) {
-		return <p className="text-muted text-sm">No endpoint has this id.</p>;
+		return (
+			<p className="text-muted text-sm">
+				No endpoint has this id. Pick one from Endpoints in the sidebar.
+			</p>
+		);
 	}
 
 	return (
 		<DescriptionList.Root>
 			<DescriptionList.Item>
 				<DescriptionList.Label>Domain</DescriptionList.Label>
-				{/* Why break-all: a domain name has no space, and a 320px screen is narrower than it. */}
-				<DescriptionList.Value className="break-all">
+				<DescriptionList.Value>
 					<Anchor asChild>
 						<OriginLink to={demoPaths.domain(domain.id)}>{domain.name}</OriginLink>
 					</Anchor>

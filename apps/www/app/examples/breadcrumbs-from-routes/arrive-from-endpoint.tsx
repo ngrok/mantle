@@ -35,7 +35,11 @@ export default function ArriveFromEndpoint({ params }: Route.ComponentProps) {
 	}, [endpoint, navigate]);
 
 	if (endpoint == null) {
-		return <p className="text-muted p-6 text-sm">No endpoint has this id.</p>;
+		return (
+			<p className="text-muted p-6 text-sm">
+				No endpoint has this id. Pick one from Endpoints in the sidebar.
+			</p>
+		);
 	}
 
 	return (

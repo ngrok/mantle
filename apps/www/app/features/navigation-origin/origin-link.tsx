@@ -18,18 +18,20 @@ type OriginLinkProps = Omit<ComponentProps<typeof Link>, "state">;
  * <OriginLink to={href("/domains/:domainId", { domainId })}>{domain.name}</OriginLink>
  * ```
  */
-function OriginLink({ to, prefetch = "intent", ...props }: OriginLinkProps) {
+function OriginLink({ to, relative, prefetch = "intent", ...props }: OriginLinkProps) {
 	const location = useLocation();
 	const matches = useMatches();
 	// resolve `to` the way Link does, so a relative target compares by pathname
-	const target = useResolvedPath(to);
+	const target = useResolvedPath(to, { relative });
 	const trail = pushOrigin(
 		readOriginTrail(location.state),
 		findSelfOrigin(matches),
 		target.pathname,
 	);
 
-	return <Link {...props} to={to} prefetch={prefetch} state={{ origin: trail }} />;
+	return (
+		<Link {...props} to={to} relative={relative} prefetch={prefetch} state={{ origin: trail }} />
+	);
 }
 
 export {

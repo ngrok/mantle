@@ -15,6 +15,14 @@ type RouteTabsProps = {
 };
 
 /**
+ * Whether a tab is for a matched path. The router matches paths without
+ * case, so `/Domains` is the Domains tab.
+ */
+function isTabOf(tab: RouteTab, pathname: string | undefined): boolean {
+	return tab.to.toLowerCase() === pathname?.toLowerCase();
+}
+
+/**
  * Tabs whose triggers are links and whose selected tab derives from the
  * matched route chain. Click and Enter navigate through the anchor. Arrow
  * keys move focus only (`activationMode="manual"`), so a keyboard user picks
@@ -22,7 +30,7 @@ type RouteTabsProps = {
  * router owns the state, and the server and the client agree on first paint.
  *
  * The selected tab is the one whose `to` equals the deepest match's
- * `pathname`, so a child route under a tab still selects that tab. Each tab
+ * `pathname`, without case, so a child route under a tab still selects that tab. Each tab
  * forwards `location.state`: a tab is a view of the current place, so the
  * origin trail survives a tab switch.
  *
@@ -40,8 +48,10 @@ type RouteTabsProps = {
 function RouteTabs({ tabs, "aria-label": ariaLabel }: RouteTabsProps) {
 	const location = useLocation();
 	const matches = useMatches();
-	const selectedMatch = matches.findLast((match) => tabs.some((tab) => tab.to === match.pathname));
-	const selectedTab = tabs.find((tab) => tab.to === selectedMatch?.pathname);
+	const selectedMatch = matches.findLast((match) =>
+		tabs.some((tab) => isTabOf(tab, match.pathname)),
+	);
+	const selectedTab = tabs.find((tab) => isTabOf(tab, selectedMatch?.pathname));
 
 	return (
 		<Tabs.Root value={selectedTab?.value ?? ""} activationMode="manual">

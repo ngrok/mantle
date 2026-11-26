@@ -9,7 +9,11 @@ export default function EndpointTraffic({ params }: Route.ComponentProps) {
 	const endpoint = endpoints.find((candidate) => candidate.id === params.endpointId);
 
 	if (endpoint == null) {
-		return <p className="text-muted text-sm">No endpoint has this id.</p>;
+		return (
+			<p className="text-muted text-sm">
+				No endpoint has this id. Pick one from Endpoints in the sidebar.
+			</p>
+		);
 	}
 
 	return (

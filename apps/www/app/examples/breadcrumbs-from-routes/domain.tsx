@@ -34,10 +34,13 @@ export default function DomainDetail({ params }: Route.ComponentProps) {
 	return (
 		<div className="flex flex-col gap-6 p-6">
 			<div className="flex flex-col gap-1">
-				{domainQuery.data ? (
-					<h1 className="text-strong text-2xl font-medium">{domainQuery.data.name}</h1>
-				) : (
+				{/* Why `isPending`: an unknown id resolves to `null`, and its page shows the id. */}
+				{domainQuery.isPending ? (
 					<Skeleton className="h-8 w-64" />
+				) : (
+					<h1 className="text-strong text-2xl font-medium">
+						{domainQuery.data?.name ?? params.domainId}
+					</h1>
 				)}
 				<code translate="no" className="text-muted text-xs">
 					{params.domainId}

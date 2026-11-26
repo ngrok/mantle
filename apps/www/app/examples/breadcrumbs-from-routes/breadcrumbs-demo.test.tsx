@@ -8,7 +8,7 @@ import { RouteBreadcrumbs } from "~/features/breadcrumbs/breadcrumbs";
 import { findSelfOrigin } from "~/features/navigation-origin/origin-trail";
 import { handle as domainHandle } from "./domain";
 import DomainsHub, { handle as domainsHubHandle } from "./domains-hub";
-import { handle as endpointHandle } from "./endpoint";
+import EndpointDetail, { handle as endpointHandle } from "./endpoint";
 import EndpointIndex from "./endpoint-index";
 import { handle as endpointsHandle } from "./endpoints";
 import type { DemoVault } from "./fixtures";
@@ -19,7 +19,7 @@ import { handle as settingsGeneralHandle } from "./settings-general";
 import { handle as settingsShellHandle } from "./settings-shell";
 import { handle as teamMembersHandle } from "./team-members";
 import { handle as tlsCertsHandle } from "./tls-certs";
-import { handle as vaultHandle } from "./vault";
+import VaultDetail, { handle as vaultHandle } from "./vault";
 import { handle as vaultsHandle } from "./vaults";
 
 const shellPath = "/preview/breadcrumbs-from-routes";
@@ -144,6 +144,14 @@ describe("domains hub", () => {
 		);
 	});
 
+	it("selects the tab for a URL in another case, which the router still matches", () => {
+		render(<Stub initialEntries={[demoPaths.tlsCerts.toUpperCase()]} />);
+
+		expect(
+			screen.getByRole("tab", { name: "TLS Certificates" }).getAttribute("aria-selected"),
+		).toBe("true");
+	});
+
 	it("keeps focus on the clicked tab across the route change", async () => {
 		const user = userEvent.setup();
 		render(<Stub initialEntries={[demoPaths.domains]} />);
@@ -263,6 +271,15 @@ describe("the vault's query-backed crumb", () => {
 		},
 	]);
 
+	// the vault's real shell, so its heading renders too
+	const VaultStub = createRoutesStub([
+		{
+			path: shellPath,
+			Component: ShellStub,
+			children: [{ path: "vaults/:vaultId", handle: vaultHandle, Component: VaultDetail }],
+		},
+	]);
+
 	const production: DemoVault = { id: "vlt_1", name: "production" };
 
 	function renderWarm(pathname: string) {
@@ -296,6 +313,19 @@ describe("the vault's query-backed crumb", () => {
 		expect(currentPage().textContent).toBe("sec_1");
 	});
 
+	it("names an unknown vault by its id once the query resolves to nothing", () => {
+		const queryClient = new QueryClient();
+		queryClient.setQueryData(vaultQueryOptions("vlt_missing").queryKey, null);
+		render(
+			<QueryClientProvider client={queryClient}>
+				<VaultStub initialEntries={[demoPaths.vault("vlt_missing")]} />
+			</QueryClientProvider>,
+		);
+
+		expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("vlt_missing");
+		expect(currentPage().textContent).toBe("vlt_missing");
+	});
+
 	it("holds the segment with a skeleton while the vault is cold", () => {
 		render(
 			<QueryClientProvider client={new QueryClient()}>
@@ -305,5 +335,40 @@ describe("the vault's query-backed crumb", () => {
 
 		expect(within(trail()).getByRole("status").textContent).toBe("Loading breadcrumbs…");
 		expect(within(trail()).queryByText("production")).toBeNull();
+	});
+});
+
+describe("the endpoint detail route", () => {
+	const Stub = createRoutesStub([
+		{
+			path: `${shellPath}/endpoints/:endpointType/:endpointId`,
+			Component: EndpointDetail,
+			children: [{ path: "overview", Component: () => <p>Overview tab</p> }],
+		},
+	]);
+
+	function renderAt(path: string) {
+		render(
+			<QueryClientProvider client={new QueryClient()}>
+				<Stub initialEntries={[path]} />
+			</QueryClientProvider>,
+		);
+	}
+
+	it("refuses an endpoint whose URL names the other endpoint type", () => {
+		// ep_3Exgo is a cloud endpoint
+		renderAt(demoPaths.endpointTab("agent", "ep_3Exgo", "overview"));
+
+		expect(
+			screen.getByText("No agent endpoint has this id. Pick one from Endpoints in the sidebar.")
+				.tagName,
+		).toBe("P");
+		expect(screen.queryByText("Overview tab")).toBeNull();
+	});
+
+	it("shows the endpoint whose URL names its type", () => {
+		renderAt(demoPaths.endpointTab("cloud", "ep_3Exgo", "overview"));
+
+		expect(screen.getByText("Overview tab").tagName).toBe("P");
 	});
 });

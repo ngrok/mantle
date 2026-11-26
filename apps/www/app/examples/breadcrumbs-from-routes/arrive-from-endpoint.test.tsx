@@ -39,7 +39,9 @@ describe("ArriveFromEndpoint", () => {
 	it("stays put for an unknown endpoint", () => {
 		render(<Stub initialEntries={["/preview/breadcrumbs-from-routes/from-endpoint/ep_nope"]} />);
 
-		expect(screen.getByText("No endpoint has this id.").tagName).toBe("P");
+		expect(
+			screen.getByText("No endpoint has this id. Pick one from Endpoints in the sidebar.").tagName,
+		).toBe("P");
 		expect(screen.queryByTestId("state")).toBeNull();
 	});
 });

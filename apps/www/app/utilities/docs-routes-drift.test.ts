@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { RouteConfigEntry } from "@react-router/dev/routes";
+import { matchRoutes, type RouteObject } from "react-router";
 import { globSync } from "tinyglobby";
 import { expect, test } from "vitest";
 import routes from "~/routes";
@@ -64,4 +66,24 @@ test("the docs directory and the route table list the same MDX files", () => {
 
 	expect(unrouted, "docs files with no routes.ts entry").toEqual([]);
 	expect(missingFiles, "routes.ts entries with no docs file").toEqual([]);
+});
+
+test("each routed demo a docs page frames is a route of its own", () => {
+	const framed = globSync("**/*.mdx", { cwd: docsDirectory }).flatMap((file) =>
+		Array.from(
+			readFileSync(path.join(docsDirectory, file), "utf8").matchAll(
+				/<Example\b[^>]*?\bpath="([^"]+)"/g,
+			),
+			(match) => match[1] ?? "",
+		),
+	);
+	// Why the cast: a route config entry has the `path`, `index`, and `children` the matcher reads.
+	const routeObjects = routes as ReadonlyArray<RouteObject> as Array<RouteObject>;
+	// Why not a splat: a `path` with a typo falls into a splat route and frames a 404 page.
+	const unrouted = framed.filter(
+		(framePath) => matchRoutes(routeObjects, framePath)?.at(-1)?.route.path?.includes("*") ?? true,
+	);
+
+	expect(framed.length).toBeGreaterThan(0);
+	expect(unrouted).toEqual([]);
 });

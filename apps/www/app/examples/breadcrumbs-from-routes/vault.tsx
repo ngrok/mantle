@@ -29,10 +29,13 @@ export default function VaultDetail({ params }: Route.ComponentProps) {
 	return (
 		<div className="flex flex-col gap-6 p-6">
 			<div className="flex flex-col gap-1">
-				{vaultQuery.data ? (
-					<h1 className="text-strong text-2xl font-medium">{vaultQuery.data.name}</h1>
-				) : (
+				{/* Why `isPending`: an unknown id resolves to `null`, and its page shows the id. */}
+				{vaultQuery.isPending ? (
 					<Skeleton className="h-8 w-48" />
+				) : (
+					<h1 className="text-strong text-2xl font-medium">
+						{vaultQuery.data?.name ?? params.vaultId}
+					</h1>
 				)}
 				<code translate="no" className="text-muted text-xs">
 					{params.vaultId}

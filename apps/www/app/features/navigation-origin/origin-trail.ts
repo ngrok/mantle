@@ -43,7 +43,8 @@ type OriginEntry = OriginIdentity & {
 
 const originAncestorSchema = z.object({
 	label: z.string(),
-	to: z.string().startsWith("/").optional(),
+	// Why catch: a bad `to` costs the ancestor its link, not the whole entry
+	to: z.string().startsWith("/").optional().catch(undefined),
 });
 
 const originEntrySchema = z.object({
@@ -63,7 +64,8 @@ const MAX_ORIGIN_DEPTH = 3;
 /**
  * Reads the origin trail out of `location.state`. Anything that is not a
  * well-formed entry is dropped: a stale tab, a hand-written state object, or
- * a kind this build no longer knows must not crash the header.
+ * a kind this build no longer knows must not crash the header. Only the
+ * newest `MAX_ORIGIN_DEPTH` candidates are read, so the trail stays bounded.
  *
  * @example
  * ```ts
@@ -78,7 +80,7 @@ function readOriginTrail(state: unknown): ReadonlyArray<OriginEntry> {
 	if (!Array.isArray(state.origin)) {
 		return [];
 	}
-	const candidates: ReadonlyArray<unknown> = state.origin;
+	const candidates: ReadonlyArray<unknown> = state.origin.slice(-MAX_ORIGIN_DEPTH);
 	return candidates.flatMap((candidate) => {
 		const result = originEntrySchema.safeParse(candidate);
 		return result.success ? [result.data] : [];
@@ -136,22 +138,35 @@ type OriginHandle<TMatch = unknown> = {
 type OriginMatch = BreadcrumbMatch;
 
 /**
- * The route trail above its leaf, kept to what `location.state` can hold: a
- * string label and, for a link, its `to`. A content crumb has no
- * serializable label, so it is skipped.
+ * The route trail above the resource, kept to what `location.state` can
+ * hold: a string label and, for a link, its `to`. The last crumb is the
+ * resource itself only when the resource's route contributes it. A content
+ * crumb has no serializable label, so it is skipped. A relative `to` stays a
+ * label: the trail renders on another page, where it resolves to another URL.
  */
 function serializableAncestors(
 	crumbs: ReadonlyArray<ResolvedCrumb>,
+	resourceRouteId: string,
 ): ReadonlyArray<OriginAncestor> {
-	return crumbs.slice(0, -1).flatMap((crumb): ReadonlyArray<OriginAncestor> => {
+	const last = crumbs.at(-1);
+	const above = last?.key.startsWith(`${resourceRouteId}:`) ? crumbs.slice(0, -1) : crumbs;
+	return above.flatMap((crumb): ReadonlyArray<OriginAncestor> => {
 		if (crumb.kind === "content" || typeof crumb.label !== "string") {
 			return [];
 		}
-		if (crumb.kind === "link") {
+		if (crumb.kind === "link" && crumb.to.startsWith("/")) {
 			return [{ label: crumb.label, to: crumb.to }];
 		}
 		return [{ label: crumb.label }];
 	});
+}
+
+/**
+ * A matched pathname as a link target. The router decodes `match.pathname`,
+ * so each segment is encoded again: an id with `#` or `?` stays in the path.
+ */
+function encodePathname(pathname: string): string {
+	return pathname.split("/").map(encodeURIComponent).join("/");
 }
 
 /**
@@ -177,7 +192,8 @@ function hasOrigin<TMatch extends OriginMatch>(
  * The current page's identity, stamped with its resource root and the static
  * crumbs above it. The deepest match with an `origin` handle wins. Its
  * cumulative `pathname` stops at that route, so a tab under a detail route
- * still resolves to the resource root, not to the tab.
+ * still resolves to the resource root, not to the tab. The root keeps the
+ * case of the URL, so link to a resource with the case its route declares.
  *
  * @example
  * ```ts
@@ -200,8 +216,8 @@ function findSelfOrigin(matches: ReadonlyArray<OriginMatch>): OriginEntry | null
 	const chainToSelf = matches.slice(0, matches.indexOf(match) + 1);
 	return {
 		...identity,
-		to: match.pathname,
-		ancestors: serializableAncestors(buildCrumbs(chainToSelf)),
+		to: encodePathname(match.pathname),
+		ancestors: serializableAncestors(buildCrumbs(chainToSelf), match.id),
 	};
 }
 

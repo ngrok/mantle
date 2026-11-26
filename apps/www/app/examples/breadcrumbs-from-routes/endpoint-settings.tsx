@@ -8,21 +8,22 @@ export default function EndpointSettings({ params }: Route.ComponentProps) {
 	const domain = domains.find((candidate) => candidate.id === endpoint?.domainId);
 
 	if (endpoint == null || domain == null) {
-		return <p className="text-muted text-sm">No endpoint has this id.</p>;
+		return (
+			<p className="text-muted text-sm">
+				No endpoint has this id. Pick one from Endpoints in the sidebar.
+			</p>
+		);
 	}
 
 	return (
 		<DescriptionList.Root>
 			<DescriptionList.Item>
 				<DescriptionList.Label>URL</DescriptionList.Label>
-				{/* Why break-all: a URL or a domain name has no space, and a 320px screen is narrower than it. */}
-				<DescriptionList.Value translate="no" className="break-all">
-					{endpoint.url}
-				</DescriptionList.Value>
+				<DescriptionList.Value translate="no">{endpoint.url}</DescriptionList.Value>
 			</DescriptionList.Item>
 			<DescriptionList.Item>
 				<DescriptionList.Label>Domain</DescriptionList.Label>
-				<DescriptionList.Value className="break-all">{domain.name}</DescriptionList.Value>
+				<DescriptionList.Value>{domain.name}</DescriptionList.Value>
 			</DescriptionList.Item>
 			<DescriptionList.Item>
 				<DescriptionList.Label>Pooling</DescriptionList.Label>

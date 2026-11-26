@@ -8,9 +8,10 @@ export const handle = {
 } satisfies BreadcrumbHandle;
 
 /**
- * The Settings shell: a pathless layout that names a level of the IA. Its
- * pages keep the flat URLs they have (`/settings/general`, `/billing`,
- * `/team-members`); the route tree, not the URL, puts them under `Settings`.
+ * The Settings shell: a pathless layout that names a level of the
+ * information architecture. Its pages keep the flat URLs they have
+ * (`/settings/general`, `/billing`, `/team-members`); the route tree, not the
+ * URL, puts them under `Settings`.
  */
 export default function SettingsShell() {
 	return <Outlet />;

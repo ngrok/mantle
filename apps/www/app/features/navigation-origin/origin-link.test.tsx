@@ -134,6 +134,32 @@ describe("OriginLink", () => {
 
 		expect(readProbe()).toBeNull();
 	});
+
+	it('resolves a `relative="path"` target the way the link does, so the trail pops', async () => {
+		function SiblingPage() {
+			return (
+				<>
+					<StateProbe />
+					<OriginLink to="../rd_2" relative="path">
+						sibling
+					</OriginLink>
+				</>
+			);
+		}
+		const RelativeStub = createRoutesStub([
+			{ path: "/domains/:domainId", handle: domainHandle, Component: SiblingPage },
+		]);
+		const user = userEvent.setup();
+		const rd2 = { kind: "domain", id: "rd_2", to: "/domains/rd_2", ancestors: [] };
+		render(
+			<RelativeStub initialEntries={[{ pathname: "/domains/rd_1", state: { origin: [rd2] } }]} />,
+		);
+
+		await user.click(screen.getByRole("link", { name: "sibling" }));
+
+		// `/domains/rd_2` is in the trail, so following the link pops it
+		expect(readProbe()).toEqual({ origin: [] });
+	});
 });
 
 describe("useOriginCrumbs", () => {

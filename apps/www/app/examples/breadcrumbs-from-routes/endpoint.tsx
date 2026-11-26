@@ -4,7 +4,7 @@ import { Skeleton } from "@ngrok/mantle/skeleton";
 import { Outlet, type UIMatch } from "react-router";
 import type { OriginHandle } from "~/features/navigation-origin/origin-trail";
 import type { Route } from "./+types/endpoint";
-import { isEndpointType } from "./fixtures";
+import { endpoints, isEndpointType } from "./fixtures";
 import { demoPaths } from "./paths";
 import { useEndpoint } from "./queries";
 import { RouteTabs } from "./route-tabs";
@@ -28,7 +28,21 @@ export default function EndpointDetail({ params }: Route.ComponentProps) {
 	const endpointQuery = useEndpoint(params.endpointId);
 
 	if (!isEndpointType(params.endpointType)) {
-		return <p className="text-muted p-6 text-sm">No endpoint type has this name.</p>;
+		return (
+			<p className="text-muted p-6 text-sm">
+				No endpoint type has this name. Pick an endpoint from Endpoints in the sidebar.
+			</p>
+		);
+	}
+
+	// Why: the URL names the type too, so a cloud endpoint's id under `/agent/` is no page.
+	const listed = endpoints.find((candidate) => candidate.id === params.endpointId);
+	if (listed != null && listed.type !== params.endpointType) {
+		return (
+			<p className="text-muted p-6 text-sm">
+				No {params.endpointType} endpoint has this id. Pick one from Endpoints in the sidebar.
+			</p>
+		);
 	}
 
 	const { endpointType, endpointId } = params;
@@ -36,10 +50,13 @@ export default function EndpointDetail({ params }: Route.ComponentProps) {
 	return (
 		<div className="flex flex-col gap-6 p-6">
 			<div className="flex flex-col gap-1">
-				{endpointQuery.data ? (
-					<h1 className="text-strong text-2xl font-medium">{endpointQuery.data.url}</h1>
-				) : (
+				{/* Why `isPending`: an unknown id resolves to `null`, and its page shows the id. */}
+				{endpointQuery.isPending ? (
 					<Skeleton className="h-8 w-80" />
+				) : (
+					<h1 className="text-strong text-2xl font-medium">
+						{endpointQuery.data?.url ?? endpointId}
+					</h1>
 				)}
 				<code translate="no" className="text-muted text-xs">
 					{endpointId}

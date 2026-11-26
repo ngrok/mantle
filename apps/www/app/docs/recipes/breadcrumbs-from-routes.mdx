@@ -22,51 +22,60 @@ becomes the current page, and its ancestors become links:
 > [!NOTE]
 > The demo is a real React Router app in its own document, framed by this page. Every page below
 > `/preview/breadcrumbs-from-routes` is a route module with a `handle`, the shell renders the
-> `RouteBreadcrumbs` this recipe ships, and every link is a real `Link`. The frame's Back and Forward
-> buttons step through the demo's own history, and because it is its own document, your browser's Back
-> button does too. The braces toggle at the header's trailing edge shows the router state the trail
-> derives from: `location.pathname`, `location.state`, and every match with its `handle` keys.
+> `RouteBreadcrumbs` this recipe ships, and every link is a real `Link`. Because it is its own document,
+> your browser's Back button steps through the demo's history too. The braces toggle at the header's
+> trailing edge shows the router state the trail derives from: `location.pathname`, `location.state`,
+> and every match with its `handle` keys.
 
 <Example path="/preview/breadcrumbs-from-routes/endpoints" title="Breadcrumbs from routes demo">
 
 ```ts
 // the demo's route tree, from app/routes.ts; every path is below /preview/breadcrumbs-from-routes
-route("preview/breadcrumbs-from-routes", "./examples/breadcrumbs-from-routes/shell.tsx", [
-	index("./examples/breadcrumbs-from-routes/home.tsx"),
-	route("endpoints", "./examples/breadcrumbs-from-routes/endpoints.tsx"),
-	// the detail is a sibling of its list, the dashboard's real shape; its
-	// bare URL redirects to the Overview tab
-	route("endpoints/:endpointType/:endpointId", "./examples/breadcrumbs-from-routes/endpoint.tsx", [
-		index("./examples/breadcrumbs-from-routes/endpoint-index.tsx"),
-		route("overview", "./examples/breadcrumbs-from-routes/endpoint-overview.tsx"),
-		route("traffic", "./examples/breadcrumbs-from-routes/endpoint-traffic.tsx"),
-		route("traffic-policy", "./examples/breadcrumbs-from-routes/endpoint-traffic-policy.tsx"),
-		route("settings", "./examples/breadcrumbs-from-routes/endpoint-settings.tsx"),
-	]),
-	// a hub: URL siblings share chrome through a pathless layout
-	layout("./examples/breadcrumbs-from-routes/domains-hub.tsx", [
-		route("domains", "./examples/breadcrumbs-from-routes/domains.tsx"),
-		route("tls-certs", "./examples/breadcrumbs-from-routes/tls-certs.tsx"),
-	]),
-	// a full-page detail stays out from under the hub's tabs
-	route("domains/:domainId", "./examples/breadcrumbs-from-routes/domain.tsx"),
-	route("vaults", "./examples/breadcrumbs-from-routes/vaults.tsx"),
-	// a resource shell: the vault is an ancestor of its secret's page, so its
-	// crumb is query-backed
-	route("vaults/:vaultId", "./examples/breadcrumbs-from-routes/vault.tsx", [
-		index("./examples/breadcrumbs-from-routes/vault-secrets.tsx"),
-		route("secrets/:secretId", "./examples/breadcrumbs-from-routes/secret.tsx"),
-	]),
-	// settings: a pathless shell that contributes the `Settings` label, then a
-	// gate layout that contributes nothing; the pages keep flat URLs
-	layout("./examples/breadcrumbs-from-routes/settings-shell.tsx", [
-		layout("./examples/breadcrumbs-from-routes/settings-gate.tsx", [
-			route("settings/general", "./examples/breadcrumbs-from-routes/settings-general.tsx"),
-			route("billing", "./examples/breadcrumbs-from-routes/billing.tsx"),
-			route("team-members", "./examples/breadcrumbs-from-routes/team-members.tsx"),
+route(
+	"preview/breadcrumbs-from-routes",
+	"./examples/breadcrumbs-from-routes/shell.tsx",
+	// the docs root reads this id to render the demo's pages without docs chrome
+	{ id: "preview-breadcrumbs-from-routes" },
+	[
+		index("./examples/breadcrumbs-from-routes/home.tsx"),
+		route("endpoints", "./examples/breadcrumbs-from-routes/endpoints.tsx"),
+		// the detail is a sibling of its list, the dashboard's real shape; its
+		// bare URL redirects to the Overview tab
+		route("endpoints/:endpointType/:endpointId", "./examples/breadcrumbs-from-routes/endpoint.tsx", [
+			index("./examples/breadcrumbs-from-routes/endpoint-index.tsx"),
+			route("overview", "./examples/breadcrumbs-from-routes/endpoint-overview.tsx"),
+			route("traffic", "./examples/breadcrumbs-from-routes/endpoint-traffic.tsx"),
+			route("traffic-policy", "./examples/breadcrumbs-from-routes/endpoint-traffic-policy.tsx"),
+			route("settings", "./examples/breadcrumbs-from-routes/endpoint-settings.tsx"),
 		]),
-	]),
-]),
+		// a hub: URL siblings share chrome through a pathless layout
+		layout("./examples/breadcrumbs-from-routes/domains-hub.tsx", [
+			route("domains", "./examples/breadcrumbs-from-routes/domains.tsx"),
+			route("tls-certs", "./examples/breadcrumbs-from-routes/tls-certs.tsx"),
+		]),
+		// a full-page detail stays out from under the hub's tabs
+		route("domains/:domainId", "./examples/breadcrumbs-from-routes/domain.tsx"),
+		route("vaults", "./examples/breadcrumbs-from-routes/vaults.tsx"),
+		// a resource shell: the vault is an ancestor of its secret's page, so its
+		// crumb is query-backed
+		route("vaults/:vaultId", "./examples/breadcrumbs-from-routes/vault.tsx", [
+			index("./examples/breadcrumbs-from-routes/vault-secrets.tsx"),
+			route("secrets/:secretId", "./examples/breadcrumbs-from-routes/secret.tsx"),
+		]),
+		// a demo-only entry that lands on a domain page with an origin trail,
+		// because a frame can point at a URL but not at a history entry with state
+		route("from-endpoint/:endpointId", "./examples/breadcrumbs-from-routes/arrive-from-endpoint.tsx"),
+		// settings: a pathless shell that contributes the `Settings` label, then a
+		// gate layout that contributes nothing; the pages keep flat URLs
+		layout("./examples/breadcrumbs-from-routes/settings-shell.tsx", [
+			layout("./examples/breadcrumbs-from-routes/settings-gate.tsx", [
+				route("settings/general", "./examples/breadcrumbs-from-routes/settings-general.tsx"),
+				route("billing", "./examples/breadcrumbs-from-routes/billing.tsx"),
+				route("team-members", "./examples/breadcrumbs-from-routes/team-members.tsx"),
+			]),
+		]),
+	],
+),
 ```
 
 </Example>
@@ -696,10 +705,17 @@ export const handle = {
 	breadcrumb: () => [routeBreadcrumb("Domains", { to: href("/domains") })],
 } satisfies BreadcrumbHandle;
 
+// the router matches paths without case, so `/Domains` is the Domains tab
+function isTabOf(to: string, pathname?: string) {
+	return to.toLowerCase() === pathname?.toLowerCase();
+}
+
 export default function DomainsHub() {
 	const matches = useMatches();
-	const selected = matches.findLast((match) => hubTabs.some((tab) => tab.to === match.pathname));
-	const value = hubTabs.find((tab) => tab.to === selected?.pathname)?.value ?? "";
+	const selected = matches.findLast((match) =>
+		hubTabs.some((tab) => isTabOf(tab.to, match.pathname)),
+	);
+	const value = hubTabs.find((tab) => isTabOf(tab.to, selected?.pathname))?.value ?? "";
 
 	return (
 		<>
@@ -769,8 +785,8 @@ the right: from `Endpoints > ep_3Exgo`, following the domain link reads
 `Endpoints > https://forward-labels.test > rd_2Kq9a`. Following an endpoint from
 `Domains > rd_2Kq9a` reads `Domains > forward-labels.test > ep_3Exgo`. The current page's own ancestors
 step aside, because they are not where the reader was; a plain `Link` (the sidebar) brings the hierarchy
-back. In the demo, open an endpoint, follow its domain link, then use the frame's Back and Forward
-buttons: the braces toggle shows the state under each history entry.
+back. In the demo, open an endpoint, follow its domain link, then press Back and Forward: the browser
+keeps the state under each history entry, and the braces toggle shows it.
 
 The state behind the stack is a bounded, deduplicated list of resource **references**, one per hop, each
 with the static crumbs that stood above its page. A hop renders through a label component, so it shows
@@ -806,7 +822,7 @@ entry's ancestors render.
 ### Identity: the route declares who it is
 
 A resource route adds `origin` beside `breadcrumb`. `findSelfOrigin` takes the deepest match with one,
-stamps `to: match.pathname`, and keeps the route trail above the leaf as the ancestors. `match.pathname`
+stamps `to` from `match.pathname`, and keeps the route trail above the resource as the ancestors. `match.pathname`
 is cumulative and stops at that route, so a tab under the detail route still resolves to the resource
 root, and the resource's own tabs never enter the trail.
 
@@ -896,7 +912,8 @@ type OriginEntry = OriginIdentity & {
 
 const originAncestorSchema = z.object({
 	label: z.string(),
-	to: z.string().startsWith("/").optional(),
+	// Why catch: a bad `to` costs the ancestor its link, not the whole entry
+	to: z.string().startsWith("/").optional().catch(undefined),
 });
 
 const originEntrySchema = z.object({
@@ -916,7 +933,8 @@ const MAX_ORIGIN_DEPTH = 3;
 /**
  * Reads the origin trail out of `location.state`. Anything that is not a
  * well-formed entry is dropped: a stale tab, a hand-written state object, or
- * a kind this build no longer knows must not crash the header.
+ * a kind this build no longer knows must not crash the header. Only the
+ * newest `MAX_ORIGIN_DEPTH` candidates are read, so the trail stays bounded.
  *
  * @example
  * ```ts
@@ -931,7 +949,7 @@ function readOriginTrail(state: unknown): ReadonlyArray<OriginEntry> {
 	if (!Array.isArray(state.origin)) {
 		return [];
 	}
-	const candidates: ReadonlyArray<unknown> = state.origin;
+	const candidates: ReadonlyArray<unknown> = state.origin.slice(-MAX_ORIGIN_DEPTH);
 	return candidates.flatMap((candidate) => {
 		const result = originEntrySchema.safeParse(candidate);
 		return result.success ? [result.data] : [];
@@ -989,22 +1007,35 @@ type OriginHandle<TMatch = unknown> = {
 type OriginMatch = BreadcrumbMatch;
 
 /**
- * The route trail above its leaf, kept to what `location.state` can hold: a
- * string label and, for a link, its `to`. A content crumb has no
- * serializable label, so it is skipped.
+ * The route trail above the resource, kept to what `location.state` can
+ * hold: a string label and, for a link, its `to`. The last crumb is the
+ * resource itself only when the resource's route contributes it. A content
+ * crumb has no serializable label, so it is skipped. A relative `to` stays a
+ * label: the trail renders on another page, where it resolves to another URL.
  */
 function serializableAncestors(
 	crumbs: ReadonlyArray<ResolvedCrumb>,
+	resourceRouteId: string,
 ): ReadonlyArray<OriginAncestor> {
-	return crumbs.slice(0, -1).flatMap((crumb): ReadonlyArray<OriginAncestor> => {
+	const last = crumbs.at(-1);
+	const above = last?.key.startsWith(`${resourceRouteId}:`) ? crumbs.slice(0, -1) : crumbs;
+	return above.flatMap((crumb): ReadonlyArray<OriginAncestor> => {
 		if (crumb.kind === "content" || typeof crumb.label !== "string") {
 			return [];
 		}
-		if (crumb.kind === "link") {
+		if (crumb.kind === "link" && crumb.to.startsWith("/")) {
 			return [{ label: crumb.label, to: crumb.to }];
 		}
 		return [{ label: crumb.label }];
 	});
+}
+
+/**
+ * A matched pathname as a link target. The router decodes `match.pathname`,
+ * so each segment is encoded again: an id with `#` or `?` stays in the path.
+ */
+function encodePathname(pathname: string): string {
+	return pathname.split("/").map(encodeURIComponent).join("/");
 }
 
 /**
@@ -1030,7 +1061,8 @@ function hasOrigin<TMatch extends OriginMatch>(
  * The current page's identity, stamped with its resource root and the static
  * crumbs above it. The deepest match with an `origin` handle wins. Its
  * cumulative `pathname` stops at that route, so a tab under a detail route
- * still resolves to the resource root, not to the tab.
+ * still resolves to the resource root, not to the tab. The root keeps the
+ * case of the URL, so link to a resource with the case its route declares.
  *
  * @example
  * ```ts
@@ -1053,8 +1085,8 @@ function findSelfOrigin(matches: ReadonlyArray<OriginMatch>): OriginEntry | null
 	const chainToSelf = matches.slice(0, matches.indexOf(match) + 1);
 	return {
 		...identity,
-		to: match.pathname,
-		ancestors: serializableAncestors(buildCrumbs(chainToSelf)),
+		to: encodePathname(match.pathname),
+		ancestors: serializableAncestors(buildCrumbs(chainToSelf), match.id),
 	};
 }
 
@@ -1100,18 +1132,20 @@ type OriginLinkProps = Omit<ComponentProps<typeof Link>, "state">;
  * <OriginLink to={href("/domains/:domainId", { domainId })}>{domain.name}</OriginLink>
  * ```
  */
-function OriginLink({ to, prefetch = "intent", ...props }: OriginLinkProps) {
+function OriginLink({ to, relative, prefetch = "intent", ...props }: OriginLinkProps) {
 	const location = useLocation();
 	const matches = useMatches();
 	// resolve `to` the way Link does, so a relative target compares by pathname
-	const target = useResolvedPath(to);
+	const target = useResolvedPath(to, { relative });
 	const trail = pushOrigin(
 		readOriginTrail(location.state),
 		findSelfOrigin(matches),
 		target.pathname,
 	);
 
-	return <Link {...props} to={to} prefetch={prefetch} state={{ origin: trail }} />;
+	return (
+		<Link {...props} to={to} relative={relative} prefetch={prefetch} state={{ origin: trail }} />
+	);
 }
 
 export {

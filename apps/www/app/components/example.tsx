@@ -3,26 +3,19 @@ import { cx } from "@ngrok/mantle/cx";
 import { SegmentedControl } from "@ngrok/mantle/segmented-control";
 import { Tabs } from "@ngrok/mantle/tabs";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/ArrowClockwise";
-import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
-import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
 import { ArrowSquareOutIcon } from "@phosphor-icons/react/ArrowSquareOut";
 import { DesktopIcon } from "@phosphor-icons/react/Desktop";
 import { DeviceMobileIcon } from "@phosphor-icons/react/DeviceMobile";
 import { DeviceTabletIcon } from "@phosphor-icons/react/DeviceTablet";
 import { $cssProperties } from "@ngrok/mantle/types";
 import type { ReactNode } from "react";
-import { createContext, use, useEffect, useRef, useState } from "react";
+import { createContext, use, useRef, useState } from "react";
 import { href } from "react-router";
 import {
 	type ExampleHeights,
 	parsePreviewHeightMessage,
 	previewHeightRequest,
 } from "~/features/example-heights";
-import {
-	parsePreviewHistoryMessage,
-	previewHistoryGoMessage,
-	type PreviewHistoryMessage,
-} from "~/features/preview-history/preview-history";
 import type { PreviewExampleName } from "~/features/preview-registry";
 
 const viewportValues = ["desktop", "tablet", "mobile"] as const;
@@ -91,40 +84,10 @@ function Frame({ target, title, height }: FrameProps) {
 	// remounting the iframe with a new key is a full document reload
 	const [reloadCount, setReloadCount] = useState(0);
 	const [contentHeight, setContentHeight] = useState<number | null>(null);
+	const iframeRef = useRef<HTMLIFrameElement | null>(null);
 	const exampleHeights = use(ExampleHeightsContext);
 	const measuredHeight = target.name == null ? undefined : exampleHeights[target.name];
 	const previewHref = target.name == null ? target.path : href("/preview/*", { "*": target.name });
-	const isRoutedDemo = target.path != null;
-	const iframeRef = useRef<HTMLIFrameElement | null>(null);
-	// Why null: a fresh document has no entry to move to until it reports one.
-	const [history, setHistory] = useState<PreviewHistoryMessage | null>(null);
-
-	useEffect(() => {
-		if (!isRoutedDemo) {
-			return;
-		}
-		const onMessage = (event: MessageEvent) => {
-			const report = parsePreviewHistoryMessage(event.data);
-			if (
-				report != null &&
-				event.origin === window.location.origin &&
-				event.source === iframeRef.current?.contentWindow
-			) {
-				setHistory(report);
-			}
-		};
-		window.addEventListener("message", onMessage);
-		return () => {
-			window.removeEventListener("message", onMessage);
-		};
-	}, [isRoutedDemo]);
-
-	const traverse = (delta: -1 | 1) => {
-		iframeRef.current?.contentWindow?.postMessage(
-			previewHistoryGoMessage(delta),
-			window.location.origin,
-		);
-	};
 
 	return (
 		<div
@@ -151,29 +114,6 @@ function Frame({ target, title, height }: FrameProps) {
 						</SegmentedControl.Item>
 					))}
 				</SegmentedControl.Root>
-				{/* Why only a routed demo: no other example navigates in its frame. */}
-				{isRoutedDemo && (
-					<div role="group" aria-label="Preview history" className="flex items-center gap-1">
-						<IconButton
-							type="button"
-							appearance="ghost"
-							intent="neutral"
-							label={`Go back in the ${title} preview`}
-							icon={<ArrowLeftIcon />}
-							disabled={history?.canGoBack !== true}
-							onClick={() => traverse(-1)}
-						/>
-						<IconButton
-							type="button"
-							appearance="ghost"
-							intent="neutral"
-							label={`Go forward in the ${title} preview`}
-							icon={<ArrowRightIcon />}
-							disabled={history?.canGoForward !== true}
-							onClick={() => traverse(1)}
-						/>
-					</div>
-				)}
 				<div className="ml-auto flex items-center gap-1">
 					<IconButton
 						type="button"
@@ -182,8 +122,13 @@ function Frame({ target, title, height }: FrameProps) {
 						label={`Reload the ${title} preview`}
 						icon={<ArrowClockwiseIcon />}
 						onClick={() => {
-							// the new document starts with no entry to move to, and reports again
-							setHistory(null);
+							// Why: a routed demo navigates in its frame, so a reload keeps the page the
+							// reader is on and its `location.state`. A remount would go back to `src`.
+							const frameWindow = iframeRef.current?.contentWindow;
+							if (target.path != null && frameWindow != null) {
+								frameWindow.location.reload();
+								return;
+							}
 							setReloadCount((count) => count + 1);
 						}}
 					/>
