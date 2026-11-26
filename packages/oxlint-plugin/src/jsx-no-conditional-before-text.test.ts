@@ -3,6 +3,14 @@ import { ruleTester } from "./rule-tester.ts";
 
 ruleTester.run("jsx-no-conditional-before-text", jsxNoConditionalBeforeText, {
 	valid: [
+		// Round 3, finding 2: a text to blank swap is a text update, not an insert.
+		'<p>{on ? "Save" : " "}Total</p>',
+		// Round 3, finding 4: two fragments that reuse their element update in place.
+		"<p>{on ? <><b />On</> : <><b />Off</>}Total</p>",
+		// Round 3, finding 9: an explicit key after spreads wins.
+		'<button>{on ? <i {...a} key="fixed" /> : <i {...b} key="fixed" />}Save</button>',
+		// Round 3, finding 11, known gap: a dynamic key is most often a stable id.
+		"<p><i key={selectedId} />Save</p>",
 		// Round 2, finding 2: an explicit space is a blank text node, which no engine moves.
 		'<p>{on && <i />}{" "}Save</p>',
 		'<p>{on && <i />}&nbsp;{"Save"}</p>',
@@ -55,6 +63,35 @@ ruleTester.run("jsx-no-conditional-before-text", jsxNoConditionalBeforeText, {
 		'<pre translate="no"><code>{lines.map((line) => <>{line.first && <Gap />}{line.text}</>)}</code></pre>',
 	],
 	invalid: [
+		{
+			// Round 3, finding 2 control: a blank text node that mounts is an insert too.
+			code: '<p>{on && " "}{"Save"}</p>',
+			errors: [{ messageId: "conditionalBeforeText" }],
+		},
+		{
+			// Round 3, finding 3: the new first element inserts before the branch's own text.
+			code: "<button>{busy ? <><i />Loading</> : <><b />Save</>}</button>",
+			errors: [{ messageId: "conditionalBeforeText" }],
+		},
+		{
+			// Round 3, finding 4: decide by children, not by how the fragment is spelled.
+			code: "<p>{on ? <React.Fragment><i /></React.Fragment> : <React.Fragment />}Save</p>",
+			errors: [{ messageId: "conditionalBeforeText" }],
+		},
+		{
+			// Round 3, finding 6: a conditional callback makes a fixed list change.
+			code: "<p>{[1, 2].map((n) => n === active && <i key={n} />)}Save</p>",
+			errors: [{ messageId: "conditionalBeforeText" }],
+		},
+		{
+			code: "<p>{[1, 2].map((n) => <i key={`${n}-${version}`} />)}Save</p>",
+			errors: [{ messageId: "conditionalBeforeText" }],
+		},
+		{
+			// Round 3, finding 8: a fragment with a conditional key remounts its children.
+			code: '<p><React.Fragment key={on ? "a" : "b"}><i /></React.Fragment>Save</p>',
+			errors: [{ messageId: "conditionalBeforeText" }],
+		},
 		{
 			// Round 2, finding 2 control: `&nbsp;` joined to text is one text node.
 			code: "<p>{on && <i />}&nbsp;Save</p>",

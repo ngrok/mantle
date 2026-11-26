@@ -3,6 +3,15 @@ import { ruleTester } from "./rule-tester.ts";
 
 ruleTester.run("jsx-no-conditional-text-with-siblings", jsxNoConditionalTextWithSiblings, {
 	valid: [
+		// Round 3, finding 1: a lone list of elements with a plain-text empty state heals.
+		'<div>{ids.length ? ids.map((id) => <b key={id}>{id}</b>) : "No rows"}</div>',
+		// Round 3, finding 2: a text to blank swap is a text update.
+		'<p>{on ? "Save" : " "}Total</p>',
+		// Round 3, finding 7: fragments with the same key update in place.
+		'<p>{on ? <React.Fragment key="a"><b />On</React.Fragment> : <React.Fragment key="a"><b />Off</React.Fragment>}<i /></p>',
+		// Round 3, finding 10: an outer fallback keeps text mounted.
+		'<p>{(items?.length && "Items") ?? "Empty"}<i /></p>',
+		'<p>{(ready && "Ready") || (busy && "Busy") || "Idle"}<i /></p>',
 		// Round 2, finding 1 control: a lone primitive goes through `setTextContent`.
 		'<span>{on && "Row"}</span>',
 		// Round 2, finding 3: two fragments of the same shape update their text in place.
@@ -53,6 +62,16 @@ ruleTester.run("jsx-no-conditional-text-with-siblings", jsxNoConditionalTextWith
 		"<button>{label}<Icon svg={caret} /></button>",
 	],
 	invalid: [
+		{
+			// Round 3, finding 5: a named `Fragment` owns no host node, so its lone child is not exempt.
+			code: '<p><React.Fragment>{on && "Save"}</React.Fragment></p>',
+			errors: [{ messageId: "textCanUnmount" }],
+		},
+		{
+			// Round 3, finding 7: fragments with different keys remount and remove their text.
+			code: '<p>{on ? <React.Fragment key="a">On</React.Fragment> : <React.Fragment key="b">Off</React.Fragment>}<i /></p>',
+			errors: [{ messageId: "textCanUnmount" }],
+		},
 		{
 			// Round 2, finding 1: a `.map()` child is an array, not a primitive React writes as text.
 			code: '<span>{ids.map(() => "Row")}</span>',

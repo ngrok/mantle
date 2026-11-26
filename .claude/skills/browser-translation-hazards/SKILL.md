@@ -65,8 +65,9 @@ Each one needs a **reparented text node** and an **update that names it**. Both 
 
 The `ngrok/*` rules in `packages/oxlint-plugin` report shapes 1 and 4, and shapes 2 and 3 when the text is
 literal. Of shape 5, they read a fragment and a keyed `Fragment` only. No rule reports shape 6, text passed
-straight to a portal, text in an array, or a component that returns bare text. Hand-check those and the items
-below. Each was measured, not assumed.
+straight to a portal, text in an array, a component that returns bare text, or an element with a dynamic
+`key` (such as `key={selectedId}`) before bare text. Hand-check those and the items below. Each was measured,
+not assumed.
 
 1. **Every `.mdx` file.** oxlint lints none of the 104 in this repo, and docs demos crash like any other code.
 2. **Anything inside a JSDoc `@example` fence.** A fence that teaches the crash shape copies into call sites.

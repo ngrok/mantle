@@ -1,6 +1,7 @@
 import {
 	canChange,
-	holdsListOrFragment,
+	holdsTextInListOrFragment,
+	isFragmentElement,
 	isTranslateNoSubtree,
 	renderedChildren,
 	textHazard,
@@ -45,7 +46,7 @@ function isLonePrimitive(child: JsxChild | undefined): boolean {
 	return (
 		child?.type !== "JSXExpressionContainer" ||
 		child.expression.type === "JSXEmptyExpression" ||
-		!holdsListOrFragment(child.expression)
+		!holdsTextInListOrFragment(child.expression)
 	);
 }
 
@@ -70,9 +71,15 @@ export const jsxNoConditionalTextWithSiblings: Rule = {
 				return;
 			}
 			const children = renderedChildren(node.children);
-			// Why only a lone primitive of an element: React writes a lone string or number through
-			// `setTextContent`, which repairs the subtree. A list and a fragment own no host node.
-			if (node.type === "JSXElement" && children.length < 2 && isLonePrimitive(children[0])) {
+			// Why only a lone primitive of a host element: React writes a lone string or number
+			// through `setTextContent`, which repairs the subtree. A list and a fragment own no host
+			// node, and neither does `Fragment`.
+			if (
+				node.type === "JSXElement" &&
+				!isFragmentElement(node) &&
+				children.length < 2 &&
+				isLonePrimitive(children[0])
+			) {
 				return;
 			}
 			for (const child of children) {

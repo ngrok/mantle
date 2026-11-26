@@ -73,7 +73,9 @@ The rule finds the node React inserts before, so it reads past a child that can 
 `{null}`, an empty list, a portal, or a comparison. It reads into a fragment, because a fragment owns no host
 node, and an insert inside a fragment lands before the next node after it. Blank text, such as `{" "}` or
 `&nbsp;`, is a safe anchor, because no engine moves it. The rule does not report a conditional that picks
-between two elements of the same type and key, because React updates that element in place. It reads a
+between two elements of the same type and key, because React updates that element in place. A ternary
+between two fragments with the same key is read child by child, so a new element inside one branch can
+insert before that branch's own text. It reads a
 static `translate`, and it skips a subtree whose nearest `translate` is `no`. A portal and an element
 passed in a prop do not inherit that value.
 
@@ -105,8 +107,10 @@ still removes a text node. Write text into an element that stays mounted instead
 `<span>{show ? " / List" : ""}</span>`.
 
 A `.map()` counts as conditional, because an empty list unmounts every row. A fragment owns no host node, so
-the rule reads into it. A ternary between two fragments is read child by child, because React matches their
-children in order. A fragment against any other branch remounts. A count such as
+the rule reads into it, whether it is spelled `<>` or `Fragment`. A ternary between two fragments with the
+same key is read child by child, because React matches their children in order. Fragments with different
+keys remount, and so does a fragment against any other branch. A swap between text and blank text is a text
+write, so the rule does not report it. A count such as
 `{items.length && <Badge />}` renders `0` as text, so the rule reports it. `??` keeps `false`, and `||`
 replaces every falsy value.
 
@@ -114,8 +118,9 @@ Three shapes stay quiet on purpose:
 
 - **Every branch renders text:** `{open ? "Show less" : "Show more"}`. React writes the new value through
   `commitTextUpdate`, and the translation reverts.
-- **A lone string or number child of an element:** React writes it through `setTextContent`. The failure
-  needs a sibling. A lone list or fragment is not on that path, so the rule reads it.
+- **A lone string or number child of a host element:** React writes it through `setTextContent`. The
+  failure needs a sibling. Text in a lone list or fragment is not on that path, so the rule reads it. A lone
+  list of elements with a string empty state is safe, because the switch resets the text content.
 - **A branch this rule cannot read statically:** `{expanded && belowTheFold}` and
   `{items.map((item) => item.label)}`. Such a value holds an element far more often than a string, so the
   rule trades the recall for precision. For the same reason, `{count && <Badge />}` with a plain identifier
@@ -172,13 +177,15 @@ attribute is a default there rather than a lock.
 ## Known gaps
 
 The rules read one file's JSX with no type information. They do not report these shapes. A `valid` test
-pins each of the first four:
+pins each of the first five:
 
 - A conditional branch they cannot read statically, such as `{expanded && belowTheFold}` or
   `{items.map((item) => item.label)}`, beside a sibling.
 - A count in a plain identifier: `{count && <Badge />}`.
 - Text passed straight to a portal: `createPortal(open && "Dialog", target)`.
 - Text in an array literal: `{open && ["Save"]}`.
+- An element with a dynamic key before text: `<Row key={selectedId} />Save`. A new key remounts the row
+  and inserts it before the text, but a stable id is the common case.
 - A component that returns bare text at its root, or that renders anything beside the `children` it
   receives.
 

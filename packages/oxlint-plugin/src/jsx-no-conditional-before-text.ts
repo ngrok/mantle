@@ -1,5 +1,7 @@
 import {
 	firstNodeKinds,
+	fragmentSwap,
+	hasConditionalKey,
 	isFragmentElement,
 	isTranslateNoSubtree,
 	mountsElement,
@@ -8,8 +10,15 @@ import {
 } from "./ast.ts";
 import type { JsxChild, JsxElement, JsxFragment, Rule } from "./types.ts";
 
+/**
+ * Whether React reads this fragment's children in place of the fragment. A fragment with a
+ * conditional key remounts as a whole, so it stays one child.
+ */
 function isFragment(node: JsxChild): node is JsxElement | JsxFragment {
-	return node.type === "JSXFragment" || (node.type === "JSXElement" && isFragmentElement(node));
+	return (
+		node.type === "JSXFragment" ||
+		(node.type === "JSXElement" && isFragmentElement(node) && !hasConditionalKey(node))
+	);
 }
 
 /**
@@ -90,6 +99,14 @@ export const jsxNoConditionalBeforeText: Rule = {
 			const children = hostChildren(node.children);
 			const reported = new Set<JsxChild>();
 			for (const [index, child] of children.entries()) {
+				// A ternary between two fragments can insert before text inside itself.
+				if (
+					child.type === "JSXExpressionContainer" &&
+					child.expression.type !== "JSXEmptyExpression" &&
+					fragmentSwap(child.expression)?.inner === true
+				) {
+					context.report({ node: child, messageId: "conditionalBeforeText" });
+				}
 				if (!mountsElement(child)) {
 					continue;
 				}

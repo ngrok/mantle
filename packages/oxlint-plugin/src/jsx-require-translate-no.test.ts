@@ -35,6 +35,8 @@ describe("configuredElements", () => {
 
 ruleTester.run("jsx-require-translate-no", jsxRequireTranslateNo, {
 	valid: [
+		// Round 3, finding 12: a `children` key in a host element's spread renders inside it.
+		'<aside translate="no"><div {...{ children: <kbd>K</kbd> }} /></aside>',
 		// Round 2, finding 11: a host element renders its `children` prop as its children.
 		'<aside translate="no"><div children={<kbd>K</kbd>} /></aside>',
 		// Round 2, finding 12: a type assertion on an object spread changes nothing.
@@ -70,6 +72,11 @@ ruleTester.run("jsx-require-translate-no", jsxRequireTranslateNo, {
 		},
 	],
 	invalid: [
+		{
+			// Round 3, finding 13: a computed key can be `translate`, so it can override.
+			code: '<kbd translate="no" {...{ [prop]: "yes" }}>K</kbd>',
+			errors: [{ messageId: "missingTranslateNo", data: { name: "kbd" } }],
+		},
 		{
 			// Round 2, finding 11: an element in a spread prop renders where the component puts it.
 			code: '<aside translate="no"><Tooltip {...{ content: <kbd>K</kbd> }} /></aside>',
