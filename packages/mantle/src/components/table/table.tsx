@@ -340,10 +340,11 @@ const Head = ({
 			// In border-separate, <tr>/<thead> borders don't render, so apply
 			// dividers directly to cells. Why a bottom border on each row: it draws
 			// the same lines as a divider between rows plus one under the last row,
-			// with no sibling or structural selector. `tr:not(:has(+tr))` made
-			// Chromium restyle about 3,700 elements for each node that a streamed
-			// answer inserted, on any page with this rule.
-			"[&>tr>*]:border-b [&>tr>*]:border-card-muted",
+			// with no sibling or structural selector. With `tr:not(:has(+tr))`,
+			// Chromium restyled about 3,700 elements for each node that a streamed
+			// 665-line answer inserted, even with no table on the page. Why
+			// `border-b-*`: a cell's own side border keeps its color.
+			"[&>tr>*]:border-b [&>tr>*]:border-b-card-muted",
 			"text-muted bg-base",
 			"[&>tr]:bg-base", // Row styling
 			className,

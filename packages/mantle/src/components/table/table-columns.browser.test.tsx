@@ -215,6 +215,53 @@ describe("Table column sizing", () => {
 		);
 	});
 
+	test.each([
+		{ layout: "grid", span: false },
+		{ layout: "table", span: true },
+	])(
+		"a two-row head draws one line under each header row in the $layout layout",
+		({ layout, span }) => {
+			// Why a span: when the last header row holds one cell, the table keeps
+			// the native layout, and `Name` spans down to the last row.
+			render(
+				<Table.Element>
+					<Table.Head>
+						<Table.Row>
+							<Table.Header rowSpan={span ? 2 : undefined}>Name</Table.Header>
+							<Table.Header>Usage</Table.Header>
+						</Table.Row>
+						<Table.Row>
+							{!span && <Table.Header>Region</Table.Header>}
+							<Table.Header>Requests</Table.Header>
+						</Table.Row>
+					</Table.Head>
+					<Table.Body>
+						<Table.Row>
+							<Table.Cell>web</Table.Cell>
+							<Table.Cell>12</Table.Cell>
+						</Table.Row>
+					</Table.Body>
+				</Table.Element>,
+			);
+
+			expect(getComputedStyle(screen.getByRole("table")).display).toBe(layout);
+			for (const header of screen.getAllByRole("columnheader")) {
+				expect(getComputedStyle(header).borderTopWidth).toBe("0px");
+				expect(getComputedStyle(header).borderBottomWidth).toBe("1px");
+			}
+			const bottom = (name: string) =>
+				screen.getByRole("columnheader", { name }).getBoundingClientRect().bottom;
+			const top = (name: string) =>
+				screen.getByRole("columnheader", { name }).getBoundingClientRect().top;
+			// The first row's line is the boundary of the second row, so no line doubles.
+			expect(bottom("Usage")).toBe(top("Requests"));
+			// The line under the last row is the edge of the body, in each column.
+			const bodyTop = screen.getByRole("cell", { name: "web" }).getBoundingClientRect().top;
+			expect(bottom("Requests")).toBe(bodyTop);
+			expect(bottom(span ? "Name" : "Region")).toBe(bodyTop);
+		},
+	);
+
 	test("a table with no header row keeps the table layout and still truncates", () => {
 		renderTable(
 			600,
