@@ -14,12 +14,9 @@ export default {
 		// `robots.txt` depends on the `x-ngrok-edge` request header, so it must answer each request.
 		// `api/shiki-highlight` has only an action, so the prerender writes no file for it.
 		// The `/mcp` routes read the MANTLE_MCP flag at request time, so a snapshot would freeze it.
-		// The `/preview/` documents need the framing headers the server sets, and the
-		// breadcrumbs demo's endpoint index redirects, which the prerender treats as a failure.
 		return getStaticPaths().filter(
 			(path) =>
 				!path.endsWith(".mdx") &&
-				!path.startsWith("/preview/") &&
 				!path.startsWith("/bench/") &&
 				path !== "/robots.txt" &&
 				path !== "/api/shiki-highlight" &&

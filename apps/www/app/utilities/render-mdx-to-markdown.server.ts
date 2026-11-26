@@ -85,25 +85,6 @@ const handlers: Record<string, Handler> = {
 	// the example's code fence. Keep the fence: it carries the example's code.
 	Example: (node) => {
 		const name = stringAttribute(node, "name");
-		const path = stringAttribute(node, "path");
-		// A routed demo has no source in /llms-full.txt; the page's fences show
-		// it. Link the demo, because a self-closing one leaves nothing else.
-		if (path != null) {
-			const title = stringAttribute(node, "title") ?? path;
-			return {
-				kind: "replace",
-				nodes: [
-					{
-						type: "paragraph",
-						children: [
-							{ type: "text", value: "Live demo: " },
-							{ type: "link", url: path, children: [{ type: "text", value: title }] },
-						],
-					},
-					...node.children,
-				],
-			};
-		}
 		// A page example key (`<page>/<name>`) is the page's own demo, and the
 		// fence is its code, so the frame adds nothing to the markdown.
 		if (name?.includes("/")) {

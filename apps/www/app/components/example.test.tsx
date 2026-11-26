@@ -3,7 +3,7 @@
 // (happy-dom otherwise fetches iframe src documents for real; these tests
 // only assert attributes and remounting, never framed content)
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { previewHeightMessage } from "~/features/example-heights";
 import { Example, ExampleHeightsContext } from "./example";
 
@@ -64,21 +64,6 @@ describe("Example", () => {
 		render(<Example name="components/actions/button/size" title="Button size example" />);
 		expect(document.querySelector(".h-160")).toBeNull();
 		expect(getIframe().getAttribute("src")).toBe("/preview/components/actions/button/size");
-	});
-
-	it("opens a routed demo at its page in a fixed-height frame", () => {
-		const { container } = render(
-			<Example path="/preview/breadcrumbs-from-routes/endpoints" title="Breadcrumbs demo" />,
-		);
-
-		expect(getIframe().getAttribute("src")).toBe("/preview/breadcrumbs-from-routes/endpoints");
-		expect(
-			screen
-				.getByRole("link", { name: "Open the Breadcrumbs demo preview in a new tab" })
-				.getAttribute("href"),
-		).toBe("/preview/breadcrumbs-from-routes/endpoints");
-		// Why a class check: the height mode has no other observable in happy-dom, which lays out nothing.
-		expect(container.querySelector(".h-160")).not.toBeNull();
 	});
 
 	it("starts a page example at its measured height", () => {
@@ -193,34 +178,6 @@ describe("Example", () => {
 
 		expect(after).not.toBe(before);
 		expect(after.getAttribute("src")).toBe("/preview/centered-layout");
-	});
-
-	it("reloads a routed demo's current document in place, so it keeps the reader's page", () => {
-		render(<Example path="/preview/breadcrumbs-from-routes/endpoints" title="Breadcrumbs demo" />);
-		const iframe = getIframe();
-		const reload = vi.fn<() => void>();
-		// Why a stub window: with page loading off, the frame has no window of its own.
-		Object.defineProperty(iframe, "contentWindow", { value: { location: { reload } } });
-
-		fireEvent.click(screen.getByRole("button", { name: "Reload the Breadcrumbs demo preview" }));
-
-		expect(reload).toHaveBeenCalledTimes(1);
-		expect(getIframe()).toBe(iframe);
-	});
-
-	it("remounts a routed demo when its frame holds a cross-origin error page", () => {
-		render(<Example path="/preview/breadcrumbs-from-routes/endpoints" title="Breadcrumbs demo" />);
-		const iframe = getIframe();
-		// a failed navigation leaves an error page whose location the docs page cannot reach
-		const reload = () => {
-			throw new DOMException("Blocked a frame with another origin", "SecurityError");
-		};
-		Object.defineProperty(iframe, "contentWindow", { value: { location: { reload } } });
-
-		fireEvent.click(screen.getByRole("button", { name: "Reload the Breadcrumbs demo preview" }));
-
-		expect(getIframe()).not.toBe(iframe);
-		expect(getIframe().getAttribute("src")).toBe("/preview/breadcrumbs-from-routes/endpoints");
 	});
 
 	it("links to the preview route in a new tab", () => {

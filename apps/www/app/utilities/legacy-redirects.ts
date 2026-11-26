@@ -95,32 +95,15 @@ export function legacyRedirectFor(pathname: string): string | null {
 }
 
 /**
- * Preview frame keys whose example a page replaced with a routed demo, and the
- * demo page that takes its place.
- */
-const replacedPreviewExamples: ReadonlyMap<string, string> = new Map([
-	// The fixture demo became the routed demo when the recipe gained real routes.
-	[
-		"recipes/breadcrumbs-from-routes/building-and-rendering-the-trail",
-		"/preview/breadcrumbs-from-routes/endpoints",
-	],
-]);
-
-/**
  * Resolve a preview frame key, `<page path>/<example name>`, whose page moved
- * or whose example a routed demo replaced, to its new URL, or `null` when
- * neither happened. A docs page links its frames in a new tab, so a saved
- * frame link outlives the move.
+ * to its new key, or `null` when the page did not move. A docs page links its
+ * frames in a new tab, so a saved frame link outlives the move.
  *
  * @example
  * legacyPreviewRedirectFor("components/preview/panel/overview"); // "/preview/components/structure/panel/overview"
  * legacyPreviewRedirectFor("components/structure/panel/overview"); // null
  */
 export function legacyPreviewRedirectFor(key: string): string | null {
-	const replaced = replacedPreviewExamples.get(key);
-	if (replaced != null) {
-		return replaced;
-	}
 	const slash = key.lastIndexOf("/");
 	if (slash === -1) {
 		return null;

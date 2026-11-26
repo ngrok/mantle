@@ -1020,8 +1020,7 @@ controlled/uncontrolled, polymorphism):
   it. `Example` runs the example in a sandboxed frame with its own document: a Preview/Code toggle, a
   desktop, tablet, and mobile (320px) viewport switch, and a reload button. `name` is a page example,
   `<page path>/<name>`, which renders `<Name>Example` from the page's examples module, or a shell-scale demo
-  registered in `apps/www/app/features/preview-registry.ts`. A routed demo, a route tree that navigates in its
-  frame, takes `path` in place of `name`. Never render a demo inline in the MDX, and never
+  registered in `apps/www/app/features/preview-registry.ts`. Never render a demo inline in the MDX, and never
   ship a usage block with nothing rendering it, outside the one exception below.
 - **Code inside the example.** The usage block goes inside its `<Example>`, with a blank line on each side. Put
   a note about the demo above the `<Example>`. `apps/www/app/utilities/docs-example-fences.test.ts` checks

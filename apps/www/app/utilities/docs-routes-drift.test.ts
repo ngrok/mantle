@@ -1,13 +1,6 @@
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { RouteConfigEntry } from "@react-router/dev/routes";
-import { matchRoutes, type RouteObject } from "react-router";
-import type { Nodes } from "mdast";
-import remarkFrontmatter from "remark-frontmatter";
-import remarkMdx from "remark-mdx";
-import remarkParse from "remark-parse";
 import { globSync } from "tinyglobby";
-import { unified } from "unified";
 import { expect, test } from "vitest";
 import routes from "~/routes";
 
@@ -71,57 +64,4 @@ test("the docs directory and the route table list the same MDX files", () => {
 
 	expect(unrouted, "docs files with no routes.ts entry").toEqual([]);
 	expect(missingFiles, "routes.ts entries with no docs file").toEqual([]);
-});
-
-/** Each `<Example path>` value in a docs page, read with the MDX parser. */
-function framedDemoPaths(source: string): ReadonlyArray<string> {
-	const paths: Array<string> = [];
-	const visit = (node: Nodes) => {
-		if (node.type === "mdxJsxFlowElement" && node.name === "Example") {
-			const attribute = node.attributes.find(
-				(attr) => attr.type === "mdxJsxAttribute" && attr.name === "path",
-			);
-			if (typeof attribute?.value === "string") {
-				paths.push(attribute.value);
-			}
-		}
-		if ("children" in node) {
-			node.children.forEach(visit);
-		}
-	};
-	visit(unified().use(remarkParse).use(remarkFrontmatter).use(remarkMdx).parse(source));
-	return paths;
-}
-
-test("each routed demo a docs page frames is a route of its own", () => {
-	// Why the text filter: parsing each docs page as MDX takes longer than the test timeout,
-	// and only a page that writes `path=` can frame a routed demo.
-	const framed = globSync("**/*.mdx", { cwd: docsDirectory })
-		.map((file) => readFileSync(path.join(docsDirectory, file), "utf8"))
-		.filter((source) => source.includes("path="))
-		.flatMap(framedDemoPaths);
-	// Why the cast: a route config entry has the `path`, `index`, and `children` the matcher reads.
-	const routeObjects = routes as ReadonlyArray<RouteObject> as Array<RouteObject>;
-	// Why not a splat: a `path` with a typo falls into a splat route and frames a 404 page.
-	// An index route has no `path`, and it is a route of its own.
-	const unrouted = framed.filter((framePath) => {
-		const leaf = matchRoutes(routeObjects, framePath)?.at(-1);
-		return leaf == null || leaf.route.path?.includes("*") === true;
-	});
-
-	expect(framed.length).toBeGreaterThan(0);
-	expect(unrouted).toEqual([]);
-});
-
-test("reads a frame path past a `>` in the title, and accepts an index route", () => {
-	const [framePath] = framedDemoPaths(
-		'<Example title="Endpoints > ep_1" path="/preview/breadcrumbs-from-routes/vaults/vlt_9Xk2p" />',
-	);
-	const leaf = matchRoutes(
-		routes as ReadonlyArray<RouteObject> as Array<RouteObject>,
-		framePath ?? "",
-	)?.at(-1);
-
-	expect(framePath).toBe("/preview/breadcrumbs-from-routes/vaults/vlt_9Xk2p");
-	expect(leaf?.route.index).toBe(true);
 });
