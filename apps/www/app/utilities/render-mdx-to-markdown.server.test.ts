@@ -24,37 +24,6 @@ describe("renderMdxToMarkdown", () => {
 		expect(result).not.toContain("omitted in markdown output");
 	});
 
-	test("keeps a routed demo's code fence and points at no published source", () => {
-		const result = renderMdxToMarkdown(
-			[
-				'<Example path="/preview/breadcrumbs-from-routes/endpoints" title="Breadcrumbs demo">',
-				"",
-				"```ts",
-				"const answer = 42;",
-				"```",
-				"",
-				"</Example>",
-			].join("\n"),
-		);
-
-		expect(result).toContain("const answer = 42;");
-		expect(result).toContain(
-			"Live demo: [Breadcrumbs demo](/preview/breadcrumbs-from-routes/endpoints)",
-		);
-		expect(result).not.toContain("<Example");
-		expect(result).not.toContain("llms-full.txt");
-	});
-
-	test("links a self-closing routed demo, which has no fence to keep", () => {
-		const result = renderMdxToMarkdown(
-			'<Example path="/preview/breadcrumbs-from-routes/vaults" title="Query-backed crumb demo" />',
-		);
-
-		expect(result.trim()).toBe(
-			"Live demo: [Query-backed crumb demo](/preview/breadcrumbs-from-routes/vaults)",
-		);
-	});
-
 	test("puts a source pointer before a shell demo's code fence", () => {
 		// The page's fence is a hand-written excerpt of the framed demo, so a reader
 		// of the `.md` twin gets the preview's name and where its full source lives

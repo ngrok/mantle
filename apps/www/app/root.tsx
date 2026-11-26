@@ -115,13 +115,9 @@ export function shouldRevalidate() {
 	return false;
 }
 
-/** The route id of the breadcrumbs recipe's routed demo: a route tree that navigates inside its frame. */
-const routedDemoRouteId = "preview-breadcrumbs-from-routes";
-
 const chromelessRouteIds = new Set([
 	//,
 	"preview-example",
-	routedDemoRouteId,
 	"bench-charts",
 	"bench-sheet",
 	"mcp-preview",
@@ -130,7 +126,7 @@ const chromelessRouteIds = new Set([
 
 /**
  * Whether the matched route is a chrome-less document: a framed example
- * preview (`/preview/*`), the breadcrumbs recipe's routed demo, a benchmark page
+ * preview (`/preview/*`), a benchmark page
  * (`/bench/charts`, `/bench/sheet`), or an MCP prototype preview (`/mcp/preview` and its
  * frame). Matched on route identity, not pathname,
  * mirroring the `layouts-index` pattern in layouts-layout.tsx. Preview
@@ -157,7 +153,6 @@ export function Layout({ children }: PropsWithChildren) {
 	const initialHtmlThemeProps = useInitialHtmlThemeProps({ className: "h-full" });
 	const scrollBehavior = useScrollBehavior();
 	const isFramedPreview = useIsFramedPreview();
-	const isRoutedDemo = useMatches().some((match) => match.id === routedDemoRouteId);
 	const isPrototypeFrame = useMatches().some((match) => match.id === "mcp-preview-frame");
 	const prototypeHash = useLocationHash({ enabled: isPrototypeFrame });
 	const prototypeTheme = prototypeHash == null ? undefined : parsePreviewHash(prototypeHash).theme;
@@ -223,8 +218,8 @@ export function Layout({ children }: PropsWithChildren) {
 				</ThemeProvider>
 				{/* Suppressed inside framed example previews: nothing navigates inside
 				    the preview iframe, and each iframe would add its own status region
-				    to the page. A routed demo navigates, so it keeps the announcer. */}
-				{(!isFramedPreview || isRoutedDemo) && <RouteAnnouncer />}
+				    to the page. */}
+				{!isFramedPreview && <RouteAnnouncer />}
 				{/* Suppressed inside the prototype frame: its sandbox blocks the
 				    `sessionStorage` that the restoration script reads. */}
 				{!isPrototypeFrame && <ScrollRestoration nonce={nonce} />}

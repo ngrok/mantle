@@ -2,7 +2,6 @@ import type { ResolvedCrumb } from "@ngrok/mantle/breadcrumb";
 import { Breadcrumb, buildCrumbs } from "@ngrok/mantle/breadcrumb";
 import { Fragment } from "react";
 import { Link, useMatches } from "react-router";
-import { useOriginCrumbs } from "~/features/navigation-origin/use-origin-crumbs";
 
 /** A crumb the renderer wraps in its own `Breadcrumb.Item`. */
 type ItemCrumb = Exclude<ResolvedCrumb, { kind: "content" }>;
@@ -40,7 +39,8 @@ function CrumbContent({ crumb, isCurrentPage }: { crumb: ItemCrumb; isCurrentPag
  * cannot see inside it.
  *
  * Kept separate from {@link RouteBreadcrumbs} so nothing here touches the router:
- * this is the half you can render with a fixture in a test.
+ * this is the half you can render with a fixture in a test, or in a docs demo that
+ * cannot mount a second router.
  *
  * @example
  * ```tsx
@@ -79,17 +79,10 @@ function Breadcrumbs({ crumbs }: { crumbs: ReadonlyArray<ResolvedCrumb> }) {
 
 /**
  * The breadcrumb trail for the current route. Render it once, in your app shell's
- * header: it derives everything from the matched route chain and from
- * `location.state`, so no route needs to push anything up.
+ * header: it derives everything from the matched route chain, so no route needs to
+ * push anything up.
  *
- * Two derived lists, composed. With no origin, the trail is the route trail:
- * where the reader is. With an origin, it is a stack: the first page's
- * ancestors, one crumb per hop, and this page's leaf. This page's own ancestors
- * step aside, because they are not where the reader was. If your app has no
- * origin trail, drop the `useOriginCrumbs()` line and the ternary; nothing else
- * changes.
- *
- * This is the only piece that touches the router, which keeps the hooks at the edge.
+ * This is the only piece that touches the router, which keeps the hook at the edge.
  *
  * @example
  * ```tsx
@@ -104,11 +97,7 @@ function Breadcrumbs({ crumbs }: { crumbs: ReadonlyArray<ResolvedCrumb> }) {
  * ```
  */
 function RouteBreadcrumbs() {
-	const originCrumbs = useOriginCrumbs();
-	const routeCrumbs = buildCrumbs(useMatches());
-	const crumbs =
-		originCrumbs.length === 0 ? routeCrumbs : [...originCrumbs, ...routeCrumbs.slice(-1)];
-	return <Breadcrumbs crumbs={crumbs} />;
+	return <Breadcrumbs crumbs={buildCrumbs(useMatches())} />;
 }
 
 export {
