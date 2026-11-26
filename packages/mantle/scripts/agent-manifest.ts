@@ -40,6 +40,21 @@ type AgentManifestSibling = {
 };
 
 /**
+ * One row of a "Data attributes" table in a docs page's API reference: an
+ * attribute that a part renders, which a consumer can style or select against.
+ */
+type AgentManifestDataAttribute = {
+	/** The part the row documents, from the `###` heading above its table (e.g. "Tabs.List"). */
+	part: string;
+	/** The attribute name (e.g. "data-orientation"). */
+	name: string;
+	/** The values it takes, as the docs write them (e.g. `"horizontal"` \| `"vertical"`). */
+	value: string;
+	/** What the attribute means and when it is present. */
+	description: string;
+};
+
+/**
  * One component or layout entry. The fields are stable and self-describing,
  * because LLMs, code-generation agents, and external tooling read them.
  */
@@ -93,6 +108,12 @@ type AgentManifestComponent = {
 	siblings?: AgentManifestSibling[];
 	/** The situation this component is for, from the `@useWhen` JSDoc tag. */
 	useWhen?: string;
+	/**
+	 * Every attribute the parts render for styling or coordination, from the
+	 * "Data attributes" tables in the docs page's API reference, in page order.
+	 * Omitted when the page has none.
+	 */
+	dataAttributes?: AgentManifestDataAttribute[];
 };
 
 /** One hook entry. Every hook imports from `@ngrok/mantle/hooks`. */
@@ -198,12 +219,14 @@ type AgentManifest = {
 	sourceHash?: string;
 };
 
-/** A docs page as the builder reads it: its URL slug and its parsed frontmatter. */
+/** A docs page as the builder reads it: its URL slug, its parsed frontmatter, and its source. */
 type DocPage = {
 	/** The slug without a leading slash, e.g. `components/actions/button`. */
 	slug: string;
 	/** The page's parsed YAML frontmatter. */
 	frontmatter: Record<string, unknown>;
+	/** The page's raw MDX. The builder reads its data-attribute tables. */
+	mdx?: string;
 };
 
 /** What a caller passes to {@link buildAgentManifest}. */
@@ -660,6 +683,59 @@ function leadingJsDoc(source: string): string | undefined {
 	return match?.[0];
 }
 
+/**
+ * Read the rows of every "Data attributes" table in a docs page's
+ * `## API Reference` section. Each row takes its part from the nearest `###`
+ * heading above it. Tables elsewhere on the page, such as an overview under
+ * Accessibility, are not read: the API reference is the contract.
+ *
+ * @example
+ * dataAttributesFromMdx("## API Reference\n\n### Tabs.List\n\n| Data Attribute | Value | Description |\n| - | - | - |\n| `data-overflowing` | `\"true\"` \\| `\"false\"` | Set once measured. |");
+ * // => [{ part: "Tabs.List", name: "data-overflowing", value: '`"true"` \\| `"false"`', description: "Set once measured." }]
+ */
+function dataAttributesFromMdx(mdx: string): AgentManifestDataAttribute[] {
+	const rows: AgentManifestDataAttribute[] = [];
+	let inReference = false;
+	let inTable = false;
+	let inFence = false;
+	let part = "";
+	for (const line of mdx.split("\n")) {
+		if (line.startsWith("```")) {
+			inFence = !inFence;
+		}
+		if (inFence) {
+			continue;
+		}
+		if (line.startsWith("## ")) {
+			inReference = line.trim() === "## API Reference";
+		} else if (line.startsWith("### ")) {
+			part = line.slice(4).trim();
+		}
+		// Why the split on an unescaped pipe: a value cell such as `"a"` \| `"b"` escapes its own.
+		const cells = line.startsWith("|")
+			? line
+					.trim()
+					.slice(1, -1)
+					.split(/(?<!\\)\|/)
+					.map((cell) => cell.trim())
+			: undefined;
+		if (!inReference || cells == null) {
+			inTable = false;
+			continue;
+		}
+		if (cells[0] === "Data Attribute") {
+			inTable = true;
+			continue;
+		}
+		const [name, value = "", description = ""] = cells;
+		if (!inTable || name == null || /^:?-+:?$/.test(name)) {
+			continue;
+		}
+		rows.push({ part, name: name.replace(/^`|`$/g, ""), value, description });
+	}
+	return rows;
+}
+
 /** The summary, examples, and boundary tags one JSDoc block carries. */
 type JsDocFields = {
 	jsdoc?: string;
@@ -840,6 +916,7 @@ function componentEntry(
 
 	const summary = stringField(frontmatter, "description");
 	const aliases = stringListField(frontmatter, "aliases", slug);
+	const dataAttributes = dataAttributesFromMdx(doc.mdx ?? "");
 	return {
 		name,
 		slug,
@@ -852,6 +929,7 @@ function componentEntry(
 		...(summary == null ? {} : { summary }),
 		...fields,
 		...(aliases == null ? {} : { aliases }),
+		...(dataAttributes.length > 0 ? { dataAttributes } : {}),
 	};
 }
 
@@ -1182,6 +1260,7 @@ export {
 	blocksForTag,
 	buildAgentManifest,
 	componentCategories,
+	dataAttributesFromMdx,
 	examplesFromJsDoc,
 	firstSentenceFromJsDoc,
 	importableSubpaths,
@@ -1195,6 +1274,7 @@ export {
 export type {
 	AgentManifest,
 	AgentManifestComponent,
+	AgentManifestDataAttribute,
 	AgentManifestHook,
 	AgentManifestInputs,
 	AgentManifestRecipe,

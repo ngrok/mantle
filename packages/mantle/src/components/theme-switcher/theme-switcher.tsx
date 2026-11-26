@@ -402,6 +402,16 @@ type ThemeSwitcherProps = Omit<
  * because a click cannot change what the page shows. To put the same control
  * in an existing menu, use `ThemeDropdownMenuItem`.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-icon-button` | `"true"` | Always present, as on `IconButton`. Lets a wrapper style every icon button it holds. |
+ * | `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"` | The `appearance` prop. |
+ * | `data-intent` | `"neutral"` | Always `"neutral"`. |
+ * | `data-size` | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop. |
+ * | `data-loading` | present when `isLoading` | Presence-only. |
+ *
  * @useWhen Let the user switch between light and dark mode from a header, a toolbar, or an account
  * menu.
  *

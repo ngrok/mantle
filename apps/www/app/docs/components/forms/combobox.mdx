@@ -313,6 +313,10 @@ All props of an `<input>` except `value`, `defaultValue`, and `autoComplete`, pl
 | `autoSelect?` | `boolean \| "always"`                                                                              | `"always"` | Whether the first item gets the highlight as the text changes, so Enter picks it. `"always"` also highlights it when the list opens. |
 | `validation?` | `"error" \| "success" \| "warning" \| false \| (() => "error" \| "success" \| "warning" \| false)` |            | Validation state that changes the border and outline.                                                                                |
 
+| Data Attribute    | Value                                   | Description                                    |
+| ----------------- | --------------------------------------- | ---------------------------------------------- |
+| `data-validation` | `"error"` \| `"success"` \| `"warning"` | The resolved `validation`. Omitted when unset. |
+
 ### Combobox.Content
 
 Renders a popover that contains combobox content, e.g. items, groups, and separators.
@@ -326,6 +330,13 @@ Renders a popover that contains combobox content, e.g. items, groups, and separa
 | `asChild?`   | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
 | `sameWidth?` | `boolean` | `true`  | Whether the popover should be the same width as the input.            |
 
+| Data Attribute      | Value                 | Description                                                                                                    |
+| ------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `data-mantle-popup` | `""`                  | On the popover box. An enclosing `Dialog` reads it to keep a press inside the popup.                           |
+| `data-open`         | `""`                  | On the popover box and the listbox while open. An enclosing `Dialog` reads it to leave **Escape** to the list. |
+| `data-side`         | `"top"` \| `"bottom"` | On the popover box. The side of the anchor the popup opened on.                                                |
+| `data-float-scroll` | `""`                  | On the listbox. The element that scrolls when the popup is shorter than its content.                           |
+
 ### Combobox.Item
 
 Renders a combobox item inside a `Combobox.Content` component.
@@ -338,6 +349,13 @@ All props of a `<div>`, plus:
 | `children?` | `ReactNode` \| `(props, { highlighted }) => ReactElement` | `value` | The item's content. A function renders the item as the element it returns, with the item's props and whether it is highlighted. Spread `props` on that element. |
 | `disabled?` | `boolean`                                                 |         | Whether the item is inert.                                                                                                                                      |
 | `value?`    | `string`                                                  |         | The value that picking the item sets on `Combobox.Root`, such as an ID. An item with no value is static text that the keyboard skips.                           |
+
+| Data Attribute     | Value                    | Description                                                      |
+| ------------------ | ------------------------ | ---------------------------------------------------------------- |
+| `data-value`       | the `value` prop         | The option's value.                                              |
+| `data-text-value`  | the `textValue` prop     | The text type-ahead matches. Omitted when unset.                 |
+| `data-highlighted` | present when highlighted | Presence-only. The item under the pointer or the keyboard focus. |
+| `data-selected`    | present when selected    | Presence-only. The item's value is the root's value.             |
 
 #### The text a pick writes
 
@@ -367,6 +385,11 @@ All props of a `<span>` except `children`, plus:
 | :----------- | :------- | :---------------------------------- | :--------------------------- |
 | `value?`     | `string` | the closest `Combobox.Item`'s value | The text to split.           |
 | `userValue?` | `string` | the text of `Combobox.Input`        | The text to find in `value`. |
+
+| Data Attribute            | Value                | Description                                                                |
+| ------------------------- | -------------------- | -------------------------------------------------------------------------- |
+| `data-user-value`         | present on the match | Presence-only. On the `<span>` around the text that matches the query.     |
+| `data-autocomplete-value` | present on the rest  | Presence-only. On each `<span>` around text that does not match the query. |
 
 ### Combobox.Group
 

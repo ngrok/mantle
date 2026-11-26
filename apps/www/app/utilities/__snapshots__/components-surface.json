@@ -28,7 +28,33 @@
         "boundary": "every section stays open, with its title and explanation beside its content."
       }
     ],
-    "useWhen": "Stack titled sections that each expand and collapse in place to show and hide their content, such as questions and answers or a group of advanced settings."
+    "useWhen": "Stack titled sections that each expand and collapse in place to show and hide their content, such as questions and answers or a group of advanced settings.",
+    "dataAttributes": [
+      {
+        "part": "Accordion.Item",
+        "name": "data-slot",
+        "value": "`\"accordion-item\"`",
+        "description": "The item."
+      },
+      {
+        "part": "Accordion.Item",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Presence-only. The item's section is open."
+      },
+      {
+        "part": "Accordion.Content",
+        "name": "data-slot",
+        "value": "`\"accordion-content\"`",
+        "description": "The collapsible region."
+      },
+      {
+        "part": "Accordion.Content",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Presence-only. Drives the height and opacity slide."
+      }
+    ]
   },
   {
     "name": "Alert",
@@ -68,7 +94,33 @@
         "boundary": "a region has no data, no results, or no access to show."
       }
     ],
-    "useWhen": "Show a persistent message in the page, such as a warning about degraded data, an error, or a success note, beside the content it describes."
+    "useWhen": "Show a persistent message in the page, such as a warning about degraded data, an error, or a success note, beside the content it describes.",
+    "dataAttributes": [
+      {
+        "part": "Alert.ExpandButton",
+        "name": "data-slot",
+        "value": "`\"alert-expand-button\"`",
+        "description": "The button."
+      },
+      {
+        "part": "Alert.ExpandButton",
+        "name": "data-alert-expand",
+        "value": "`\"true\"`",
+        "description": "Always present. `Alert.Root` reserves room for the button with `has-data-alert-expand:`."
+      },
+      {
+        "part": "Alert.DismissIconButton",
+        "name": "data-slot",
+        "value": "`\"alert-dismiss-icon-button\"`",
+        "description": "The button."
+      },
+      {
+        "part": "Alert.DismissIconButton",
+        "name": "data-alert-dismiss",
+        "value": "`\"true\"`",
+        "description": "Always present. `Alert.Root` reserves room for the button with `has-data-alert-dismiss:`."
+      }
+    ]
   },
   {
     "name": "Alert Center",
@@ -98,7 +150,159 @@
         "boundary": "the message is brief and goes away on its own."
       }
     ],
-    "useWhen": "Show persistent account-level alerts, such as usage limits with upgrade actions, in one ranked bar at the top of the app."
+    "useWhen": "Show persistent account-level alerts, such as usage limits with upgrade actions, in one ranked bar at the top of the app.",
+    "dataAttributes": [
+      {
+        "part": "AlertCenter.Root",
+        "name": "data-slot",
+        "value": "`alert-center-announcer`",
+        "description": "On the persistent visually-hidden `role=\"status\"` live region Root mounts."
+      },
+      {
+        "part": "AlertCenter.Bar",
+        "name": "data-slot",
+        "value": "`alert-center-bar-wrapper`",
+        "description": "On the presence wrapper that owns the enter/exit animation."
+      },
+      {
+        "part": "AlertCenter.Bar",
+        "name": "data-slot",
+        "value": "`alert-center-bar alert`",
+        "description": "On the banner chrome the top item's children render inside, joined ahead of `Alert.Root`'s own slot."
+      },
+      {
+        "part": "AlertCenter.Bar",
+        "name": "data-slot",
+        "value": "`alert-center-bar-mount`",
+        "description": "On the layout-transparent element the top item's host is adopted into."
+      },
+      {
+        "part": "AlertCenter.Bar",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Presence-only, on the wrapper; drives the enter/exit transition, and stays absent while the exit plays."
+      },
+      {
+        "part": "AlertCenter.Bar",
+        "name": "data-placement",
+        "value": "`\"bar\"`",
+        "description": "On the chrome: where the top item's children are currently rendering."
+      },
+      {
+        "part": "AlertCenter.Bar",
+        "name": "data-alert-id",
+        "value": "the top item's `id`",
+        "description": "On the chrome; per-alert styling and testing hook."
+      },
+      {
+        "part": "AlertCenter.Bar",
+        "name": "data-alert-dismiss",
+        "value": "present on the dismiss control",
+        "description": "Read, not stamped. `Alert` emits it; the bar's CSS centers and offsets the control with it."
+      },
+      {
+        "part": "AlertCenter.Bar",
+        "name": "data-alert-expand",
+        "value": "present on the expand control",
+        "description": "Read, not stamped. `Alert` emits it; the bar's CSS centers the control with it."
+      },
+      {
+        "part": "AlertCenter.Bar",
+        "name": "data-slot",
+        "value": "`alert-center-bar-anchor`",
+        "description": "While no bar shows: on a hidden element that marks where the items' server copies may show."
+      },
+      {
+        "part": "AlertCenter.Content",
+        "name": "data-slot",
+        "value": "`alert-center-content`",
+        "description": "On the expansion wrapper that owns the collapse animation."
+      },
+      {
+        "part": "AlertCenter.Content",
+        "name": "data-slot",
+        "value": "`alert-center-item alert`",
+        "description": "On each row's banner chrome, joined ahead of `Alert.Root`'s own slot."
+      },
+      {
+        "part": "AlertCenter.Content",
+        "name": "data-open",
+        "value": "present while expanded",
+        "description": "Presence-only, on the wrapper; drives the collapse transition."
+      },
+      {
+        "part": "AlertCenter.Content",
+        "name": "data-placement",
+        "value": "`\"list\"`",
+        "description": "On each row's chrome: where that item's children are currently rendering."
+      },
+      {
+        "part": "AlertCenter.Content",
+        "name": "data-alert-id",
+        "value": "the row item's `id`",
+        "description": "On each row's chrome; per-alert styling and testing hook."
+      },
+      {
+        "part": "AlertCenter.Content",
+        "name": "data-alert-mount",
+        "value": "the row item's `id`",
+        "description": "On the row's layout-transparent mount point: the element that item's host is adopted into."
+      },
+      {
+        "part": "AlertCenter.Content",
+        "name": "data-slot",
+        "value": "`alert-center-content-anchor`",
+        "description": "While no row shows: on a hidden element that tells a server copy to reserve the expand control's room."
+      },
+      {
+        "part": "AlertCenter.Content",
+        "name": "data-alert-center-content-anchor",
+        "value": "present",
+        "description": "On the same hidden element. The server copy's CSS keys off this attribute."
+      },
+      {
+        "part": "AlertCenter.Item",
+        "name": "data-slot",
+        "value": "`alert-center-item-host`",
+        "description": "On the stable per-id host element the item's children portal into."
+      },
+      {
+        "part": "AlertCenter.Item",
+        "name": "data-slot",
+        "value": "`alert-center-item-label`",
+        "description": "On the layout-transparent element inside the host that wraps the item's children."
+      },
+      {
+        "part": "AlertCenter.Item",
+        "name": "data-alert-host",
+        "value": "the item's `id`",
+        "description": "On that same host: which alert's projected children it holds."
+      },
+      {
+        "part": "AlertCenter.Item",
+        "name": "data-slot",
+        "value": "`alert-center-server-bar`",
+        "description": "Before hydration only: on the item's copy of the bar, around the same chrome the bar renders."
+      },
+      {
+        "part": "AlertCenter.Item",
+        "name": "data-alert-center-server-claim",
+        "value": "present",
+        "description": "Before hydration only: on a copy that outranks every item rendered before it. CSS shows the last claim after the bar."
+      },
+      {
+        "part": "AlertCenter.DismissIconButton",
+        "name": "data-slot",
+        "value": "`alert-center-dismiss-icon-button alert-dismiss-icon-button icon-button`",
+        "description": "On the rendered button, joined ahead of `Alert.DismissIconButton`'s own slot and `IconButton`'s."
+      },
+      {
+        "part": "AlertCenter.DismissIconButton",
+        "name": "data-alert-dismiss",
+        "value": "present",
+        "description": "Read, not stamped. `Alert` emits it, and `AlertCenter`'s bar CSS positions the control with it."
+      }
+    ]
   },
   {
     "name": "Alert Dialog",
@@ -160,7 +364,21 @@
         "boundary": "the links show the path from a root page to the current page."
       }
     ],
-    "useWhen": "Link to an address outside the app, such as an external site, a file, or a `mailto:` address."
+    "useWhen": "Link to an address outside the app, such as an external site, a file, or a `mailto:` address.",
+    "dataAttributes": [
+      {
+        "part": "Anchor",
+        "name": "data-slot",
+        "value": "`\"anchor\"`",
+        "description": "On the anchor element. Stable styling hook that survives a `className` override or an `asChild` swap."
+      },
+      {
+        "part": "Anchor",
+        "name": "data-slot",
+        "value": "`\"anchor-label\"`",
+        "description": "On the inline `<span>` wrapping `children`, between the two `icon` slots. Target it to style the text."
+      }
+    ]
   },
   {
     "name": "App Layout",
@@ -185,7 +403,63 @@
         "boundary": "the page is one focused flow with no sidebar, such as sign-in, onboarding, or a 404 page."
       }
     ],
-    "useWhen": "Frame a signed-in app with navigation that persists across routes: a sidebar, a header that holds the page heading and its actions, and one scrolling content card."
+    "useWhen": "Frame a signed-in app with navigation that persists across routes: a sidebar, a header that holds the page heading and its actions, and one scrolling content card.",
+    "dataAttributes": [
+      {
+        "part": "AppLayout.SidePanel",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Presence-only. Mirrors the root's open state. The collapse and the transition key off it in CSS, and consumers style against it."
+      },
+      {
+        "part": "AppLayout.SidePanel",
+        "name": "data-hydrated",
+        "value": "present one frame after hydration",
+        "description": "Presence-only. The transition keys off its absence in CSS (`not-data-hydrated:transition-none`), so a state correction after the server render snaps instead of animating."
+      },
+      {
+        "part": "AppLayout.SidePanelTrigger",
+        "name": "data-slot",
+        "value": "`\"app-layout-side-panel-trigger icon-button\"`",
+        "description": "On the button: the part's slot, joined ahead of `IconButton`'s own."
+      },
+      {
+        "part": "AppLayout.SidePanelTrigger",
+        "name": "data-slot",
+        "value": "`\"app-layout-side-panel-trigger-tooltip tooltip-content\"`",
+        "description": "On the tooltip surface, not the button: the styling hook for the label popup this part renders, joined ahead of `Tooltip.Content`'s own slot."
+      },
+      {
+        "part": "AppLayout.SidePanelTrigger",
+        "name": "data-appearance",
+        "value": "`\"filled\"` \\| `\"ghost\"` \\| `\"outlined\"`",
+        "description": "Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `\"ghost\"`."
+      },
+      {
+        "part": "AppLayout.SidePanelTrigger",
+        "name": "data-intent",
+        "value": "`\"neutral\"`",
+        "description": "Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `\"neutral\"`."
+      },
+      {
+        "part": "AppLayout.SidePanelTrigger",
+        "name": "data-size",
+        "value": "`\"xs\"` \\| `\"sm\"` \\| `\"md\"` \\| `\"lg\"` \\| `\"xl\"`",
+        "description": "Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `\"sm\"`."
+      },
+      {
+        "part": "AppLayout.SidePanelTrigger",
+        "name": "data-icon-button",
+        "value": "`\"true\"`",
+        "description": "Read, not stamped: always present on the underlying `IconButton`."
+      },
+      {
+        "part": "AppLayout.SidePanelTrigger",
+        "name": "data-loading",
+        "value": "present when `isLoading`",
+        "description": "Read, not stamped: the underlying `IconButton` stamps it by presence, never `\"false\"`."
+      }
+    ]
   },
   {
     "name": "Area Chart",
@@ -214,7 +488,129 @@
         "boundary": "the reader compares values across categories by bar length from zero."
       }
     ],
-    "useWhen": "Show how a volume, or a total and its parts, changes across an ordered x axis, such as time."
+    "useWhen": "Show how a volume, or a total and its parts, changes across an ordered x axis, such as time.",
+    "dataAttributes": [
+      {
+        "part": "AreaChart.Root",
+        "name": "data-slot",
+        "value": "`\"area-chart\"`",
+        "description": "The Root wrapper, with any forwarded chain ahead of it."
+      },
+      {
+        "part": "AreaChart.Root",
+        "name": "data-slot",
+        "value": "`\"area-chart-plot\"`",
+        "description": "The plot box. Every overlay layer positions against it, and the resize observer measures it."
+      },
+      {
+        "part": "AreaChart.Root",
+        "name": "data-slot",
+        "value": "`\"area-chart-svg\"`",
+        "description": "The `<svg>` the marks paint on. Always `aria-hidden`. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print)."
+      },
+      {
+        "part": "AreaChart.Root",
+        "name": "data-slot",
+        "value": "`\"area-chart-crosshair\"`",
+        "description": "The vertical hairline snapped to the active x. The engine writes its geometry as an inline style. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `\"interactive\"`. Interactive charts only: a static or decorative chart inserts the surface alone."
+      },
+      {
+        "part": "AreaChart.Root",
+        "name": "data-slot",
+        "value": "`\"area-chart-hover-band\"`",
+        "description": "The category highlight; an area chart never shows it. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `\"interactive\"`. Interactive charts only: a static or decorative chart inserts the surface alone."
+      },
+      {
+        "part": "AreaChart.Root",
+        "name": "data-slot",
+        "value": "`\"area-chart-markers\"`",
+        "description": "The container the engine syncs one hover dot per series into. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `\"interactive\"`. Interactive charts only: a static or decorative chart inserts the surface alone."
+      },
+      {
+        "part": "AreaChart.Root",
+        "name": "data-slot",
+        "value": "`\"area-chart-tooltip\"`",
+        "description": "The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it; `AreaChart.Tooltip` configures it. A chart nobody points at holds none."
+      },
+      {
+        "part": "AreaChart.Root",
+        "name": "data-slot",
+        "value": "`\"area-chart-description\"`",
+        "description": "The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode=\"decorative\"`."
+      },
+      {
+        "part": "AreaChart.Root",
+        "name": "data-slot",
+        "value": "`\"area-chart-data-table\"`",
+        "description": "The `sr-only` data table. Mounts once focus lands inside the chart (`data-engaged` appears) and stays. Interactive charts only."
+      },
+      {
+        "part": "AreaChart.Root",
+        "name": "data-engaged",
+        "value": "present once engaged",
+        "description": "On the Root. Appears once focus lands inside the chart, and never goes away. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only."
+      },
+      {
+        "part": "AreaChart.Root",
+        "name": "data-slot",
+        "value": "`\"chart-active-point\"`",
+        "description": "One hover dot inside the markers layer. Also carries `data-shape`."
+      },
+      {
+        "part": "AreaChart.Root",
+        "name": "data-shape",
+        "value": "`\"circle\" \\| \"square\" \\| \"triangle\" \\| \"diamond\" \\| \"triangle-down\" \\| \"plus\" \\| \"cross\" \\| \"star\"`",
+        "description": "On each hover dot, naming the glyph its series wears: the `shape` it set, else `\"circle\"`. The dot clips itself to that glyph, so target this only to restyle a dot."
+      },
+      {
+        "part": "AreaChart.Root",
+        "name": "data-value",
+        "value": "a number",
+        "description": "On each value cell of the `sr-only` data table. The raw number the cell shows formatted."
+      },
+      {
+        "part": "AreaChart.Tooltip",
+        "name": "data-slot",
+        "value": "`\"area-chart-tooltip-label\"`",
+        "description": "On the `<div>` wrapping a `children` readout. The default readout has none."
+      },
+      {
+        "part": "AreaChart.Legend",
+        "name": "data-slot",
+        "value": "`\"area-chart-legend\"`",
+        "description": "The legend list. `AreaChart.Legend` renders it in flow below the plot."
+      },
+      {
+        "part": "AreaChart.Legend",
+        "name": "data-slot",
+        "value": "`\"area-chart-legend-label\"`",
+        "description": "On the `<div>` wrapping a `children` render prop. The default legend has none."
+      },
+      {
+        "part": "AreaChart.Legend",
+        "name": "data-shape",
+        "value": "`\"circle\" \\| \"square\" \\| \"triangle\" \\| \"diamond\" \\| \"triangle-down\" \\| \"plus\" \\| \"cross\" \\| \"star\"`",
+        "description": "On each series' swatch, naming the glyph its [AreaChart.Area](#areachartarea) wears. The swatch clips itself to that glyph, so target this only to restyle a key."
+      },
+      {
+        "part": "AreaChart.CopyButton",
+        "name": "data-slot",
+        "value": "`\"area-chart-copy-button\"`",
+        "description": "The button the part renders."
+      },
+      {
+        "part": "AreaChart.List",
+        "name": "data-slot",
+        "value": "`\"area-chart-list\"`",
+        "description": "The List wrapper, with any forwarded chain ahead of it. It takes the `className` and the other div props."
+      },
+      {
+        "part": "AreaChart.List",
+        "name": "data-slot",
+        "value": "`\"area-chart-list-items\"`",
+        "description": "The `display: contents` wrapper around the charts, so a grid or flex layout on the List lays out the cards."
+      }
+    ]
   },
   {
     "name": "Attachment",
@@ -246,7 +642,75 @@
         "boundary": "a short status label, not a file."
       }
     ],
-    "useWhen": "Show the files attached to a chat message, with a remove button while the message is a draft."
+    "useWhen": "Show the files attached to a chat message, with a remove button while the message is a draft.",
+    "dataAttributes": [
+      {
+        "part": "Attachment.List",
+        "name": "data-slot",
+        "value": "`\"attachment-list\"`",
+        "description": "On the list, joined with ancestor slots."
+      },
+      {
+        "part": "Attachment.Root",
+        "name": "data-slot",
+        "value": "`\"attachment\"`",
+        "description": "On the chip, joined with ancestor slots."
+      },
+      {
+        "part": "Attachment.Preview",
+        "name": "data-slot",
+        "value": "`\"attachment-preview\"`",
+        "description": "On the image or icon wrapper, joined with ancestor slots."
+      },
+      {
+        "part": "Attachment.Name",
+        "name": "data-slot",
+        "value": "`\"attachment-name\"`",
+        "description": "On the name, joined with ancestor slots."
+      },
+      {
+        "part": "Attachment.Size",
+        "name": "data-slot",
+        "value": "`\"attachment-size\"`",
+        "description": "On the size, joined with ancestor slots."
+      },
+      {
+        "part": "Attachment.Remove",
+        "name": "data-slot",
+        "value": "`\"attachment-remove icon-button\"`",
+        "description": "On the button, joined with ancestor slots."
+      },
+      {
+        "part": "Attachment.Remove",
+        "name": "data-icon-button",
+        "value": "`\"true\"`",
+        "description": "Inherited from `IconButton`."
+      },
+      {
+        "part": "Attachment.Remove",
+        "name": "data-appearance",
+        "value": "`\"ghost\"`",
+        "description": "The button's appearance."
+      },
+      {
+        "part": "Attachment.Remove",
+        "name": "data-intent",
+        "value": "`\"neutral\"`",
+        "description": "The button's tone."
+      },
+      {
+        "part": "Attachment.Remove",
+        "name": "data-size",
+        "value": "`\"2xs\"` \\| `\"xs\"` \\| `\"sm\"` \\| `\"md\"` \\| `\"lg\"` \\| `\"xl\"`",
+        "description": "The `size` prop; defaults to `\"sm\"`."
+      },
+      {
+        "part": "Attachment.Remove",
+        "name": "data-loading",
+        "value": "present when `isLoading`",
+        "description": "Inherited from `IconButton`."
+      }
+    ]
   },
   {
     "name": "Avatar",
@@ -275,7 +739,27 @@
         "boundary": "the image is a generic symbol, not a person or an account."
       }
     ],
-    "useWhen": "Show a small picture of a person or an account, with initials or an icon when there is no picture."
+    "useWhen": "Show a small picture of a person or an account, with initials or an icon when there is no picture.",
+    "dataAttributes": [
+      {
+        "part": "Avatar.Root",
+        "name": "data-slot",
+        "value": "`\"avatar\"`",
+        "description": "On the avatar surface, with any forwarded chain ahead of it. Styling/test hook."
+      },
+      {
+        "part": "Avatar.Image",
+        "name": "data-slot",
+        "value": "`\"avatar-image\"`",
+        "description": "On the `<img>`, with any forwarded chain ahead of it. Styling/test hook."
+      },
+      {
+        "part": "Avatar.Fallback",
+        "name": "data-slot",
+        "value": "`\"avatar-fallback\"`",
+        "description": "On the fallback, with any forwarded chain ahead of it. Styling/test hook."
+      }
+    ]
   },
   {
     "name": "Badge",
@@ -309,7 +793,21 @@
         "boundary": "the tags are values that the user picks and removes."
       }
     ],
-    "useWhen": "Label an item with a short status or state (such as active, paused, or unknown), a category tag, or a count, shown as one or two words on a colored background."
+    "useWhen": "Label an item with a short status or state (such as active, paused, or unknown), a category tag, or a count, shown as one or two words on a colored background.",
+    "dataAttributes": [
+      {
+        "part": "Badge",
+        "name": "data-slot",
+        "value": "`\"badge\"`",
+        "description": "On the badge element. Stable styling hook that survives a `className` override or an `asChild` swap."
+      },
+      {
+        "part": "Badge",
+        "name": "data-slot",
+        "value": "`\"badge-label\"`",
+        "description": "On the `<span>` wrapping `children`, beside the `icon` slot. `display: contents`, so every child stays a flex item of the badge and the `gap` still falls between them. Style a label by styling your own child, not this slot."
+      }
+    ]
   },
   {
     "name": "Bar Chart",
@@ -340,7 +838,117 @@
         "boundary": "a total and its parts change across an ordered x axis, such as time."
       }
     ],
-    "useWhen": "Compare values across categories, with grouped or stacked bars."
+    "useWhen": "Compare values across categories, with grouped or stacked bars.",
+    "dataAttributes": [
+      {
+        "part": "BarChart.Root",
+        "name": "data-slot",
+        "value": "`\"bar-chart\"`",
+        "description": "The Root wrapper, with any forwarded chain ahead of it."
+      },
+      {
+        "part": "BarChart.Root",
+        "name": "data-slot",
+        "value": "`\"bar-chart-plot\"`",
+        "description": "The plot box. Every overlay layer positions against it, and the resize observer measures it."
+      },
+      {
+        "part": "BarChart.Root",
+        "name": "data-slot",
+        "value": "`\"bar-chart-svg\"`",
+        "description": "The `<svg>` the marks paint on. Always `aria-hidden`. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print)."
+      },
+      {
+        "part": "BarChart.Root",
+        "name": "data-slot",
+        "value": "`\"bar-chart-crosshair\"`",
+        "description": "The vertical hairline; a bar chart never shows it. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `\"interactive\"`. Interactive charts only: a static or decorative chart inserts the surface alone."
+      },
+      {
+        "part": "BarChart.Root",
+        "name": "data-slot",
+        "value": "`\"bar-chart-hover-band\"`",
+        "description": "The highlight behind the active category, one category wide. The engine writes its geometry as an inline style. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `\"interactive\"`. Interactive charts only: a static or decorative chart inserts the surface alone."
+      },
+      {
+        "part": "BarChart.Root",
+        "name": "data-slot",
+        "value": "`\"bar-chart-markers\"`",
+        "description": "The container for the per-series hover dots; a bar chart never fills it. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `\"interactive\"`. Interactive charts only: a static or decorative chart inserts the surface alone."
+      },
+      {
+        "part": "BarChart.Root",
+        "name": "data-slot",
+        "value": "`\"bar-chart-tooltip\"`",
+        "description": "The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it; `BarChart.Tooltip` configures it. A chart nobody points at holds none."
+      },
+      {
+        "part": "BarChart.Root",
+        "name": "data-slot",
+        "value": "`\"bar-chart-description\"`",
+        "description": "The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the category count, the first and last category, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode=\"decorative\"`."
+      },
+      {
+        "part": "BarChart.Root",
+        "name": "data-slot",
+        "value": "`\"bar-chart-data-table\"`",
+        "description": "The `sr-only` data table. Mounts once focus lands inside the chart (`data-engaged` appears) and stays. Interactive charts only."
+      },
+      {
+        "part": "BarChart.Root",
+        "name": "data-engaged",
+        "value": "present once engaged",
+        "description": "On the Root. Appears once focus lands inside the chart, and never goes away. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only."
+      },
+      {
+        "part": "BarChart.Root",
+        "name": "data-value",
+        "value": "a number",
+        "description": "On each value cell of the `sr-only` data table. The raw number the cell shows formatted."
+      },
+      {
+        "part": "BarChart.Tooltip",
+        "name": "data-slot",
+        "value": "`\"bar-chart-tooltip-label\"`",
+        "description": "On the `<div>` wrapping a `children` readout. The default readout has none."
+      },
+      {
+        "part": "BarChart.Legend",
+        "name": "data-slot",
+        "value": "`\"bar-chart-legend\"`",
+        "description": "The legend list. `BarChart.Legend` renders it in flow below the plot."
+      },
+      {
+        "part": "BarChart.Legend",
+        "name": "data-slot",
+        "value": "`\"bar-chart-legend-label\"`",
+        "description": "On the `<div>` wrapping a `children` render prop. The default legend has none."
+      },
+      {
+        "part": "BarChart.Legend",
+        "name": "data-texture",
+        "value": "`\"solid\" \\| \"hatch\" \\| \"hatch-reverse\" \\| \"crosshatch\" \\| \"perpendicular\" \\| \"parallel\" \\| \"grid\" \\| \"dots\"`",
+        "description": "On each series' swatch, naming the `texture` its [BarChart.Bar](#barchartbar) registered. The swatch paints the pattern itself, so target this only to restyle a key."
+      },
+      {
+        "part": "BarChart.CopyButton",
+        "name": "data-slot",
+        "value": "`\"bar-chart-copy-button\"`",
+        "description": "The button the part renders."
+      },
+      {
+        "part": "BarChart.List",
+        "name": "data-slot",
+        "value": "`\"bar-chart-list\"`",
+        "description": "The List wrapper, with any forwarded chain ahead of it. It takes the `className` and the other div props."
+      },
+      {
+        "part": "BarChart.List",
+        "name": "data-slot",
+        "value": "`\"bar-chart-list-items\"`",
+        "description": "The `display: contents` wrapper around the charts, so a grid or flex layout on the List lays out the cards."
+      }
+    ]
   },
   {
     "name": "Breadcrumb",
@@ -369,7 +977,15 @@
         "boundary": "the app needs persistent navigation to its top-level pages."
       }
     ],
-    "useWhen": "Show where the current page sits in a hierarchy, as a trail of links from a root page."
+    "useWhen": "Show where the current page sits in a hierarchy, as a trail of links from a root page.",
+    "dataAttributes": [
+      {
+        "part": "",
+        "name": "data-slot",
+        "value": "`\"breadcrumb\"` \\| `\"breadcrumb-list\"` \\| `\"breadcrumb-item\"` \\| `\"breadcrumb-link\"` \\| `\"breadcrumb-label\"` \\| `\"breadcrumb-page\"` \\| `\"breadcrumb-separator\"` \\| `\"breadcrumb-skeleton\"`",
+        "description": "Names each part."
+      }
+    ]
   },
   {
     "name": "Browser Only",
@@ -424,7 +1040,51 @@
         "boundary": "the control goes to another address and runs no action."
       }
     ],
-    "useWhen": "Run an action on a click: submit a form, save a change, or open a dialog."
+    "useWhen": "Run an action on a click: submit a form, save a change, or open a dialog.",
+    "dataAttributes": [
+      {
+        "part": "Button",
+        "name": "data-slot",
+        "value": "`\"button\"`",
+        "description": "On the button element. Stable styling hook that survives a `className` override or an `asChild` swap."
+      },
+      {
+        "part": "Button",
+        "name": "data-slot",
+        "value": "`\"button-label\"`",
+        "description": "On the `<span>` wrapping `children`, beside the `icon` slot. `display: contents`, so every child stays a flex item of the button and the `gap` still falls between them. Style a label by styling your own child, not this slot."
+      },
+      {
+        "part": "Button",
+        "name": "data-appearance",
+        "value": "`\"filled\"` \\| `\"ghost\"` \\| `\"link\"` \\| `\"outlined\"`",
+        "description": "The `appearance` prop."
+      },
+      {
+        "part": "Button",
+        "name": "data-intent",
+        "value": "`\"accent\"` \\| `\"danger\"` \\| `\"neutral\"`",
+        "description": "The `intent` prop."
+      },
+      {
+        "part": "Button",
+        "name": "data-size",
+        "value": "`\"xs\"` \\| `\"sm\"` \\| `\"md\"` \\| `\"lg\"` \\| `\"xl\"`",
+        "description": "The `size` prop. Omitted when `appearance=\"link\"`, which has no box to size."
+      },
+      {
+        "part": "Button",
+        "name": "data-loading",
+        "value": "present when `isLoading`",
+        "description": "Presence-only, never `\"false\"`."
+      },
+      {
+        "part": "ButtonGroup",
+        "name": "data-slot",
+        "value": "`\"button-group\"`",
+        "description": "On the group element. Stable styling hook that survives a `className` override or an `asChild` swap."
+      }
+    ]
   },
   {
     "name": "Calendar",
@@ -443,7 +1103,15 @@
       "datepicker",
       "date range picker"
     ],
-    "useWhen": "Pick one date or a range of dates from a month grid."
+    "useWhen": "Pick one date or a range of dates from a month grid.",
+    "dataAttributes": [
+      {
+        "part": "",
+        "name": "data-slot",
+        "value": "`\"calendar\"`",
+        "description": "The calendar root."
+      }
+    ]
   },
   {
     "name": "Card",
@@ -537,7 +1205,51 @@
         "boundary": "the checkbox needs a title and a description beside it."
       }
     ],
-    "useWhen": "Turn one or more independent options on or off in a form, with an indeterminate state for a partial selection. `CheckboxGroup` shows the options as selectable cards where the user picks several, for a \"select all that apply\" question."
+    "useWhen": "Turn one or more independent options on or off in a form, with an indeterminate state for a partial selection. `CheckboxGroup` shows the options as selectable cards where the user picks several, for a \"select all that apply\" question.",
+    "dataAttributes": [
+      {
+        "part": "Checkbox",
+        "name": "data-slot",
+        "value": "`\"checkbox\"`",
+        "description": "The `<input type=\"checkbox\">`."
+      },
+      {
+        "part": "Checkbox",
+        "name": "data-validation",
+        "value": "`\"error\"` \\| `\"success\"` \\| `\"warning\"`",
+        "description": "The resolved `validation`. Omitted when unset."
+      },
+      {
+        "part": "CheckboxGroup.Root",
+        "name": "data-slot",
+        "value": "`\"checkbox-group\"`",
+        "description": "The group."
+      },
+      {
+        "part": "CheckboxGroup.Card",
+        "name": "data-slot",
+        "value": "`\"checkbox-group-card\"`",
+        "description": "The card."
+      },
+      {
+        "part": "CheckboxGroup.Card",
+        "name": "data-slot",
+        "value": "`\"checkbox-group-card-label\"`",
+        "description": "The `display: contents` wrapper of the card's children."
+      },
+      {
+        "part": "CheckboxGroup.Indicator",
+        "name": "data-slot",
+        "value": "`\"checkbox-group-indicator\"`",
+        "description": "The indicator."
+      },
+      {
+        "part": "CheckboxGroup.ItemContent",
+        "name": "data-slot",
+        "value": "`\"checkbox-group-item-content\"`",
+        "description": "The content."
+      }
+    ]
   },
   {
     "name": "Chip",
@@ -575,7 +1287,63 @@
         "boundary": "a press runs an action without a selected state."
       }
     ],
-    "useWhen": "Show a compact value, let a user remove it, or turn a choice on or off."
+    "useWhen": "Show a compact value, let a user remove it, or turn a choice on or off.",
+    "dataAttributes": [
+      {
+        "part": "Chip",
+        "name": "data-slot",
+        "value": "`\"chip\"`",
+        "description": "The root element."
+      },
+      {
+        "part": "Chip",
+        "name": "data-slot",
+        "value": "`\"chip-label\"`",
+        "description": "The label wrapper, with `display: contents`."
+      },
+      {
+        "part": "Chip",
+        "name": "data-slot",
+        "value": "`\"chip-icon\"`",
+        "description": "The optional leading icon."
+      },
+      {
+        "part": "Chip",
+        "name": "data-slot",
+        "value": "`\"chip-remove\"`",
+        "description": "The optional remove button."
+      },
+      {
+        "part": "Chip",
+        "name": "data-state",
+        "value": "`\"on\"` \\| `\"off\"`",
+        "description": "The selectable state."
+      },
+      {
+        "part": "Chip",
+        "name": "data-appearance",
+        "value": "`\"pill\"` \\| `\"square\"`",
+        "description": "The shape of the chip."
+      },
+      {
+        "part": "Chip",
+        "name": "data-size",
+        "value": "`\"xs\"` \\| `\"sm\"` \\| `\"md\"` \\| `\"lg\"` \\| `\"xl\"`",
+        "description": "The size of the chip."
+      },
+      {
+        "part": "Chip",
+        "name": "data-locked",
+        "value": "present",
+        "description": "Removal is blocked."
+      },
+      {
+        "part": "Chip",
+        "name": "data-shake",
+        "value": "present while it shakes",
+        "description": "Presence-only. A locked chip shakes when the user tries to remove it. Not set under reduced motion."
+      }
+    ]
   },
   {
     "name": "Choice",
@@ -668,7 +1436,93 @@
         "boundary": "one long opaque value must stay on one line."
       }
     ],
-    "useWhen": "Show a block of code with syntax highlighting and a copy button."
+    "useWhen": "Show a block of code with syntax highlighting and a copy button.",
+    "dataAttributes": [
+      {
+        "part": "CodeBlock.Root",
+        "name": "data-orientation",
+        "value": "`\"horizontal\"`",
+        "description": "Present when the root holds a `CodeBlock.TabList`. Omitted otherwise."
+      },
+      {
+        "part": "CodeBlock.Code",
+        "name": "data-expanded",
+        "value": "present when expanded",
+        "description": "Presence-only. Only with a composed `CodeBlock.ExpanderButton`, which carries `aria-expanded`."
+      },
+      {
+        "part": "CodeBlock.Code",
+        "name": "data-syntax-highlighted",
+        "value": "present when highlighted",
+        "description": "Presence-only. The value carried pre-rendered Shiki HTML."
+      },
+      {
+        "part": "CodeBlock.Code",
+        "name": "data-lang",
+        "value": "the language id",
+        "description": "The value's language."
+      },
+      {
+        "part": "CodeBlock.Code",
+        "name": "data-mantle-line-numbers",
+        "value": "`\"true\"` \\| `\"false\"`",
+        "description": "Whether the gutter shows line numbers."
+      },
+      {
+        "part": "CodeBlock.Code",
+        "name": "data-mantle-line-number-start",
+        "value": "a number as a string",
+        "description": "The first line number."
+      },
+      {
+        "part": "CodeBlock.Code",
+        "name": "data-mantle-highlight-lines",
+        "value": "comma-separated line numbers",
+        "description": "Present when lines are highlighted."
+      },
+      {
+        "part": "CodeBlock.Code",
+        "name": "data-line-number",
+        "value": "a number",
+        "description": "On each `.mantle-code-line`. The line number the gutter shows."
+      },
+      {
+        "part": "CodeBlock.Code",
+        "name": "data-fold-line",
+        "value": "a line number",
+        "description": "On each fold toggle `<button>`. The line that opens the region the button folds."
+      },
+      {
+        "part": "CodeBlock.Code",
+        "name": "data-fold-regions",
+        "value": "space-separated line numbers",
+        "description": "On each line inside a foldable region. The opener line of each region that holds it."
+      },
+      {
+        "part": "CodeBlock.Code",
+        "name": "data-folded-regions",
+        "value": "space-separated line numbers",
+        "description": "On the `<code>` while a region is folded. The opener line of each folded region."
+      },
+      {
+        "part": "CodeBlock.Code",
+        "name": "data-fold-hidden",
+        "value": "`\"true\"` \\| `\"false\"`",
+        "description": "On a line after a fold first changes it. `\"true\"` while a folded region hides the line."
+      },
+      {
+        "part": "CodeBlock.Code",
+        "name": "data-fold-instant",
+        "value": "present on a large fold",
+        "description": "Presence-only. On each line past the first 50 that a fold changes. The line hides or shows with no motion."
+      },
+      {
+        "part": "CodeBlock.CopyButton",
+        "name": "data-copied",
+        "value": "present after a copy",
+        "description": "Presence-only. Set when a copy succeeds and cleared a moment later. The check icon shows while it is present."
+      }
+    ]
   },
   {
     "name": "Combobox",
@@ -707,7 +1561,87 @@
         "boundary": "the field filters a list with free text and `key:value` qualifiers."
       }
     ],
-    "useWhen": "Pick one value from a long list of options, with a text field that filters the options as the user types."
+    "useWhen": "Pick one value from a long list of options, with a text field that filters the options as the user types.",
+    "dataAttributes": [
+      {
+        "part": "Combobox.Input",
+        "name": "data-validation",
+        "value": "`\"error\"` \\| `\"success\"` \\| `\"warning\"`",
+        "description": "The resolved `validation`. Omitted when unset."
+      },
+      {
+        "part": "Combobox.Content",
+        "name": "data-mantle-popup",
+        "value": "`\"\"`",
+        "description": "On the popover box. An enclosing `Dialog` reads it to keep a press inside the popup."
+      },
+      {
+        "part": "Combobox.Content",
+        "name": "data-open",
+        "value": "`\"\"`",
+        "description": "On the popover box and the listbox while open. An enclosing `Dialog` reads it to leave **Escape** to the list."
+      },
+      {
+        "part": "Combobox.Content",
+        "name": "data-side",
+        "value": "`\"top\"` \\| `\"bottom\"`",
+        "description": "On the popover box. The side of the anchor the popup opened on."
+      },
+      {
+        "part": "Combobox.Content",
+        "name": "data-float-scroll",
+        "value": "`\"\"`",
+        "description": "On the listbox. The element that scrolls when the popup is shorter than its content."
+      },
+      {
+        "part": "Combobox.Item",
+        "name": "data-value",
+        "value": "the `value` prop",
+        "description": "The option's value."
+      },
+      {
+        "part": "Combobox.Item",
+        "name": "data-text-value",
+        "value": "the `textValue` prop",
+        "description": "The text type-ahead matches. Omitted when unset."
+      },
+      {
+        "part": "Combobox.Item",
+        "name": "data-highlighted",
+        "value": "present when highlighted",
+        "description": "Presence-only. The item under the pointer or the keyboard focus."
+      },
+      {
+        "part": "Combobox.Item",
+        "name": "data-selected",
+        "value": "present when selected",
+        "description": "Presence-only. The item's value is the root's value."
+      },
+      {
+        "part": "Combobox.ItemValue",
+        "name": "data-user-value",
+        "value": "present on the match",
+        "description": "Presence-only. On the `<span>` around the text that matches the query."
+      },
+      {
+        "part": "Combobox.ItemValue",
+        "name": "data-autocomplete-value",
+        "value": "present on the rest",
+        "description": "Presence-only. On each `<span>` around text that does not match the query."
+      },
+      {
+        "part": "Combobox.ContentFooter",
+        "name": "data-slot",
+        "value": "`\"combobox-content-footer\"`",
+        "description": "On the footer."
+      },
+      {
+        "part": "Combobox.ContentFooter",
+        "name": "data-slot",
+        "value": "`\"combobox-popup\"`",
+        "description": "On the popover box that holds the listbox and the footer. It also carries `data-side`."
+      }
+    ]
   },
   {
     "name": "Command",
@@ -744,7 +1678,69 @@
         "boundary": "a filter on the page that its `keyboardShortcut` prop binds to `/`."
       }
     ],
-    "useWhen": "Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K` menu. Cmd+K on Apple platforms and Ctrl+K elsewhere open its search field."
+    "useWhen": "Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K` menu. Cmd+K on Apple platforms and Ctrl+K elsewhere open its search field.",
+    "dataAttributes": [
+      {
+        "part": "Command.SearchTrigger",
+        "name": "data-slot",
+        "value": "`\"command-search-trigger\"`",
+        "description": "Stable styling hook, joined ahead of the child's own slot: a sidebar row reads `data-slot=\"command-search-trigger sidebar-search-trigger\"`."
+      },
+      {
+        "part": "Command.Input",
+        "name": "data-slot",
+        "value": "`\"command-input-wrapper\"`",
+        "description": "The row holding the magnifier and the field."
+      },
+      {
+        "part": "Command.Input",
+        "name": "data-slot",
+        "value": "`\"command-input\"`",
+        "description": "The `<input>` itself. Beyond styling, `Command.DialogContent` finds the field by this slot to place the caret after a seeded query."
+      },
+      {
+        "part": "Command.Group",
+        "name": "data-slot",
+        "value": "`\"command-group\"`",
+        "description": "The group."
+      },
+      {
+        "part": "Command.Group",
+        "name": "data-slot",
+        "value": "`\"command-group-heading\"`",
+        "description": "The heading, hidden from assistive technology."
+      },
+      {
+        "part": "Command.Group",
+        "name": "data-slot",
+        "value": "`\"command-group-items\"`",
+        "description": "The `role=\"group\"` element that holds the items."
+      },
+      {
+        "part": "Command.Group",
+        "name": "data-force-mount",
+        "value": "`\"\"`",
+        "description": "Present when the group has `forceMount`."
+      },
+      {
+        "part": "Command.Group",
+        "name": "data-value",
+        "value": "the `value` prop",
+        "description": "Omitted when unset."
+      },
+      {
+        "part": "Command.Item",
+        "name": "data-slot",
+        "value": "`\"command-item\"`",
+        "description": "The item."
+      },
+      {
+        "part": "Command.Item",
+        "name": "data-highlighted",
+        "value": "present when active",
+        "description": "The active item. Presence-only. Style it with `data-highlighted:`."
+      }
+    ]
   },
   {
     "name": "Conversation",
@@ -778,7 +1774,21 @@
         "boundary": "a list of items that does not grow at its end while the reader watches."
       }
     ],
-    "useWhen": "Show the messages of a chat with an assistant or a model, and keep the newest text in view while an answer streams."
+    "useWhen": "Show the messages of a chat with an assistant or a model, and keep the newest text in view while an answer streams.",
+    "dataAttributes": [
+      {
+        "part": "Conversation.Root",
+        "name": "data-scrolled-up",
+        "value": "present while the end is out of view",
+        "description": "Presence-only. Shows `Conversation.ScrollButton`."
+      },
+      {
+        "part": "Conversation.Root",
+        "name": "data-streaming",
+        "value": "present while `streaming`",
+        "description": "Presence-only. Style with `data-streaming:`."
+      }
+    ]
   },
   {
     "name": "Conversation Outline",
@@ -814,7 +1824,27 @@
         "boundary": "a floating panel with other content."
       }
     ],
-    "useWhen": "Let the person find and jump back to one of their own messages in a long chat."
+    "useWhen": "Let the person find and jump back to one of their own messages in a long chat.",
+    "dataAttributes": [
+      {
+        "part": "ConversationOutline.Item",
+        "name": "data-in-view",
+        "value": "present while its message is in view",
+        "description": "Presence-only. The item shows in the strong color."
+      },
+      {
+        "part": "ConversationOutline.Item",
+        "name": "aria-current",
+        "value": "`\"location\"` on the current message",
+        "description": "The message the reader is at: the first in view, else the last above the view."
+      },
+      {
+        "part": "ConversationOutline.Item",
+        "name": "data-target",
+        "value": "the `target` prop",
+        "description": "The `id` of the message the item jumps to. The outline watches it to update `data-in-view`."
+      }
+    ]
   },
   {
     "name": "Data Table",
@@ -851,7 +1881,129 @@
         "boundary": "one record shows as label and value pairs."
       }
     ],
-    "useWhen": "Show rows of application data that the user sorts, filters, pages through, selects, or expands with a row button into a detail panel or sub-rows."
+    "useWhen": "Show rows of application data that the user sorts, filters, pages through, selects, or expands with a row button into a detail panel or sub-rows.",
+    "dataAttributes": [
+      {
+        "part": "DataTable.Row",
+        "name": "data-clickable",
+        "value": "present when `onClick` is set",
+        "description": "Presence-only. The row runs a handler on a plain click."
+      },
+      {
+        "part": "DataTable.Row",
+        "name": "data-expanded",
+        "value": "present when expanded",
+        "description": "Presence-only. The row's detail panel is open."
+      },
+      {
+        "part": "DataTable.Row",
+        "name": "data-closing",
+        "value": "present while it fades out",
+        "description": "Presence-only. An ancestor row collapsed. The row is `inert` until it unmounts."
+      },
+      {
+        "part": "DataTable.Header",
+        "name": "data-slot",
+        "value": "`\"data-table-header table-header\"`",
+        "description": "On the `<th>`, joined ahead of `Table.Header`'s own slot."
+      },
+      {
+        "part": "DataTable.Header",
+        "name": "data-column-width",
+        "value": "`\"fit\"`",
+        "description": "Present when the `column` prop's `meta.width` is `\"fit\"`. The header does not wrap its content, and the column shrinks to fit it."
+      },
+      {
+        "part": "DataTable.HeaderSortButton",
+        "name": "data-sort-direction",
+        "value": "`\"asc\"` \\| `\"desc\"` \\| `\"unsorted\"`",
+        "description": "The column's current sort direction. Always `\"unsorted\"` on the plain-text span."
+      },
+      {
+        "part": "DataTable.HeaderSortButton",
+        "name": "data-table-header-action",
+        "value": "present on the button",
+        "description": "Presence-only. `DataTable.Header` drops its horizontal padding when a descendant carries it. Absent on the plain-text span."
+      },
+      {
+        "part": "DataTable.Cell",
+        "name": "data-slot",
+        "value": "`\"data-table-cell table-cell\"`",
+        "description": "On the `<td>`, joined ahead of `Table.Cell`'s own slot."
+      },
+      {
+        "part": "DataTable.Cell",
+        "name": "data-column-width",
+        "value": "`\"fit\"`",
+        "description": "Present when the `column` prop's `meta.width` is `\"fit\"`. The cell does not wrap its content, and the column shrinks to fit it."
+      },
+      {
+        "part": "DataTable.ActionHeader",
+        "name": "data-slot",
+        "value": "`\"data-table-action-header table-header\"`",
+        "description": "On the `<th>`, joined ahead of `Table.Header`'s own slot."
+      },
+      {
+        "part": "DataTable.ActionHeader",
+        "name": "data-slot",
+        "value": "`\"data-table-action-header-label\"`",
+        "description": "On the `<span>` wrapping `children`."
+      },
+      {
+        "part": "DataTable.ActionHeader",
+        "name": "data-mantle-table-sticky-right",
+        "value": "`\"true\"` when rows exist",
+        "description": "The column is pinned to the right edge. Omitted with no body rows, so the empty state keeps the fade."
+      },
+      {
+        "part": "DataTable.ActionCell",
+        "name": "data-slot",
+        "value": "`\"data-table-action-cell table-cell\"`",
+        "description": "On the `<td>`, joined ahead of `Table.Cell`'s own slot."
+      },
+      {
+        "part": "DataTable.ActionCell",
+        "name": "data-slot",
+        "value": "`\"data-table-action-cell-label\"`",
+        "description": "On the `<span>` wrapping `children`."
+      },
+      {
+        "part": "DataTable.ActionCell",
+        "name": "data-mantle-table-sticky-right",
+        "value": "`\"true\"`",
+        "description": "The column is pinned to the right edge. `Table.Root` drops its right scroll fade."
+      },
+      {
+        "part": "DataTable.ControlCell",
+        "name": "data-slot",
+        "value": "`\"data-table-control-cell table-cell\"`",
+        "description": "On the `<td>`, joined ahead of `Table.Cell`'s own slot."
+      },
+      {
+        "part": "DataTable.ControlCell",
+        "name": "data-slot",
+        "value": "`\"data-table-control-cell-label\"`",
+        "description": "On the `<span>` wrapping `children`."
+      },
+      {
+        "part": "DataTable.ExpandedRow",
+        "name": "data-slot",
+        "value": "`\"data-table-expanded-row\"`",
+        "description": "The `<tr>`."
+      },
+      {
+        "part": "DataTable.ExpandedRow",
+        "name": "data-expanded-content",
+        "value": "`\"true\"`",
+        "description": "Always present. Marks the detail panel's row."
+      },
+      {
+        "part": "DataTable.ExpandedRow",
+        "name": "data-closing",
+        "value": "present while it fades out",
+        "description": "Presence-only. An ancestor row collapsed. The row is `inert` until it unmounts."
+      }
+    ]
   },
   {
     "name": "Description List",
@@ -881,7 +2033,33 @@
         "boundary": "the pairs are headed sections of controls, not read-only data."
       }
     ],
-    "useWhen": "Show the label and value pairs of one resource, such as the metadata on a detail page."
+    "useWhen": "Show the label and value pairs of one resource, such as the metadata on a detail page.",
+    "dataAttributes": [
+      {
+        "part": "DescriptionList.Root",
+        "name": "data-slot",
+        "value": "`\"description-list\"`",
+        "description": "The `<dl>`."
+      },
+      {
+        "part": "DescriptionList.Root",
+        "name": "data-slot",
+        "value": "`\"description-list-item\"`",
+        "description": "The row wrapper."
+      },
+      {
+        "part": "DescriptionList.Root",
+        "name": "data-slot",
+        "value": "`\"description-list-label\"`",
+        "description": "The `<dt>`."
+      },
+      {
+        "part": "DescriptionList.Root",
+        "name": "data-slot",
+        "value": "`\"description-list-value\"`",
+        "description": "The `<dd>`."
+      }
+    ]
   },
   {
     "name": "Dialog",
@@ -914,7 +2092,45 @@
         "boundary": "the content is small and opens next to its trigger, with no modal backdrop."
       }
     ],
-    "useWhen": "Gather input or confirm a choice that is not destructive, in a modal window that blocks the page."
+    "useWhen": "Gather input or confirm a choice that is not destructive, in a modal window that blocks the page.",
+    "dataAttributes": [
+      {
+        "part": "Dialog.Content",
+        "name": "data-appearance",
+        "value": "`\"centered\"` \\| `\"full-page\"` \\| `\"full-bleed\"`",
+        "description": "Reflects the resolved `appearance`."
+      },
+      {
+        "part": "Dialog.Content",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Presence-only. The `[open]` mirror the open animation keys on."
+      },
+      {
+        "part": "Dialog.Content",
+        "name": "data-closing",
+        "value": "present while the exit plays",
+        "description": "Presence-only. Drives the close animation."
+      },
+      {
+        "part": "Dialog.Content",
+        "name": "data-overlay",
+        "value": "`\"\"`",
+        "description": "On the `<dialog>` positioner. A press on the backdrop targets it."
+      },
+      {
+        "part": "Dialog.Content",
+        "name": "data-mantle-modal-content",
+        "value": "`\"\"`",
+        "description": "On the panel inside the `<dialog>`. Floats and an enclosing dialog find the panel by it."
+      },
+      {
+        "part": "Dialog.Content",
+        "name": "data-mantle-scroll-lock",
+        "value": "present while a modal is open",
+        "description": "Presence-only. On `<html>`, while any modal dialog is open. The page stops scrolling."
+      }
+    ]
   },
   {
     "name": "Dropdown Menu",
@@ -954,7 +2170,105 @@
         "boundary": "the floating content is a small form or other content, not a menu."
       }
     ],
-    "useWhen": "Show a menu of actions or options when the user clicks a button."
+    "useWhen": "Show a menu of actions or options when the user clicks a button.",
+    "dataAttributes": [
+      {
+        "part": "DropdownMenu.Content",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Presence-only. Whether the menu is open."
+      },
+      {
+        "part": "DropdownMenu.Content",
+        "name": "data-side",
+        "value": "`\"top\" \\| \"right\" \\| \"bottom\" \\| \"left\"`",
+        "description": "The side the menu is on after it flips."
+      },
+      {
+        "part": "DropdownMenu.Item",
+        "name": "data-text-value",
+        "value": "the `textValue` prop",
+        "description": "The text type-ahead matches. Omitted when unset."
+      },
+      {
+        "part": "DropdownMenu.Item",
+        "name": "data-highlighted",
+        "value": "present while focused",
+        "description": "Presence-only. The item has focus, from the keyboard or the pointer."
+      },
+      {
+        "part": "DropdownMenu.CheckboxItem",
+        "name": "data-slot",
+        "value": "`\"dropdown-menu-checkbox-item\"`",
+        "description": "On the item element."
+      },
+      {
+        "part": "DropdownMenu.CheckboxItem",
+        "name": "data-slot",
+        "value": "`\"dropdown-menu-checkbox-item-label\"`",
+        "description": "On the `<span>` wrapping `children`."
+      },
+      {
+        "part": "DropdownMenu.CheckboxItem",
+        "name": "data-text-value",
+        "value": "the `textValue` prop",
+        "description": "The text type-ahead matches. Omitted when unset."
+      },
+      {
+        "part": "DropdownMenu.CheckboxItem",
+        "name": "data-highlighted",
+        "value": "present while focused",
+        "description": "Presence-only. The item has focus, from the keyboard or the pointer."
+      },
+      {
+        "part": "DropdownMenu.RadioItem",
+        "name": "data-slot",
+        "value": "`\"dropdown-menu-radio-item\"`",
+        "description": "On the item element."
+      },
+      {
+        "part": "DropdownMenu.RadioItem",
+        "name": "data-slot",
+        "value": "`\"dropdown-menu-radio-item-label\"`",
+        "description": "On the `<span>` wrapping `children`."
+      },
+      {
+        "part": "DropdownMenu.RadioItem",
+        "name": "data-text-value",
+        "value": "the `textValue` prop",
+        "description": "The text type-ahead matches. Omitted when unset."
+      },
+      {
+        "part": "DropdownMenu.RadioItem",
+        "name": "data-highlighted",
+        "value": "present while focused",
+        "description": "Presence-only. The item has focus, from the keyboard or the pointer."
+      },
+      {
+        "part": "DropdownMenu.SubTrigger",
+        "name": "data-slot",
+        "value": "`\"dropdown-menu-sub-trigger\"`",
+        "description": "On the item element."
+      },
+      {
+        "part": "DropdownMenu.SubTrigger",
+        "name": "data-slot",
+        "value": "`\"dropdown-menu-sub-trigger-label\"`",
+        "description": "On the `<span>` wrapping `children`."
+      },
+      {
+        "part": "DropdownMenu.SubTrigger",
+        "name": "data-text-value",
+        "value": "the `textValue` prop",
+        "description": "The text type-ahead matches. Omitted when unset."
+      },
+      {
+        "part": "DropdownMenu.SubTrigger",
+        "name": "data-highlighted",
+        "value": "present while focused",
+        "description": "Presence-only. The item has focus, from the keyboard or the pointer."
+      }
+    ]
   },
   {
     "name": "Empty",
@@ -1020,7 +2334,21 @@
         "boundary": "a checkbox, a radio, or a switch sits beside a title and a description."
       }
     ],
-    "useWhen": "Group one form control with its label, its description, and its validation errors."
+    "useWhen": "Group one form control with its label, its description, and its validation errors.",
+    "dataAttributes": [
+      {
+        "part": "Field.Item",
+        "name": "data-slot",
+        "value": "`\"field-item\"`",
+        "description": "The field."
+      },
+      {
+        "part": "Field.Item",
+        "name": "data-validation",
+        "value": "`\"error\"` \\| `\"success\"` \\| `\"warning\"`",
+        "description": "The `validation` prop, else `\"error\"` while `Field.Errors` renders messages. Omitted when neither applies."
+      }
+    ]
   },
   {
     "name": "Flag",
@@ -1067,7 +2395,33 @@
         "boundary": "the user opens interactive content on purpose, with a click or a key."
       }
     ],
-    "useWhen": "Preview the content behind a link on hover, such as a user card or a repository preview."
+    "useWhen": "Preview the content behind a link on hover, such as a user card or a repository preview.",
+    "dataAttributes": [
+      {
+        "part": "HoverCard.Content",
+        "name": "data-slot",
+        "value": "`\"hover-card-content\"`",
+        "description": "On the content, with any composing part's chain ahead of it."
+      },
+      {
+        "part": "HoverCard.Content",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Presence-only. Absent while the exit transition plays."
+      },
+      {
+        "part": "HoverCard.Content",
+        "name": "data-side",
+        "value": "`\"top\"` \\| `\"right\"` \\| `\"bottom\"` \\| `\"left\"`",
+        "description": "The side of the anchor the content resolved to."
+      },
+      {
+        "part": "HoverCard.Arrow",
+        "name": "data-float-arrow",
+        "value": "`\"\"`",
+        "description": "On the `<span>` around the arrow's `<svg>`. The float moves it to the edge that faces the anchor."
+      }
+    ]
   },
   {
     "name": "Icon",
@@ -1119,7 +2473,45 @@
         "boundary": "the button shows a text label."
       }
     ],
-    "useWhen": "Run an action from a compact button that shows one icon and no text, such as a close or a copy button."
+    "useWhen": "Run an action from a compact button that shows one icon and no text, such as a close or a copy button.",
+    "dataAttributes": [
+      {
+        "part": "",
+        "name": "data-slot",
+        "value": "`\"icon-button\"`",
+        "description": "On the button element. Stable styling hook that survives a `className` override or an `asChild` swap."
+      },
+      {
+        "part": "",
+        "name": "data-icon-button",
+        "value": "`\"true\"`",
+        "description": "Always present. Lets a wrapper style every icon button it contains."
+      },
+      {
+        "part": "",
+        "name": "data-appearance",
+        "value": "`\"filled\"` \\| `\"ghost\"` \\| `\"outlined\"`",
+        "description": "The `appearance` prop."
+      },
+      {
+        "part": "",
+        "name": "data-intent",
+        "value": "`\"neutral\"`",
+        "description": "The `intent` prop."
+      },
+      {
+        "part": "",
+        "name": "data-size",
+        "value": "`\"2xs\"` \\| `\"xs\"` \\| `\"sm\"` \\| `\"md\"` \\| `\"lg\"` \\| `\"xl\"`",
+        "description": "The `size` prop."
+      },
+      {
+        "part": "",
+        "name": "data-loading",
+        "value": "present when `isLoading`",
+        "description": "Presence-only, never `\"false\"`."
+      }
+    ]
   },
   {
     "name": "Icons",
@@ -1182,7 +2574,33 @@
         "boundary": "the field filters a list with free text and `key:value` qualifiers."
       }
     ],
-    "useWhen": "Accept one line of text from the user, such as a name, an email address, a URL, or a search term."
+    "useWhen": "Accept one line of text from the user, such as a name, an email address, a URL, or a search term.",
+    "dataAttributes": [
+      {
+        "part": "InputCapture",
+        "name": "data-slot",
+        "value": "`\"input\"`",
+        "description": "The chrome around the input."
+      },
+      {
+        "part": "InputCapture",
+        "name": "data-slot",
+        "value": "`\"input-capture\"`",
+        "description": "The `<input>` element."
+      },
+      {
+        "part": "InputCapture",
+        "name": "data-disabled",
+        "value": "present when disabled",
+        "description": "On the chrome. Style with `data-disabled:`."
+      },
+      {
+        "part": "InputCapture",
+        "name": "data-validation",
+        "value": "`\"error\"` \\| `\"success\"` \\| `\"warning\"`",
+        "description": "On the chrome and the `<input>`. Omitted when unset."
+      }
+    ]
   },
   {
     "name": "Kbd",
@@ -1239,7 +2657,21 @@
         "boundary": "the control needs a title and a description beside it."
       }
     ],
-    "useWhen": "Give a form control a visible caption that names it and focuses it on a click."
+    "useWhen": "Give a form control a visible caption that names it and focuses it on a click.",
+    "dataAttributes": [
+      {
+        "part": "Label",
+        "name": "data-slot",
+        "value": "`\"label\"`",
+        "description": "The `<label>`."
+      },
+      {
+        "part": "Label",
+        "name": "data-disabled",
+        "value": "present when disabled",
+        "description": "Presence-only. Set by `disabled` or `aria-disabled`, since `aria-disabled` is not valid on a `<label>`. Style with `data-disabled:`."
+      }
+    ]
   },
   {
     "name": "Line Chart",
@@ -1273,7 +2705,129 @@
         "boundary": "the points show how two measures correlate, and their order does not matter."
       }
     ],
-    "useWhen": "Show how one or more values trend across an ordered x axis, such as time, including long series with many points."
+    "useWhen": "Show how one or more values trend across an ordered x axis, such as time, including long series with many points.",
+    "dataAttributes": [
+      {
+        "part": "LineChart.Root",
+        "name": "data-slot",
+        "value": "`\"line-chart\"`",
+        "description": "The Root wrapper, with any forwarded chain ahead of it."
+      },
+      {
+        "part": "LineChart.Root",
+        "name": "data-slot",
+        "value": "`\"line-chart-plot\"`",
+        "description": "The plot box. Every overlay layer positions against it, and the resize observer measures it."
+      },
+      {
+        "part": "LineChart.Root",
+        "name": "data-slot",
+        "value": "`\"line-chart-svg\"`",
+        "description": "The `<svg>` the marks paint on. Always `aria-hidden`. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print)."
+      },
+      {
+        "part": "LineChart.Root",
+        "name": "data-slot",
+        "value": "`\"line-chart-crosshair\"`",
+        "description": "The vertical hairline snapped to the active x. The engine writes its geometry as an inline style. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `\"interactive\"`. Interactive charts only: a static or decorative chart inserts the surface alone."
+      },
+      {
+        "part": "LineChart.Root",
+        "name": "data-slot",
+        "value": "`\"line-chart-hover-band\"`",
+        "description": "The category highlight; a line chart never shows it. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `\"interactive\"`. Interactive charts only: a static or decorative chart inserts the surface alone."
+      },
+      {
+        "part": "LineChart.Root",
+        "name": "data-slot",
+        "value": "`\"line-chart-markers\"`",
+        "description": "The container the engine syncs one hover dot per series into. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `\"interactive\"`. Interactive charts only: a static or decorative chart inserts the surface alone."
+      },
+      {
+        "part": "LineChart.Root",
+        "name": "data-slot",
+        "value": "`\"line-chart-tooltip\"`",
+        "description": "The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it; `LineChart.Tooltip` configures it. A chart nobody points at holds none."
+      },
+      {
+        "part": "LineChart.Root",
+        "name": "data-slot",
+        "value": "`\"line-chart-description\"`",
+        "description": "The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode=\"decorative\"`."
+      },
+      {
+        "part": "LineChart.Root",
+        "name": "data-slot",
+        "value": "`\"line-chart-data-table\"`",
+        "description": "The `sr-only` data table. Mounts once focus lands inside the chart (`data-engaged` appears) and stays. Interactive charts only."
+      },
+      {
+        "part": "LineChart.Root",
+        "name": "data-engaged",
+        "value": "present once engaged",
+        "description": "On the Root. Appears once focus lands inside the chart, and never goes away. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only."
+      },
+      {
+        "part": "LineChart.Root",
+        "name": "data-slot",
+        "value": "`\"chart-active-point\"`",
+        "description": "One hover dot inside the markers layer. Also carries `data-shape`."
+      },
+      {
+        "part": "LineChart.Root",
+        "name": "data-shape",
+        "value": "`\"circle\" \\| \"square\" \\| \"triangle\" \\| \"diamond\" \\| \"triangle-down\" \\| \"plus\" \\| \"cross\" \\| \"star\"`",
+        "description": "On each hover dot, naming the glyph its series wears: the `shape` it set, else `\"circle\"`. The dot clips itself to that glyph, so target this only to restyle a dot."
+      },
+      {
+        "part": "LineChart.Root",
+        "name": "data-value",
+        "value": "a number",
+        "description": "On each value cell of the `sr-only` data table. The raw number the cell shows formatted."
+      },
+      {
+        "part": "LineChart.Tooltip",
+        "name": "data-slot",
+        "value": "`\"line-chart-tooltip-label\"`",
+        "description": "On the `<div>` wrapping a `children` readout. The default readout has none."
+      },
+      {
+        "part": "LineChart.Legend",
+        "name": "data-slot",
+        "value": "`\"line-chart-legend\"`",
+        "description": "The legend list. `LineChart.Legend` renders it in flow below the plot."
+      },
+      {
+        "part": "LineChart.Legend",
+        "name": "data-slot",
+        "value": "`\"line-chart-legend-label\"`",
+        "description": "On the `<div>` wrapping a `children` render prop. The default legend has none."
+      },
+      {
+        "part": "LineChart.Legend",
+        "name": "data-shape",
+        "value": "`\"circle\" \\| \"square\" \\| \"triangle\" \\| \"diamond\" \\| \"triangle-down\" \\| \"plus\" \\| \"cross\" \\| \"star\"`",
+        "description": "On the glyph riding each swatch's stroke, naming what its [LineChart.Line](#linechartline) wears. The glyph clips itself to that shape, so target this only to restyle a key."
+      },
+      {
+        "part": "LineChart.CopyButton",
+        "name": "data-slot",
+        "value": "`\"line-chart-copy-button\"`",
+        "description": "The button the part renders."
+      },
+      {
+        "part": "LineChart.List",
+        "name": "data-slot",
+        "value": "`\"line-chart-list\"`",
+        "description": "The List wrapper, with any forwarded chain ahead of it. It takes the `className` and the other div props."
+      },
+      {
+        "part": "LineChart.List",
+        "name": "data-slot",
+        "value": "`\"line-chart-list-items\"`",
+        "description": "The `display: contents` wrapper around the charts, so a grid or flex layout on the List lays out the cards."
+      }
+    ]
   },
   {
     "name": "List",
@@ -1302,7 +2856,39 @@
         "boundary": "the actions open in a menu from a button."
       }
     ],
-    "useWhen": "Show a scrollable list of items that each run an action or navigate, such as an account switcher."
+    "useWhen": "Show a scrollable list of items that each run an action or navigate, such as an account switcher.",
+    "dataAttributes": [
+      {
+        "part": "List.Item",
+        "name": "data-slot",
+        "value": "`\"list-item\"`",
+        "description": "The row."
+      },
+      {
+        "part": "List.Item",
+        "name": "data-slot",
+        "value": "`\"list-item-control\"`",
+        "description": "The `<button>`, or the `asChild` element, inside the row."
+      },
+      {
+        "part": "List.Item",
+        "name": "data-index",
+        "value": "a number",
+        "description": "On the row. Its position in the list."
+      },
+      {
+        "part": "List.Item",
+        "name": "data-selected",
+        "value": "present when `current`",
+        "description": "Presence-only. On the row. Draws the tinted pill."
+      },
+      {
+        "part": "List.Item",
+        "name": "data-disabled",
+        "value": "present when `disabled`",
+        "description": "Presence-only. On the row."
+      }
+    ]
   },
   {
     "name": "Live Region",
@@ -1334,7 +2920,15 @@
         "boundary": "the hidden text is static and needs no announcement."
       }
     ],
-    "useWhen": "Announce a change to screen readers with no visible message, such as a save result or a count of search results."
+    "useWhen": "Announce a change to screen readers with no visible message, such as a save result or a count of search results.",
+    "dataAttributes": [
+      {
+        "part": "LiveRegion",
+        "name": "data-slot",
+        "value": "`\"live-region\"`",
+        "description": "Stamped on the rendered element, and joined onto the child via `asChild`."
+      }
+    ]
   },
   {
     "name": "Main",
@@ -1362,7 +2956,15 @@
         "boundary": "the page sits in the app shell, where `AppLayout.Body` already renders the landmark."
       }
     ],
-    "useWhen": "Mark the primary content of a page as a focusable `<main>` landmark that a skip link can move focus to."
+    "useWhen": "Mark the primary content of a page as a focusable `<main>` landmark that a skip link can move focus to.",
+    "dataAttributes": [
+      {
+        "part": "Main",
+        "name": "data-slot",
+        "value": "`\"main\"`",
+        "description": "Names the part, joined after any chain a composing ancestor passes."
+      }
+    ]
   },
   {
     "name": "Markdown",
@@ -1392,7 +2994,33 @@
         "boundary": "you write the prose in the source."
       }
     ],
-    "useWhen": "Render Markdown that arrives at runtime, such as a model's answer, as it streams or after."
+    "useWhen": "Render Markdown that arrives at runtime, such as a model's answer, as it streams or after.",
+    "dataAttributes": [
+      {
+        "part": "Markdown",
+        "name": "data-slot",
+        "value": "`\"markdown\"`",
+        "description": "The root. The prose styles in `mantle.css` match it."
+      },
+      {
+        "part": "Markdown",
+        "name": "data-streaming",
+        "value": "`\"\"`",
+        "description": "Present while `streaming`. Shows the caret."
+      },
+      {
+        "part": "Markdown",
+        "name": "data-streamed",
+        "value": "`\"\"`",
+        "description": "Present once the answer has streamed on this page. A new block fades in."
+      },
+      {
+        "part": "Markdown",
+        "name": "data-task",
+        "value": "`\"\"`",
+        "description": "On a task-list item, which holds a checkbox."
+      }
+    ]
   },
   {
     "name": "Media Object",
@@ -1456,7 +3084,27 @@
         "boundary": "code in an answer, inside `Message.Content`."
       }
     ],
-    "useWhen": "Show one message of a chat with an assistant or a model, with its actions and a marker while the answer is on its way."
+    "useWhen": "Show one message of a chat with an assistant or a model, with its actions and a marker while the answer is on its way.",
+    "dataAttributes": [
+      {
+        "part": "Message.Root",
+        "name": "data-from",
+        "value": "`\"user\"` or `\"assistant\"`",
+        "description": "Who wrote the message. Style with `data-[from=user]:`."
+      },
+      {
+        "part": "Message.Content",
+        "name": "data-slot=\"message-content-label\"",
+        "value": "on the wrapper",
+        "description": "The `display: contents` wrapper around the children."
+      },
+      {
+        "part": "Message.Pending",
+        "name": "data-slot=\"message-pending-label\"",
+        "value": "on the wrapper",
+        "description": "The `display: contents` wrapper around the children."
+      }
+    ]
   },
   {
     "name": "Multi Select",
@@ -1491,7 +3139,111 @@
         "boundary": "the options show inline as checkbox rows, with no popover."
       }
     ],
-    "useWhen": "Pick several values from a list with a typeahead filter, and show the picks as removable tags."
+    "useWhen": "Pick several values from a list with a typeahead filter, and show the picks as removable tags.",
+    "dataAttributes": [
+      {
+        "part": "MultiSelect.Trigger",
+        "name": "data-validation",
+        "value": "`\"error\"` \\| `\"success\"` \\| `\"warning\"`",
+        "description": "The resolved `validation`. Omitted when unset."
+      },
+      {
+        "part": "MultiSelect.Tag",
+        "name": "data-locked",
+        "value": "present when `locked`",
+        "description": "The tag cannot be removed."
+      },
+      {
+        "part": "MultiSelect.Tag",
+        "name": "data-appearance",
+        "value": "`\"square\"`",
+        "description": "The `Chip` appearance of the tag."
+      },
+      {
+        "part": "MultiSelect.Tag",
+        "name": "data-size",
+        "value": "`\"sm\"`",
+        "description": "The `Chip` size of the tag."
+      },
+      {
+        "part": "MultiSelect.Tag",
+        "name": "data-shake",
+        "value": "present while it shakes",
+        "description": "Presence-only. A locked tag shakes on **Backspace** or **Delete**. Not set under reduced motion."
+      },
+      {
+        "part": "MultiSelect.Content",
+        "name": "data-mantle-popup",
+        "value": "`\"\"`",
+        "description": "On the popover box. An enclosing `Dialog` reads it to keep a press inside the popup."
+      },
+      {
+        "part": "MultiSelect.Content",
+        "name": "data-open",
+        "value": "`\"\"`",
+        "description": "On the popover box and the listbox while open. An enclosing `Dialog` reads it to leave **Escape** to the list."
+      },
+      {
+        "part": "MultiSelect.Content",
+        "name": "data-side",
+        "value": "`\"top\"` \\| `\"bottom\"`",
+        "description": "On the popover box. The side of the anchor the popup opened on."
+      },
+      {
+        "part": "MultiSelect.Content",
+        "name": "data-float-scroll",
+        "value": "`\"\"`",
+        "description": "On the listbox. The element that scrolls when the popup is shorter than its content."
+      },
+      {
+        "part": "MultiSelect.Item",
+        "name": "data-slot",
+        "value": "`\"multi-select-item\"`",
+        "description": "On the option element."
+      },
+      {
+        "part": "MultiSelect.Item",
+        "name": "data-slot",
+        "value": "`\"multi-select-item-label\"`",
+        "description": "On the `<div>` wrapping `children`."
+      },
+      {
+        "part": "MultiSelect.Item",
+        "name": "data-value",
+        "value": "the `value` prop",
+        "description": "The option's value."
+      },
+      {
+        "part": "MultiSelect.Item",
+        "name": "data-text-value",
+        "value": "the `textValue` prop",
+        "description": "The text type-ahead matches. Omitted when unset."
+      },
+      {
+        "part": "MultiSelect.Item",
+        "name": "data-highlighted",
+        "value": "present when highlighted",
+        "description": "Presence-only. The item under the pointer or the keyboard focus."
+      },
+      {
+        "part": "MultiSelect.ContentFooter",
+        "name": "data-slot",
+        "value": "`\"multi-select-content-footer\"`",
+        "description": "On the footer."
+      },
+      {
+        "part": "MultiSelect.ContentFooter",
+        "name": "data-slot",
+        "value": "`\"multi-select-popup\"`",
+        "description": "On the popover box that holds the listbox and the footer. It also carries `data-side`."
+      },
+      {
+        "part": "MultiSelect.ContentFooter",
+        "name": "data-content-footer",
+        "value": "`\"true\"`",
+        "description": "Always present. Marks the footer apart from the listbox."
+      }
+    ]
   },
   {
     "name": "OTP Input",
@@ -1522,7 +3274,75 @@
         "boundary": "the value is a password or another long-lived secret."
       }
     ],
-    "useWhen": "Enter a one-time passcode, such as a two-factor code, with one box for each character."
+    "useWhen": "Enter a one-time passcode, such as a two-factor code, with one box for each character.",
+    "dataAttributes": [
+      {
+        "part": "OtpInput.Root",
+        "name": "data-slot",
+        "value": "`\"otp-input\"`",
+        "description": "On the `<input>`."
+      },
+      {
+        "part": "OtpInput.Root",
+        "name": "data-otp-state",
+        "value": "`\"idle\"` \\| `\"caret\"` \\| `\"range\"` \\| `\"all\"`",
+        "description": "On the `group/otp` wrapper of the slots. How many slots the selection covers: none, one, some, or all."
+      },
+      {
+        "part": "OtpInput.Root",
+        "name": "data-validation",
+        "value": "`\"error\"` \\| `\"success\"` \\| `\"warning\"`",
+        "description": "On the `group/otp` wrapper of the slots. The resolved `validation`. Omitted when unset."
+      },
+      {
+        "part": "OtpInput.Root",
+        "name": "data-input-otp-container",
+        "value": "`\"true\"`",
+        "description": "On the box that holds the slots and the input. Kept from `input-otp` for page styles."
+      },
+      {
+        "part": "OtpInput.Root",
+        "name": "data-input-otp",
+        "value": "`\"true\"`",
+        "description": "On the `<input>`. Kept from `input-otp` for page styles and `noScriptCSSFallback`."
+      },
+      {
+        "part": "OtpInput.Root",
+        "name": "data-input-otp-mss",
+        "value": "a number",
+        "description": "On the `<input>`. The selection start. Omitted before the input has a selection."
+      },
+      {
+        "part": "OtpInput.Root",
+        "name": "data-input-otp-mse",
+        "value": "a number",
+        "description": "On the `<input>`. The selection end. Omitted before the input has a selection."
+      },
+      {
+        "part": "OtpInput.Root",
+        "name": "data-input-otp-placeholder-shown",
+        "value": "`\"true\"`",
+        "description": "On the `<input>` while it is empty. Kept from `input-otp`, which emitted `\"true\"`."
+      },
+      {
+        "part": "OtpInput.Root",
+        "name": "data-lpignore",
+        "value": "`\"true\"`",
+        "description": "On the `<input>`. Keeps the LastPass badge off; LastPass does not fill one-time codes."
+      },
+      {
+        "part": "OtpInput.Slot",
+        "name": "data-slot",
+        "value": "`\"otp-input-slot\"`",
+        "description": "The slot."
+      },
+      {
+        "part": "OtpInput.Slot",
+        "name": "data-highlighted",
+        "value": "present when active",
+        "description": "Presence-only. The caret or the selection is on the slot."
+      }
+    ]
   },
   {
     "name": "Overlay Prompt",
@@ -1556,7 +3376,15 @@
         "boundary": "put a control that belongs to the task inside the dialog content instead."
       }
     ],
-    "useWhen": "Keep a banner, a bar, or another floating element that is not part of a dialog usable above an open dialog or sheet, such as a cookie banner."
+    "useWhen": "Keep a banner, a bar, or another floating element that is not part of a dialog usable above an open dialog or sheet, such as a cookie banner.",
+    "dataAttributes": [
+      {
+        "part": "OverlayPrompt",
+        "name": "data-slot",
+        "value": "`\"overlay-prompt\"`",
+        "description": "The wrapper that marks where the content lives when no dialog is open."
+      }
+    ]
   },
   {
     "name": "Pagination",
@@ -1571,7 +3399,15 @@
       "pager",
       "paginator"
     ],
-    "useWhen": "Move through paged data one page at a time, with a cursor or an offset."
+    "useWhen": "Move through paged data one page at a time, with a cursor or an offset.",
+    "dataAttributes": [
+      {
+        "part": "PaginationRange",
+        "name": "data-slot",
+        "value": "`\"pagination-range\"`",
+        "description": "On the root."
+      }
+    ]
   },
   {
     "name": "Panel",
@@ -1605,7 +3441,33 @@
         "boundary": "the panel is a modal overlay with a backdrop."
       }
     ],
-    "useWhen": "Show a titled surface beside other content, with a header row, a body that scrolls on its own, and an optional bar pinned to the bottom, such as an assistant beside the page."
+    "useWhen": "Show a titled surface beside other content, with a header row, a body that scrolls on its own, and an optional bar pinned to the bottom, such as an assistant beside the page.",
+    "dataAttributes": [
+      {
+        "part": "Panel.Root",
+        "name": "data-slot",
+        "value": "`\"panel\"`",
+        "description": "The root element."
+      },
+      {
+        "part": "Panel.Header",
+        "name": "data-slot",
+        "value": "`\"panel-header\"`",
+        "description": "The header row."
+      },
+      {
+        "part": "Panel.Body",
+        "name": "data-slot",
+        "value": "`\"panel-body\"`",
+        "description": "The scroll region."
+      },
+      {
+        "part": "Panel.Footer",
+        "name": "data-slot",
+        "value": "`\"panel-footer\"`",
+        "description": "The pinned bar."
+      }
+    ]
   },
   {
     "name": "Password Input",
@@ -1632,7 +3494,39 @@
         "boundary": "the value is a one-time passcode."
       }
     ],
-    "useWhen": "Accept a password or another secret value, with a button that shows or hides it."
+    "useWhen": "Accept a password or another secret value, with a button that shows or hides it.",
+    "dataAttributes": [
+      {
+        "part": "PasswordInput",
+        "name": "data-slot",
+        "value": "`\"password-input input\"`",
+        "description": "The chrome around the input, joined ahead of `Input`'s own slot."
+      },
+      {
+        "part": "PasswordInput",
+        "name": "data-slot",
+        "value": "`\"input-capture\"`",
+        "description": "The `<input>` element."
+      },
+      {
+        "part": "PasswordInput",
+        "name": "data-slot",
+        "value": "`\"password-input-toggle\"`",
+        "description": "The visibility toggle button."
+      },
+      {
+        "part": "PasswordInput",
+        "name": "data-disabled",
+        "value": "present when disabled",
+        "description": "On the chrome. Style with `data-disabled:`."
+      },
+      {
+        "part": "PasswordInput",
+        "name": "data-validation",
+        "value": "`\"error\"` \\| `\"success\"` \\| `\"warning\"`",
+        "description": "On the chrome and the `<input>`. Omitted when unset."
+      }
+    ]
   },
   {
     "name": "Popover",
@@ -1669,7 +3563,33 @@
         "boundary": "the task needs a modal window that blocks the page."
       }
     ],
-    "useWhen": "Show interactive content, such as a small form, a settings menu, or a color picker, that the user opens from a button."
+    "useWhen": "Show interactive content, such as a small form, a settings menu, or a color picker, that the user opens from a button.",
+    "dataAttributes": [
+      {
+        "part": "Popover.Content",
+        "name": "data-slot",
+        "value": "`\"popover-content\"`",
+        "description": "On the content, with any composing part's chain ahead of it."
+      },
+      {
+        "part": "Popover.Content",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Presence-only. Absent while the exit transition plays."
+      },
+      {
+        "part": "Popover.Content",
+        "name": "data-side",
+        "value": "`\"top\"` \\| `\"right\"` \\| `\"bottom\"` \\| `\"left\"`",
+        "description": "The side of the anchor the content resolved to."
+      },
+      {
+        "part": "Popover.Arrow",
+        "name": "data-float-arrow",
+        "value": "`\"\"`",
+        "description": "On the `<span>` around the arrow's `<svg>`. The float moves it to the edge that faces the anchor."
+      }
+    ]
   },
   {
     "name": "Progress Bar",
@@ -1699,7 +3619,21 @@
         "boundary": "the content still loads, and its progress is unknown."
       }
     ],
-    "useWhen": "Show how much of a task or a quota is complete, as a horizontal bar."
+    "useWhen": "Show how much of a task or a quota is complete, as a horizontal bar.",
+    "dataAttributes": [
+      {
+        "part": "ProgressBar.Root",
+        "name": "data-slot",
+        "value": "`\"progress-bar\"`",
+        "description": "The root element."
+      },
+      {
+        "part": "ProgressBar.Root",
+        "name": "data-indeterminate",
+        "value": "present while indeterminate",
+        "description": "Presence-only. On the root and the indicator."
+      }
+    ]
   },
   {
     "name": "Progress Donut",
@@ -1726,7 +3660,21 @@
         "boundary": "the indicator is a horizontal bar."
       }
     ],
-    "useWhen": "Show how much of a task or a quota is complete, as a small circle."
+    "useWhen": "Show how much of a task or a quota is complete, as a small circle.",
+    "dataAttributes": [
+      {
+        "part": "ProgressDonut.Root",
+        "name": "data-slot",
+        "value": "`\"progress-donut\"`",
+        "description": "The root `<svg>`."
+      },
+      {
+        "part": "ProgressDonut.Root",
+        "name": "data-indeterminate",
+        "value": "present while indeterminate",
+        "description": "Presence-only."
+      }
+    ]
   },
   {
     "name": "Prompt Input",
@@ -1759,7 +3707,153 @@
         "boundary": "a single-line field, such as a search box."
       }
     ],
-    "useWhen": "Let a person write and send a message to an assistant or a model, and stop the answer while it streams."
+    "useWhen": "Let a person write and send a message to an assistant or a model, and stop the answer while it streams.",
+    "dataAttributes": [
+      {
+        "part": "PromptInput.Root",
+        "name": "data-slot",
+        "value": "`\"prompt-input\"`",
+        "description": "On the form, joined with ancestor slots."
+      },
+      {
+        "part": "PromptInput.Root",
+        "name": "data-streaming",
+        "value": "present while `streaming`",
+        "description": "Presence-only. Style with `data-streaming:`."
+      },
+      {
+        "part": "PromptInput.Root",
+        "name": "data-drag-over",
+        "value": "present while files drag over the frame",
+        "description": "Presence-only. Set only with `onFilesAdd`."
+      },
+      {
+        "part": "PromptInput.TextArea",
+        "name": "data-slot",
+        "value": "`\"prompt-input-text-area text-area\"`",
+        "description": "On the field, joined with ancestor slots."
+      },
+      {
+        "part": "PromptInput.TextArea",
+        "name": "data-drag-over",
+        "value": "present during a drag",
+        "description": "Inherited from `TextArea`."
+      },
+      {
+        "part": "PromptInput.TextArea",
+        "name": "data-validation",
+        "value": "`\"error\"` \\| `\"success\"` \\| `\"warning\"`",
+        "description": "Validation from an enclosing `Field`."
+      },
+      {
+        "part": "PromptInput.Footer",
+        "name": "data-slot",
+        "value": "`\"prompt-input-footer\"`",
+        "description": "On the row, joined with ancestor slots."
+      },
+      {
+        "part": "PromptInput.AttachButton",
+        "name": "data-slot",
+        "value": "`\"prompt-input-attach-button icon-button\"`",
+        "description": "On the button, joined with ancestor slots."
+      },
+      {
+        "part": "PromptInput.AttachButton",
+        "name": "data-icon-button",
+        "value": "`\"true\"`",
+        "description": "Inherited from `IconButton`."
+      },
+      {
+        "part": "PromptInput.AttachButton",
+        "name": "data-appearance",
+        "value": "`\"ghost\"`",
+        "description": "The button's appearance."
+      },
+      {
+        "part": "PromptInput.AttachButton",
+        "name": "data-intent",
+        "value": "`\"neutral\"`",
+        "description": "The button's tone."
+      },
+      {
+        "part": "PromptInput.AttachButton",
+        "name": "data-size",
+        "value": "`\"2xs\"` \\| `\"xs\"` \\| `\"sm\"` \\| `\"md\"` \\| `\"lg\"` \\| `\"xl\"`",
+        "description": "The `size` prop; defaults to `\"sm\"`."
+      },
+      {
+        "part": "PromptInput.AttachButton",
+        "name": "data-loading",
+        "value": "present when `isLoading`",
+        "description": "Inherited from `IconButton`."
+      },
+      {
+        "part": "PromptInput.Dictate",
+        "name": "data-slot",
+        "value": "`\"prompt-input-dictate icon-button\"`",
+        "description": "On the button, joined with ancestor slots."
+      },
+      {
+        "part": "PromptInput.Dictate",
+        "name": "data-icon-button",
+        "value": "`\"true\"`",
+        "description": "Inherited from `IconButton`."
+      },
+      {
+        "part": "PromptInput.Dictate",
+        "name": "data-appearance",
+        "value": "`\"ghost\"`",
+        "description": "The button's appearance."
+      },
+      {
+        "part": "PromptInput.Dictate",
+        "name": "data-intent",
+        "value": "`\"neutral\"`",
+        "description": "The button's tone."
+      },
+      {
+        "part": "PromptInput.Dictate",
+        "name": "data-size",
+        "value": "`\"2xs\"` \\| `\"xs\"` \\| `\"sm\"` \\| `\"md\"` \\| `\"lg\"` \\| `\"xl\"`",
+        "description": "The `size` prop; defaults to `\"sm\"`."
+      },
+      {
+        "part": "PromptInput.Submit",
+        "name": "data-slot",
+        "value": "`\"prompt-input-submit icon-button\"`",
+        "description": "On the button, joined with ancestor slots."
+      },
+      {
+        "part": "PromptInput.Submit",
+        "name": "data-icon-button",
+        "value": "`\"true\"`",
+        "description": "Inherited from `IconButton`."
+      },
+      {
+        "part": "PromptInput.Submit",
+        "name": "data-appearance",
+        "value": "`\"filled\"`",
+        "description": "The button's appearance."
+      },
+      {
+        "part": "PromptInput.Submit",
+        "name": "data-intent",
+        "value": "`\"neutral\"`",
+        "description": "The button's tone."
+      },
+      {
+        "part": "PromptInput.Submit",
+        "name": "data-size",
+        "value": "`\"sm\"`",
+        "description": "The button's size, fixed so it fits the footer."
+      },
+      {
+        "part": "PromptInput.Submit",
+        "name": "data-loading",
+        "value": "present when `isLoading`",
+        "description": "Inherited from `IconButton`."
+      }
+    ]
   },
   {
     "name": "QR Code",
@@ -1774,7 +3868,33 @@
       "Composition:\n```\nQrCode.Root\n├── QrCode.Frame\n│   └── QrCode.Pattern\n└── QrCode.Overlay\n```",
       "```tsx\n<QrCode.Root value=\"https://ngrok.com\" ecc=\"H\">\n  <QrCode.Frame>\n    <QrCode.Pattern />\n  </QrCode.Frame>\n  <QrCode.Overlay>\n    <NgrokLettermarkIcon className=\"size-7\" />\n  </QrCode.Overlay>\n</QrCode.Root>\n```"
     ],
-    "useWhen": "Encode a URL or other text as a QR code that a phone camera can scan, with an optional centered logo."
+    "useWhen": "Encode a URL or other text as a QR code that a phone camera can scan, with an optional centered logo.",
+    "dataAttributes": [
+      {
+        "part": "Data attributes",
+        "name": "data-slot",
+        "value": "`\"qr-code\"`",
+        "description": "The `Root` tile."
+      },
+      {
+        "part": "Data attributes",
+        "name": "data-slot",
+        "value": "`\"qr-code-frame\"`",
+        "description": "The `Frame` svg."
+      },
+      {
+        "part": "Data attributes",
+        "name": "data-slot",
+        "value": "`\"qr-code-pattern\"`",
+        "description": "The `Pattern` path."
+      },
+      {
+        "part": "Data attributes",
+        "name": "data-slot",
+        "value": "`\"qr-code-overlay\"`",
+        "description": "The `Overlay` logo container."
+      }
+    ]
   },
   {
     "name": "Query",
@@ -1813,7 +3933,117 @@
         "boundary": "a `⌘K` palette that runs an action or navigates."
       }
     ],
-    "useWhen": "Filter a list with a typed query of free text and `key:value` qualifiers. Its `keyboardShortcut` prop makes the slash key (`/`) a keyboard shortcut that focuses the field while no other text field has focus."
+    "useWhen": "Filter a list with a typed query of free text and `key:value` qualifiers. Its `keyboardShortcut` prop makes the slash key (`/`) a keyboard shortcut that focuses the field while no other text field has focus.",
+    "dataAttributes": [
+      {
+        "part": "Query.Root",
+        "name": "data-slot",
+        "value": "`\"query\"`",
+        "description": "On the row element."
+      },
+      {
+        "part": "Query.Input",
+        "name": "data-slot",
+        "value": "`\"query-input\"`",
+        "description": "On the field's outer element."
+      },
+      {
+        "part": "Query.Input",
+        "name": "data-slot",
+        "value": "`\"query-input-actions\"`",
+        "description": "On the `span` that wraps the children. The clear button follows it. It has `display: contents`, so each child lays out in the row."
+      },
+      {
+        "part": "Query.Input",
+        "name": "data-slot",
+        "value": "`\"query-input-shortcut kbd\"`",
+        "description": "On the `/` hint, with `keyboardShortcut`. It shows while the field is empty and not focused, on a device that can hover."
+      },
+      {
+        "part": "Query.Input",
+        "name": "data-slot",
+        "value": "`\"input\"`",
+        "description": "On the field's chrome, inside `\"query-input\"`, as on `Input`."
+      },
+      {
+        "part": "Query.Input",
+        "name": "data-disabled",
+        "value": "present",
+        "description": "On the `\"input\"` chrome while the field is disabled."
+      },
+      {
+        "part": "Query.Input",
+        "name": "data-validation",
+        "value": "`\"error\"` \\| `\"success\"` \\| `\"warning\"`",
+        "description": "On the `\"input\"` chrome. Omitted when unset."
+      },
+      {
+        "part": "Query.Content",
+        "name": "data-slot",
+        "value": "`\"query-content\"`",
+        "description": "On the popover, beside `\"popover-content\"`."
+      },
+      {
+        "part": "Query.Content",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "On the popover, from `Popover.Content`."
+      },
+      {
+        "part": "Query.Content",
+        "name": "data-side",
+        "value": "`\"top\"` \\| `\"bottom\"`",
+        "description": "On the popover: the side it opened on."
+      },
+      {
+        "part": "Query.List",
+        "name": "data-slot",
+        "value": "`\"query-list\"`",
+        "description": "On the listbox."
+      },
+      {
+        "part": "Query.List",
+        "name": "data-slot",
+        "value": "`\"query-group-label\"`",
+        "description": "On each section heading, a block `span` hidden from assistive tech."
+      },
+      {
+        "part": "Query.Item",
+        "name": "data-slot",
+        "value": "`\"query-item\"`",
+        "description": "On the option."
+      },
+      {
+        "part": "Query.Item",
+        "name": "data-highlighted",
+        "value": "present",
+        "description": "While the row is active, or under the pointer with no active row."
+      },
+      {
+        "part": "Query.Empty",
+        "name": "data-slot",
+        "value": "`\"query-empty\"`",
+        "description": "On the message."
+      },
+      {
+        "part": "Query.Footer",
+        "name": "data-slot",
+        "value": "`\"query-footer\"`",
+        "description": "On the footer."
+      },
+      {
+        "part": "Query.Legend",
+        "name": "data-slot",
+        "value": "`\"query-legend\"`",
+        "description": "On the legend."
+      },
+      {
+        "part": "Query.KeyboardHints",
+        "name": "data-slot",
+        "value": "`\"query-keyboard-hints\"`",
+        "description": "On the hints."
+      }
+    ]
   },
   {
     "name": "Radio Group",
@@ -1852,7 +4082,27 @@
         "boundary": "a few short options switch a view or a mode in one row."
       }
     ],
-    "useWhen": "Pick exactly one value from a few fixed options, with every option visible at once, such as a single choice between selectable cards."
+    "useWhen": "Pick exactly one value from a few fixed options, with every option visible at once, such as a single choice between selectable cards.",
+    "dataAttributes": [
+      {
+        "part": "RadioGroup.Item",
+        "name": "data-slot",
+        "value": "`\"radio-group-item\"`",
+        "description": "The item. `ListItem` and `Card` use their own names."
+      },
+      {
+        "part": "RadioGroup.Item",
+        "name": "data-slot",
+        "value": "`\"radio-group-item-label\"`",
+        "description": "The `display: contents` wrapper of the item's children."
+      },
+      {
+        "part": "RadioGroup.Indicator",
+        "name": "data-radio-default-indicator",
+        "value": "`\"\"`",
+        "description": "On the default circle, when the indicator has no children. The item drops its own focus ring while it holds one."
+      }
+    ]
   },
   {
     "name": "Reasoning",
@@ -1888,7 +4138,21 @@
         "boundary": "titled sections that are not part of a chat answer."
       }
     ],
-    "useWhen": "Show the reasoning a model wrote before its answer, closed by default, with a label that pulses while the model thinks."
+    "useWhen": "Show the reasoning a model wrote before its answer, closed by default, with a label that pulses while the model thinks.",
+    "dataAttributes": [
+      {
+        "part": "Reasoning.Root",
+        "name": "data-streaming",
+        "value": "present while `streaming`",
+        "description": "Presence-only. Style with `data-streaming:`."
+      },
+      {
+        "part": "Reasoning.Trigger",
+        "name": "data-slot=\"reasoning-trigger-label\"",
+        "value": "on the wrapper",
+        "description": "The `display: contents` wrapper around the label."
+      }
+    ]
   },
   {
     "name": "Sandbar",
@@ -1922,7 +4186,99 @@
         "boundary": "one destructive action needs a confirmation before it runs."
       }
     ],
-    "useWhen": "Hold the unsaved changes of a form in a bar at the bottom of the page until the user saves or discards them."
+    "useWhen": "Hold the unsaved changes of a form in a bar at the bottom of the page until the user saves or discards them.",
+    "dataAttributes": [
+      {
+        "part": "Sandbar.Root",
+        "name": "data-slot",
+        "value": "`\"sandbar\"`",
+        "description": "Stable styling hook for the panel. Survives `className` overrides."
+      },
+      {
+        "part": "Sandbar.Root",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Presence-only, and only at the resting open pose. Absent in both the pre-enter frame and the exit transition, which is what drives the slide/fade."
+      },
+      {
+        "part": "Sandbar.Root",
+        "name": "data-shake",
+        "value": "present while it shakes",
+        "description": "Presence-only. Set by the handle's `shake()`. Not set under reduced motion."
+      },
+      {
+        "part": "Sandbar.Message",
+        "name": "data-slot",
+        "value": "`\"sandbar-message\"`",
+        "description": "Stable styling hook. Survives `className` overrides and `asChild`."
+      },
+      {
+        "part": "Sandbar.Actions",
+        "name": "data-slot",
+        "value": "`\"sandbar-actions\"`",
+        "description": "Stable styling hook. Survives `className` overrides and `asChild`."
+      },
+      {
+        "part": "Sandbar.SaveButton",
+        "name": "data-slot",
+        "value": "`\"sandbar-save-button button\"`",
+        "description": "Stable styling hook, joined ahead of `Button`'s own `button`."
+      },
+      {
+        "part": "Sandbar.SaveButton",
+        "name": "data-appearance",
+        "value": "the resolved `appearance`",
+        "description": "Stamped by [Button](/components/actions/button)."
+      },
+      {
+        "part": "Sandbar.SaveButton",
+        "name": "data-intent",
+        "value": "the resolved `intent`",
+        "description": "Stamped by Button."
+      },
+      {
+        "part": "Sandbar.SaveButton",
+        "name": "data-size",
+        "value": "the resolved `size`",
+        "description": "Stamped by Button; absent for `appearance=\"link\"`."
+      },
+      {
+        "part": "Sandbar.SaveButton",
+        "name": "data-loading",
+        "value": "present when `isLoading`",
+        "description": "Stamped by Button. Presence-only, never `\"false\"`."
+      },
+      {
+        "part": "Sandbar.DiscardButton",
+        "name": "data-slot",
+        "value": "`\"sandbar-discard-button button\"`",
+        "description": "Stable styling hook, joined ahead of `Button`'s own `button`."
+      },
+      {
+        "part": "Sandbar.DiscardButton",
+        "name": "data-appearance",
+        "value": "the resolved `appearance`",
+        "description": "Stamped by [Button](/components/actions/button)."
+      },
+      {
+        "part": "Sandbar.DiscardButton",
+        "name": "data-intent",
+        "value": "the resolved `intent`",
+        "description": "Stamped by Button."
+      },
+      {
+        "part": "Sandbar.DiscardButton",
+        "name": "data-size",
+        "value": "the resolved `size`",
+        "description": "Stamped by Button; absent for `appearance=\"link\"`."
+      },
+      {
+        "part": "Sandbar.DiscardButton",
+        "name": "data-loading",
+        "value": "present when `isLoading`",
+        "description": "Stamped by Button. Presence-only, never `\"false\"`."
+      }
+    ]
   },
   {
     "name": "SandboxedOnClick",
@@ -1968,7 +4324,129 @@
         "boundary": "values compare across categories."
       }
     ],
-    "useWhen": "Show how two measures correlate across many points, or three measures in a rotatable 3D view."
+    "useWhen": "Show how two measures correlate across many points, or three measures in a rotatable 3D view.",
+    "dataAttributes": [
+      {
+        "part": "ScatterPlot.Root",
+        "name": "data-slot",
+        "value": "`\"scatter-plot\"`",
+        "description": "The Root wrapper, with any forwarded chain ahead of it."
+      },
+      {
+        "part": "ScatterPlot.Root",
+        "name": "data-slot",
+        "value": "`\"scatter-plot-plot\"`",
+        "description": "The plot box. Every overlay layer positions against it, and the resize observer measures it."
+      },
+      {
+        "part": "ScatterPlot.Root",
+        "name": "data-slot",
+        "value": "`\"scatter-plot-canvas\"`",
+        "description": "The `<canvas>` the marks paint on. Always `aria-hidden`. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print)."
+      },
+      {
+        "part": "ScatterPlot.Root",
+        "name": "data-slot",
+        "value": "`\"scatter-plot-crosshair\"`",
+        "description": "The vertical hairline; a scatter plot never shows it. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `\"interactive\"`. Interactive charts only: a static or decorative chart inserts the canvas alone."
+      },
+      {
+        "part": "ScatterPlot.Root",
+        "name": "data-slot",
+        "value": "`\"scatter-plot-hover-band\"`",
+        "description": "The category highlight; a scatter plot never shows it. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `\"interactive\"`. Interactive charts only: a static or decorative chart inserts the canvas alone."
+      },
+      {
+        "part": "ScatterPlot.Root",
+        "name": "data-slot",
+        "value": "`\"scatter-plot-markers\"`",
+        "description": "The container the engine syncs the hit point's hover dot into. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `\"interactive\"`. Interactive charts only: a static or decorative chart inserts the canvas alone."
+      },
+      {
+        "part": "ScatterPlot.Root",
+        "name": "data-slot",
+        "value": "`\"scatter-plot-tooltip\"`",
+        "description": "The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it; `ScatterPlot.Tooltip` configures it. A chart nobody points at holds none."
+      },
+      {
+        "part": "ScatterPlot.Root",
+        "name": "data-slot",
+        "value": "`\"scatter-plot-description\"`",
+        "description": "The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode=\"decorative\"`."
+      },
+      {
+        "part": "ScatterPlot.Root",
+        "name": "data-slot",
+        "value": "`\"scatter-plot-data-table\"`",
+        "description": "The `sr-only` data table. Mounts once focus lands inside the chart (`data-engaged` appears) and stays. Interactive charts only."
+      },
+      {
+        "part": "ScatterPlot.Root",
+        "name": "data-engaged",
+        "value": "present once engaged",
+        "description": "On the Root. Appears once focus lands inside the chart, and never goes away. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only."
+      },
+      {
+        "part": "ScatterPlot.Root",
+        "name": "data-slot",
+        "value": "`\"chart-active-point\"`",
+        "description": "The hover dot on the hit point, inside the markers layer. Also carries `data-shape`."
+      },
+      {
+        "part": "ScatterPlot.Root",
+        "name": "data-shape",
+        "value": "`\"circle\" \\| \"square\" \\| \"triangle\" \\| \"diamond\" \\| \"triangle-down\" \\| \"plus\" \\| \"cross\" \\| \"star\"`",
+        "description": "On the hover dot, naming the glyph its series wears: the `shape` it set, else the circle. The dot clips itself to that glyph, so target this only to restyle a dot."
+      },
+      {
+        "part": "ScatterPlot.Root",
+        "name": "data-value",
+        "value": "a number",
+        "description": "On each value cell of the `sr-only` data table. The raw number the cell shows formatted."
+      },
+      {
+        "part": "ScatterPlot.Tooltip",
+        "name": "data-slot",
+        "value": "`\"scatter-plot-tooltip-label\"`",
+        "description": "On the `<div>` wrapping a `children` readout. The default readout has none."
+      },
+      {
+        "part": "ScatterPlot.Legend",
+        "name": "data-slot",
+        "value": "`\"scatter-plot-legend\"`",
+        "description": "The legend list. `ScatterPlot.Legend` renders it in flow below the plot."
+      },
+      {
+        "part": "ScatterPlot.Legend",
+        "name": "data-slot",
+        "value": "`\"scatter-plot-legend-label\"`",
+        "description": "On the `<div>` wrapping a `children` render prop. The default legend has none."
+      },
+      {
+        "part": "ScatterPlot.Legend",
+        "name": "data-shape",
+        "value": "`\"circle\" \\| \"square\" \\| \"triangle\" \\| \"diamond\" \\| \"triangle-down\" \\| \"plus\" \\| \"cross\" \\| \"star\"`",
+        "description": "On each series' swatch, naming the glyph its [ScatterPlot.Point](#scatterplotpoint) wears. The swatch clips itself to that glyph, so target this only to restyle a key."
+      },
+      {
+        "part": "ScatterPlot.CopyButton",
+        "name": "data-slot",
+        "value": "`\"scatter-plot-copy-button\"`",
+        "description": "The button the part renders."
+      },
+      {
+        "part": "ScatterPlot.List",
+        "name": "data-slot",
+        "value": "`\"scatter-plot-list\"`",
+        "description": "The List wrapper, with any forwarded chain ahead of it. It takes the `className` and the other div props."
+      },
+      {
+        "part": "ScatterPlot.List",
+        "name": "data-slot",
+        "value": "`\"scatter-plot-list-items\"`",
+        "description": "The `display: contents` wrapper around the charts, so a grid or flex layout on the List lays out the cards."
+      }
+    ]
   },
   {
     "name": "Segmented Control",
@@ -2003,7 +4481,45 @@
         "boundary": "the set is long, or the row has little space."
       }
     ],
-    "useWhen": "Switch between a few short options in one compact, inline row, such as a view, an environment, or a filter."
+    "useWhen": "Switch between a few short options in one compact, inline row, such as a view, an environment, or a filter.",
+    "dataAttributes": [
+      {
+        "part": "SegmentedControl.Root",
+        "name": "data-slot",
+        "value": "`\"segmented-control\"`",
+        "description": "The control."
+      },
+      {
+        "part": "SegmentedControl.Root",
+        "name": "data-size",
+        "value": "`\"xs\"` \\| `\"sm\"` \\| `\"md\"` \\| `\"lg\"` \\| `\"xl\"`",
+        "description": "The `size` prop."
+      },
+      {
+        "part": "SegmentedControl.Root",
+        "name": "data-dragging",
+        "value": "present during a drag",
+        "description": "The thumb follows the pointer. Presence-only."
+      },
+      {
+        "part": "SegmentedControl.Item",
+        "name": "data-slot",
+        "value": "`\"segmented-control-item\"`",
+        "description": "The segment: a `<div>` with its radio."
+      },
+      {
+        "part": "SegmentedControl.Item",
+        "name": "data-slot",
+        "value": "`\"segmented-control-item-label\"`",
+        "description": "The `display: contents` wrapper of the segment's children."
+      },
+      {
+        "part": "SegmentedControl.Item",
+        "name": "data-thumb-over",
+        "value": "present during a drag",
+        "description": "The thumb is over this segment. Presence-only."
+      }
+    ]
   },
   {
     "name": "Select",
@@ -2040,7 +4556,129 @@
         "boundary": "the list runs actions and sets no value."
       }
     ],
-    "useWhen": "Pick one value from a short, fixed list of options that needs no filter, such as a region or an expiry duration."
+    "useWhen": "Pick one value from a short, fixed list of options that needs no filter, such as a region or an expiry duration.",
+    "dataAttributes": [
+      {
+        "part": "Select.Trigger",
+        "name": "data-slot",
+        "value": "`\"select-trigger\"`",
+        "description": "On the trigger button."
+      },
+      {
+        "part": "Select.Trigger",
+        "name": "data-slot",
+        "value": "`\"select-trigger-label\"`",
+        "description": "On the `<span>` wrapping `children`."
+      },
+      {
+        "part": "Select.Trigger",
+        "name": "data-placeholder",
+        "value": "present when there is no value",
+        "description": "Presence-only. Style the placeholder text with `data-placeholder:`."
+      },
+      {
+        "part": "Select.Trigger",
+        "name": "data-validation",
+        "value": "`\"success\"` \\| `\"warning\"` \\| `\"error\"`",
+        "description": "The resolved `validation` state. Omitted when there is none."
+      },
+      {
+        "part": "Select.Value",
+        "name": "data-slot",
+        "value": "`\"select-value\"`",
+        "description": "On the value element."
+      },
+      {
+        "part": "Select.Value",
+        "name": "data-slot",
+        "value": "`\"select-placeholder\"`",
+        "description": "On the `<span>` wrapping `placeholder`. Present only while there is no value."
+      },
+      {
+        "part": "Select.Value",
+        "name": "data-slot",
+        "value": "`\"select-value-label\"`",
+        "description": "On the `<span>` wrapping your `children`. Absent under `asChild`."
+      },
+      {
+        "part": "Select.Content",
+        "name": "data-slot",
+        "value": "`\"select-content\"`",
+        "description": "On the content element."
+      },
+      {
+        "part": "Select.Content",
+        "name": "data-open",
+        "value": "present",
+        "description": "Presence-only. Drives the open animation. A closed list renders nothing."
+      },
+      {
+        "part": "Select.Content",
+        "name": "data-side",
+        "value": "`\"top\"` \\| `\"bottom\"`",
+        "description": "The side of the trigger the list opened on."
+      },
+      {
+        "part": "Select.Group",
+        "name": "data-slot",
+        "value": "`\"select-group\"`",
+        "description": "On the group element."
+      },
+      {
+        "part": "Select.Separator",
+        "name": "data-slot",
+        "value": "`\"select-separator separator\"`",
+        "description": "On the separator element, joined ahead of `Separator`'s own slot."
+      },
+      {
+        "part": "Select.Item",
+        "name": "data-slot",
+        "value": "`\"select-item\"`",
+        "description": "On the option element."
+      },
+      {
+        "part": "Select.Item",
+        "name": "data-slot",
+        "value": "`\"select-item-label\"`",
+        "description": "On the `<span>` wrapping `children`, in the list and in the trigger."
+      },
+      {
+        "part": "Select.Item",
+        "name": "aria-selected",
+        "value": "`\"true\"` \\| `\"false\"`",
+        "description": "Whether this item is the selected value. Style it with `aria-selected:`."
+      },
+      {
+        "part": "Select.Item",
+        "name": "data-highlighted",
+        "value": "present when highlighted",
+        "description": "Presence-only. The item under the pointer or the keyboard focus."
+      },
+      {
+        "part": "Select.Item",
+        "name": "aria-disabled",
+        "value": "`\"true\"` when disabled",
+        "description": "The `disabled` prop. Style it with `aria-disabled:`."
+      },
+      {
+        "part": "Select.Item",
+        "name": "data-value",
+        "value": "the `value` prop",
+        "description": "The option's value."
+      },
+      {
+        "part": "Select.Item",
+        "name": "data-text-value",
+        "value": "the `textValue` prop",
+        "description": "The text type-ahead matches. Omitted when unset."
+      },
+      {
+        "part": "Select.Label",
+        "name": "data-slot",
+        "value": "`\"select-label\"`",
+        "description": "On the group label element."
+      }
+    ]
   },
   {
     "name": "Selectable List",
@@ -2069,7 +4707,57 @@
         "boundary": "each row runs an action or navigates, with no selection."
       }
     ],
-    "useWhen": "Select several items from an inline, filterable list of checkbox rows, with no popover."
+    "useWhen": "Select several items from an inline, filterable list of checkbox rows, with no popover.",
+    "dataAttributes": [
+      {
+        "part": "SelectableList.SelectAll",
+        "name": "data-slot",
+        "value": "`\"selectable-list-select-all\"`",
+        "description": "On the header `<label>`."
+      },
+      {
+        "part": "SelectableList.SelectAll",
+        "name": "data-slot",
+        "value": "`\"selectable-list-select-all-label\"`",
+        "description": "On the `<span>` wrapping `children`."
+      },
+      {
+        "part": "SelectableList.Item",
+        "name": "data-slot",
+        "value": "`\"selectable-list-item\"`",
+        "description": "The row."
+      },
+      {
+        "part": "SelectableList.Item",
+        "name": "data-value",
+        "value": "the `value` prop",
+        "description": "The option's selection value."
+      },
+      {
+        "part": "SelectableList.Item",
+        "name": "data-index",
+        "value": "a number",
+        "description": "Its position in the list."
+      },
+      {
+        "part": "SelectableList.Item",
+        "name": "data-highlighted",
+        "value": "present when active",
+        "description": "Presence-only. The row the keyboard is on."
+      },
+      {
+        "part": "SelectableList.Empty",
+        "name": "data-slot",
+        "value": "`\"selectable-list-empty\"`",
+        "description": "On the live-region element."
+      },
+      {
+        "part": "SelectableList.Empty",
+        "name": "data-slot",
+        "value": "`\"selectable-list-empty-label\"`",
+        "description": "On the `<span>` wrapping `children`. Present only while the message shows."
+      }
+    ]
   },
   {
     "name": "Separator",
@@ -2102,7 +4790,39 @@
         "boundary": "the content is key and value pairs, which carry their own rows."
       }
     ],
-    "useWhen": "Divide adjacent content without a box, in a row or in a column. To put a text label in the middle or at one end of a horizontal divider, wrap the label and the separators in a `HorizontalSeparatorGroup`."
+    "useWhen": "Divide adjacent content without a box, in a row or in a column. To put a text label in the middle or at one end of a horizontal divider, wrap the label and the separators in a `HorizontalSeparatorGroup`.",
+    "dataAttributes": [
+      {
+        "part": "Separator",
+        "name": "data-slot",
+        "value": "`\"separator\"`",
+        "description": "Names the part."
+      },
+      {
+        "part": "Separator",
+        "name": "data-orientation",
+        "value": "`\"horizontal\"` \\| `\"vertical\"`",
+        "description": "The resolved orientation, after a `HorizontalSeparatorGroup` wins."
+      },
+      {
+        "part": "Separator",
+        "name": "data-separator",
+        "value": "present",
+        "description": "Presence-only. Lets a group exempt separators from `shrink-0`."
+      },
+      {
+        "part": "HorizontalSeparatorGroup",
+        "name": "data-slot",
+        "value": "`\"horizontal-separator-group\"`",
+        "description": "Names the part."
+      },
+      {
+        "part": "HorizontalSeparatorGroup",
+        "name": "data-horizontal-separator-group",
+        "value": "present",
+        "description": "Presence-only. Child separators stretch under it."
+      }
+    ]
   },
   {
     "name": "Sheet",
@@ -2174,7 +4894,201 @@
         "boundary": "the page shows where it sits in a hierarchy."
       }
     ],
-    "useWhen": "Show the main navigation of an app, with its app and account switchers, in a column that collapses to its icons, and to a sheet on small screens."
+    "useWhen": "Show the main navigation of an app, with its app and account switchers, in a column that collapses to its icons, and to a sheet on small screens.",
+    "dataAttributes": [
+      {
+        "part": "Sidebar.Nav",
+        "name": "data-expanded",
+        "value": "present while expanded",
+        "description": "Presence-only. On the desktop panel it mirrors the root's expanded state, and its absence drives the width collapse to its icons. The mobile sheet always has it. Descendant parts style off it with `group-data-expanded/sidebar-nav:` and `group-not-data-expanded/sidebar-nav:`."
+      },
+      {
+        "part": "Sidebar.Nav",
+        "name": "data-hydrated",
+        "value": "present one frame after hydration",
+        "description": "Presence-only, desktop panel surface. The panel's pre-hydration visibility gate, its width transition, and descendant collapse transitions all key off its absence in CSS (`not-data-hydrated:`, `group-not-data-hydrated/sidebar-nav:`). The stamp waits one frame, so an SSR state correction paints first and snaps instead of animating on page load."
+      },
+      {
+        "part": "Sidebar.Nav",
+        "name": "data-mobile",
+        "value": "present in the mobile sheet",
+        "description": "Presence-only. Marks the sheet presentation used below the root's `mobileBreakpoint`."
+      },
+      {
+        "part": "Sidebar.Nav",
+        "name": "data-open",
+        "value": "present while the sheet is open",
+        "description": "Presence-only, in the mobile sheet only: the sheet's open state, not the desktop expanded state."
+      },
+      {
+        "part": "Sidebar.Nav",
+        "name": "data-closing",
+        "value": "present while the sheet's exit plays",
+        "description": "Presence-only, in the mobile sheet only. Drives the slide-out."
+      },
+      {
+        "part": "Sidebar.Trigger",
+        "name": "data-slot",
+        "value": "`\"sidebar-trigger icon-button\"`",
+        "description": "On the button: the part's slot, joined ahead of `IconButton`'s own."
+      },
+      {
+        "part": "Sidebar.Trigger",
+        "name": "data-slot",
+        "value": "`\"sidebar-trigger-tooltip tooltip-content\"`",
+        "description": "On the tooltip surface, not the button: the styling hook for the label-and-chord popup this part renders, joined ahead of `Tooltip.Content`'s own slot."
+      },
+      {
+        "part": "Sidebar.Trigger",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Read, not stamped: on the tooltip surface, from `Tooltip.Content`."
+      },
+      {
+        "part": "Sidebar.Trigger",
+        "name": "data-side",
+        "value": "`\"top\"` \\| `\"right\"` \\| `\"bottom\"` \\| `\"left\"`",
+        "description": "Read, not stamped: on the tooltip surface, from `Tooltip.Content`."
+      },
+      {
+        "part": "Sidebar.Trigger",
+        "name": "data-slot",
+        "value": "`\"sidebar-tooltip-row\"`",
+        "description": "Inside that surface, on the flex row holding the label and the optional chord chips. Always present."
+      },
+      {
+        "part": "Sidebar.Trigger",
+        "name": "data-slot",
+        "value": "`\"sidebar-tooltip-label\"`",
+        "description": "On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`."
+      },
+      {
+        "part": "Sidebar.Trigger",
+        "name": "data-slot",
+        "value": "`\"sidebar-tooltip-shortcut\"`",
+        "description": "On the chord chips. Present only while `shortcut` holds something. Carries `translate=\"no\"`: a chord is a key name, not prose."
+      },
+      {
+        "part": "Sidebar.Trigger",
+        "name": "data-appearance",
+        "value": "`\"filled\"` \\| `\"ghost\"` \\| `\"outlined\"`",
+        "description": "Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `\"ghost\"`."
+      },
+      {
+        "part": "Sidebar.Trigger",
+        "name": "data-intent",
+        "value": "`\"neutral\"`",
+        "description": "Read, not stamped: the underlying `IconButton` reflects its `intent`, and it draws the neutral tone only."
+      },
+      {
+        "part": "Sidebar.Trigger",
+        "name": "data-size",
+        "value": "`\"xs\"` \\| `\"sm\"` \\| `\"md\"` \\| `\"lg\"` \\| `\"xl\"`",
+        "description": "Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `\"sm\"`."
+      },
+      {
+        "part": "Sidebar.ItemButton",
+        "name": "data-slot",
+        "value": "`\"sidebar-item-button\"`",
+        "description": "Names the part, with any composing ancestor's chain ahead of it."
+      },
+      {
+        "part": "Sidebar.ItemButton",
+        "name": "aria-current",
+        "value": "`\"page\"` when `current`",
+        "description": "Styles the current row with `aria-[current=page]:`, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop."
+      },
+      {
+        "part": "Sidebar.ItemButton",
+        "name": "aria-expanded",
+        "value": "`\"true\"` \\| `\"false\"`",
+        "description": "**Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open."
+      },
+      {
+        "part": "Sidebar.SearchTrigger",
+        "name": "data-slot",
+        "value": "`\"sidebar-search-trigger\"`",
+        "description": "Names the part, with any composing ancestor's chain ahead of it: `\"command-search-trigger sidebar-search-trigger\"` once a palette wraps it."
+      },
+      {
+        "part": "Sidebar.SearchTrigger",
+        "name": "data-slot",
+        "value": "`\"sidebar-search-trigger-label\"`",
+        "description": "On the `<span>` wrapping `children`. Default `button` path only: under `asChild` the row renders no sibling, so it needs no wrapper. Always `display: contents`, so your icon and label stay flex items of the row."
+      },
+      {
+        "part": "Sidebar.SearchTrigger",
+        "name": "data-slot",
+        "value": "`\"sidebar-search-trigger-shortcut\"`",
+        "description": "On the chord chips. Default `button` path only, where it is always mounted and `display: none` while empty; the props union forbids `shortcut` under `asChild`. Carries `translate=\"no\"`: a chord is a key name, not prose."
+      },
+      {
+        "part": "Sidebar.SearchTrigger",
+        "name": "aria-expanded",
+        "value": "`\"true\"` \\| `\"false\"`",
+        "description": "**Read, not stamped**: supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. The row stays highlighted while its palette is open."
+      },
+      {
+        "part": "Sidebar.SwitcherTrigger",
+        "name": "data-slot",
+        "value": "`\"sidebar-switcher-trigger\"`",
+        "description": "Names the part, with any composing ancestor's chain ahead of it."
+      },
+      {
+        "part": "Sidebar.SwitcherTrigger",
+        "name": "aria-expanded",
+        "value": "`\"true\"` \\| `\"false\"`",
+        "description": "**Read, not stamped**: supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open."
+      },
+      {
+        "part": "Sidebar.Tooltip",
+        "name": "data-slot",
+        "value": "`\"sidebar-tooltip tooltip-content\"`",
+        "description": "On the tooltip surface, with any forwarded chain ahead of it and `Tooltip.Content`'s own slot after it. Styling and test-targeting hook."
+      },
+      {
+        "part": "Sidebar.Tooltip",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Read, not stamped: on the tooltip surface, from `Tooltip.Content`."
+      },
+      {
+        "part": "Sidebar.Tooltip",
+        "name": "data-side",
+        "value": "`\"top\"` \\| `\"right\"` \\| `\"bottom\"` \\| `\"left\"`",
+        "description": "Read, not stamped: on the tooltip surface, from `Tooltip.Content`. The resolved side, `\"right\"` by default."
+      },
+      {
+        "part": "Sidebar.Tooltip",
+        "name": "data-slot",
+        "value": "`\"sidebar-tooltip-row\"`",
+        "description": "Inside that surface, on the flex row holding the label and the optional chord chips."
+      },
+      {
+        "part": "Sidebar.Tooltip",
+        "name": "data-slot",
+        "value": "`\"sidebar-tooltip-label\"`",
+        "description": "On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`."
+      },
+      {
+        "part": "Sidebar.Tooltip",
+        "name": "data-slot",
+        "value": "`\"sidebar-tooltip-shortcut\"`",
+        "description": "On the chord chips. Present only while `shortcut` holds something. Carries `translate=\"no\"`: a chord is a key name, not prose."
+      },
+      {
+        "part": "Sidebar.Separator",
+        "name": "data-orientation",
+        "value": "`\"horizontal\"` \\| `\"vertical\"`",
+        "description": "Read, not stamped: `Separator` reflects its `orientation` prop, `\"horizontal\"` by default, after a `HorizontalSeparatorGroup` ancestor wins."
+      },
+      {
+        "part": "Sidebar.Separator",
+        "name": "data-separator",
+        "value": "present",
+        "description": "Read, not stamped: presence-only, from `Separator`. Lets a `HorizontalSeparatorGroup` exempt it from `shrink-0`."
+      }
+    ]
   },
   {
     "name": "Skeleton",
@@ -2231,7 +5145,15 @@
         "boundary": "the hidden content is text for screen readers, not a link."
       }
     ],
-    "useWhen": "Let keyboard users jump past repeated navigation to the main content of the page."
+    "useWhen": "Let keyboard users jump past repeated navigation to the main content of the page.",
+    "dataAttributes": [
+      {
+        "part": "SkipToMainLink",
+        "name": "data-slot",
+        "value": "`\"skip-to-main-link anchor\"`",
+        "description": "Names the part, joined after any chain a composing ancestor passes and ahead of `Anchor`'s own slot."
+      }
+    ]
   },
   {
     "name": "Slider",
@@ -2257,7 +5179,39 @@
         "boundary": "the user types an exact number."
       }
     ],
-    "useWhen": "Pick a number, or a range between two numbers, with a thumb that moves along a track."
+    "useWhen": "Pick a number, or a range between two numbers, with a thumb that moves along a track.",
+    "dataAttributes": [
+      {
+        "part": "Slider",
+        "name": "data-orientation",
+        "value": "`\"horizontal\"` \\| `\"vertical\"`",
+        "description": "On the root. Mirrors `orientation`."
+      },
+      {
+        "part": "Slider",
+        "name": "data-disabled",
+        "value": "present when disabled",
+        "description": "On the root. Presence-only. Style with `data-disabled:`."
+      },
+      {
+        "part": "Slider",
+        "name": "data-track-press",
+        "value": "present during a glide",
+        "description": "On the root while a thumb glides after a press on the track. Presence-only."
+      },
+      {
+        "part": "Slider",
+        "name": "data-dragging",
+        "value": "present during a drag",
+        "description": "On the root while a pointer drags a thumb. Presence-only."
+      },
+      {
+        "part": "SliderValue",
+        "name": "data-placement",
+        "value": "`\"thumb\"` \\| `\"track\"`",
+        "description": "Mirrors `placement`."
+      }
+    ]
   },
   {
     "name": "Slot",
@@ -2305,7 +5259,21 @@
         "boundary": "the button only opens a menu and runs no default action."
       }
     ],
-    "useWhen": "Run a default action on one click, and offer related alternatives in an attached menu."
+    "useWhen": "Run a default action on one click, and offer related alternatives in an attached menu.",
+    "dataAttributes": [
+      {
+        "part": "SplitButton.Root",
+        "name": "data-slot",
+        "value": "`\"split-button\"`",
+        "description": "On the wrapping `<div>`."
+      },
+      {
+        "part": "SplitButton.Root",
+        "name": "data-size",
+        "value": "`\"xs\"` \\| `\"sm\"` \\| `\"md\"` \\| `\"lg\"` \\| `\"xl\"`",
+        "description": "The `size` prop, which both halves render at."
+      }
+    ]
   },
   {
     "name": "Strata",
@@ -2344,7 +5312,45 @@
         "boundary": "the pairs are read-only label and value data, not headed sections."
       }
     ],
-    "useWhen": "Lay out a settings page, a configuration editor, or a long form as titled sections, each one explained beside its controls: the title and description on the left, the form fields on the right."
+    "useWhen": "Lay out a settings page, a configuration editor, or a long form as titled sections, each one explained beside its controls: the title and description on the left, the form fields on the right.",
+    "dataAttributes": [
+      {
+        "part": "Strata.Root",
+        "name": "data-slot",
+        "value": "`\"strata\"`",
+        "description": "Stable styling hook. Survives `className` overrides and `asChild`."
+      },
+      {
+        "part": "Strata.Section",
+        "name": "data-slot",
+        "value": "`\"strata-section\"`",
+        "description": "Stable styling hook. Survives `className` overrides and `asChild`."
+      },
+      {
+        "part": "Strata.Header",
+        "name": "data-slot",
+        "value": "`\"strata-header\"`",
+        "description": "Stable styling hook. Survives `className` overrides and `asChild`."
+      },
+      {
+        "part": "Strata.Title",
+        "name": "data-slot",
+        "value": "`\"strata-title\"`",
+        "description": "Stable styling hook. Survives `className` overrides and `asChild`."
+      },
+      {
+        "part": "Strata.Description",
+        "name": "data-slot",
+        "value": "`\"strata-description\"`",
+        "description": "Stable styling hook. Survives `className` overrides and `asChild`."
+      },
+      {
+        "part": "Strata.Body",
+        "name": "data-slot",
+        "value": "`\"strata-body\"`",
+        "description": "Stable styling hook. Survives `className` overrides and `asChild`."
+      }
+    ]
   },
   {
     "name": "Switch",
@@ -2376,7 +5382,21 @@
         "boundary": "the setting is the light or dark theme."
       }
     ],
-    "useWhen": "Turn one setting on or off, such as a feature toggle in a settings list."
+    "useWhen": "Turn one setting on or off, such as a feature toggle in a settings list.",
+    "dataAttributes": [
+      {
+        "part": "Switch",
+        "name": "data-slot",
+        "value": "`\"switch\"`",
+        "description": "The `<button role=\"switch\">`."
+      },
+      {
+        "part": "Switch",
+        "name": "data-validation",
+        "value": "`\"error\"` \\| `\"success\"` \\| `\"warning\"`",
+        "description": "The resolved `validation`. Omitted when unset."
+      }
+    ]
   },
   {
     "name": "Table",
@@ -2405,7 +5425,51 @@
         "boundary": "one record shows as label and value pairs."
       }
     ],
-    "useWhen": "Show static rows and columns of data, such as a read-only data dump, with no sorting, filtering, or pagination."
+    "useWhen": "Show static rows and columns of data, such as a read-only data dump, with no sorting, filtering, or pagination.",
+    "dataAttributes": [
+      {
+        "part": "Table.Root",
+        "name": "data-x-overflow",
+        "value": "present, or absent",
+        "description": "Present while the content is wider than the container."
+      },
+      {
+        "part": "Table.Root",
+        "name": "data-x-scroll-end",
+        "value": "present, or absent",
+        "description": "Present while an overflowing container is scrolled to its right edge."
+      },
+      {
+        "part": "Table.Root",
+        "name": "data-sticky-active",
+        "value": "present, or absent",
+        "description": "Present only while the container overflows and is not scrolled to the end. `DataTable`'s pinned action column keys its shadow off this through `group-data-sticky-active/table:`."
+      },
+      {
+        "part": "Table.Header",
+        "name": "data-slot",
+        "value": "`\"table-header\"`",
+        "description": "On the `<th>`."
+      },
+      {
+        "part": "Table.Header",
+        "name": "data-column-width",
+        "value": "`\"fit\"` \\| `\"wrap\"`",
+        "description": "The `width` prop, when set."
+      },
+      {
+        "part": "Table.Cell",
+        "name": "data-slot",
+        "value": "`\"table-cell\"`",
+        "description": "On the `<td>`."
+      },
+      {
+        "part": "Table.Cell",
+        "name": "data-column-width",
+        "value": "`\"fit\"` \\| `\"wrap\"`",
+        "description": "The `width` prop, when set."
+      }
+    ]
   },
   {
     "name": "Tabs",
@@ -2435,7 +5499,159 @@
         "boundary": "the user picks a form value, not a view."
       }
     ],
-    "useWhen": "Switch between peer views of related content in one place, with one view visible at a time. Use `HeadlessTabs` to keep the tab state and behavior under your own custom markup and styling."
+    "useWhen": "Switch between peer views of related content in one place, with one view visible at a time. Use `HeadlessTabs` to keep the tab state and behavior under your own custom markup and styling.",
+    "dataAttributes": [
+      {
+        "part": "Tabs.Root",
+        "name": "data-slot",
+        "value": "`\"tabs\"`",
+        "description": "On the root element."
+      },
+      {
+        "part": "Tabs.Root",
+        "name": "data-orientation",
+        "value": "`\"horizontal\"` \\| `\"vertical\"`",
+        "description": "The `orientation` prop."
+      },
+      {
+        "part": "Tabs.Root",
+        "name": "data-appearance",
+        "value": "`\"classic\"` \\| `\"pill\"`",
+        "description": "The `appearance` prop. Descendant parts style against it."
+      },
+      {
+        "part": "Tabs.List",
+        "name": "data-slot",
+        "value": "`\"tabs-list\"`",
+        "description": "On the tablist element."
+      },
+      {
+        "part": "Tabs.List",
+        "name": "data-orientation",
+        "value": "`\"horizontal\"` \\| `\"vertical\"`",
+        "description": "The root's orientation."
+      },
+      {
+        "part": "Tabs.List",
+        "name": "data-dragging",
+        "value": "present during a drag",
+        "description": "The indicator follows the pointer. Presence-only."
+      },
+      {
+        "part": "Tabs.List",
+        "name": "data-overflowing",
+        "value": "`\"true\"` \\| `\"false\"`",
+        "description": "Set once measured. `\"true\"` while the list scrolls."
+      },
+      {
+        "part": "Tabs.Separator",
+        "name": "data-slot",
+        "value": "`\"tabs-separator separator\"`",
+        "description": "On the separator element, joined ahead of `Separator`'s own slot."
+      },
+      {
+        "part": "Tabs.Separator",
+        "name": "data-orientation",
+        "value": "`\"horizontal\"` \\| `\"vertical\"`",
+        "description": "The root's orientation."
+      },
+      {
+        "part": "Tabs.Separator",
+        "name": "data-separator",
+        "value": "present",
+        "description": "Presence-only. Set by the mantle `Separator`."
+      },
+      {
+        "part": "Tabs.Trigger",
+        "name": "data-slot",
+        "value": "`\"tabs-trigger\"`",
+        "description": "On the trigger element."
+      },
+      {
+        "part": "Tabs.Trigger",
+        "name": "data-slot",
+        "value": "`\"tabs-trigger-label\"`",
+        "description": "On the `<span>` wrapping `children`."
+      },
+      {
+        "part": "Tabs.Trigger",
+        "name": "aria-selected",
+        "value": "`\"true\"` \\| `\"false\"`",
+        "description": "Whether the trigger's panel is shown. Style it with `aria-selected:`."
+      },
+      {
+        "part": "Tabs.Trigger",
+        "name": "data-thumb-over",
+        "value": "present during a drag",
+        "description": "The dragged indicator is over this trigger. Presence-only."
+      },
+      {
+        "part": "Tabs.Content",
+        "name": "data-slot",
+        "value": "`\"tabs-content\"`",
+        "description": "On the panel element."
+      },
+      {
+        "part": "Tabs.Content",
+        "name": "hidden",
+        "value": "present while inactive",
+        "description": "The browser hides the panel. `\"until-found\"` with `hiddenUntilFound`."
+      },
+      {
+        "part": "Tabs.Badge",
+        "name": "data-slot",
+        "value": "`\"tabs-badge\"`",
+        "description": "On the badge element."
+      },
+      {
+        "part": "HeadlessTabs.Root",
+        "name": "data-slot",
+        "value": "`\"tabs\"`",
+        "description": "On the root element."
+      },
+      {
+        "part": "HeadlessTabs.Root",
+        "name": "data-orientation",
+        "value": "`\"horizontal\"` \\| `\"vertical\"`",
+        "description": "The `orientation` prop."
+      },
+      {
+        "part": "HeadlessTabs.List",
+        "name": "data-slot",
+        "value": "`\"tabs-list\"`",
+        "description": "On the tablist element."
+      },
+      {
+        "part": "HeadlessTabs.List",
+        "name": "data-orientation",
+        "value": "`\"horizontal\"` \\| `\"vertical\"`",
+        "description": "The root's orientation."
+      },
+      {
+        "part": "HeadlessTabs.Trigger",
+        "name": "data-slot",
+        "value": "`\"tabs-trigger\"`",
+        "description": "On the trigger element."
+      },
+      {
+        "part": "HeadlessTabs.Trigger",
+        "name": "aria-selected",
+        "value": "`\"true\"` \\| `\"false\"`",
+        "description": "Whether the trigger's panel is shown. Style it with `aria-selected:`."
+      },
+      {
+        "part": "HeadlessTabs.Content",
+        "name": "data-slot",
+        "value": "`\"tabs-content\"`",
+        "description": "On the panel element."
+      },
+      {
+        "part": "HeadlessTabs.Content",
+        "name": "hidden",
+        "value": "present while inactive",
+        "description": "The browser hides the panel. `\"until-found\"` with `hiddenUntilFound`."
+      }
+    ]
   },
   {
     "name": "Text Area",
@@ -2459,7 +5675,27 @@
         "boundary": "the text fits on one line."
       }
     ],
-    "useWhen": "Accept several lines of free-form text, such as a comment or a description."
+    "useWhen": "Accept several lines of free-form text, such as a comment or a description.",
+    "dataAttributes": [
+      {
+        "part": "TextArea",
+        "name": "data-slot",
+        "value": "`\"text-area\"`",
+        "description": "The `<textarea>`."
+      },
+      {
+        "part": "TextArea",
+        "name": "data-validation",
+        "value": "`\"error\"` \\| `\"success\"` \\| `\"warning\"`",
+        "description": "The resolved `validation`. Omitted when unset."
+      },
+      {
+        "part": "TextArea",
+        "name": "data-drag-over",
+        "value": "present during a drag",
+        "description": "Presence-only. A drag holds content over the text area. The border turns dashed."
+      }
+    ]
   },
   {
     "name": "Theme",
@@ -2480,7 +5716,33 @@
         "boundary": "the user changes the theme from a control in the UI."
       }
     ],
-    "useWhen": "Apply the light or dark theme to an app, follow the operating system by default, and stop a wrong-theme flash on load."
+    "useWhen": "Apply the light or dark theme to an app, follow the operating system by default, and stop a wrong-theme flash on load.",
+    "dataAttributes": [
+      {
+        "part": "ThemeProvider",
+        "name": "data-theme",
+        "value": "`\"system\"` \\| `\"light\"` \\| `\"dark\"`",
+        "description": "On `<html>`. The stored theme, before `\"system\"` resolves."
+      },
+      {
+        "part": "ThemeProvider",
+        "name": "data-applied-theme",
+        "value": "`\"light\"` \\| `\"dark\"`",
+        "description": "On `<html>`. The theme that paints."
+      },
+      {
+        "part": "ThemeProvider",
+        "name": "data-theme-transition",
+        "value": "present during a swap",
+        "description": "Presence-only. On `<html>` and on each open dialog or menu while the theme swap animates."
+      },
+      {
+        "part": "ThemeProvider",
+        "name": "data-theme-transition-many",
+        "value": "present during a swap",
+        "description": "Presence-only. On `<html>` when the page holds many transitions, so a style rule stops them instead of a script."
+      }
+    ]
   },
   {
     "name": "Theme Switcher",
@@ -2506,7 +5768,63 @@
         "boundary": "the toggle controls a setting other than the theme."
       }
     ],
-    "useWhen": "Let the user switch between light and dark mode from a header, a toolbar, or an account menu."
+    "useWhen": "Let the user switch between light and dark mode from a header, a toolbar, or an account menu.",
+    "dataAttributes": [
+      {
+        "part": "ThemeSwitcher",
+        "name": "data-slot",
+        "value": "`\"theme-switcher icon-button\"`",
+        "description": "The button, with `IconButton`'s slot after its own."
+      },
+      {
+        "part": "ThemeSwitcher",
+        "name": "data-icon-button",
+        "value": "`\"true\"`",
+        "description": "Always present, as on `IconButton`. Lets a wrapper style every icon button it holds."
+      },
+      {
+        "part": "ThemeSwitcher",
+        "name": "data-appearance",
+        "value": "`\"filled\"` \\| `\"ghost\"` \\| `\"outlined\"`",
+        "description": "The `appearance` prop."
+      },
+      {
+        "part": "ThemeSwitcher",
+        "name": "data-intent",
+        "value": "`\"neutral\"`",
+        "description": "Always `\"neutral\"`."
+      },
+      {
+        "part": "ThemeSwitcher",
+        "name": "data-size",
+        "value": "`\"2xs\"` \\| `\"xs\"` \\| `\"sm\"` \\| `\"md\"` \\| `\"lg\"` \\| `\"xl\"`",
+        "description": "The `size` prop."
+      },
+      {
+        "part": "ThemeSwitcher",
+        "name": "data-loading",
+        "value": "present when `isLoading`",
+        "description": "Presence-only."
+      },
+      {
+        "part": "ThemeDropdownMenuItem",
+        "name": "data-slot",
+        "value": "`\"theme-dropdown-menu-item\"`",
+        "description": "On the item element."
+      },
+      {
+        "part": "ThemeDropdownMenuItem",
+        "name": "data-slot",
+        "value": "`\"theme-dropdown-menu-item-label\"`",
+        "description": "On the `<span>` that holds the `label`. The item renders it only with no `children`."
+      },
+      {
+        "part": "ThemeSwitcherIcon",
+        "name": "data-slot",
+        "value": "`\"theme-switcher-icon\"`",
+        "description": "On the `<span>` that holds the icon."
+      }
+    ]
   },
   {
     "name": "Time Zone",
@@ -2534,7 +5852,15 @@
         "boundary": "the user picks a date from a month grid."
       }
     ],
-    "useWhen": "Show a timestamp in the visitor's time zone on a server-rendered page, with no hydration mismatch and no text that pops in after hydration."
+    "useWhen": "Show a timestamp in the visitor's time zone on a server-rendered page, with no hydration mismatch and no text that pops in after hydration.",
+    "dataAttributes": [
+      {
+        "part": "LocalTime",
+        "name": "data-slot",
+        "value": "`\"local-time\"`",
+        "description": "The `<time>` element."
+      }
+    ]
   },
   {
     "name": "Toast",
@@ -2569,7 +5895,21 @@
         "boundary": "the message waits for the user to save or discard pending changes."
       }
     ],
-    "useWhen": "Show the result of an action in a brief message that goes away on its own, such as a saved change, a copied value, or an error when a delete failed."
+    "useWhen": "Show the result of an action in a brief message that goes away on its own, such as a saved change, a copied value, or an error when a delete failed.",
+    "dataAttributes": [
+      {
+        "part": "Toast.Root",
+        "name": "data-slot",
+        "value": "`\"toast\"`",
+        "description": "On the toast root."
+      },
+      {
+        "part": "Toast.Root",
+        "name": "data-slot",
+        "value": "`\"toast-label\"`",
+        "description": "On the `<div>` wrapping `children`, not only the message text."
+      }
+    ]
   },
   {
     "name": "Tool Call",
@@ -2605,7 +5945,21 @@
         "boundary": "titled sections that are not part of a chat answer."
       }
     ],
-    "useWhen": "Show a tool that a model called while it answered, with its state, and its arguments and result behind a disclosure."
+    "useWhen": "Show a tool that a model called while it answered, with its state, and its arguments and result behind a disclosure.",
+    "dataAttributes": [
+      {
+        "part": "ToolCall.Root",
+        "name": "data-status",
+        "value": "`\"running\"`, `\"done\"`, `\"failed\"`, `\"interrupted\"`",
+        "description": "The state of the call. Style with `data-[status=failed]:`."
+      },
+      {
+        "part": "ToolCall.Trigger",
+        "name": "data-slot=\"tool-call-trigger-label\"",
+        "value": "on the wrapper",
+        "description": "The `display: contents` wrapper around the children."
+      }
+    ]
   },
   {
     "name": "Tooltip",
@@ -2633,7 +5987,39 @@
         "boundary": "the content is a rich preview of a link."
       }
     ],
-    "useWhen": "Show a short, non-interactive hint for an element on hover or focus, such as the meaning of an icon button."
+    "useWhen": "Show a short, non-interactive hint for an element on hover or focus, such as the meaning of an icon button.",
+    "dataAttributes": [
+      {
+        "part": "Tooltip.Content",
+        "name": "data-slot",
+        "value": "`\"tooltip-content\"`",
+        "description": "On the tooltip surface, with any composing part's chain ahead of it."
+      },
+      {
+        "part": "Tooltip.Content",
+        "name": "data-slot",
+        "value": "`\"tooltip-label\"`",
+        "description": "On the `<div>` wrapping `children`."
+      },
+      {
+        "part": "Tooltip.Content",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Presence-only. Absent while the exit plays."
+      },
+      {
+        "part": "Tooltip.Content",
+        "name": "data-side",
+        "value": "`\"top\"` \\| `\"right\"` \\| `\"bottom\"` \\| `\"left\"`",
+        "description": "Which side of the trigger the surface resolved to."
+      },
+      {
+        "part": "Tooltip.Content",
+        "name": "data-float-arrow",
+        "value": "`\"\"`",
+        "description": "On the arrow's `<span>`. The float moves it to the edge that faces the trigger."
+      }
+    ]
   },
   {
     "name": "Truncated Text",
@@ -2662,7 +6048,39 @@
         "boundary": "a value that may wrap over several lines."
       }
     ],
-    "useWhen": "Show one long opaque value on one line, and keep its end visible when it clips."
+    "useWhen": "Show one long opaque value on one line, and keep its end visible when it clips.",
+    "dataAttributes": [
+      {
+        "part": "TruncatedText",
+        "name": "data-slot",
+        "value": "`\"truncated-text\"`",
+        "description": "On the root, and joined onto the child via `asChild`."
+      },
+      {
+        "part": "TruncatedText",
+        "name": "data-slot",
+        "value": "`\"truncated-text-head\"`",
+        "description": "On the `<span>` that clips. Holds everything before the tail."
+      },
+      {
+        "part": "TruncatedText",
+        "name": "data-slot",
+        "value": "`\"truncated-text-tail\"`",
+        "description": "On the `<span>` that stays visible. Holds the last `tail` graphemes."
+      },
+      {
+        "part": "TruncatedText",
+        "name": "data-slot",
+        "value": "`\"truncated-text-value\"`",
+        "description": "On the visually hidden `<span>` that holds the whole value for assistive technology."
+      },
+      {
+        "part": "TruncatedText",
+        "name": "data-truncated",
+        "value": "present while the value overflows",
+        "description": "Presence-only. Style with `data-truncated:`. Absent on the server render."
+      }
+    ]
   },
   {
     "name": "Typography",
@@ -2730,7 +6148,15 @@
         "boundary": "the hidden content is a skip link that shows on focus."
       }
     ],
-    "useWhen": "Give screen readers text that sighted users never see, such as \"(opens in a new tab)\" on an external link."
+    "useWhen": "Give screen readers text that sighted users never see, such as \"(opens in a new tab)\" on an external link.",
+    "dataAttributes": [
+      {
+        "part": "VisuallyHidden",
+        "name": "data-slot",
+        "value": "`\"visually-hidden\"`",
+        "description": "Stamped on the rendered element, and joined onto the child via `asChild`."
+      }
+    ]
   },
   {
     "name": "Well",
@@ -2797,7 +6223,21 @@
         "boundary": "titled sections that are not part of a chat answer."
       }
     ],
-    "useWhen": "Fold the reasoning and the tool calls of one chat answer under one \"Show work\" / \"Hide work\" toggle that stays open while the answer streams."
+    "useWhen": "Fold the reasoning and the tool calls of one chat answer under one \"Show work\" / \"Hide work\" toggle that stays open while the answer streams.",
+    "dataAttributes": [
+      {
+        "part": "Work.Root",
+        "name": "data-streaming",
+        "value": "present while `streaming`",
+        "description": "Presence-only. Style with `data-streaming:`."
+      },
+      {
+        "part": "Work.Trigger",
+        "name": "data-slot=\"work-trigger-label\"",
+        "value": "on the wrapper",
+        "description": "The `display: contents` wrapper around the label."
+      }
+    ]
   },
   {
     "name": "World Map",
@@ -2822,6 +6262,122 @@
         "boundary": "a reader needs to sort, filter, or act on each place more than see where it is."
       }
     ],
-    "useWhen": "Show where things are in the world: agents, endpoints, or edge locations placed by longitude and latitude, or one request's client and the ngrok edge that received it."
+    "useWhen": "Show where things are in the world: agents, endpoints, or edge locations placed by longitude and latitude, or one request's client and the ngrok edge that received it.",
+    "dataAttributes": [
+      {
+        "part": "WorldMap.Root",
+        "name": "data-slot",
+        "value": "`\"world-map\"`",
+        "description": "The Root wrapper, with any forwarded chain ahead of it."
+      },
+      {
+        "part": "WorldMap.Root",
+        "name": "data-slot",
+        "value": "`\"world-map-plot\"`",
+        "description": "The plot box. Every overlay layer positions against it."
+      },
+      {
+        "part": "WorldMap.Root",
+        "name": "data-slot",
+        "value": "`\"world-map-canvas\"`",
+        "description": "The `<canvas>` the map paints on. Always `aria-hidden`. Engine-owned: absent from server HTML and from a dormant map."
+      },
+      {
+        "part": "WorldMap.Root",
+        "name": "data-slot",
+        "value": "`\"world-map-crosshair\"`",
+        "description": "The vertical hairline; a world map never shows it. Engine-owned, interactive maps only."
+      },
+      {
+        "part": "WorldMap.Root",
+        "name": "data-slot",
+        "value": "`\"world-map-hover-band\"`",
+        "description": "The category highlight; a world map never shows it. Engine-owned, interactive maps only."
+      },
+      {
+        "part": "WorldMap.Root",
+        "name": "data-slot",
+        "value": "`\"world-map-markers\"`",
+        "description": "The container for the hover dot on the hit point. Engine-owned, interactive maps only."
+      },
+      {
+        "part": "WorldMap.Root",
+        "name": "data-slot",
+        "value": "`\"world-map-tooltip\"`",
+        "description": "The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it."
+      },
+      {
+        "part": "WorldMap.Root",
+        "name": "data-slot",
+        "value": "`\"world-map-description\"`",
+        "description": "The `sr-only` description the overlay's `aria-describedby` points at: the point count, the series labels, and, on an interactive map, the keyboard instructions. Omitted when `mode=\"decorative\"`."
+      },
+      {
+        "part": "WorldMap.Root",
+        "name": "data-slot",
+        "value": "`\"world-map-data-table\"`",
+        "description": "The `sr-only` data table: one row for each of the first 150 points from west to east, with its name, series, latitude, longitude, and, with `sizeKey`, its size value. Mounts once focus lands inside the map and stays. Interactive maps only."
+      },
+      {
+        "part": "WorldMap.Root",
+        "name": "data-engaged",
+        "value": "present once engaged",
+        "description": "On the Root. Appears once focus lands inside the map, and never goes away. Interactive maps only."
+      },
+      {
+        "part": "WorldMap.Root",
+        "name": "data-slot",
+        "value": "`\"chart-active-point\"`",
+        "description": "The hover dot on the hit point, inside the markers layer. Also carries `data-shape`."
+      },
+      {
+        "part": "WorldMap.Root",
+        "name": "data-shape",
+        "value": "`\"circle\"` \\| `\"square\"` \\| `\"triangle\"` \\| `\"diamond\"` \\| `\"triangle-down\"` \\| `\"plus\"` \\| `\"cross\"` \\| `\"star\"`",
+        "description": "On the hover dot, naming the glyph its series wears: the `shape` it set, else the circle. The dot clips itself to that glyph, so target this only to restyle a dot."
+      },
+      {
+        "part": "WorldMap.Root",
+        "name": "data-value",
+        "value": "a number",
+        "description": "On each value cell of the `sr-only` data table. The raw number the cell shows formatted."
+      },
+      {
+        "part": "WorldMap.Callout",
+        "name": "data-slot",
+        "value": "`\"world-map-callout\"`",
+        "description": "The callout, with any forwarded chain ahead of it."
+      },
+      {
+        "part": "WorldMap.Callout",
+        "name": "data-side",
+        "value": "`\"top\"` \\| `\"bottom\"`",
+        "description": "The side of the place the callout sits on after placement: `side`, or the other side after a flip."
+      },
+      {
+        "part": "WorldMap.Tooltip",
+        "name": "data-slot",
+        "value": "`\"world-map-tooltip-label\"`",
+        "description": "On the `display: contents` `<div>` wrapping a `children` readout. The default readout has none."
+      },
+      {
+        "part": "WorldMap.Legend",
+        "name": "data-slot",
+        "value": "`\"world-map-legend\"`",
+        "description": "The legend list."
+      },
+      {
+        "part": "WorldMap.Legend",
+        "name": "data-slot",
+        "value": "`\"world-map-legend-label\"`",
+        "description": "On the `display: contents` `<div>` wrapping a `children` render prop."
+      },
+      {
+        "part": "WorldMap.Legend",
+        "name": "data-shape",
+        "value": "`\"circle\"` \\| `\"square\"` \\| `\"triangle\"` \\| `\"diamond\"` \\| `\"triangle-down\"` \\| `\"plus\"` \\| `\"cross\"` \\| `\"star\"`",
+        "description": "On each series' swatch, naming the glyph its `WorldMap.Point` wears."
+      }
+    ]
   }
 ]

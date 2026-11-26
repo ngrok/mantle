@@ -25,7 +25,7 @@ const srcDir = path.join(packageDir, "src");
 /** The ast-grep rules, one directory per migration that has a codemod. */
 const migrationsDir = path.join(packageDir, "migrations");
 
-/** Every `.mdx` file under `dir`, as docs slugs with their parsed frontmatter. */
+/** Every `.mdx` file under `dir`, as docs slugs with their parsed frontmatter and source. */
 function readDocs(dir: string): DocPage[] {
 	const docs: DocPage[] = [];
 	for (const entry of fs.readdirSync(dir, { recursive: true, withFileTypes: true })) {
@@ -38,7 +38,8 @@ function readDocs(dir: string): DocPage[] {
 			.replace(/\.mdx$/, "")
 			.split(path.sep)
 			.join("/");
-		docs.push({ slug, frontmatter: parseFrontmatter(fs.readFileSync(filePath, "utf8")) });
+		const mdx = fs.readFileSync(filePath, "utf8");
+		docs.push({ slug, frontmatter: parseFrontmatter(mdx), mdx });
 	}
 	return docs;
 }

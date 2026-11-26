@@ -352,6 +352,10 @@ The selection indicator for any radio item. By default, renders a circle that ch
 
 Accepts a render-props function `(context) => ReactNode` as children for custom indicators. The context includes `checked` and `disabled`. For hover and keyboard focus, style the custom indicator with `group-hover/radio:` and `group-has-[>input:focus-visible]/radio:`.
 
+| Data Attribute                 | Value | Description                                                                                                      |
+| ------------------------------ | ----- | ---------------------------------------------------------------------------------------------------------------- |
+| `data-radio-default-indicator` | `""`  | On the default circle, when the indicator has no children. The item drops its own focus ring while it holds one. |
+
 ### RadioGroup.ItemContent
 
 The content wrapper for any radio item. Wrap labels, descriptions, or other content inside.

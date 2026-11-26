@@ -653,10 +653,11 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 Stamped on the panel:
 
-| Data Attribute | Value              | Description                                                                                                                                        |
-| -------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"sandbar"`        | Stable styling hook for the panel. Survives `className` overrides.                                                                                 |
-| `data-open`    | present while open | Presence-only, and only at the resting open pose. Absent in both the pre-enter frame and the exit transition, which is what drives the slide/fade. |
+| Data Attribute | Value                   | Description                                                                                                                                        |
+| -------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"sandbar"`             | Stable styling hook for the panel. Survives `className` overrides.                                                                                 |
+| `data-open`    | present while open      | Presence-only, and only at the resting open pose. Absent in both the pre-enter frame and the exit transition, which is what drives the slide/fade. |
+| `data-shake`   | present while it shakes | Presence-only. Set by the handle's `shake()`. Not set under reduced motion.                                                                        |
 
 Every part also joins an incoming `data-slot` chain ahead of its own name, so composing a
 part through an ancestor's `asChild` yields `data-slot="ancestor-slot sandbar-…"` instead of

@@ -570,6 +570,11 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `id?`         | `string`                                     |         | DOM id for the focusable control, not for the wrapping `<div>`. `Field.Control` splats it onto the control and `Field.Label` uses it as the default `htmlFor`. When omitted, `Field.Item` generates a stable id. |
 | `validation?` | `"error" \| "success" \| "warning" \| false` |         | Validation state that `Field.Control` applies. Overrides the inferred `"error"` state; set it for a server-rendered error.                                                                                       |
 
+| Data Attribute    | Value                                   | Description                                                                                                |
+| ----------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `data-slot`       | `"field-item"`                          | The field.                                                                                                 |
+| `data-validation` | `"error"` \| `"success"` \| `"warning"` | The `validation` prop, else `"error"` while `Field.Errors` renders messages. Omitted when neither applies. |
+
 ### Field.Control
 
 Applies `Field.Item` description, error, identity, and validation state to a single control. It always behaves like an `asChild` slot: pass one child element to receive the generated props, or use a function child to place those props manually. Mantle compound controls that consume `FieldControlContext` can be wrapped at the root when their docs show that composition; otherwise use the render-prop form to place the generated props on the actual focusable element. Override validation on the surrounding `Field.Item`. `id` is not a prop here either; set it on `Field.Item`.

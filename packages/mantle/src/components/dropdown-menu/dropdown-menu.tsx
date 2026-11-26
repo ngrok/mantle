@@ -902,6 +902,13 @@ type DropdownMenuContentProps = MenuPanelProps & {
  * overlay that does not hold it opens. A float opened from an item, such as a
  * `Popover`, portals into the menu.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-open` | present while open | Presence-only. Whether the menu is open. |
+ * | `data-side` | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side the menu is on after it flips. |
+ *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenucontent
  *
  * @example
@@ -1350,6 +1357,8 @@ const renderSubTriggerContent = (label: ReactNode) => (
  * | --- | --- | --- |
  * | `data-slot` | `"dropdown-menu-sub-trigger"` | On the item element. |
  * | `data-slot` | `"dropdown-menu-sub-trigger-label"` | On the `<span>` wrapping `children`. |
+ * | `data-text-value` | the `textValue` prop | The text type-ahead matches. Omitted when unset. |
+ * | `data-highlighted` | present while focused | Presence-only. The item has focus, from the keyboard or the pointer. |
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenusubtrigger
  *
@@ -1695,6 +1704,13 @@ const SubContent = ({
 /**
  * An item in the dropdown menu.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-text-value` | the `textValue` prop | The text type-ahead matches. Omitted when unset. |
+ * | `data-highlighted` | present while focused | Presence-only. The item has focus, from the keyboard or the pointer. |
+ *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenuitem
  *
  * @example
@@ -1814,6 +1830,8 @@ type DropdownMenuCheckboxItemProps = ItemProps & {
  * | --- | --- | --- |
  * | `data-slot` | `"dropdown-menu-checkbox-item"` | On the item element. |
  * | `data-slot` | `"dropdown-menu-checkbox-item-label"` | On the `<span>` wrapping `children`. |
+ * | `data-text-value` | the `textValue` prop | The text type-ahead matches. Omitted when unset. |
+ * | `data-highlighted` | present while focused | Presence-only. The item has focus, from the keyboard or the pointer. |
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenucheckboxitem
  *
@@ -1938,6 +1956,8 @@ type DropdownMenuRadioItemProps = ItemProps & {
  * | --- | --- | --- |
  * | `data-slot` | `"dropdown-menu-radio-item"` | On the item element. |
  * | `data-slot` | `"dropdown-menu-radio-item-label"` | On the `<span>` wrapping `children`. |
+ * | `data-text-value` | the `textValue` prop | The text type-ahead matches. Omitted when unset. |
+ * | `data-highlighted` | present while focused | Presence-only. The item has focus, from the keyboard or the pointer. |
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenuradioitem
  *

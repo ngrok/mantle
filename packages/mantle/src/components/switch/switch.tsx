@@ -62,6 +62,12 @@ type SwitchProps = Omit<ComponentProps<"button">, "value"> &
  * compose it inside [`Choice`](/components/forms/choice) for a titled, multi-line
  * label with a supplementary description.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | The resolved `validation`. Omitted when unset. |
+ *
  * @useWhen Turn one setting on or off, such as a feature toggle in a settings list.
  *
  * @siblings

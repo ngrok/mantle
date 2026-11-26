@@ -1174,6 +1174,7 @@ function isPressOnRowSelection(event: PointerEvent<HTMLTableRowElement>): boolea
  * | ---------------- | ----------------------------- | ------------------------------------------------------- |
  * | `data-clickable` | present when `onClick` is set | Presence-only. The row runs a handler on a plain click. |
  * | `data-expanded`  | present when expanded         | Presence-only. The row's detail panel is open.          |
+ * | `data-closing` | present while it fades out | Presence-only. An ancestor row collapsed. The row is `inert` until it unmounts. |
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatablerow
  *
@@ -1445,6 +1446,7 @@ type DataTableActionCellProps = ComponentProps<typeof Table.Cell> & WithDataSlot
  * | --- | --- | --- |
  * | `data-slot` | `"data-table-action-cell table-cell"` | On the cell element, joined ahead of `Table.Cell`'s own slot. |
  * | `data-slot` | `"data-table-action-cell-label"` | On the `<span>` wrapping `children`. |
+ * | `data-mantle-table-sticky-right` | `"true"` | The column is pinned to the right edge. `Table.Root` drops its right scroll fade. |
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactioncell
  *
@@ -1524,6 +1526,7 @@ type DataTableActionHeaderProps = ComponentProps<typeof Table.Header> & WithData
  * | --- | --- | --- |
  * | `data-slot` | `"data-table-action-header table-header"` | On the cell element, joined ahead of `Table.Header`'s own slot. |
  * | `data-slot` | `"data-table-action-header-label"` | On the `<span>` wrapping `children`. |
+ * | `data-mantle-table-sticky-right` | `"true"` when rows exist | The column is pinned to the right edge. Omitted with no body rows, so the empty state keeps the fade. |
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactionheader
  *
@@ -1964,6 +1967,13 @@ type DataTableExpandedRowProps<TFeatures extends TableFeatures, TData extends Ro
  * the parent data row reacts to hover). It fades in on mount and fades out
  * when `DataTable.RowExpandButton` collapses its row, unless the user prefers
  * reduced motion. Exposes `data-expanded-content` for styling hooks.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-expanded-content` | `"true"` | Always present. Marks the detail panel's row. |
+ * | `data-closing` | present while it fades out | Presence-only. An ancestor row collapsed. The row is `inert` until it unmounts. |
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableexpandedrow
  *

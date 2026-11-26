@@ -160,6 +160,19 @@ type OtpInputRootProps = Omit<
  * attributes: an ignore attribute also stops the fill. LastPass does not fill
  * one-time codes, so the input carries `data-lpignore`.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-otp-state` | `"idle"` \| `"caret"` \| `"range"` \| `"all"` | On the `group/otp` wrapper of the slots. How many slots the selection covers: none, one, some, or all. |
+ * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | On the `group/otp` wrapper of the slots. The resolved `validation`. Omitted when unset. |
+ * | `data-input-otp-container` | `"true"` | On the box that holds the slots and the input. A page style can select it. |
+ * | `data-input-otp` | `"true"` | On the `<input>`. A `noScriptCSSFallback` or a page style can select it. |
+ * | `data-input-otp-mss` | a number | On the `<input>`. The selection start. Omitted before the input has a selection. |
+ * | `data-input-otp-mse` | a number | On the `<input>`. The selection end. Omitted before the input has a selection. |
+ * | `data-input-otp-placeholder-shown` | `"true"` | On the `<input>` while it is empty. Its value is `"true"`, not presence, so existing page styles still match. |
+ * | `data-lpignore` | `"true"` | On the `<input>`. Keeps the LastPass badge off; LastPass does not fill one-time codes. |
+ *
  * @see https://mantle.ngrok.com/components/forms/otp-input
  *
  * @example
@@ -539,6 +552,12 @@ type OtpInputSlotProps = Omit<ComponentProps<"div">, "translate"> & {
  * React remove a node its parent no longer owns, and the DOM raises
  * `NotFoundError`. The `translate` prop is omitted from the type, so no call
  * site can turn the guard off.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-highlighted` | present when active | Presence-only. The caret or the selection is on the slot. |
  *
  * @see https://mantle.ngrok.com/components/forms/otp-input
  * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate

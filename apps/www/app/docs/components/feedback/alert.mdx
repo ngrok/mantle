@@ -465,6 +465,11 @@ All props from [Button](/components/actions/button#api-reference), plus:
 | `count`    | `number`  |         | The number of hidden related alerts, displayed with a leading `+`.   |
 | `expanded` | `boolean` |         | Whether the related alerts are visible; rotates the caret when true. |
 
+| Data Attribute      | Value                   | Description                                                                              |
+| ------------------- | ----------------------- | ---------------------------------------------------------------------------------------- |
+| `data-slot`         | `"alert-expand-button"` | The button.                                                                              |
+| `data-alert-expand` | `"true"`                | Always present. `Alert.Root` reserves room for the button with `has-data-alert-expand:`. |
+
 ### Alert.Description
 
 The optional description of an `Alert`. Renders as a `div` by default, but can be changed to any other element using the `asChild` prop.
@@ -508,3 +513,8 @@ All props from [IconButton](/components/actions/icon-button#api-reference), with
 | `label?`      | `string`                                | `"Dismiss Alert"` | The accessible label for the button, announced to screen readers.              |
 | `size?`       | `"xs"` \| `"sm"` \| `"md"`              | `"sm"`            | The size of the button.                                                        |
 | `type?`       | `"button"` \| `"submit"` \| `"reset"`   | `"button"`        | The default behavior of the button.                                            |
+
+| Data Attribute       | Value                         | Description                                                                               |
+| -------------------- | ----------------------------- | ----------------------------------------------------------------------------------------- |
+| `data-slot`          | `"alert-dismiss-icon-button"` | The button.                                                                               |
+| `data-alert-dismiss` | `"true"`                      | Always present. `Alert.Root` reserves room for the button with `has-data-alert-dismiss:`. |

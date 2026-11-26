@@ -9,6 +9,7 @@
     "report:bundle-size": "pnpm -F @ngrok/mantle run report:bundle-size",
     "check:changed": "node ./scripts/check-changed.ts",
     "check:css-selectors": "node ./scripts/check-css-selectors.ts",
+    "check:data-attributes": "node ./scripts/check-data-attributes.ts",
     "check:dist": "pnpm -F @ngrok/mantle run check:dist",
     "check:doc-links": "node ./scripts/check-doc-links.ts",
     "check:prose": "node ./scripts/check-prose.ts",

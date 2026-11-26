@@ -190,6 +190,12 @@ type ComboboxInputProps = Omit<ComponentProps<"input">, "value" | "defaultValue"
  * entry with suggestions, set `autoSelect={false}` and submit in `onKeyDown` when
  * `aria-activedescendant` is not set.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | The resolved `validation`. Omitted when unset. |
+ *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxinput
  *
  * @example
@@ -335,6 +341,15 @@ type ComboboxContentProps = ComponentProps<"div"> &
  * the listbox and not in it.
 
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-mantle-popup` | `""` | On the popover box. An enclosing `Dialog` reads it to keep a press inside the popup. |
+ * | `data-open` | `""` | On the popover box and the listbox while open. An enclosing `Dialog` reads it to leave **Escape** to the list. |
+ * | `data-side` | `"top"` \| `"bottom"` | On the popover box. The side of the anchor the popup opened on. |
+ * | `data-float-scroll` | `""` | On the listbox. The element that scrolls when the popup is shorter than its content. |
+ *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxcontent
  *
  * @example
@@ -453,6 +468,15 @@ type ComboboxItemProps = Omit<ComponentProps<"div">, "children" | "value"> &
  *
  * **Function child.** `(props, { highlighted }) => element` renders the item as
  * the element it returns. Spread `props` on it.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-value` | the `value` prop | The option's value. |
+ * | `data-text-value` | the `textValue` prop | The text type-ahead matches. Omitted when unset. |
+ * | `data-highlighted` | present when highlighted | Presence-only. The item under the pointer or the keyboard focus. |
+ * | `data-selected` | present when selected | Presence-only. The item's value is the root's value. |
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxitem
  *
@@ -641,6 +665,13 @@ type ComboboxItemValueProps = Omit<ComponentProps<"span">, "children"> &
  * The item value is automatically set to the value of the closest Combobox.Item component's value prop.
  * The user input value is automatically set to the text of `Combobox.Input`.
  * Passing `value` or `userValue` overrides them, respectively.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-user-value` | present on the match | Presence-only. On the `<span>` around the text that matches the query. |
+ * | `data-autocomplete-value` | present on the rest | Presence-only. On each `<span>` around text that does not match the query. |
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxitemvalue
  *

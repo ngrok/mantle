@@ -487,6 +487,12 @@ type SelectableListItemProps = Omit<ComponentProps<"div">, "children" | "id"> & 
  * Render it from a viewport's render-prop child for a custom row layout; the
  * default row (title + description) uses it under the hood.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-value` | the `value` prop | The option's selection value. |
+ *
  * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example

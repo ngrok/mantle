@@ -243,6 +243,11 @@ A standard item in the dropdown menu that can be selected or activated.
 | `onSelect?`  | `(event: Event) => void` |         | Event handler called when the user selects an item (via mouse or key). Call `event.preventDefault()` to keep the menu open. |
 | `textValue?` | `string`                 |         | The text that typeahead matches. Defaults to the text content of the item.                                                  |
 
+| Data Attribute     | Value                 | Description                                                          |
+| ------------------ | --------------------- | -------------------------------------------------------------------- |
+| `data-text-value`  | the `textValue` prop  | The text type-ahead matches. Omitted when unset.                     |
+| `data-highlighted` | present while focused | Presence-only. The item has focus, from the keyboard or the pointer. |
+
 ### DropdownMenu.CheckboxItem
 
 A menu item with a checkbox that can be controlled or uncontrolled.
@@ -263,10 +268,12 @@ The item sets `aria-checked` to `true`, `false`, or `mixed` for `"indeterminate"
 
 #### Data attributes
 
-| Data Attribute | Value                                 | Description                          |
-| :------------- | :------------------------------------ | :----------------------------------- |
-| `data-slot`    | `"dropdown-menu-checkbox-item"`       | On the item element.                 |
-| `data-slot`    | `"dropdown-menu-checkbox-item-label"` | On the `<span>` wrapping `children`. |
+| Data Attribute     | Value                                 | Description                                                          |
+| :----------------- | :------------------------------------ | :------------------------------------------------------------------- |
+| `data-slot`        | `"dropdown-menu-checkbox-item"`       | On the item element.                                                 |
+| `data-slot`        | `"dropdown-menu-checkbox-item-label"` | On the `<span>` wrapping `children`.                                 |
+| `data-text-value`  | the `textValue` prop                  | The text type-ahead matches. Omitted when unset.                     |
+| `data-highlighted` | present while focused                 | Presence-only. The item has focus, from the keyboard or the pointer. |
 
 ### DropdownMenu.RadioGroup
 
@@ -294,10 +301,12 @@ All props of `DropdownMenu.Item`, plus:
 
 #### Data attributes
 
-| Data Attribute | Value                              | Description                          |
-| :------------- | :--------------------------------- | :----------------------------------- |
-| `data-slot`    | `"dropdown-menu-radio-item"`       | On the item element.                 |
-| `data-slot`    | `"dropdown-menu-radio-item-label"` | On the `<span>` wrapping `children`. |
+| Data Attribute     | Value                              | Description                                                          |
+| :----------------- | :--------------------------------- | :------------------------------------------------------------------- |
+| `data-slot`        | `"dropdown-menu-radio-item"`       | On the item element.                                                 |
+| `data-slot`        | `"dropdown-menu-radio-item-label"` | On the `<span>` wrapping `children`.                                 |
+| `data-text-value`  | the `textValue` prop               | The text type-ahead matches. Omitted when unset.                     |
+| `data-highlighted` | present while focused              | Presence-only. The item has focus, from the keyboard or the pointer. |
 
 ### DropdownMenu.Label
 
@@ -343,10 +352,12 @@ An icon you pass as a child is now a grandchild of the item, so a `[&>svg]` clas
 
 #### Data attributes
 
-| Data Attribute | Value                               | Description                          |
-| :------------- | :---------------------------------- | :----------------------------------- |
-| `data-slot`    | `"dropdown-menu-sub-trigger"`       | On the item element.                 |
-| `data-slot`    | `"dropdown-menu-sub-trigger-label"` | On the `<span>` wrapping `children`. |
+| Data Attribute     | Value                               | Description                                                          |
+| :----------------- | :---------------------------------- | :------------------------------------------------------------------- |
+| `data-slot`        | `"dropdown-menu-sub-trigger"`       | On the item element.                                                 |
+| `data-slot`        | `"dropdown-menu-sub-trigger-label"` | On the `<span>` wrapping `children`.                                 |
+| `data-text-value`  | the `textValue` prop                | The text type-ahead matches. Omitted when unset.                     |
+| `data-highlighted` | present while focused               | Presence-only. The item has focus, from the keyboard or the pointer. |
 
 ### DropdownMenu.SubContent
 

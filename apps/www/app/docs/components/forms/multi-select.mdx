@@ -811,6 +811,10 @@ The trigger container for the multi-select. Wraps the input and selected value t
 | :------------ | :------------------------------------------------------------------------------------------------- | :------ | :---------------------------------------------------- |
 | `validation?` | `"error" \| "success" \| "warning" \| false \| (() => "error" \| "success" \| "warning" \| false)` |         | Validation state that changes the border and outline. |
 
+| Data Attribute    | Value                                   | Description                                    |
+| ----------------- | --------------------------------------- | ---------------------------------------------- |
+| `data-validation` | `"error"` \| `"success"` \| `"warning"` | The resolved `validation`. Omitted when unset. |
+
 ### MultiSelect.TagValues
 
 Renders the selected values as removable tags. Place this inside `MultiSelect.Trigger`, followed by `MultiSelect.Input`.
@@ -861,11 +865,12 @@ Also accepts all standard `span` element props (except `children`). The `onKeyDo
 | `onRemove?` | `() => void` |         | Called when the remove button is clicked. `MultiSelect.TagValues` passes one through its render props that removes the value from the selection. |
 | `locked?`   | `boolean`    | `false` | When true, shows a lock icon, disables the remove button, and shakes on Delete/Backspace key presses.                                            |
 
-| Data Attribute    | Value                 | Description                       |
-| :---------------- | :-------------------- | :-------------------------------- |
-| `data-locked`     | present when `locked` | The tag cannot be removed.        |
-| `data-appearance` | `"square"`            | The `Chip` appearance of the tag. |
-| `data-size`       | `"sm"`                | The `Chip` size of the tag.       |
+| Data Attribute    | Value                   | Description                                                                                      |
+| :---------------- | :---------------------- | :----------------------------------------------------------------------------------------------- |
+| `data-locked`     | present when `locked`   | The tag cannot be removed.                                                                       |
+| `data-appearance` | `"square"`              | The `Chip` appearance of the tag.                                                                |
+| `data-size`       | `"sm"`                  | The `Chip` size of the tag.                                                                      |
+| `data-shake`      | present while it shakes | Presence-only. A locked tag shakes on **Backspace** or **Delete**. Not set under reduced motion. |
 
 ### MultiSelect.Content
 
@@ -880,6 +885,13 @@ Renders a popover that contains multi-select content.
 | `asChild?`   | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
 | `sameWidth?` | `boolean` | `true`  | Whether the popover should be the same width as the trigger.          |
 
+| Data Attribute      | Value                 | Description                                                                                                    |
+| ------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `data-mantle-popup` | `""`                  | On the popover box. An enclosing `Dialog` reads it to keep a press inside the popup.                           |
+| `data-open`         | `""`                  | On the popover box and the listbox while open. An enclosing `Dialog` reads it to leave **Escape** to the list. |
+| `data-side`         | `"top"` \| `"bottom"` | On the popover box. The side of the anchor the popup opened on.                                                |
+| `data-float-scroll` | `""`                  | On the listbox. The element that scrolls when the popup is shorter than its content.                           |
+
 ### MultiSelect.Item
 
 Renders a selectable item with a checkbox indicator inside a `MultiSelect.Content`.
@@ -893,10 +905,13 @@ All props of a `<div>`, plus `value`, `disabled`, and:
 | `asChild?`  | `boolean`                                                 | `false` | Compose onto an alternative element type or your own React component.                                                                                                                       |
 | `children?` | `ReactNode` \| `(props, { highlighted }) => ReactElement` |         | The item's label. A function renders the item as the element it returns, with the item's props and whether it is highlighted. Spread `props` on that element and write the label inside it. |
 
-| Data Attribute | Value                       | Description                         |
-| :------------- | :-------------------------- | :---------------------------------- |
-| `data-slot`    | `"multi-select-item"`       | On the option element.              |
-| `data-slot`    | `"multi-select-item-label"` | On the `<div>` wrapping `children`. |
+| Data Attribute     | Value                       | Description                                                      |
+| :----------------- | :-------------------------- | :--------------------------------------------------------------- |
+| `data-slot`        | `"multi-select-item"`       | On the option element.                                           |
+| `data-slot`        | `"multi-select-item-label"` | On the `<div>` wrapping `children`.                              |
+| `data-value`       | the `value` prop            | The option's value.                                              |
+| `data-text-value`  | the `textValue` prop        | The text type-ahead matches. Omitted when unset.                 |
+| `data-highlighted` | present when highlighted    | Presence-only. The item under the pointer or the keyboard focus. |
 
 ### MultiSelect.Group
 
@@ -944,7 +959,8 @@ Standard `div` element props.
 
 **Data attributes:**
 
-| Data Attribute | Value                           | Description                                                                            |
-| -------------- | ------------------------------- | -------------------------------------------------------------------------------------- |
-| `data-slot`    | `"multi-select-content-footer"` | On the footer.                                                                         |
-| `data-slot`    | `"multi-select-popup"`          | On the popover box that holds the listbox and the footer. It also carries `data-side`. |
+| Data Attribute        | Value                           | Description                                                                            |
+| --------------------- | ------------------------------- | -------------------------------------------------------------------------------------- |
+| `data-slot`           | `"multi-select-content-footer"` | On the footer.                                                                         |
+| `data-slot`           | `"multi-select-popup"`          | On the popover box that holds the listbox and the footer. It also carries `data-side`. |
+| `data-content-footer` | `"true"`                        | Always present. Marks the footer apart from the listbox.                               |

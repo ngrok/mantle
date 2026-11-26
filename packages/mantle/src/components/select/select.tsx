@@ -966,6 +966,8 @@ type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
  * | `aria-selected`    | `"true"` \| `"false"` | Whether this item is the selected value. Style it with `aria-selected:`. |
  * | `data-highlighted` | present when highlighted     | Presence-only. The item under the pointer or the keyboard focus.     |
  * | `aria-disabled`    | `"true"` when disabled       | The `disabled` prop. Style it with `aria-disabled:`.                 |
+ * | `data-value` | the `value` prop | The option's value. |
+ * | `data-text-value` | the `textValue` prop | The text type-ahead matches. Omitted when unset. |
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectitem
  *

@@ -160,6 +160,15 @@ type ThemeProviderProps = PropsWithChildren<{
  * a direct edit to it. In browser automation, set the cookie
  * (`mantle-ui-theme=dark`) and reload.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-theme` | `"system"` \| `"light"` \| `"dark"` | On `<html>`. The stored theme, before `"system"` resolves. |
+ * | `data-applied-theme` | `"light"` \| `"dark"` | On `<html>`. The theme that paints. |
+ * | `data-theme-transition` | present during a swap | Presence-only. On `<html>` and on each open dialog or menu while the theme swap animates. |
+ * | `data-theme-transition-many` | present during a swap | Presence-only. On `<html>` when the page holds many transitions, so a style rule stops them instead of a script. |
+ *
  * @see https://mantle.ngrok.com/components/primitives/theme#themeprovider
  *
  * @example

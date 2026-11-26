@@ -233,6 +233,7 @@ type WorldMapLegendProps = LegendPrimitiveProps;
  * | `data-slot` | `"world-map-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the point count, the series labels, and, on an interactive map, the keyboard instructions. Omitted when `mode="decorative"`. |
  * | `data-slot` | `"world-map-data-table"` | The `sr-only` data table: one row for each of the first 150 points from west to east, with its name, series, latitude, longitude, and, with `sizeKey`, its size value. Mounts once focus lands inside the map (`data-engaged` appears) and stays. Interactive maps only. |
  * | `data-engaged` | present once engaged | On the Root. Appears once focus lands inside the map, and never goes away. Interactive maps only. |
+ * | `data-value` | a number | On each value cell of the `sr-only` data table. The raw number the cell shows formatted. |
  *
  * **CSS variables (public API):**
  *

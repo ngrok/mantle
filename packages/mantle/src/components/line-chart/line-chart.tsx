@@ -192,6 +192,7 @@ type LineChartCopyButtonProps = CopyButtonPrimitiveProps;
  * | `data-slot` | `"line-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`. |
  * | `data-slot` | `"line-chart-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-engaged` appears) and stays. Interactive charts only. |
  * | `data-engaged` | present once engaged | On the Root. Appears once focus lands inside the chart, and never goes away. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only. |
+ * | `data-value` | a number | On each value cell of the `sr-only` data table. The raw number the cell shows formatted. |
  *
  * @see https://mantle.ngrok.com/components/charts/line-chart#linechartroot
  *

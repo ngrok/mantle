@@ -642,6 +642,12 @@ type FieldItemProps = Omit<ComponentProps<"div">, "id"> &
  * `Field.Errors`, or multiple `Field.ErrorItem` children to `Field.ErrorList`,
  * instead.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | The `validation` prop, else `"error"` while `Field.Errors` renders messages. Omitted when neither applies. |
+ *
  * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example

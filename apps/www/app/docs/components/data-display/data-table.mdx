@@ -1370,10 +1370,11 @@ The row subscribes to the whole table state and to the table options. It re-rend
 
 Remaining props forward to the HTML `<tr>` element.
 
-| Data Attribute   | Value                         | Description                                             |
-| :--------------- | :---------------------------- | :------------------------------------------------------ |
-| `data-clickable` | present when `onClick` is set | Presence-only. The row runs a handler on a plain click. |
-| `data-expanded`  | present when expanded         | Presence-only. The row's detail panel is open.          |
+| Data Attribute   | Value                         | Description                                                                     |
+| :--------------- | :---------------------------- | :------------------------------------------------------------------------------ |
+| `data-clickable` | present when `onClick` is set | Presence-only. The row runs a handler on a plain click.                         |
+| `data-expanded`  | present when expanded         | Presence-only. The row's detail panel is open.                                  |
+| `data-closing`   | present while it fades out    | Presence-only. An ancestor row collapsed. The row is `inert` until it unmounts. |
 
 ### DataTable.EmptyRow
 
@@ -1456,10 +1457,11 @@ A sticky-right `<th>` that pairs with `DataTable.ActionCell`. Use as the `header
 
 #### Data attributes
 
-| Data Attribute | Value                                     | Description                                               |
-| :------------- | :---------------------------------------- | :-------------------------------------------------------- |
-| `data-slot`    | `"data-table-action-header table-header"` | On the `<th>`, joined ahead of `Table.Header`'s own slot. |
-| `data-slot`    | `"data-table-action-header-label"`        | On the `<span>` wrapping `children`.                      |
+| Data Attribute                   | Value                                     | Description                                                                                           |
+| :------------------------------- | :---------------------------------------- | :---------------------------------------------------------------------------------------------------- |
+| `data-slot`                      | `"data-table-action-header table-header"` | On the `<th>`, joined ahead of `Table.Header`'s own slot.                                             |
+| `data-slot`                      | `"data-table-action-header-label"`        | On the `<span>` wrapping `children`.                                                                  |
+| `data-mantle-table-sticky-right` | `"true"` when rows exist                  | The column is pinned to the right edge. Omitted with no body rows, so the empty state keeps the fade. |
 
 ### DataTable.ActionCell
 
@@ -1477,10 +1479,11 @@ A click inside the cell never reaches a clickable row: the cell stops propagatio
 
 #### Data attributes
 
-| Data Attribute | Value                                 | Description                                             |
-| :------------- | :------------------------------------ | :------------------------------------------------------ |
-| `data-slot`    | `"data-table-action-cell table-cell"` | On the `<td>`, joined ahead of `Table.Cell`'s own slot. |
-| `data-slot`    | `"data-table-action-cell-label"`      | On the `<span>` wrapping `children`.                    |
+| Data Attribute                   | Value                                 | Description                                                                       |
+| :------------------------------- | :------------------------------------ | :-------------------------------------------------------------------------------- |
+| `data-slot`                      | `"data-table-action-cell table-cell"` | On the `<td>`, joined ahead of `Table.Cell`'s own slot.                           |
+| `data-slot`                      | `"data-table-action-cell-label"`      | On the `<span>` wrapping `children`.                                              |
+| `data-mantle-table-sticky-right` | `"true"`                              | The column is pinned to the right edge. `Table.Root` drops its right scroll fade. |
 
 ### DataTable.ControlCell
 
@@ -1541,3 +1544,9 @@ The sibling `<tr>` that renders a row's expanded detail panel. Render it directl
 | `children`   | `ReactNode`             |                        | The detail content rendered inside the full-width panel. **Required.**                                               |
 | `colSpan?`   | `number`                | the visible cell count | Override the cell's `colSpan`. Defaults to the row's visible cells, or every cell without `columnVisibilityFeature`. |
 | `className?` | `string`                |                        | Extra classes merged onto the `<tr>`. Remaining props forward to the HTML `<tr>` element.                            |
+
+| Data Attribute          | Value                       | Description                                                                     |
+| ----------------------- | --------------------------- | ------------------------------------------------------------------------------- |
+| `data-slot`             | `"data-table-expanded-row"` | The `<tr>`.                                                                     |
+| `data-expanded-content` | `"true"`                    | Always present. Marks the detail panel's row.                                   |
+| `data-closing`          | present while it fades out  | Presence-only. An ancestor row collapsed. The row is `inert` until it unmounts. |

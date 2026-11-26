@@ -506,6 +506,12 @@ type PopoverArrowProps = Omit<ComponentProps<"svg">, "children" | "width" | "hei
  * so the two edges read as one line, and casts its own shadow, clipped at
  * that base.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-float-arrow` | `""` | On the `<span>` around the arrow's `<svg>`. The float moves it to the edge that faces the anchor. |
+ *
  * @see https://mantle.ngrok.com/components/overlays/popover#popoverarrow
  *
  * @example

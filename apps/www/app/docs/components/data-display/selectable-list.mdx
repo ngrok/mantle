@@ -437,6 +437,13 @@ A selectable grid row (`role="row"`) for custom viewport rendering. Selection an
 | `value`    | `string`    |         | The option's selection value; selection and disabled state are read from the list.             |
 | `children` | `ReactNode` |         | Item content (e.g. `ItemTitle` + `ItemDescription`, or your own; interactive content allowed). |
 
+| Data Attribute     | Value                    | Description                                |
+| ------------------ | ------------------------ | ------------------------------------------ |
+| `data-slot`        | `"selectable-list-item"` | The row.                                   |
+| `data-value`       | the `value` prop         | The option's selection value.              |
+| `data-index`       | a number                 | Its position in the list.                  |
+| `data-highlighted` | present when active      | Presence-only. The row the keyboard is on. |
+
 ### SelectableList.ItemTitle / SelectableList.ItemDescription
 
 The title and de-emphasized sub-line inside a `SelectableList.Item`. `ItemTitle` renders a [`Choice.Label`](/components/forms/choice) (the real `<label>` wired to the row's checkbox); `ItemDescription` renders a `Choice.Description` (wired via `aria-describedby`).
