@@ -1593,7 +1593,8 @@ panel instead. This behavior is built in: no prop turns it on, and the two roots
 
 - **The panel takes the width.** When the panel opens in a window narrower than the
   `--container-side-panel-lane` theme token (56.5rem), or the window narrows below it while the panel is open,
-  an expanded sidebar collapses. The collapse lands in the same frame as the panel.
+  an expanded sidebar collapses. The collapse lands in the same frame as the panel. A lane that your app
+  raises in `@theme` moves the collapse with it.
 - **The panel gives it back.** When the panel closes, unmounts, or the window widens, a sidebar that the
   panel collapsed expands again.
 - **The reader's choice stands.** `Sidebar.Trigger` still toggles the sidebar beside the open panel, and a

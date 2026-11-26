@@ -967,6 +967,10 @@ MARK: COMPONENT GEOMETRY
    or set `--sidebar-row-width` on the outside surface itself. */
 :root {
 	--sidebar-row-width: calc(var(--sidebar-width, 13rem) - 1rem);
+	/* Private: the lane that `AppLayout.SidePanel` reads to collapse the sidebar. The container
+	   query inlines `--container-side-panel-lane`, so `:root` has no variable to read. `inline`
+	   resolves the app's own `@theme` value, so the collapse and the lane move together. */
+	--_side-panel-lane: --theme(--container-side-panel-lane inline);
 }
 
 /**

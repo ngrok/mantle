@@ -625,6 +625,16 @@ type MarkdownProps = Omit<ComponentProps<"div">, "children"> &
 		 * @default false
 		 */
 		streaming?: boolean;
+		/**
+		 * Whether the answer ended before it finished, such as when the reader
+		 * stopped it or the stream failed. Its unfinished syntax at the end stays
+		 * closed, as it rendered while streaming, so `**bol` stays bold. Set it
+		 * from the answer's stored status, so the answer renders the same after a
+		 * reload. It changes nothing while `streaming`.
+		 *
+		 * @default false
+		 */
+		truncated?: boolean;
 		/** The components that replace the built-in one for a token. Keep the object stable. */
 		components?: MarkdownComponents;
 		/**
@@ -685,6 +695,7 @@ type MarkdownProps = Omit<ComponentProps<"div">, "children"> &
 function Markdown({
 	children,
 	streaming = false,
+	truncated = false,
 	components,
 	extensions,
 	onBlockComplete,
@@ -695,7 +706,10 @@ function Markdown({
 }: MarkdownProps) {
 	const source = useFrameValue(children, { throttle: streaming });
 	const parser = useMemo(() => createMarkdownParser({ extensions }), [extensions]);
-	const snapshot = useMemo(() => parser.parse(source, { streaming }), [parser, source, streaming]);
+	const snapshot = useMemo(
+		() => parser.parse(source, { streaming, truncated }),
+		[parser, source, streaming, truncated],
+	);
 
 	const isHydrated = useIsHydrated();
 	const [hasStreamed, setHasStreamed] = useState(streaming);

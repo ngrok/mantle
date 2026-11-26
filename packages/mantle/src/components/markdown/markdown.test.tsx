@@ -89,6 +89,29 @@ describe("Markdown", () => {
 		expect(container).not.toHaveTextContent("**");
 	});
 
+	test("a truncated answer keeps its unfinished end closed after the stream ends", () => {
+		const text = "See [the docs][docs] for **ngrok http";
+		const { container, rerender } = render(<Markdown streaming>{text}</Markdown>);
+		rerender(<Markdown truncated>{text}</Markdown>);
+		expect(container.querySelector("strong")).toHaveTextContent("ngrok http");
+		expect(container).not.toHaveTextContent("**");
+
+		// Why a finished block, then a definition: the final parse then reads the whole answer again, which must close it too.
+		const streamed = "First.\n\nSecond.\n\n";
+		rerender(<Markdown streaming>{streamed}</Markdown>);
+		const withDefinition = `${streamed}[docs]: https://ngrok.com/docs\n\n${text}`;
+		rerender(<Markdown streaming>{withDefinition}</Markdown>);
+		rerender(<Markdown truncated>{withDefinition}</Markdown>);
+		expect(screen.getByRole("link", { name: "the docs" })).toHaveAttribute(
+			"href",
+			"https://ngrok.com/docs",
+		);
+		expect(container.querySelector("strong")).toHaveTextContent("ngrok http");
+
+		rerender(<Markdown>{text}</Markdown>);
+		expect(container).toHaveTextContent("**ngrok http");
+	});
+
 	test("never renders a finished block again while the answer streams", () => {
 		const paragraph = vi.fn<NonNullable<MarkdownComponents["paragraph"]>>(({ children }) => (
 			<p>{children}</p>

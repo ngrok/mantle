@@ -60,6 +60,15 @@ type ConversationRootProps = ComponentProps<"div"> &
 		 */
 		streaming?: boolean;
 		/**
+		 * Whether the reader stopped the last answer. When `streaming` turns
+		 * false, the status region announces "Answer stopped." in place of
+		 * "Answer ended.", so a reader in the composer hears that the answer is
+		 * cut short. Announce a failure with its own `role="alert"`.
+		 *
+		 * @default false
+		 */
+		stopped?: boolean;
+		/**
 		 * The visually hidden hint that describes the feed. Set it to translate the hint.
 		 *
 		 * @default "Use the up and down arrow keys to move between messages."
@@ -117,6 +126,7 @@ function Root({
 	className,
 	keyboardHint = "Use the up and down arrow keys to move between messages.",
 	ref,
+	stopped = false,
 	streaming = false,
 	...props
 }: ConversationRootProps) {
@@ -130,7 +140,7 @@ function Root({
 		scrollButtonRef,
 		hintId,
 	}));
-	const announcement = useStreamAnnouncement(streaming);
+	const announcement = useStreamAnnouncement({ streaming, stopped });
 
 	return (
 		<ConversationContext value={context}>
@@ -155,10 +165,16 @@ function Root({
 
 /**
  * The text for the conversation's status region: "Answering…" while an answer
- * streams, "Answer ended." after one, and nothing before the first. A region
- * announces a change, so the next answer announces again.
+ * streams, "Answer ended." or "Answer stopped." after one, and nothing before
+ * the first. A region announces a change, so the next answer announces again.
  */
-function useStreamAnnouncement(streaming: boolean): string {
+function useStreamAnnouncement({
+	streaming,
+	stopped,
+}: {
+	streaming: boolean;
+	stopped: boolean;
+}): string {
 	const [hasStreamed, setHasStreamed] = useState(streaming);
 	if (streaming && !hasStreamed) {
 		setHasStreamed(true);
@@ -166,7 +182,10 @@ function useStreamAnnouncement(streaming: boolean): string {
 	if (streaming) {
 		return "Answering…";
 	}
-	return hasStreamed ? "Answer ended." : "";
+	if (!hasStreamed) {
+		return "";
+	}
+	return stopped ? "Answer stopped." : "Answer ended.";
 }
 
 /**

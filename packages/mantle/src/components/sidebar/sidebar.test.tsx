@@ -3,9 +3,11 @@ import { act, fireEvent, render as renderComponent, screen, waitFor } from "@tes
 import { userEvent } from "@testing-library/user-event";
 import { createRef, type ReactElement, type ReactNode, useEffect } from "react";
 import { renderToString } from "react-dom/server";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, onTestFinished, test, vi } from "vitest";
+import { compile } from "tailwindcss";
 import mantleCss from "../../mantle.css?raw";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
+import { loadMantleImport } from "../../test-utils/parse-theme-css.js";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type * as UseBreakpointModule from "../../hooks/use-breakpoint.js";
 import * as AppLayout from "../app-layout/app-layout-parts.js";
@@ -1151,6 +1153,29 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 		});
 		expect(nav()).toHaveAttribute("data-expanded");
 		expect(onOpenChange).toHaveBeenCalledTimes(0);
+	});
+
+	test("mantle.css puts the app's lane on :root, where the panel reads it", async () => {
+		const compiler = await compile(`${mantleCss}\n@theme { --container-side-panel-lane: 80rem; }`, {
+			loadStylesheet: loadMantleImport,
+		});
+		const css = compiler.build(["@min-side-panel-lane/app-layout-workspace:basis-0"]);
+
+		expect(css).toContain("--_side-panel-lane: 80rem;");
+		expect(css).toContain("(width >= 80rem)");
+	});
+
+	test("a wider lane in the app's theme collapses the sidebar below that lane", async () => {
+		const user = userEvent.setup();
+		document.documentElement.style.setProperty("--_side-panel-lane", "80rem");
+		onTestFinished(() => {
+			document.documentElement.style.removeProperty("--_side-panel-lane");
+		});
+		mockMatchMedia({ [belowTheLane]: false, "(width < 80rem)": true });
+		render(<Shell />);
+
+		await togglePanel(user);
+		expect(nav()).not.toHaveAttribute("data-expanded");
 	});
 
 	test("the panel gives the width back when it closes", async () => {

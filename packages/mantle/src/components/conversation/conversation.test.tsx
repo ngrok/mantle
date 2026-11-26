@@ -3,9 +3,9 @@ import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as Conversation from "./conversation-parts.js";
 
-function Transcript({ streaming }: { streaming?: boolean }) {
+function Transcript({ streaming, stopped }: { streaming?: boolean; stopped?: boolean }) {
 	return (
-		<Conversation.Root streaming={streaming}>
+		<Conversation.Root streaming={streaming} stopped={stopped}>
 			<Conversation.Viewport>
 				<Conversation.Content aria-label="Messages" />
 			</Conversation.Viewport>
@@ -44,6 +44,18 @@ describe("Conversation", () => {
 
 		rerender(<Transcript streaming />);
 		expect(status).toHaveTextContent("Answering…");
+	});
+
+	test("announces a stopped answer as stopped, and the next answer's end as ended", () => {
+		const { rerender } = render(<Transcript streaming />);
+		const status = screen.getByRole("status");
+
+		rerender(<Transcript stopped />);
+		expect(status).toHaveTextContent("Answer stopped.");
+
+		rerender(<Transcript streaming />);
+		rerender(<Transcript />);
+		expect(status).toHaveTextContent("Answer ended.");
 	});
 
 	test("Root stamps data-streaming only while streaming", () => {

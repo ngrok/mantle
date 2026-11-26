@@ -215,7 +215,11 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 			<div className="flex min-h-0 flex-1 flex-col [--gutter:--spacing(3)] @lg:[--gutter:--spacing(4)]">
 				{/* Why no scroll here: `Conversation.Viewport` scrolls, so it can follow the answer as it streams. */}
 				<Panel.Body className="flex flex-col overflow-visible">
-					<Conversation.Root streaming={chat.streaming} className="min-h-0 flex-1">
+					<Conversation.Root
+						streaming={chat.streaming}
+						stopped={lastAnswer?.status === "stopped"}
+						className="min-h-0 flex-1"
+					>
 						{chat.messages.length === 0 ? (
 							<Empty.Root className="m-auto">
 								<Empty.Icon svg={<ChatsCircleIcon />} />
@@ -501,7 +505,14 @@ function Answer({ answer, onRetry }: { answer: ChatAnswer; onRetry: (() => void)
 						</Work.Content>
 					</Work.Root>
 				)}
-				{answer.text !== "" && <Markdown streaming={streaming}>{answer.text}</Markdown>}
+				{answer.text !== "" && (
+					<Markdown
+						streaming={streaming}
+						truncated={answer.status === "stopped" || answer.status === "failed"}
+					>
+						{answer.text}
+					</Markdown>
+				)}
 				{answer.status === "failed" && (
 					<Alert.Root intent="danger" role="alert">
 						<Alert.Icon />

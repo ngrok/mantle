@@ -21,6 +21,7 @@ import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
 import { useSwipeToDismiss } from "../../hooks/use-swipe-to-dismiss.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
+import { canUseDOM } from "../browser-only/can-use-dom.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -853,9 +854,16 @@ const sidePanelCoverQuery: Record<AppLayoutSidePanelMobileBreakpoint, string> = 
  * The viewport range in which an open panel needs the sidebar's width: the row
  * is narrower than `--container-side-panel-lane`. Below the lane the row is the
  * viewport's width, and a container query cannot drive React state, so this
- * repeats the token as a viewport query.
+ * reads the token as a viewport query. `mantle.css` resolves the app's `@theme`
+ * value into `--_side-panel-lane` on `:root`. Before a stylesheet loads, and on
+ * the server, it is the default lane.
  */
-const sidePanelNeedsSidebarWidthQuery = "(width < 56.5rem)";
+function sidePanelNeedsSidebarWidthQuery(): string {
+	const lane = canUseDOM()
+		? getComputedStyle(document.documentElement).getPropertyValue("--_side-panel-lane").trim()
+		: "";
+	return `(width < ${lane || "56.5rem"})`;
+}
 
 /**
  * Whether `panel` floats over the card right now. The float is CSS, decided
@@ -1441,7 +1449,9 @@ const SidePanel = ({
 	// Why a layout effect: the sidebar's state is in `Sidebar.Root`, above or
 	// below the panel's root, and the request must land before the paint.
 	const requestSidebarWidth = useContext(SidebarWidthRequestContext);
-	const needsSidebarWidth = useMatchesMediaQuery(sidePanelNeedsSidebarWidthQuery) && open;
+	// Why state: the lane is a stylesheet value, so the panel reads it once, not on each render.
+	const [needsSidebarWidthQuery] = useState(sidePanelNeedsSidebarWidthQuery);
+	const needsSidebarWidth = useMatchesMediaQuery(needsSidebarWidthQuery) && open;
 	useLayoutEffect(() => {
 		if (requestSidebarWidth == null) {
 			return;

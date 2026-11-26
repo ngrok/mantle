@@ -19,12 +19,13 @@ type MarkdownSnapshot = {
 type MarkdownParser = {
 	/**
 	 * Parses the answer so far. Only the text after the last finished block
-	 * is lexed. While `streaming`, unfinished syntax at its end is closed.
-	 * Without `streaming`, every block counts as finished, and an answer
-	 * with a reference definition is lexed whole once more, so a reference
-	 * link that comes before its definition resolves.
+	 * is lexed. While `streaming`, or when the answer is `truncated`,
+	 * unfinished syntax at its end is closed. Without `streaming`, every block
+	 * counts as finished, and an answer with a reference definition is lexed
+	 * whole once more, so a reference link that comes before its definition
+	 * resolves.
 	 */
-	parse: (source: string, options: { streaming: boolean }) => MarkdownSnapshot;
+	parse: (source: string, options: { streaming: boolean; truncated?: boolean }) => MarkdownSnapshot;
 };
 
 /**
@@ -139,7 +140,7 @@ function createMarkdownParser({
 	};
 
 	return {
-		parse(rawSource, { streaming }) {
+		parse(rawSource, { streaming, truncated = false }) {
 			const source = rawSource.includes("\r") ? rawSource.replace(/\r\n?/g, "\n") : rawSource;
 			if (!source.startsWith(frozenSource)) {
 				// Why a reset: the text before the last finished block changed, such as for a new answer.
@@ -150,12 +151,14 @@ function createMarkdownParser({
 			}
 
 			const tail = source.slice(frozenSource.length);
-			const text = streaming ? closeMarkdown(tail, { math: closeMath }) : tail;
+			const closes = streaming || truncated;
+			const text = closes ? closeMarkdown(tail, { math: closeMath }) : tail;
 			const tokens = lex(text, frozenLinks);
 			setLinks(tokens.links);
 
 			if (!streaming && frozen.length > 0 && (frozenReadLinks || Object.keys(links).length > 0)) {
-				return parseWhole(source);
+				// Why only the end: `closeMarkdown` changes nothing before the last block.
+				return parseWhole(truncated ? closeMarkdown(source, { math: closeMath }) : source);
 			}
 
 			const finished = tokens.slice(0, Math.max(lastContentIndex(tokens), 0));
