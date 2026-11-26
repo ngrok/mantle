@@ -767,6 +767,8 @@ cure. Read the roster there rather than restating it here, because an enumerated
   The lint rules are `mantle/no-structural-combinator` and `mantle/no-unanchored-child-variant`, and
   `check:css-selectors` checks stylesheets. A kept exception has a reason with its measured numbers, or says
   why the rule styles one element and nothing streams under its anchor.
+  `markdown-restyle.browser.test.tsx` streams an answer with all of `mantle.css` and bounds the elements
+  that each update restyles.
 
 - A leaf component imports no second component family, and no module has a side effect on import
   ([§1.7](#17-forbidden-api-shapes)).
