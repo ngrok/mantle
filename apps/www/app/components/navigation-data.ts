@@ -119,6 +119,7 @@ export const componentsByCategory = {
 	Overlays: [
 		"Alert Dialog",
 		"Dialog",
+		"Drawer",
 		"Dropdown Menu",
 		"Hover Card",
 		"Popover",
@@ -193,6 +194,7 @@ export const prodReadyComponentRouteLookup = {
 	"Data Table": "/components/data-display/data-table",
 	"Description List": "/components/data-display/description-list",
 	Dialog: "/components/overlays/dialog",
+	Drawer: "/components/overlays/drawer",
 	"Dropdown Menu": "/components/overlays/dropdown-menu",
 	Empty: "/components/feedback/empty",
 	Field: "/components/forms/field",

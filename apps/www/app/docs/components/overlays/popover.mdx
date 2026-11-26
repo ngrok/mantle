@@ -69,6 +69,65 @@ import { Popover } from "@ngrok/mantle/popover";
 - Prefer [`DropdownMenu`](/components/overlays/dropdown-menu) when the content is a list of actions.
 - Prefer [`Dialog`](/components/overlays/dialog) when the task needs a modal window that blocks the page.
 
+## Presentation
+
+Set `presentation="auto"` on `Popover.Root` when the popover holds a small task, such as a short form. On a phone (a viewport below `sm` with a touch pointer), the content opens in a [`Drawer`](/components/overlays/drawer) from the bottom edge, which closes on a swipe down, where a thumb reaches the fields and the actions. Everywhere else it is a popover. The choice happens each time the popover opens and holds until it closes, so a rotated phone keeps what the user typed.
+
+Keep the default for a short list to pick from: a list that jumps to the bottom of the screen moves away from the control it belongs to. `DropdownMenu`, `Select`, and `Combobox` have no drawer.
+
+The drawer code loads after the popover mounts, and only on a phone, so a desktop page never fetches it. A tap before it loads opens a popover. Style the two shapes with `data-[presentation=drawer]:`. A `Sandbar` slides away while the drawer is open and comes back when it closes.
+
+<Example name="components/overlays/popover/presentation" title="Popover presentation example">
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Input } from "@ngrok/mantle/input";
+import { Popover } from "@ngrok/mantle/popover";
+
+<Popover.Root presentation="auto">
+	<Popover.Trigger asChild>
+		<Button type="button" appearance="outlined" intent="neutral">
+			Add reminder
+		</Button>
+	</Popover.Trigger>
+	<Popover.Content aria-labelledby="popover-reminder" preferredWidth="max-w-80">
+		<form
+			className="grid gap-4"
+			onSubmit={(event) => {
+				event.preventDefault();
+			}}
+		>
+			<div className="space-y-1">
+				<h4 id="popover-reminder" className="font-medium leading-none">
+					New reminder
+				</h4>
+				<p className="text-body text-sm">We notify you at the time you pick.</p>
+			</div>
+			<div className="grid gap-2">
+				<label htmlFor="popover-reminder-text" className="text-sm">
+					Remind me to
+				</label>
+				<Input id="popover-reminder-text" defaultValue="Send the Q3 roadmap" />
+			</div>
+			<div className="flex justify-end gap-2">
+				<Popover.Close asChild>
+					<Button type="button" appearance="outlined" intent="neutral">
+						Cancel
+					</Button>
+				</Popover.Close>
+				<Popover.Close asChild>
+					<Button type="button" appearance="filled" intent="neutral">
+						Save
+					</Button>
+				</Popover.Close>
+			</div>
+		</form>
+	</Popover.Content>
+</Popover.Root>;
+```
+
+</Example>
+
 ## Arrow
 
 Render `Popover.Arrow` as a child of `Popover.Content` when the popover explains one specific control and needs a tip pointing at it. The arrow moves to the edge that faces the anchor, so it stays centered on the anchor when the content shifts or flips. A hand-rolled tip is a fixed offset and drifts off the anchor as soon as the content moves. The arrow's fill and border repaint `Popover.Content`'s own edge across its base, so the two edges read as one line. The tip also casts its own shadow, because `shadow-md` on `Popover.Content` stops at that content's border and an unshadowed tip reads as pasted on. That shadow is clipped at the base, so it never darkens the content's interior.
@@ -127,11 +186,12 @@ The `Popover` components are built on the native [popover API](https://developer
 
 The root, stateful component that manages the open/closed state of the popover.
 
-| Prop            | Type                      | Default | Description                                                                            |
-| :-------------- | :------------------------ | :------ | :------------------------------------------------------------------------------------- |
-| `defaultOpen?`  | `boolean`                 | `false` | The open state when initially rendered. Use when you do not need to control the state. |
-| `open?`         | `boolean`                 |         | Controlled open state. Must be used with `onOpenChange`.                               |
-| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state changes.                                      |
+| Prop            | Type                      | Default     | Description                                                                                                                                                           |
+| :-------------- | :------------------------ | :---------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defaultOpen?`  | `boolean`                 | `false`     | The open state when initially rendered. Use when you do not need to control the state.                                                                                |
+| `open?`         | `boolean`                 |             | Controlled open state. Must be used with `onOpenChange`.                                                                                                              |
+| `onOpenChange?` | `(open: boolean) => void` |             | Event handler called when the open state changes.                                                                                                                     |
+| `presentation?` | `"popover" \| "auto"`     | `"popover"` | How the popover presents. `"auto"` opens a modal drawer from the bottom edge on a phone (below `sm`, touch pointer) and a popover elsewhere. It decides at each open. |
 
 ### Popover.Trigger
 
@@ -166,11 +226,17 @@ All props of a `<div>`, plus:
 | `onFocusOutside?`       | `(event: CustomEvent) => void`           |              | Runs when focus moves outside. `event.detail.originalEvent` is the focus event. Call `event.preventDefault()` to keep the popover open.                                                                                                     |
 | `onInteractOutside?`    | `(event: CustomEvent) => void`           |              | Runs for both. Call `event.preventDefault()` to keep the popover open.                                                                                                                                                                      |
 
-| Data Attribute | Value                                          | Description                                                  |
-| -------------- | ---------------------------------------------- | ------------------------------------------------------------ |
-| `data-slot`    | `"popover-content"`                            | On the content, with any composing part's chain ahead of it. |
-| `data-open`    | present while open                             | Presence-only. Absent while the exit transition plays.       |
-| `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the anchor the content resolved to.              |
+| Data Attribute              | Value                                          | Description                                                                                                                                                               |
+| --------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`                 | `"popover-content"`                            | On the content, with any composing part's chain ahead of it.                                                                                                              |
+| `data-open`                 | present while open                             | Presence-only. Absent while the exit transition plays.                                                                                                                    |
+| `data-side`                 | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the anchor the content resolved to. Popover presentation only.                                                                                                |
+| `data-presentation`         | `"popover"` \| `"drawer"`                      | How this open presents. Style the two shapes with `data-[presentation=drawer]:`.                                                                                          |
+| `data-closing`              | present while the exit plays                   | Presence-only. Drawer presentation only. Drives the slide out.                                                                                                            |
+| `data-mantle-modal-content` | `""`                                           | Drawer presentation only. Floats and an enclosing dialog find the panel by it.                                                                                            |
+| `data-slot` (positioner)    | `"drawer-positioner"`                          | Drawer presentation only. On the `<dialog>` of the `Drawer` around the content, which carries `role="dialog"`, the name, `data-open`, `data-closing`, and `data-overlay`. |
+| `data-mantle-scroll-lock`   | present while a drawer is open                 | Presence-only. On `<html>`. The page stops scrolling.                                                                                                                     |
+| `data-overlay`              | `""`                                           | Drawer presentation only. On the `<dialog>` positioner. A press on the backdrop targets it.                                                                               |
 
 ### Popover.Anchor
 

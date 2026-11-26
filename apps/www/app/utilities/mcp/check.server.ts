@@ -55,6 +55,7 @@ const FOREIGN_UI_LIBRARIES: readonly RegExp[] = [
 const DIALOG_SPECIFIERS: ReadonlySet<string> = new Set([
 	"@ngrok/mantle/dialog",
 	"@ngrok/mantle/alert-dialog",
+	"@ngrok/mantle/drawer",
 	"@ngrok/mantle/sheet",
 ]);
 

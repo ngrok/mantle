@@ -16,6 +16,7 @@
   "hover-card": "import { HoverCard } from \"@ngrok/mantle/hover-card\"; export default [HoverCard.Root, HoverCard.Trigger, HoverCard.Content];",
   "dropdown-menu": "import { DropdownMenu } from \"@ngrok/mantle/dropdown-menu\"; export default [DropdownMenu.Root, DropdownMenu.Trigger, DropdownMenu.Content, DropdownMenu.Item];",
   "dialog": "import { Dialog } from \"@ngrok/mantle/dialog\"; export default [Dialog.Root, Dialog.Trigger, Dialog.Content, Dialog.Header, Dialog.Title, Dialog.Body, Dialog.Footer];",
+  "drawer": "import { Drawer } from \"@ngrok/mantle/drawer\"; export default [Drawer.Root, Drawer.Trigger, Drawer.Content, Drawer.Header, Drawer.Title, Drawer.Body, Drawer.Footer];",
   "command": "import { Command } from \"@ngrok/mantle/command\"; export default [Command.DialogRoot, Command.DialogContent, Command.Input, Command.List, Command.Item];",
   "command-inline": "import { Command } from \"@ngrok/mantle/command\"; export default [Command.Root, Command.Input, Command.List, Command.Empty, Command.Group, Command.Item, Command.Separator];",
   "slider": "import { Slider } from \"@ngrok/mantle/slider\"; export default [Slider];",

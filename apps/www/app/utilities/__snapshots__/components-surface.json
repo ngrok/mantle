@@ -2201,6 +2201,138 @@
     ]
   },
   {
+    "name": "Drawer",
+    "slug": "components/overlays/drawer",
+    "kind": "component",
+    "category": "Overlays",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/drawer",
+    "summary": "A panel that slides up from the bottom edge of the screen for a short task, with a swipe down to close.",
+    "jsdoc": "A panel that slides up from the bottom edge of the screen for a short task, where a thumb reaches it on a phone.",
+    "examples": [
+      "Composition:\n```\nDrawer.Root\n├── Drawer.Trigger\n└── Drawer.Content\n    ├── Drawer.Header\n    │   ├── Drawer.Title\n    │   └── Drawer.Description\n    ├── Drawer.Body\n    └── Drawer.Footer\n        └── Drawer.Close\n```",
+      "```tsx\n<Drawer.Root>\n  <Drawer.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">Filters</Button>\n  </Drawer.Trigger>\n  <Drawer.Content>\n    <Drawer.Header>\n      <Drawer.Title>Filters</Drawer.Title>\n      <Drawer.Description>Show the endpoints that match.</Drawer.Description>\n    </Drawer.Header>\n    <Drawer.Body>…</Drawer.Body>\n    <Drawer.Footer>\n      <Drawer.Close asChild>\n        <Button type=\"button\" appearance=\"filled\" intent=\"neutral\">Done</Button>\n      </Drawer.Close>\n    </Drawer.Footer>\n  </Drawer.Content>\n</Drawer.Root>\n```"
+    ],
+    "aliases": [
+      "bottom sheet",
+      "tray",
+      "action sheet"
+    ],
+    "siblings": [
+      {
+        "name": "Popover",
+        "boundary": "the task sits next to its trigger on a large screen; `presentation=\"auto\"` turns it into a drawer on a phone."
+      },
+      {
+        "name": "Sheet",
+        "boundary": "the panel comes in from the left or right edge, such as a detail view."
+      },
+      {
+        "name": "Dialog",
+        "boundary": "the task needs a centered modal window."
+      }
+    ],
+    "useWhen": "Show a short task or a set of choices from the bottom of a phone screen, such as filters, a share sheet, or a quick form, with a swipe down to close.",
+    "dataAttributes": [
+      {
+        "part": "Drawer.Trigger",
+        "name": "data-slot",
+        "value": "`\"drawer-trigger\"`",
+        "description": "On the trigger."
+      },
+      {
+        "part": "Drawer.Content",
+        "name": "data-slot",
+        "value": "`\"drawer-content\"`",
+        "description": "On the panel, with any composing part's chain ahead of it."
+      },
+      {
+        "part": "Drawer.Content",
+        "name": "data-slot` (positioner)",
+        "value": "`\"drawer-positioner\"`",
+        "description": "On the `<dialog>` around the panel."
+      },
+      {
+        "part": "Drawer.Content",
+        "name": "data-slot` (handle)",
+        "value": "`\"drawer-handle\"`",
+        "description": "On the grab handle at the top of the panel. Hidden from assistive technology."
+      },
+      {
+        "part": "Drawer.Content",
+        "name": "data-slot` (children)",
+        "value": "`\"drawer-children\"`",
+        "description": "On a `display: contents` wrapper around the children, after the handle."
+      },
+      {
+        "part": "Drawer.Content",
+        "name": "data-open",
+        "value": "present while open",
+        "description": "Presence-only. On the `<dialog>` positioner and the panel. Drives the slide in."
+      },
+      {
+        "part": "Drawer.Content",
+        "name": "data-closing",
+        "value": "present while the exit plays",
+        "description": "Presence-only. On the `<dialog>` positioner and the panel. Drives the slide out."
+      },
+      {
+        "part": "Drawer.Content",
+        "name": "data-overlay",
+        "value": "`\"\"`",
+        "description": "On the `<dialog>` positioner. A press on the scrim targets it."
+      },
+      {
+        "part": "Drawer.Content",
+        "name": "data-mantle-modal-content",
+        "value": "`\"\"`",
+        "description": "On the panel. Floats and an enclosing dialog find the panel by it."
+      },
+      {
+        "part": "Drawer.Content",
+        "name": "data-mantle-scroll-lock",
+        "value": "present while open",
+        "description": "Presence-only. On `<html>`, while any modal dialog is open. The page stops scrolling."
+      },
+      {
+        "part": "Drawer.Header",
+        "name": "data-slot",
+        "value": "`\"drawer-header\"`",
+        "description": "On the header."
+      },
+      {
+        "part": "Drawer.Title",
+        "name": "data-slot",
+        "value": "`\"drawer-title\"`",
+        "description": "On the title."
+      },
+      {
+        "part": "Drawer.Description",
+        "name": "data-slot",
+        "value": "`\"drawer-description\"`",
+        "description": "On the description."
+      },
+      {
+        "part": "Drawer.Body",
+        "name": "data-slot",
+        "value": "`\"drawer-body\"`",
+        "description": "On the body."
+      },
+      {
+        "part": "Drawer.Footer",
+        "name": "data-slot",
+        "value": "`\"drawer-footer\"`",
+        "description": "On the footer."
+      },
+      {
+        "part": "Drawer.Close",
+        "name": "data-slot",
+        "value": "`\"drawer-close\"`",
+        "description": "On the close button."
+      }
+    ]
+  },
+  {
     "name": "Dropdown Menu",
     "slug": "components/overlays/dropdown-menu",
     "kind": "component",
@@ -3709,7 +3841,43 @@
         "part": "Popover.Content",
         "name": "data-side",
         "value": "`\"top\"` \\| `\"right\"` \\| `\"bottom\"` \\| `\"left\"`",
-        "description": "The side of the anchor the content resolved to."
+        "description": "The side of the anchor the content resolved to. Popover presentation only."
+      },
+      {
+        "part": "Popover.Content",
+        "name": "data-presentation",
+        "value": "`\"popover\"` \\| `\"drawer\"`",
+        "description": "How this open presents. Style the two shapes with `data-[presentation=drawer]:`."
+      },
+      {
+        "part": "Popover.Content",
+        "name": "data-closing",
+        "value": "present while the exit plays",
+        "description": "Presence-only. Drawer presentation only. Drives the slide out."
+      },
+      {
+        "part": "Popover.Content",
+        "name": "data-mantle-modal-content",
+        "value": "`\"\"`",
+        "description": "Drawer presentation only. Floats and an enclosing dialog find the panel by it."
+      },
+      {
+        "part": "Popover.Content",
+        "name": "data-slot` (positioner)",
+        "value": "`\"drawer-positioner\"`",
+        "description": "Drawer presentation only. On the `<dialog>` of the `Drawer` around the content, which carries `role=\"dialog\"`, the name, `data-open`, `data-closing`, and `data-overlay`."
+      },
+      {
+        "part": "Popover.Content",
+        "name": "data-mantle-scroll-lock",
+        "value": "present while a drawer is open",
+        "description": "Presence-only. On `<html>`. The page stops scrolling."
+      },
+      {
+        "part": "Popover.Content",
+        "name": "data-overlay",
+        "value": "`\"\"`",
+        "description": "Drawer presentation only. On the `<dialog>` positioner. A press on the backdrop targets it."
       },
       {
         "part": "Popover.Arrow",
@@ -4979,7 +5147,6 @@
       "```tsx\n// Sheet without a trigger (e.g. router controlled)\n<Sheet.Root open onOpenChange={() => onClose()}>\n  <Sheet.Content>\n    <Sheet.Header>\n      <Sheet.TitleGroup>\n        <Sheet.Title>Are you absolutely sure?</Sheet.Title>\n        <Sheet.Actions>\n          <IconButton\n            appearance=\"ghost\"\n            intent=\"neutral\"\n            type=\"button\"\n            icon={<TrashSimple />}\n            label=\"Delete\"\n          />\n          <Separator orientation=\"vertical\" className=\"h-[80%]\" />\n          <Sheet.CloseIconButton />\n        </Sheet.Actions>\n      </Sheet.TitleGroup>\n      <Sheet.Description>\n        This action cannot be undone. This will permanently delete your account and remove your data from our servers.\n      </Sheet.Description>\n    </Sheet.Header>\n    <Sheet.Body>\n      <p>\n        Consequat do voluptate culpa fugiat consequat nostrud duis\n        aliqua minim. Tempor voluptate cillum elit velit. Voluptate\n        aliqua ipsum aliqua dolore in nisi ea fugiat aliqua velit\n        proident amet.\n      </p>\n    </Sheet.Body>\n    <Sheet.Footer>\n      <Sheet.Close asChild>\n        <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">Close</Button>\n      </Sheet.Close>\n      <Button type=\"button\" appearance=\"filled\" intent=\"neutral\">\n        Save\n      </Button>\n    </Sheet.Footer>\n  </Sheet.Content>\n</Sheet.Root>\n```"
     ],
     "aliases": [
-      "drawer",
       "side panel",
       "offcanvas",
       "slide over"

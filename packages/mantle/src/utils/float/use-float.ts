@@ -112,7 +112,14 @@ function belongsToNestedLayer(floating: HTMLElement, target: EventTarget | null)
  */
 function handleEscape(event: KeyboardEvent): void {
 	const top = openFloats.at(-1);
-	if (event.key !== "Escape" || top == null || belongsToNestedLayer(top.element, event.target)) {
+	// Why the modal check: a modal dialog inside the float takes Escape even
+	// when focus has left it for <body>, as after a field blurs.
+	if (
+		event.key !== "Escape" ||
+		top == null ||
+		belongsToNestedLayer(top.element, event.target) ||
+		top.element.querySelector("dialog:modal") != null
+	) {
 		return;
 	}
 	top.escape(event);

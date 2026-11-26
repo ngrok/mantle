@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps, MouseEvent, ReactNode, RefObject } from "react";
-import { createContext, useContext, useId, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -22,9 +22,50 @@ import {
 import type { OutsideHandlers } from "../../utils/float/use-float.js";
 import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
+import type { PopoverDrawer } from "./drawer.js";
+
+/** How a popover can present: next to its anchor, or chosen at each open. */
+type PopoverPresentation = "popover" | "auto";
+
+/**
+ * The drawer presentation, once its module loads. Why a module variable: one
+ * load serves every popover on the page.
+ */
+let Drawer: typeof PopoverDrawer | null = null;
+
+/**
+ * Whether this device presents `presentation="auto"` as a drawer: a viewport
+ * below `sm` (40rem), the breakpoint of `Sheet`, with a coarse (touch)
+ * pointer. A narrow desktop window keeps the popover. `false` with no
+ * `matchMedia`, such as in jsdom.
+ */
+const wantsDrawer = (presentation: PopoverPresentation): boolean =>
+	presentation === "auto" &&
+	typeof matchMedia === "function" &&
+	matchMedia("(max-width: 39.99rem) and (pointer: coarse)").matches;
+
+/**
+ * Loads the drawer presentation. A failed load leaves `Drawer` unset, so a
+ * later popover tries again. Why outside the component: the React Compiler
+ * does not compile an `import()` in a component.
+ */
+function loadDrawer(): void {
+	import("./drawer.js").then(
+		(module) => {
+			Drawer = module.PopoverDrawer;
+			return undefined;
+		},
+		() => undefined,
+	);
+}
 
 type PopoverState = {
 	open: boolean;
+	/**
+	 * The drawer that the current (or last) open presents in, or `null` for a
+	 * popover. It changes only when the popover opens.
+	 */
+	drawer: typeof PopoverDrawer | null;
 	setOpen: (open: boolean) => void;
 	contentId: string;
 	/** The trigger's default `id`. It names the content when the content has no name of its own. */
@@ -58,6 +99,16 @@ type PopoverRootProps = {
 	defaultOpen?: boolean;
 	/** Runs when the popover opens or closes. */
 	onOpenChange?: (open: boolean) => void;
+	/**
+	 * How the popover presents. `"popover"` shows the content next to its
+	 * anchor. `"auto"` decides each time the popover opens: on a phone (a
+	 * viewport below `sm` with a touch pointer) the content is a modal drawer
+	 * that slides up from the bottom edge, and elsewhere it is a popover. The
+	 * decision holds until the popover closes. Use `"auto"` for a small task,
+	 * such as a short form, not for a list to pick from.
+	 * @default "popover"
+	 */
+	presentation?: PopoverPresentation;
 };
 
 /**
@@ -85,9 +136,43 @@ type PopoverRootProps = {
  * </Popover.Root>
  * ```
  */
-function Root({ children, defaultOpen = false, onOpenChange, open: openProp }: PopoverRootProps) {
+function Root({
+	children,
+	defaultOpen = false,
+	onOpenChange,
+	open: openProp,
+	presentation = "popover",
+}: PopoverRootProps) {
 	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
 	const open = openProp ?? uncontrolledOpen;
+	// Why a decision at each open, in render: a controlled `open` opens with no
+	// event here, and the decision must hold until the close and its exit.
+	// Why `Drawer` must have loaded: a tap never waits on the network, so an
+	// open before the load presents as a popover. Why the server agrees: it
+	// renders no content, and `Drawer` loads after hydration.
+	const [opened, setOpened] = useState(() => ({
+		open,
+		drawer: open && wantsDrawer(presentation) ? Drawer : null,
+	}));
+	if (opened.open !== open) {
+		const wanted = open && wantsDrawer(presentation);
+		// Why a load here, in render: a phone that rotates below `sm`, or a
+		// failed load, loads the drawer for the next open. As with React's
+		// `preload`, the call only starts a fetch, and a repeat changes nothing.
+		if (wanted && Drawer == null) {
+			loadDrawer();
+		}
+		// Why keep the drawer on close: the drawer plays its exit before it unmounts.
+		const drawer = wanted ? Drawer : null;
+		setOpened({ open, drawer: open ? drawer : opened.drawer });
+	}
+	// Why after mount, and only on a matching device: a desktop page never
+	// fetches the drawer, and a phone has it before the first tap.
+	useEffect(() => {
+		if (Drawer == null && wantsDrawer(presentation)) {
+			loadDrawer();
+		}
+	}, [presentation]);
 	const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
 	const {
 		triggerRef: anchorRef,
@@ -99,6 +184,7 @@ function Root({ children, defaultOpen = false, onOpenChange, open: openProp }: P
 	const state = useMemo<PopoverState>(
 		() => ({
 			open,
+			drawer: opened.drawer,
 			setOpen: (next) => {
 				if (next === open) {
 					return;
@@ -125,6 +211,7 @@ function Root({ children, defaultOpen = false, onOpenChange, open: openProp }: P
 			onTriggerChangeRef,
 			open,
 			openProp,
+			opened.drawer,
 			setAnchor,
 			setTrigger,
 			triggerId,
@@ -310,48 +397,8 @@ type PopoverContentProps = ComponentProps<"div"> &
 		onEscapeKeyDown?: (event: KeyboardEvent) => void;
 	};
 
-/**
- * The content of the popover. It mounts while the popover is open, as a
- * `popover="manual"` element in the top layer, next to `Popover.Anchor` or
- * `Popover.Trigger`.
- *
- * It closes on Escape, on a press or a focus move outside it and its trigger,
- * and from `Popover.Close`. It moves focus to its first focusable element when it
- * opens, and back to the trigger when it closes. It portals into the overlay or
- * float that holds it, else into `document.body`, and a float composed inside
- * it portals into it.
- *
- * It is a `role="dialog"` named by its trigger. An `aria-label` or
- * `aria-labelledby` gives it a name of its own.
- *
- * **Data attributes:**
- *
- * | Data Attribute | Value                                          | Description                                        |
- * | -------------- | ---------------------------------------------- | -------------------------------------------------- |
- * | `data-slot`    | `"popover-content"`                            | On the content, with any composing part's chain ahead of it. |
- * | `data-open`    | present while open | Presence-only. Absent while the exit transition plays. |
- * | `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the anchor the content resolved to.    |
- *
- * The content sets the CSS variables `--anchor-width` (the anchor's width)
- * and `--available-height` (the room between the anchor and the viewport edge).
- *
- * @see https://mantle.ngrok.com/components/overlays/popover#popovercontent
- *
- * @example
- * ```tsx
- * <Popover.Root>
- *   <Popover.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="neutral">
- *       Open Popover
- *     </Button>
- *   </Popover.Trigger>
- *   <Popover.Content>
- *     <p>This is the popover content.</p>
- *   </Popover.Content>
- * </Popover.Root>
- * ```
- */
-const Content = ({
+/** The popover presentation of `Popover.Content`: a float next to its anchor. */
+const FloatContent = ({
 	align = "center",
 	className,
 	"data-slot": dataSlot,
@@ -437,6 +484,7 @@ const Content = ({
 				role="dialog"
 				tabIndex={-1}
 				data-slot={joinDataSlot(dataSlot, "popover-content")}
+				data-presentation="popover"
 				data-open={state.open ? "" : undefined}
 				inert={!state.open}
 				className={cx(
@@ -482,6 +530,68 @@ const Content = ({
 			portalTarget,
 		)
 	);
+};
+
+/**
+ * The content of the popover. It mounts while the popover is open, as a
+ * `popover="manual"` element in the top layer, next to `Popover.Anchor` or
+ * `Popover.Trigger`.
+ *
+ * It closes on Escape, on a press or a focus move outside it and its trigger,
+ * and from `Popover.Close`. It moves focus to its first focusable element when it
+ * opens, and back to the trigger when it closes. It portals into the overlay or
+ * float that holds it, else into `document.body`, and a float composed inside
+ * it portals into it.
+ *
+ * It is a `role="dialog"` named by its trigger. An `aria-label` or
+ * `aria-labelledby` gives it a name of its own.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value                                          | Description                                        |
+ * | -------------- | ---------------------------------------------- | -------------------------------------------------- |
+ * | `data-slot`    | `"popover-content"`                            | On the content, with any composing part's chain ahead of it. |
+ * | `data-open`    | present while open | Presence-only. Absent while the exit transition plays. |
+ * | `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the anchor the content resolved to. Popover presentation only. |
+ * | `data-presentation` | `"popover"` \| `"drawer"` | How this open presents (`Popover.Root` `presentation`). Style the two shapes with `data-[presentation=drawer]:`. |
+ * | `data-closing` | present while the exit plays | Presence-only. Drawer presentation only. Drives the slide out. |
+ * | `data-mantle-modal-content` | `""` | Drawer presentation only. Floats and an enclosing dialog find the panel by it. |
+ * | `data-slot` (positioner) | `"drawer-positioner"` | Drawer presentation only. On the `<dialog>` of the `Drawer` around the content, which carries `role="dialog"`, the name, `data-open`, `data-closing`, and `data-overlay`. |
+ * | `data-mantle-scroll-lock` | present while a drawer is open | Presence-only. On `<html>`. The page stops scrolling. |
+ * | `data-overlay` | `""` | Drawer presentation only. On the `<dialog>` positioner. A press on the backdrop targets it. |
+ *
+ * In drawer presentation (`presentation="auto"` on a phone), the content is
+ * the panel of a `Drawer`: a modal `<dialog>` that slides up from the bottom
+ * edge and closes on a swipe down, Escape, the back gesture, or a press on
+ * the scrim. The dialog takes focus so the on-screen keyboard stays closed,
+ * and `data-slot` reads `"popover-content drawer-content"`.
+ * `side`, `align`, `sideOffset`, `preferredWidth`, `onFocusOutside`, and
+ * `Popover.Arrow` apply only to the popover presentation. A `Sandbar` slides
+ * away while the drawer is open.
+ *
+ * The content sets the CSS variables `--anchor-width` (the anchor's width)
+ * and `--available-height` (the room between the anchor and the viewport edge).
+ *
+ * @see https://mantle.ngrok.com/components/overlays/popover#popovercontent
+ *
+ * @example
+ * ```tsx
+ * <Popover.Root>
+ *   <Popover.Trigger asChild>
+ *     <Button type="button" appearance="outlined" intent="neutral">
+ *       Open Popover
+ *     </Button>
+ *   </Popover.Trigger>
+ *   <Popover.Content>
+ *     <p>This is the popover content.</p>
+ *   </Popover.Content>
+ * </Popover.Root>
+ * ```
+ */
+const Content = (props: PopoverContentProps) => {
+	const state = usePopoverState("Content");
+	const Drawer = state.drawer;
+	return Drawer == null ? <FloatContent {...props} /> : <Drawer state={state} {...props} />;
 };
 
 type PopoverArrowProps = Omit<ComponentProps<"svg">, "children" | "width" | "height"> &
@@ -532,6 +642,12 @@ type PopoverArrowProps = Omit<ComponentProps<"svg">, "children" | "width" | "hei
 const Arrow = ({ "data-slot": dataSlot, ...props }: PopoverArrowProps) => (
 	<FloatArrow data-slot={joinDataSlot(dataSlot, "popover-arrow")} {...props} />
 );
+
+export type {
+	//,
+	PopoverContentProps,
+	PopoverState,
+};
 
 export {
 	//,
