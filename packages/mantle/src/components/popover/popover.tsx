@@ -20,7 +20,11 @@ import {
 	useTriggerRef,
 } from "../../utils/float/use-float.js";
 import type { OutsideHandlers } from "../../utils/float/use-float.js";
-import { LayerContainer } from "../../utils/layer-container/layer-container.js";
+import {
+	isCoveredByOverlay,
+	LayerContainer,
+	LayerContainerContext,
+} from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
 import type { PopoverDrawer } from "./drawer.js";
 
@@ -145,6 +149,7 @@ function Root({
 }: PopoverRootProps) {
 	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
 	const open = openProp ?? uncontrolledOpen;
+	const layerContainer = useContext(LayerContainerContext);
 	// Why a decision at each open, in render: a controlled `open` opens with no
 	// event here, and the decision must hold until the close and its exit.
 	// Why `Drawer` must have loaded: a tap never waits on the network, so an
@@ -155,7 +160,9 @@ function Root({
 		drawer: open && wantsDrawer(presentation) ? Drawer : null,
 	}));
 	if (opened.open !== open) {
-		const wanted = open && wantsDrawer(presentation);
+		// Why not under an overlay: the drawer would open as a second modal over
+		// it and take focus. The popover stays hidden until the overlay closes.
+		const wanted = open && wantsDrawer(presentation) && !isCoveredByOverlay(layerContainer);
 		// Why a load here, in render: a phone that rotates below `sm`, or a
 		// failed load, loads the drawer for the next open. As with React's
 		// `preload`, the call only starts a fetch, and a repeat changes nothing.

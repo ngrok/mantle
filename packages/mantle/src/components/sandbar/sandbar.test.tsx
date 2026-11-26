@@ -309,7 +309,7 @@ describe("Sandbar structure", () => {
 		);
 		// the control: without an override the travel really is on the panel, so the
 		// negative assertion below cannot pass just because the utility was renamed
-		expect(getPanel().className).toContain("translate-y-[calc(100%+2.5rem)]");
+		expect(getPanel().className).toContain("not-data-open:translate-y-[calc(100%+2.5rem)]");
 		unmount();
 
 		render(
@@ -320,7 +320,7 @@ describe("Sandbar structure", () => {
 
 		const panel = getPanel();
 		expect(panel.className).toContain("motion-safe:not-data-open:translate-y-0");
-		expect(panel.className).not.toContain("translate-y-[calc(100%+2.5rem)]");
+		expect(panel.className).not.toContain("not-data-open:translate-y-[calc(100%+2.5rem)]");
 	});
 
 	test("every part joins an incoming data-slot chain ahead of its own slot", () => {

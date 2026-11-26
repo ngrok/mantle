@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ReactNode, RefObject } from "react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useSwipeToDismiss } from "../../hooks/use-swipe-to-dismiss.js";
@@ -151,14 +151,15 @@ const dragSurface =
 
 /**
  * Whether a press on `target` belongs to a control, to scrolled content, or
- * to a dialog above the drawer, not to a drag.
+ * to a dialog above the drawer, not to a drag. Why `aria-haspopup`: a menu
+ * opens on the press, and the drag that follows picks an item.
  */
 function pressBelongsToContent(target: EventTarget | null, panel: HTMLElement): boolean {
 	if (!(target instanceof Element) || target.closest("dialog") !== panel.closest("dialog")) {
 		return true;
 	}
 	if (
-		target.closest("input, textarea, select") != null ||
+		target.closest("input, textarea, select, [aria-haspopup]") != null ||
 		(target instanceof HTMLElement && target.isContentEditable)
 	) {
 		return true;
@@ -183,25 +184,13 @@ function pressBelongsToContent(target: EventTarget | null, panel: HTMLElement): 
 	return false;
 }
 
-/** The inline styles that a drag set on the panel. */
-type DragStyles = {
-	/** Whether a swipe that closed the drawer left the panel displaced. */
-	swiped: boolean;
-	/** Whether a drag turned off text selection on the panel. */
-	selectionOff: boolean;
-};
-
 /**
- * Puts the panel back at rest, with its scrim. Why the flags: it resets
- * only the styles that a drag set, not the consumer's own.
+ * Puts the scrim back at rest, and text selection back on when a drag
+ * turned it off. Why the flag: the consumer's own `user-select` stays.
  */
-function rest(panel: HTMLElement, styles: DragStyles): void {
-	if (styles.swiped) {
-		styles.swiped = false;
-		panel.style.removeProperty("translate");
-	}
-	if (styles.selectionOff) {
-		styles.selectionOff = false;
+function rest(panel: HTMLElement, selectionOff: RefObject<boolean>): void {
+	if (selectionOff.current) {
+		selectionOff.current = false;
 		panel.style.removeProperty("user-select");
 	}
 	panel.closest("dialog")?.style.setProperty("--drawer-swipe", "0");
@@ -215,8 +204,8 @@ function rest(panel: HTMLElement, styles: DragStyles): void {
 function SwipeHandle() {
 	const { dismissible, setOpen } = useContext(DrawerContext);
 	const panelRef = useRef<HTMLElement | null>(null);
-	const progress = useRef(0);
-	const drag = useRef<DragStyles>({ swiped: false, selectionOff: false });
+	/** Whether a drag turned off text selection on the panel. */
+	const selectionOff = useRef(false);
 	const attach = (element: HTMLDivElement | null) => {
 		panelRef.current = element?.parentElement ?? null;
 	};
@@ -228,40 +217,36 @@ function SwipeHandle() {
 			return panel != null && !pressBelongsToContent(event.target, panel);
 		},
 		onMove: (next) => {
-			progress.current = next;
 			const panel = panelRef.current;
 			panel?.closest("dialog")?.style.setProperty("--drawer-swipe", String(next));
 			// Why: a mouse drag would select the text it passes over.
-			if (panel != null && next > 0 && !drag.current.selectionOff) {
-				drag.current.selectionOff = true;
+			if (panel != null && next > 0 && !selectionOff.current) {
+				selectionOff.current = true;
 				panel.style.userSelect = "none";
 				panel.ownerDocument.getSelection()?.removeAllRanges();
-			} else if (panel != null && next === 0 && drag.current.selectionOff) {
-				drag.current.selectionOff = false;
-				panel.style.removeProperty("user-select");
+			} else if (panel != null && next === 0) {
+				rest(panel, selectionOff);
 			}
 		},
 		onDismiss: () => {
 			const panel = panelRef.current;
 			// Why the `data-closing` check: Escape can close the drawer while the
-			// finger is down, and one close reports once. A reopen during that
-			// exit puts the panel back at rest.
+			// finger is down, and one close reports once.
 			if (panel == null || panel.hasAttribute("data-closing")) {
 				return;
 			}
 			if (!dismissible) {
-				rest(panel, drag.current);
+				rest(panel, selectionOff);
 				return;
 			}
-			// Why: the exit slides from where the finger let go, not from rest.
-			panel.style.translate = `0 ${progress.current * panel.offsetHeight}px`;
-			drag.current.swiped = true;
+			// Why no inline `translate`: the exit is a transition, so it slides
+			// on from where the finger let go.
 			setOpen(false);
-			// Why: a controlled owner can keep the drawer open, and the panel
+			// Why: a controlled owner can keep the drawer open, and the scrim
 			// then goes back to rest.
 			requestAnimationFrame(() => {
 				if (!panel.hasAttribute("data-closing")) {
-					rest(panel, drag.current);
+					rest(panel, selectionOff);
 				}
 			});
 		},
@@ -290,26 +275,22 @@ function SwipeHandle() {
 				dialog.style.setProperty("--drawer-keyboard-inset", `${height}px`);
 			}
 		};
-		// Why: a reopen during the exit slides in to rest, not to where the
-		// finger let go.
-		const reopen = (event: AnimationEvent) => {
-			if (
-				(drag.current.swiped || drag.current.selectionOff) &&
-				event.target === panel &&
-				!panel.hasAttribute("data-closing")
-			) {
-				rest(panel, drag.current);
+		// Why: a reopen during the exit after a swipe reverses the slide, and
+		// the scrim and text selection come back with it.
+		const reopen = (event: TransitionEvent) => {
+			if (event.target === panel && !panel.hasAttribute("data-closing")) {
+				rest(panel, selectionOff);
 			}
 		};
 		inset();
 		viewport?.addEventListener("resize", inset);
 		viewport?.addEventListener("scroll", inset);
-		panel.addEventListener("animationstart", reopen);
+		panel.addEventListener("transitionrun", reopen);
 		dialog.addEventListener("cancel", blocksBack, { capture: true });
 		return () => {
 			viewport?.removeEventListener("resize", inset);
 			viewport?.removeEventListener("scroll", inset);
-			panel.removeEventListener("animationstart", reopen);
+			panel.removeEventListener("transitionrun", reopen);
 			dialog.removeEventListener("cancel", blocksBack, { capture: true });
 		};
 	}, [blocksBack]);
@@ -336,11 +317,12 @@ type DrawerContentProps = Omit<
  * scrolling, and a light scrim dims it.
  *
  * It follows a finger or a mouse down one to one. A release past a quarter of
- * its height, or a flick, closes it; a shorter drag springs back, and a drag
- * up meets rubber-band resistance. The scrim fades with the drag. A press on
- * a field, on selected text, or on scrolled content does not start a drag. On
- * a touch screen, `Drawer.Body` scrolls with the finger, so a drag starts on
- * the handle, the header, or the footer. The panel rises above the on-screen
+ * its height, or a flick, closes it; a shorter drag springs back. A drag up
+ * stretches it against rubber-band resistance, and it stays on the bottom
+ * edge. The scrim fades with the drag. A press on a field, a menu trigger,
+ * selected text, or scrolled content does not start a drag. On a touch
+ * screen, `Drawer.Body` scrolls with the finger, so a drag starts on the
+ * handle, the header, or the footer. The panel rises above the on-screen
  * keyboard and keeps clear of the home indicator.
  *
  * Escape, the back gesture, and a press on the scrim close it too, unless the
@@ -412,9 +394,12 @@ const Content = ({
 			className={cx(
 				"bg-dialog border-dialog fixed inset-x-0 bottom-(--drawer-keyboard-inset,0px) flex max-h-[calc(100dvh-2rem-var(--drawer-keyboard-inset,0px))] w-full flex-col rounded-t-2xl border-t shadow-lg outline-hidden sm:mx-auto sm:max-w-lg",
 				"pb-[env(safe-area-inset-bottom)]",
-				// Why the transition on `translate`: a released drag springs back.
-				"transition-[translate] duration-200 ease-out-strong motion-reduce:transition-none",
-				"data-open:animate-in data-open:slide-in-from-bottom data-closing:animate-out data-closing:slide-out-to-bottom data-closing:duration-150 motion-reduce:animate-none!",
+				// Why a transition and not keyframes: a released drag springs back,
+				// and a reopen during the exit reverses from where the panel is.
+				"transition-[translate] duration-200 ease-out-strong motion-reduce:transition-none starting:translate-y-full data-closing:translate-y-full data-closing:duration-150",
+				// Why the fill below the panel: a drag up stretches the panel, which
+				// stays on the bottom edge. The rubber band never moves it a full height.
+				"after:bg-dialog after:absolute after:inset-x-0 after:top-full after:-mt-px after:h-full",
 				className,
 			)}
 			ref={ref}

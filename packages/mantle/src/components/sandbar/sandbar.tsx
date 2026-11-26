@@ -601,16 +601,10 @@ const Root = ({
 			    overlay tier), as a toast does.
 			    Why a layer container: a float composed in the bar (a menu, a
 			    tooltip) portals in here and paints above the bar, not under it at
-			    `z-50`. `[&>*]:pointer-events-auto` keeps those floats clickable.
-			    Why the drawer rules: in an open drawer, the bar would
-			    cover the drawer's own actions at the bottom edge. The bar slides
-			    away and goes `invisible` (out of the Tab order and the
-			    accessibility tree), and comes back as the drawer closes. */}
+			    `z-50`. `[&>*]:pointer-events-auto` keeps those floats clickable. */}
 			<LayerContainer
 				className={cx(
 					"pointer-events-none fixed inset-x-0 bottom-4 z-70 flex justify-center px-4 [&>*]:pointer-events-auto sm:bottom-10",
-					"transition-[opacity,translate,visibility] duration-200 ease-out-strong motion-reduce:transition-none",
-					"in-[[data-slot=drawer-positioner][data-open]]:invisible in-[[data-slot=drawer-positioner][data-open]]:opacity-0 in-[[data-slot=drawer-positioner][data-open]]:duration-150 motion-safe:in-[[data-slot=drawer-positioner][data-open]]:translate-y-[calc(100%+2.5rem)]",
 				)}
 				modal={false}
 				onBlur={handleFocusOut}
@@ -662,8 +656,18 @@ const Root = ({
 						// only the fades (motion-safe gates the translate).
 						// `translate-y-*` writes the standalone `translate` property in
 						// Tailwind v4. Transitioning `transform` instead silently snaps.
-						"transition-[opacity,translate] duration-200 ease-out-strong",
+						"transition-[opacity,translate,visibility,content-visibility] transition-discrete duration-200 ease-out-strong",
 						"not-data-open:pointer-events-none not-data-open:opacity-0 not-data-open:duration-150 motion-safe:not-data-open:translate-y-[calc(100%+2.5rem)]",
+						// Why the drawer rules: the bar would cover the drawer's actions at
+						// the bottom edge, so it slides away while a drawer is open. The bar
+						// moves into that drawer, or the drawer opens from a float in the bar.
+						// Why `content-visibility`: a child with `visibility: visible` would
+						// stay in the Tab order under `invisible`.
+						"in-[:has(>[data-slot=drawer-positioner][data-open])]:invisible",
+						"in-[:has(>[data-slot=drawer-positioner][data-open])]:[content-visibility:hidden]",
+						"in-[:has(>[data-slot=drawer-positioner][data-open])]:opacity-0",
+						"in-[:has(>[data-slot=drawer-positioner][data-open])]:duration-150",
+						"motion-safe:in-[:has(>[data-slot=drawer-positioner][data-open])]:translate-y-[calc(100%+2.5rem)]",
 						className,
 					)}
 					{...props}

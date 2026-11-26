@@ -5,6 +5,8 @@ import { useCallback, useState } from "react";
 import { userEvent } from "@testing-library/user-event";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { commands, page, server } from "vitest/browser";
+import * as Dialog from "../dialog/dialog-parts.js";
+import * as Drawer from "../drawer/drawer-parts.js";
 import * as Sandbar from "../sandbar/sandbar-parts.js";
 import * as Popover from "./popover-parts.js";
 
@@ -109,6 +111,110 @@ describe.runIf(server.browser === "chromium")('Popover presentation="auto"', () 
 
 		await user.click(screen.getByRole("button", { name: "Cancel" }));
 		await waitFor(() => expect(bar()).toBeInTheDocument());
+	});
+
+	test("keeps a control that a bar child shows out of the Tab order under the drawer", async () => {
+		await page.viewport(390, 844);
+		await commands.emulateMedia({ hover: "none" });
+		const user = userEvent.setup();
+		render(
+			<>
+				<Reminder />
+				<Sandbar.Root open>
+					<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+					<button type="button" style={{ visibility: "visible" }}>
+						Save
+					</button>
+				</Sandbar.Root>
+			</>,
+		);
+		const save = screen.getByRole("button", { name: "Save" });
+		await openDrawer(user);
+		await waitFor(() =>
+			expect(screen.queryByRole("group", { name: "You have unsaved changes" })).toBeNull(),
+		);
+
+		save.focus();
+		expect(document.activeElement).not.toBe(save);
+	});
+
+	test("hides a Sandbar that holds the trigger while its drawer is open", async () => {
+		await page.viewport(390, 844);
+		await commands.emulateMedia({ hover: "none" });
+		const user = userEvent.setup();
+		render(
+			<Sandbar.Root open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Reminder />
+			</Sandbar.Root>,
+		);
+		const bar = () => screen.queryByRole("group", { name: "You have unsaved changes" });
+
+		await openDrawer(user);
+		await waitFor(() => expect(bar()).toBeNull());
+
+		await user.click(screen.getByRole("button", { name: "Cancel" }));
+		await waitFor(() => expect(bar()).toBeInTheDocument());
+	});
+
+	test("names a drawer that opens inside a dialog by its trigger", async () => {
+		await page.viewport(390, 844);
+		await commands.emulateMedia({ hover: "none" });
+		const user = userEvent.setup();
+		const { unmount } = render(<Reminder />);
+		// Why: an open on the first render presents a drawer only once the module loaded.
+		await openDrawer(user);
+		unmount();
+
+		render(
+			<Dialog.Root open>
+				<Dialog.Content aria-label="Settings">
+					<Popover.Root presentation="auto" defaultOpen>
+						<Popover.Trigger>Schedule</Popover.Trigger>
+						<Popover.Content>Reminder</Popover.Content>
+					</Popover.Root>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+
+		const drawer = await screen.findByRole("dialog", { name: "Schedule" });
+		expect(drawer.matches(":modal")).toBe(true);
+	});
+
+	test("does not open over a modal that covers its trigger", async () => {
+		await page.viewport(390, 844);
+		await commands.emulateMedia({ hover: "none" });
+		const user = userEvent.setup();
+		function Page() {
+			const [open, setOpen] = useState(false);
+			return (
+				<>
+					<Popover.Root presentation="auto" open={open} onOpenChange={setOpen}>
+						<Popover.Trigger>Add reminder</Popover.Trigger>
+						<Popover.Content>Reminder</Popover.Content>
+					</Popover.Root>
+					<Drawer.Root>
+						<Drawer.Trigger>Filters</Drawer.Trigger>
+						<Drawer.Content aria-label="Filters">
+							<button type="button" onClick={() => setOpen(true)}>
+								Remind me later
+							</button>
+						</Drawer.Content>
+					</Drawer.Root>
+				</>
+			);
+		}
+		render(<Page />);
+		await openDrawer(user);
+		await user.click(screen.getByRole("button", { name: "Add reminder" }));
+		await waitFor(() => expect(document.querySelector("dialog:modal")).toBeNull());
+
+		await user.click(screen.getByRole("button", { name: "Filters" }));
+		const filters = await screen.findByRole("dialog", { name: "Filters" });
+		await user.click(screen.getByRole("button", { name: "Remind me later" }));
+
+		expect(document.querySelectorAll("dialog:modal")).toHaveLength(1);
+		expect(filters.contains(document.activeElement)).toBe(true);
 	});
 
 	test("gives Escape to a drawer inside a popover, and keeps the popover open", async () => {

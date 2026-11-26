@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback } from "react";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { ScrollBody } from "../dialog/scroll-body.js";
 import { Content, Root } from "../drawer/drawer.js";
@@ -34,26 +35,36 @@ const PopoverDrawer = ({
 	id,
 	onClick,
 	onCloseAutoFocus,
+	ref,
 	state: { contentId, open, setOpen, triggerRef },
 	...props
 }: PopoverContentProps & { state: PopoverState }) => {
 	const { "aria-label": label, "aria-labelledby": labelledBy } = props;
-	const panelId = id ?? contentId;
 	// Why the trigger names the drawer: as in the popover, the trigger says
-	// what opens. Why its rendered `id`, after the commit: a consumer can set
+	// what opens. Why a ref: an enclosing dialog can replace the `<dialog>`
+	// while open. Why its rendered `id`, after the commit: a consumer can set
 	// one, and the trigger can render after the content.
-	useEffect(() => {
-		const triggerId = triggerRef.current?.id;
-		const dialog = document.getElementById(panelId)?.closest("dialog");
-		if (open && dialog != null && triggerId && label == null && labelledBy == null) {
-			dialog.setAttribute("aria-labelledby", triggerId);
-		}
-	}, [panelId, label, labelledBy, open, triggerRef]);
+	const name = useCallback(
+		(panel: HTMLDivElement | null) => {
+			if (panel == null || label != null || labelledBy != null) {
+				return;
+			}
+			queueMicrotask(() => {
+				const triggerId = triggerRef.current?.id;
+				if (triggerId) {
+					panel.closest("dialog")?.setAttribute("aria-labelledby", triggerId);
+				}
+			});
+		},
+		[label, labelledBy, triggerRef],
+	);
+	const composedRef = useComposedRefs(ref, name);
 
 	return (
 		<Root open={open} onOpenChange={setOpen}>
 			<Content
-				id={panelId}
+				id={id ?? contentId}
+				ref={composedRef}
 				data-slot={joinDataSlot(dataSlot, "popover-content")}
 				data-presentation="drawer"
 				// Why: the trigger names the popover in `aria-controls`, not the

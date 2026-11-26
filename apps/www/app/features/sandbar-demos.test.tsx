@@ -25,12 +25,12 @@ describe("SandbarReducedMotionDemo", () => {
 		// the panel's travel utility, not merely add a class beside it. The variant
 		// chain is what decides that, so this pins the outcome rather than the input.
 		const panel = getPanel();
-		expect(panel.className).toContain("translate-y-[calc(100%+2.5rem)]");
+		expect(panel.className).toContain("not-data-open:translate-y-[calc(100%+2.5rem)]");
 
 		fireEvent.click(screen.getByRole("switch", { name: /simulate reduced motion/i }));
 
 		expect(getPanel().className).toContain("motion-safe:not-data-open:translate-y-0");
-		expect(getPanel().className).not.toContain("translate-y-[calc(100%+2.5rem)]");
+		expect(getPanel().className).not.toContain("not-data-open:translate-y-[calc(100%+2.5rem)]");
 		// the wiggle suppressor rides along, since `shake()` reads the real preference
 		expect(getPanel().className).toContain("transform-none!");
 	});
