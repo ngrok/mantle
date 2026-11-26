@@ -916,4 +916,23 @@ describe("useCodeBlockStream", () => {
 		);
 		expect(numbers).toEqual(lines.map((_, index) => index + 1));
 	});
+
+	test("a line that fills a hole in the lines shows", () => {
+		function LineCode({ code, lines }: { code: string; lines: readonly string[] }) {
+			return (
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code value={createMantleCodeBlockValue({ language: "text", code, lines })} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>
+			);
+		}
+		// Why `length`: it leaves a hole at index 1, as a caller that reserves slots does.
+		const sparse: string[] = ["A"];
+		sparse.length = 2;
+		const { container, rerender } = render(<LineCode code="A" lines={sparse} />);
+		rerender(<LineCode code={"A\nB"} lines={["A", "B"]} />);
+
+		expect(container.querySelector("[data-slot='code-block-code'] code")?.textContent).toBe("A\nB");
+	});
 });

@@ -455,14 +455,25 @@ type CodeLineGroupProps = {
 	lineNumberStart: number;
 };
 
-/** Two renders of a group show the same lines. Why `===`: a finished line keeps its tokens, and a plain line is a string. */
+/**
+ * Two renders of a group show the same lines. Why `===`: a finished line
+ * keeps its tokens, and a plain line is a string. Why a loop and not
+ * `every`: `every` skips the holes of a sparse array.
+ */
 function isSameLineGroup(previous: CodeLineGroupProps, next: CodeLineGroupProps): boolean {
-	return (
-		previous.start === next.start &&
-		previous.lineNumberStart === next.lineNumberStart &&
-		previous.lines.length === next.lines.length &&
-		previous.lines.every((line, index) => line === next.lines[index])
-	);
+	if (
+		previous.start !== next.start ||
+		previous.lineNumberStart !== next.lineNumberStart ||
+		previous.lines.length !== next.lines.length
+	) {
+		return false;
+	}
+	for (let index = 0; index < next.lines.length; index += 1) {
+		if (previous.lines[index] !== next.lines[index]) {
+			return false;
+		}
+	}
+	return true;
 }
 
 /**
@@ -480,7 +491,7 @@ const CodeLineGroup = memo(function CodeLineGroup({
 		<Fragment key={index}>
 			{/* Why a newline: `textContent` keeps the line breaks, the same as pre-rendered HTML. */}
 			{start + index > 0 && "\n"}
-			<CodeLineView line={line} lineNumber={lineNumberStart + start + index} />
+			<CodeLineView line={line} lineNumber={lineNumberStart + (start + index)} />
 		</Fragment>
 	));
 }, isSameLineGroup);
