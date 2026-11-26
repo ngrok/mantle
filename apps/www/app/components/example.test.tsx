@@ -66,6 +66,21 @@ describe("Example", () => {
 		expect(getIframe().getAttribute("src")).toBe("/preview/components/actions/button/size");
 	});
 
+	it("opens a routed demo at its page in a fixed-height frame", () => {
+		const { container } = render(
+			<Example path="/preview/breadcrumbs-from-routes/endpoints" title="Breadcrumbs demo" />,
+		);
+
+		expect(getIframe().getAttribute("src")).toBe("/preview/breadcrumbs-from-routes/endpoints");
+		expect(
+			screen
+				.getByRole("link", { name: "Open the Breadcrumbs demo preview in a new tab" })
+				.getAttribute("href"),
+		).toBe("/preview/breadcrumbs-from-routes/endpoints");
+		// Why a class check: the height mode has no other observable in happy-dom, which lays out nothing.
+		expect(container.querySelector(".h-160")).not.toBeNull();
+	});
+
 	it("starts a page example at its measured height", () => {
 		render(
 			<ExampleHeightsContext

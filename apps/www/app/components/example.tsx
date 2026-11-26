@@ -51,6 +51,16 @@ const viewportWidthClasses = {
 export type PreviewKey = PreviewExampleName | `${string}/${string}`;
 
 /**
+ * A page of the breadcrumbs recipe's routed demo: a route tree of its own
+ * under `/preview/breadcrumbs-from-routes` (see `routes.ts`), for a demo that
+ * needs real navigation rather than one component.
+ */
+type RoutedDemoPath = `/preview/breadcrumbs-from-routes/${string}`;
+
+/** What a frame loads: an example by its preview key, or a routed demo page by its path. */
+type FrameTarget = { name: PreviewKey; path?: never } | { path: RoutedDemoPath; name?: never };
+
+/**
  * The measured heights of the current docs page's examples. The `doc-page`
  * route provides them from its loader. A frame with a measured height takes
  * that height at the first paint, so the page does not shift when the
@@ -59,7 +69,7 @@ export type PreviewKey = PreviewExampleName | `${string}/${string}`;
 export const ExampleHeightsContext = createContext<ExampleHeights>({});
 
 type FrameProps = {
-	name: PreviewKey;
+	target: FrameTarget;
 	title: string;
 	height: "fixed" | "content";
 };
@@ -69,13 +79,14 @@ type FrameProps = {
  * `/preview/*` route, with a toolbar to switch the viewport, reload the
  * example, or open it in a new tab.
  */
-function Frame({ name, title, height }: FrameProps) {
+function Frame({ target, title, height }: FrameProps) {
 	const [viewport, setViewport] = useState<Viewport>("desktop");
 	// remounting the iframe with a new key is a full document reload
 	const [reloadCount, setReloadCount] = useState(0);
 	const [contentHeight, setContentHeight] = useState<number | null>(null);
-	const measuredHeight = use(ExampleHeightsContext)[name];
-	const previewHref = href("/preview/*", { "*": name });
+	const exampleHeights = use(ExampleHeightsContext);
+	const measuredHeight = target.name == null ? undefined : exampleHeights[target.name];
+	const previewHref = target.name == null ? target.path : href("/preview/*", { "*": target.name });
 
 	return (
 		<div
@@ -205,20 +216,33 @@ function Frame({ name, title, height }: FrameProps) {
 	);
 }
 
-type ExampleProps = {
-	/**
-	 * The example to run. A page example is `<page path>/<name>`: the key
-	 * `components/actions/button/size` renders `SizeExample` from
-	 * `app/docs/components/actions/button.examples.tsx`. A key with no slash
-	 * names a shell demo in the preview registry.
-	 */
-	name: PreviewKey;
+type ExampleProps = (
+	| {
+			/**
+			 * The example to run. A page example is `<page path>/<name>`: the key
+			 * `components/actions/button/size` renders `SizeExample` from
+			 * `app/docs/components/actions/button.examples.tsx`. A key with no slash
+			 * names a shell demo in the preview registry.
+			 */
+			name: PreviewKey;
+			path?: never;
+	  }
+	| {
+			/**
+			 * The page of a routed demo to open, in place of `name`. The demo
+			 * navigates inside its frame, so a reader can follow its links.
+			 */
+			path: RoutedDemoPath;
+			name?: never;
+	  }
+) & {
 	/** The example's name, for the frame's accessible title and toolbar labels. */
 	title: string;
 	/**
 	 * `content`: the frame grows to the height of the example's
 	 * `PreviewCanvas`. `fixed`: the frame is `h-160` tall and the example fills
-	 * it. Defaults to `content` for a page example and `fixed` for a shell demo.
+	 * it. Defaults to `content` for a page example and `fixed` for a shell demo
+	 * or a routed demo.
 	 */
 	height?: "fixed" | "content";
 	/** The example's code, as an MDX code fence. It shows in the Code tab. */
@@ -241,13 +265,18 @@ type ExampleProps = {
  *
  * </Example>
  * ```
+ *
+ * @example
+ * ```mdx
+ * <Example path="/preview/breadcrumbs-from-routes/endpoints" title="Breadcrumbs from routes demo" />
+ * ```
  */
-export function Example({ name, title, height, children }: ExampleProps) {
+export function Example({ title, height, children, ...target }: ExampleProps) {
 	const frame = (
 		<Frame
-			name={name}
+			target={target}
 			title={title}
-			height={height ?? (name.includes("/") ? "content" : "fixed")}
+			height={height ?? (target.name?.includes("/") === true ? "content" : "fixed")}
 		/>
 	);
 	if (children == null) {

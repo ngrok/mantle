@@ -86,8 +86,9 @@ const handlers: Record<string, Handler> = {
 	Example: (node) => {
 		const name = stringAttribute(node, "name");
 		// A page example key (`<page>/<name>`) is the page's own demo, and the
-		// fence is its code, so the frame adds nothing to the markdown.
-		if (name?.includes("/")) {
+		// fence is its code, so the frame adds nothing to the markdown. A routed
+		// demo (`path`) has no source in /llms-full.txt; the page's fences show it.
+		if (name?.includes("/") || stringAttribute(node, "path") != null) {
 			return { kind: "unwrap" };
 		}
 		// A shell demo runs a registered module whose whole source ships in
