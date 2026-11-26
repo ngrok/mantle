@@ -2,6 +2,8 @@
 
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Content, Root } from "../drawer/drawer.js";
 
 /**
@@ -10,10 +12,13 @@ import { Content, Root } from "../drawer/drawer.js";
  * presents a drawer does not pay for the dialog and swipe behavior.
  */
 
-type PopoverDrawerProps = ComponentProps<typeof Content> & {
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-};
+type PopoverDrawerProps = ComponentProps<typeof Content> &
+	WithDataSlot & {
+		open: boolean;
+		onOpenChange: (open: boolean) => void;
+		/** The `id` of the popover trigger, which names the drawer when the content has no name. */
+		triggerId: string;
+	};
 
 /**
  * Renders `Popover.Content` as a `Drawer`. The popover owns the open state;
@@ -26,12 +31,34 @@ type PopoverDrawerProps = ComponentProps<typeof Content> & {
 const PopoverDrawer = ({
 	children,
 	className,
+	"data-slot": dataSlot,
+	onClick,
+	onOpenAutoFocus,
 	onOpenChange,
 	open,
+	triggerId,
 	...props
 }: PopoverDrawerProps) => (
 	<Root open={open} onOpenChange={onOpenChange}>
-		<Content className={cx("[&_[data-float-arrow]]:hidden", className)} {...props}>
+		<Content
+			// Why the trigger names the drawer: as in the popover, the trigger says what opens.
+			aria-labelledby={props["aria-label"] == null ? triggerId : undefined}
+			data-slot={joinDataSlot(dataSlot, "popover-content")}
+			data-presentation="drawer"
+			className={cx("[&_[data-float-arrow]]:hidden", className)}
+			// Why the dialog keeps focus: focus on the first field would open the
+			// on-screen keyboard over the drawer.
+			onOpenAutoFocus={(event) => {
+				onOpenAutoFocus?.(event);
+				event.preventDefault();
+			}}
+			{...props}
+			onClick={(event) => {
+				// Why: a click in the content must not reach a clickable parent of the trigger.
+				event.stopPropagation();
+				onClick?.(event);
+			}}
+		>
 			<div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-4 pb-4">
 				{children}
 			</div>
