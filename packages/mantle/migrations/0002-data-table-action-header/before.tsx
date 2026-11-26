@@ -50,17 +50,34 @@ export const columns = columnHelper.columns([
 		header: () => null,
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	}),
-	// DataTable.ActionHeader takes no `column`, so the rewrite drops it.
+	// DataTable.ActionHeader takes no `column`, so the rewrite drops it, and the
+	// arrow drops the parameter that only fed it.
 	columnHelper.display({
 		id: "column-actions",
-		// oxlint-disable-next-line no-unused-vars -- the rewrite leaves `props` unused
 		header: (props) => <DataTable.Header column={props.column}>Actions</DataTable.Header>,
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	}),
 	columnHelper.display({
 		id: "self-closing-column-actions",
-		// oxlint-disable-next-line no-unused-vars -- the rewrite leaves `props` unused
 		header: (props) => <DataTable.Header column={props.column} className="w-0" />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	// A typed parameter that only fed `column` is dropped too.
+	columnHelper.display({
+		id: "typed-column-actions",
+		header: (props: { column: unknown }) => <DataTable.Header column={props.column} />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	// A bare parameter, without parentheses.
+	columnHelper.display({
+		id: "bare-column-actions",
+		header: props => <DataTable.Header column={props.column} />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	// Negative case: a spread still reads the parameter, so it stays.
+	columnHelper.display({
+		id: "spread-column-actions",
+		header: (props) => <DataTable.Header {...props} column={props.column} />,
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	}),
 	columnHelper.display({
@@ -159,7 +176,6 @@ export const nestedColumns = columnHelper.columns([
 					},
 					columnHelper.display({
 						id: "column-actions",
-						// oxlint-disable-next-line no-unused-vars -- the rewrite leaves `props` unused
 						header: (props) => <DataTable.Header column={props.column} />,
 						cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 					}),
