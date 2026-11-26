@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useContext } from "react";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { ScrollBody } from "../dialog/scroll-body.js";
-import { Content, Root } from "../drawer/drawer.js";
+import { Content, DrawerContext, Root, scope as DrawerScope } from "../drawer/drawer.js";
 import type { PopoverContentProps, PopoverState } from "./popover.js";
 
 /**
@@ -38,6 +38,10 @@ const PopoverDrawer = ({
 	...props
 }: PopoverContentProps & { state: PopoverState }) => {
 	const { "aria-label": label, "aria-labelledby": labelledBy } = props;
+	// Why: as in the popover, the drawer parts in the content bind to an
+	// enclosing `Drawer.Root`, not to this private one.
+	const outerRoot = useContext(DrawerScope);
+	const outerState = useContext(DrawerContext);
 	// Why the trigger names the drawer: as in the popover, the trigger says
 	// what opens. Why a ref that changes with `open`: it runs on each open, and
 	// on a new `<dialog>` that an enclosing dialog renders while open. Why its
@@ -81,13 +85,19 @@ const PopoverDrawer = ({
 					onClick?.(event);
 				}}
 			>
-				{/* Why `>` for the arrow: an arrow of a float inside is not this one. */}
-				<ScrollBody
-					ref={name}
-					className="min-h-0 flex-1 touch-pan-y touch-pinch-zoom overflow-y-auto overscroll-contain px-4 pb-4 focus-visible:focus-ring focus-visible:ring-inset [&>[data-float-arrow]]:hidden"
-				>
-					{children}
-				</ScrollBody>
+				{/* Why the providers outside the scroll box: a lone string child stays
+				    its text content, which browser translation cannot break. */}
+				<DrawerScope value={outerRoot}>
+					<DrawerContext value={outerState}>
+						{/* Why `>` for the arrow: an arrow of a float inside is not this one. */}
+						<ScrollBody
+							ref={name}
+							className="min-h-0 flex-1 touch-pan-y touch-pinch-zoom overflow-y-auto overscroll-contain px-4 pb-4 focus-visible:focus-ring focus-visible:ring-inset [&>[data-float-arrow]]:hidden"
+						>
+							{children}
+						</ScrollBody>
+					</DrawerContext>
+				</DrawerScope>
 			</Content>
 		</Root>
 	);

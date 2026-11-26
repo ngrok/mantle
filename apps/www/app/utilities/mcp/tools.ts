@@ -42,7 +42,7 @@ function slugOf(url: string): string {
 }
 
 /** Flattens a version's manifest into one list of records. */
-export function recordsOf(data: VersionData): ApiRecord[] {
+export function recordsOf(data: Pick<VersionData, "manifest">): ApiRecord[] {
 	return [
 		...data.manifest.components.map((component): ApiRecord => ({
 			name: component.name,
@@ -96,6 +96,12 @@ export type DocPageRecord = {
 	useWhen?: string;
 	/** The `parts` frontmatter: the mantle record names that the page composes. */
 	parts?: string[];
+	/**
+	 * The import paths of the API records that own the page in the docs build,
+	 * such as `@ngrok/mantle/drawer`. `find` drops the page for a version that
+	 * exports none of them.
+	 */
+	importPaths?: string[];
 	docsUrl: string;
 	docsSlug: string;
 };
