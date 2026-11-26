@@ -1051,9 +1051,11 @@ describe("Sidebar beside an open AppLayout.SidePanel", () => {
 		expect(changes).toEqual([]);
 	});
 
-	test("padding on the panel's children does not count as the lane", async () => {
+	test("padding or width on the panel's children does not count as the lane", async () => {
 		await page.viewport(1600, 900);
-		await loadStyles('[data-slot~="app-layout-side-panel"] > * { padding-inline: 8px; }');
+		await loadStyles(
+			'[data-slot~="app-layout-side-panel"] > * { padding-inline: 8px; width: 100%; }',
+		);
 		render(<Shell rowWidth="1200px" />);
 		await frames(5);
 		expect(nav()).toHaveAttribute("data-expanded");

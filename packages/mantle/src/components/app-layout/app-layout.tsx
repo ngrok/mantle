@@ -1655,14 +1655,14 @@ const SidePanel = ({
 			</Panel.Root>
 			{/* The lane probe: 1px wide while this panel's own row is narrower than
 			    `--container-side-panel-lane` and has a desktop `Sidebar.Nav` as a direct child. A nav outside
-			    the row does not make room for the panel, so it never yields. `invisible` and `box-content`: a
+			    the row does not make room for the panel, so it never yields. `invisible`, `box-content`, and `!`: a
 			    consumer's styles on the aside's children neither paint the probe nor give it width. After the
 			    card, so the card stays the first child. */}
 			<span
 				ref={laneProbeRef}
 				aria-hidden
 				// oxlint-disable-next-line mantle/no-structural-combinator -- Why: as for the float rules, it styles the one probe.
-				className="pointer-events-none invisible absolute box-content size-0 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav]:not([data-mobile]))>[data-slot~=app-layout-side-panel]>&]:@max-side-panel-lane/app-layout-workspace:w-px"
+				className="pointer-events-none invisible absolute box-content size-0! [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav]:not([data-mobile]))>[data-slot~=app-layout-side-panel]>&]:@max-side-panel-lane/app-layout-workspace:w-px!"
 			/>
 		</aside>
 	);
