@@ -46,6 +46,19 @@ export const columns = columnHelper.columns([
 		header: () => null,
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	}),
+	// DataTable.ActionHeader takes no `column`, so the rewrite drops it.
+	columnHelper.display({
+		id: "column-actions",
+		// oxlint-disable-next-line no-unused-vars -- the rewrite leaves `props` unused
+		header: (props) => <DataTable.Header column={props.column}>Actions</DataTable.Header>,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	columnHelper.display({
+		id: "self-closing-column-actions",
+		// oxlint-disable-next-line no-unused-vars -- the rewrite leaves `props` unused
+		header: (props) => <DataTable.Header column={props.column} className="w-0" />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
 	// The aliased import is the same part.
 	columnHelper.display({
 		id: "aliased-actions",

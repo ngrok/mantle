@@ -182,7 +182,22 @@ rule:
                 has:
                   field: name
                   pattern: $DT
-fix: <$DT.ActionHeader $$$ATTRS>$$$CHILDREN</$DT.ActionHeader>
+# Why: DataTable.ActionHeader takes no `column`, so a copied
+# `column={props.column}` fails typecheck.
+rewriters:
+  - id: drop-column
+    rule:
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^column$
+    fix: ""
+transform:
+  KEPT:
+    rewrite:
+      source: $$$ATTRS
+      rewriters: [drop-column]
+fix: <$DT.ActionHeader $KEPT>$$$CHILDREN</$DT.ActionHeader>
 ---
 id: action-column-header-self-closing
 language: tsx
@@ -365,7 +380,22 @@ rule:
                 has:
                   field: name
                   pattern: $DT
-fix: <$DT.ActionHeader $$$ATTRS />
+# Why: DataTable.ActionHeader takes no `column`, so a copied
+# `column={props.column}` fails typecheck.
+rewriters:
+  - id: drop-column
+    rule:
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^column$
+    fix: ""
+transform:
+  KEPT:
+    rewrite:
+      source: $$$ATTRS
+      rewriters: [drop-column]
+fix: <$DT.ActionHeader $KEPT />
 ---
 id: action-column-null-header
 language: tsx
