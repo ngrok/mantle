@@ -5,10 +5,8 @@ let styleElement: HTMLStyleElement;
 
 beforeAll(() => {
 	// Why the rule from `mantle.css`: browser tests load no stylesheet, and the caret is one rule.
-	const match =
-		/:where\(\[data-slot~="markdown"\]\[data-streaming\]\)[\s\S]*?opacity: 0\.6;\n\t\}/.exec(
-			mantleCss,
-		);
+	// Why from the comment: the whole selector list must load, so a selector that leaks the caret fails.
+	const match = /\/\* The caret at the end of the streamed text[\s\S]*?\n\t\}/.exec(mantleCss);
 	if (match == null) {
 		throw new Error("mantle.css holds no caret rule for streaming Markdown.");
 	}
@@ -30,9 +28,10 @@ function caretAt(html: string, { streaming = true } = {}) {
 	}
 	answer.innerHTML = html;
 	document.body.append(answer);
-	const owners = [...answer.querySelectorAll("*")].filter(
-		(element) => getComputedStyle(element, "::after").display === "inline-block",
-	);
+	const owners = [...answer.querySelectorAll("*")].filter((element) => {
+		const after = getComputedStyle(element, "::after");
+		return after.display === "inline-block" && after.content !== "none";
+	});
 	answer.remove();
 	return (
 		owners.map((element) => `${element.tagName.toLowerCase()}:${element.textContent}`).join(",") ||
@@ -56,6 +55,16 @@ describe("Markdown streaming caret", () => {
 			caret: "p:q2",
 		},
 		{ name: "a paragraph after a list", html: "<ul><li>x</li></ul><p>after</p>", caret: "p:after" },
+		{
+			name: "a paragraph after a quote",
+			html: "<blockquote><p>q</p></blockquote><p>after</p>",
+			caret: "p:after",
+		},
+		{
+			name: "a paragraph after a loose list",
+			html: "<ol><li><p>x</p></li></ol><p>after</p>",
+			caret: "p:after",
+		},
 		{ name: "no block after a code block", html: "<p>a</p><pre>code</pre>", caret: "none" },
 		{
 			name: "no item with a nested list",
