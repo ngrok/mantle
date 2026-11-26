@@ -117,7 +117,7 @@ describe("CodeBlock (browser)", () => {
 	 * constant, the rule stops matching and the clearance assertions fail.
 	 */
 	const CLEARANCE_CLASS =
-		"[&_[data-slot~=code-block-copy-button]~*_.mantle-code-line:nth-child(-n+2)]:pr-14";
+		"[&_:is([data-slot~=code-block-copy-button],:has(>[data-slot~=code-block-copy-button]))~*_.mantle-code-line:nth-child(-n+2)]:pr-14";
 
 	/**
 	 * The end-of-line breathing-room utility on `CodeBlock.Body`: every line
@@ -173,7 +173,7 @@ describe("CodeBlock (browser)", () => {
 			padding-right: 1rem;
 		}
 		.${CSS.escape(CLEARANCE_CLASS)}
-			[data-slot~="code-block-copy-button"]
+			:is([data-slot~="code-block-copy-button"], :has(> [data-slot~="code-block-copy-button"]))
 			~ *
 			.mantle-code-line:nth-child(-n + 2) {
 			padding-right: 3.5rem;
@@ -471,6 +471,26 @@ describe("CodeBlock (browser)", () => {
 				`${3.5 * remPx}px`,
 				`${remPx}px`,
 			]);
+
+			// A CopyButton in its own wrapper element, before the code, reserves it too.
+			rerender(
+				<div style={{ width: 340 }}>
+					<CodeBlock.Root>
+						<CodeBlock.Body>
+							<span>
+								<CodeBlock.CopyButton />
+							</span>
+							<CodeBlock.Code value={makeFixedWidthValue([100, 100, 100])} />
+						</CodeBlock.Body>
+					</CodeBlock.Root>
+				</div>,
+			);
+			expect(
+				Array.from(
+					document.querySelectorAll(".mantle-code-line"),
+					(line) => getComputedStyle(line).paddingRight,
+				),
+			).toEqual([`${3.5 * remPx}px`, `${3.5 * remPx}px`, `${remPx}px`]);
 		});
 	});
 

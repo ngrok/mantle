@@ -265,11 +265,12 @@ const Body = ({
 				// button sits at `right-3 top-3`, over the first two text-mono lines
 				// only. Per-line padding adds to the max-content width of the `w-max`
 				// <code>, so a blanket reserve forced a horizontal scrollbar even when
-				// every line fit the container. Why a sibling selector and not
-				// `:has()`: with `:has()`, each line that a stream inserted restyled
-				// the lines of the block. This rule outranks the breathing room above
-				// on specificity.
-				"[&_[data-slot~=code-block-copy-button]~*_.mantle-code-line:nth-child(-n+2)]:pr-14",
+				// every line fit the container. Why a sibling selector: a `:has()` on
+				// Body made each line that a stream inserted restyle the lines of the
+				// block. The `:has(>…)` tests only the children of the button's
+				// wrapper, so an insert in the code does not recheck it. This rule
+				// outranks the breathing room above on specificity.
+				"[&_:is([data-slot~=code-block-copy-button],:has(>[data-slot~=code-block-copy-button]))~*_.mantle-code-line:nth-child(-n+2)]:pr-14",
 				className,
 			)}
 			ref={ref}
