@@ -50,8 +50,8 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"checkbox on the left label and description on the right": "Choice",
 	},
 	Steps: {
-		stepper: "Steps",
-		"multi step wizard stepper progress": "Steps",
+		"setup guide": "Steps",
+		"numbered setup guide steps down a page": "Steps",
 	},
 	Recipes: {
 		"form actions": "Cancel and Submit Actions",
@@ -209,6 +209,8 @@ const knownMisses: Record<string, string | readonly string[]> = {};
  * using a near miss. The value names the gap and any open work on it.
  */
 const weakFinds: Record<string, string> = {
+	stepper: "multi-step wizard",
+	"multi step wizard stepper progress": "multi-step wizard",
 	"file drop zone": "file upload",
 	"drag reorder sortable list handle": "sortable list",
 	"sankey flow diagram": "flow chart",

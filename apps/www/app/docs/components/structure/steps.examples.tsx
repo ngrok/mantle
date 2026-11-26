@@ -74,10 +74,10 @@ export function CollapseMarkersExample() {
 	return (
 		<PreviewCanvas>
 			<Steps.Root className="w-full max-w-xl max-md:ps-0">
-				<Steps.Item className="max-md:border-s-0 max-md:ps-0 max-md:[&_[data-slot=steps-marker]]:hidden">
+				<Steps.Item className="max-md:border-s-0 max-md:ps-0 max-md:[&>[data-slot=steps-marker]]:hidden">
 					<Steps.Title>Install the ngrok agent</Steps.Title>
 				</Steps.Item>
-				<Steps.Item className="max-md:border-s-0 max-md:ps-0 max-md:[&_[data-slot=steps-marker]]:hidden">
+				<Steps.Item className="max-md:border-s-0 max-md:ps-0 max-md:[&>[data-slot=steps-marker]]:hidden">
 					<Steps.Title>Add your authtoken</Steps.Title>
 				</Steps.Item>
 			</Steps.Root>

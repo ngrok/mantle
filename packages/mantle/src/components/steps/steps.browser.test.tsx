@@ -3,6 +3,7 @@ import type { PropsWithChildren } from "react";
 import invariant from "tiny-invariant";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { commands, page } from "vitest/browser";
+import { $cssProperties } from "../../types/css-properties.js";
 import * as Steps from "./steps-parts.js";
 
 let styleElement: HTMLStyleElement;
@@ -110,6 +111,46 @@ describe("Steps marker (browser)", () => {
 	});
 });
 
+describe("Steps position skips what takes no number (browser)", () => {
+	test("a lone visible item between hidden items paints the only shape and no rail", () => {
+		render(
+			<Steps.Root>
+				<Steps.Item hidden>
+					<Steps.Title>Install the ngrok agent</Steps.Title>
+				</Steps.Item>
+				<Steps.Item data-testid="visible">
+					<Steps.Title>Add your authtoken</Steps.Title>
+				</Steps.Item>
+				<Steps.Item hidden>
+					<Steps.Title>Get a public URL for your app</Steps.Title>
+				</Steps.Item>
+			</Steps.Root>,
+		);
+		const visible = screen.getByTestId("visible");
+		expect(paintedShapeIn(markerOf(visible))).toBe("only");
+		expect(getComputedStyle(visible).borderInlineStartColor).toBe("rgba(0, 0, 0, 0)");
+	});
+
+	test("a server Suspense placeholder after the last item leaves it the last shape", () => {
+		// Why a `<template>`: a pending `<Suspense>` renders one on the server
+		// until its content streams in.
+		render(
+			<Steps.Root>
+				<Steps.Item>
+					<Steps.Title>Install the ngrok agent</Steps.Title>
+				</Steps.Item>
+				<Steps.Item data-testid="last">
+					<Steps.Title>Add your authtoken</Steps.Title>
+				</Steps.Item>
+				<template />
+			</Steps.Root>,
+		);
+		const last = screen.getByTestId("last");
+		expect(paintedShapeIn(markerOf(last))).toBe("last");
+		expect(getComputedStyle(last).borderInlineStartColor).toBe("rgba(0, 0, 0, 0)");
+	});
+});
+
 describe("Steps rail (browser)", () => {
 	test("each item draws a 4px rail, and the last item keeps the width with no color", () => {
 		render(
@@ -128,6 +169,30 @@ describe("Steps rail (browser)", () => {
 		expect(last.borderInlineStartWidth).toBe("4px");
 		expect(first.borderInlineStartColor).not.toBe("rgba(0, 0, 0, 0)");
 		expect(last.borderInlineStartColor).toBe("rgba(0, 0, 0, 0)");
+	});
+
+	test("a token override on the root reaches the rail, the blob, and the number", () => {
+		render(
+			<Steps.Root
+				style={$cssProperties({
+					"--color-steps-rail": "rgb(255, 0, 0)",
+					"--color-steps-number": "rgb(0, 0, 255)",
+				})}
+			>
+				<Steps.Item data-testid="first">
+					<Steps.Title>Install the ngrok agent</Steps.Title>
+				</Steps.Item>
+				<Steps.Item>
+					<Steps.Title>Add your authtoken</Steps.Title>
+				</Steps.Item>
+			</Steps.Root>,
+		);
+		const item = screen.getByTestId("first");
+		const svg = item.querySelector("svg");
+		invariant(svg != null, "the marker rendered no svg");
+		expect(getComputedStyle(item).borderInlineStartColor).toBe("rgb(255, 0, 0)");
+		expect(getComputedStyle(svg).fill).toBe("rgb(255, 0, 0)");
+		expect(getComputedStyle(markerOf(item), "::after").color).toBe("rgb(0, 0, 255)");
 	});
 
 	test("the label slot adds no box, so the step's children lay out in the item", () => {
@@ -251,7 +316,7 @@ const TwoSteps = ({ children }: PropsWithChildren) => (
 describe("Steps in forced colors (browser)", () => {
 	// Why after each test: the emulation belongs to the page, and the page outlives this file.
 	afterEach(async () => {
-		await commands.emulateMedia({ forcedColors: "none" });
+		await commands.emulateMedia({ forcedColors: "none", colorScheme: "light" });
 	});
 
 	test("the last item draws no rail below its marker", async () => {
@@ -265,6 +330,20 @@ describe("Steps in forced colors (browser)", () => {
 		expect(getComputedStyle(screen.getByTestId("last")).borderInlineStartColor).toBe(
 			systemColor("Canvas"),
 		);
+	});
+
+	test("a light forced colors palette paints a different glyph for 1 and 8", async () => {
+		await commands.emulateMedia({ forcedColors: "active", colorScheme: "light" });
+		render(<TwoSteps />);
+		const list = screen.getByRole("list");
+		const marker = markerOf(screen.getByTestId("first"));
+		// Why pixels: a backplate in the color of the digit leaves the circle
+		// one solid color, and no computed style shows it.
+		list.style.counterReset = "mantle-steps 0";
+		const one = await circlePixelsOf(marker);
+		list.style.counterReset = "mantle-steps 7";
+		const eight = await circlePixelsOf(marker);
+		expect(one.some((value, offset) => value !== eight[offset])).toBe(true);
 	});
 
 	test("the number keeps its Canvas color, with no backplate over the blob", async () => {

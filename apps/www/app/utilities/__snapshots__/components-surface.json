@@ -2318,10 +2318,9 @@
     "jsdoc": "A read-only setup guide: an ordered list of steps down a page, each marked by a numbered circle in a left gutter, joined by one continuous vertical rail.",
     "examples": [
       "Composition:\n```\nSteps.Root\n└── Steps.Item\n    └── Steps.Title\n```",
-      "```tsx\n<Steps.Root>\n  <Steps.Item>\n    <Steps.Title>Install the ngrok agent</Steps.Title>\n    <p>Download the agent for your platform.</p>\n  </Steps.Item>\n  <Steps.Item>\n    <Steps.Title asChild>\n      <h2>Add your authtoken</h2>\n    </Steps.Title>\n    <p>Run ngrok config add-authtoken with the token from your dashboard.</p>\n  </Steps.Item>\n  <Steps.Item>\n    <Steps.Title>Get a public URL for your app</Steps.Title>\n    <p>Start a tunnel to the port your app listens on.</p>\n  </Steps.Item>\n</Steps.Root>\n```"
+      "```tsx\n<Steps.Root>\n  <Steps.Item>\n    <Steps.Title>Install the ngrok agent</Steps.Title>\n    <p>Download the agent for your platform.</p>\n  </Steps.Item>\n  <Steps.Item>\n    <Steps.Title asChild>\n      <h2>Add your authtoken</h2>\n    </Steps.Title>\n    <p>\n      Run <Code>ngrok config add-authtoken</Code> with the token from your dashboard.\n    </p>\n  </Steps.Item>\n  <Steps.Item>\n    <Steps.Title>Get a public URL for your app</Steps.Title>\n    <p>Start a tunnel to the port your app listens on.</p>\n  </Steps.Item>\n</Steps.Root>\n```"
     ],
     "aliases": [
-      "stepper",
       "setup guide",
       "onboarding steps",
       "numbered steps"
@@ -2334,10 +2333,6 @@
       {
         "name": "Accordion",
         "boundary": "each step collapses, and the reader opens the one they need."
-      },
-      {
-        "name": "List",
-        "boundary": "the items have no order that the reader follows."
       }
     ],
     "useWhen": "Show a read-only, numbered sequence of setup or onboarding steps down a page, with each step's content visible at once."

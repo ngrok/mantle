@@ -128,12 +128,15 @@ describe("Steps.Root", () => {
 });
 
 describe("Steps numbering props", () => {
-	test("takes no start, reversed, or value, so the list numbers as the markers do", () => {
+	test("omits the native props that disagree with what the parts render", () => {
 		// The visible number is a CSS counter that counts up from 1. These native
 		// attributes would change only the number that a screen reader announces.
 		expectTypeOf<StepsRootProps>().not.toHaveProperty("start");
 		expectTypeOf<StepsRootProps>().not.toHaveProperty("reversed");
 		expectTypeOf<StepsItemProps>().not.toHaveProperty("value");
+		// The item always renders its marker as a child, and React throws when an
+		// element has children and inner HTML.
+		expectTypeOf<StepsItemProps>().not.toHaveProperty("dangerouslySetInnerHTML");
 	});
 });
 

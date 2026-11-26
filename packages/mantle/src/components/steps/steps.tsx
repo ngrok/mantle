@@ -160,7 +160,9 @@ type StepsRootProps = Omit<ComponentProps<"ol">, "role" | "start" | "reversed"> 
  *     <Steps.Title asChild>
  *       <h2>Add your authtoken</h2>
  *     </Steps.Title>
- *     <p>Run ngrok config add-authtoken with the token from your dashboard.</p>
+ *     <p>
+ *       Run <Code>ngrok config add-authtoken</Code> with the token from your dashboard.
+ *     </p>
  *   </Steps.Item>
  *   <Steps.Item>
  *     <Steps.Title>Get a public URL for your app</Steps.Title>
@@ -206,10 +208,13 @@ const Root = ({
 };
 
 /**
- * Props for `Steps.Item`. Every `<li>` attribute except `value`, plus
- * `asChild`. The visible number is a CSS counter, so a `value` would make the
- * list's own numbering disagree with it. Under `asChild`, the child must render
- * an `<li>`.
+ * Props for `Steps.Item`. Every `<li>` attribute except two, plus `asChild`:
+ * - `value`: the visible number is a CSS counter, so a `value` would make the
+ *   list's own numbering disagree with it.
+ * - `dangerouslySetInnerHTML`: the item always renders its marker as a child,
+ *   and React throws when an element has both.
+ *
+ * Under `asChild`, the child must render an `<li>`.
  *
  * @see https://mantle.ngrok.com/components/structure/steps#stepsitem
  *
@@ -222,7 +227,9 @@ const Root = ({
  * </Steps.Root>
  * ```
  */
-type StepsItemProps = Omit<ComponentProps<"li">, "value"> & WithAsChild & WithDataSlot;
+type StepsItemProps = Omit<ComponentProps<"li">, "value" | "dangerouslySetInnerHTML"> &
+	WithAsChild &
+	WithDataSlot;
 
 /**
  * One step. Renders an `<li>` that increments the step counter, draws its own
@@ -235,8 +242,13 @@ type StepsItemProps = Omit<ComponentProps<"li">, "value"> & WithAsChild & WithDa
  * sideways.
  *
  * Under `asChild` the child must render an `<li>`. Any other element between
- * the `<ol>` and its items is invalid HTML, and `:first-child` and
- * `:last-child` then stop describing the step.
+ * the `<ol>` and its items is invalid HTML, and the item's position in the
+ * list then stops describing the step. A `hidden` item and a `<template>`
+ * take no position.
+ *
+ * Set `dir` on the step's content, not on the item: the list's gutter is on
+ * the list's own start side, and an item in the other direction puts its rail
+ * and marker outside that gutter.
  *
  * | Data Attribute | Value                | Description                                                                                                        |
  * | -------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -257,7 +269,9 @@ type StepsItemProps = Omit<ComponentProps<"li">, "value"> & WithAsChild & WithDa
  *     <Steps.Title asChild>
  *       <h2>Add your authtoken</h2>
  *     </Steps.Title>
- *     <p>Run ngrok config add-authtoken with the token from your dashboard.</p>
+ *     <p>
+ *       Run <Code>ngrok config add-authtoken</Code> with the token from your dashboard.
+ *     </p>
  *   </Steps.Item>
  *   <Steps.Item>
  *     <Steps.Title>Get a public URL for your app</Steps.Title>
@@ -281,17 +295,21 @@ const Item = ({
 			// root font size, and the stub must stay as wide as the border under it.
 			"border-s-steps-rail relative border-s-[0.25rem] pt-1.5 pb-10 ps-8.5",
 			"[counter-increment:mantle-steps]",
+			// Why `of :not([hidden], template)`: a hidden item and a server Suspense
+			// placeholder take no number, so they must not take a position either.
 			// The width stays so the content keeps its indent; only the color goes.
-			"last:border-s-transparent",
+			"[&:nth-last-child(1_of_:not([hidden],template))]:border-s-transparent",
 			// Why Canvas: forced colors paint a transparent border in CanvasText, but
 			// keep a system color that the page sets.
-			"forced-colors:last:border-s-[Canvas]",
+			"forced-colors:[&:nth-last-child(1_of_:not([hidden],template))]:border-s-[Canvas]",
 			// Why a variable per silhouette: the item's own position picks the shape,
 			// with no structural selector before a combinator. The four conditions
 			// do not overlap, so no cascade order picks the shape.
 			"[--_steps-first:none] [--_steps-middle:none] [--_steps-last:none] [--_steps-only:none]",
-			"first:not-only:[--_steps-first:inline] not-first:not-last:[--_steps-middle:inline]",
-			"last:not-only:[--_steps-last:inline] only:[--_steps-only:inline]",
+			"[&:nth-child(1_of_:not([hidden],template)):not(:nth-last-child(1_of_:not([hidden],template)))]:[--_steps-first:inline]",
+			"[&:not(:nth-child(1_of_:not([hidden],template))):not(:nth-last-child(1_of_:not([hidden],template)))]:[--_steps-middle:inline]",
+			"[&:nth-last-child(1_of_:not([hidden],template)):not(:nth-child(1_of_:not([hidden],template)))]:[--_steps-last:inline]",
+			"[&:nth-child(1_of_:not([hidden],template)):nth-last-child(1_of_:not([hidden],template))]:[--_steps-only:inline]",
 			className,
 		),
 		...props,
@@ -369,7 +387,9 @@ type StepsTitleProps = ComponentProps<"h3"> & WithAsChild & WithDataSlot;
  *     <Steps.Title asChild>
  *       <h2>Add your authtoken</h2>
  *     </Steps.Title>
- *     <p>Run ngrok config add-authtoken with the token from your dashboard.</p>
+ *     <p>
+ *       Run <Code>ngrok config add-authtoken</Code> with the token from your dashboard.
+ *     </p>
  *   </Steps.Item>
  *   <Steps.Item>
  *     <Steps.Title>Get a public URL for your app</Steps.Title>

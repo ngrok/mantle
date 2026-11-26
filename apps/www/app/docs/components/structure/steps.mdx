@@ -2,7 +2,6 @@
 title: Steps
 description: "A read-only setup guide: numbered steps down a page, joined by one continuous vertical rail."
 aliases:
-  - stepper
   - setup guide
   - onboarding steps
   - numbered steps
@@ -63,7 +62,7 @@ import { Steps } from "@ngrok/mantle/steps";
 - Show a read-only, numbered sequence of setup or onboarding steps down a page, with the content of each step visible at once.
 - Prefer [`Tabs`](/components/navigation/tabs) when the reader clicks a step to show one panel at a time.
 - Prefer [`Accordion`](/components/data-display/accordion) when each step collapses and the reader opens the one they need.
-- Prefer [`List`](/components/data-display/list) when the items have no order that the reader follows.
+- Use a native `<ul>` when the items have no order that the reader follows.
 
 ## Conditional steps
 
@@ -143,7 +142,7 @@ The marker is an SVG blob whose stubs land on that border, in the same color. Th
 
 ## Collapsing the marker column
 
-A narrow surface has no horizontal room for the gutter, and the titles carry the order on their own. Hide the gutter, the indent, and the marker with classes, not with a prop: the breakpoint belongs to your layout. The marker is `aria-hidden` at each width, so hiding it changes nothing for a screen reader. Below the `md` breakpoint, this example drops the markers.
+A narrow surface has no horizontal room for the gutter, and the titles carry the order on their own. Hide the gutter, the indent, and the marker with classes, not with a prop: the breakpoint belongs to your layout. The marker is `aria-hidden` at each width, so hiding it changes nothing for a screen reader. Below the `md` breakpoint, this example drops the markers. The `>` selector hides only the marker of the item itself, so a guide nested inside a step keeps its own markers.
 
 <Example name="components/structure/steps/collapse-markers" title="Steps collapsed marker column example">
 
@@ -151,10 +150,10 @@ A narrow surface has no horizontal room for the gutter, and the titles carry the
 import { Steps } from "@ngrok/mantle/steps";
 
 <Steps.Root className="max-md:ps-0">
-	<Steps.Item className="max-md:border-s-0 max-md:ps-0 max-md:[&_[data-slot=steps-marker]]:hidden">
+	<Steps.Item className="max-md:border-s-0 max-md:ps-0 max-md:[&>[data-slot=steps-marker]]:hidden">
 		<Steps.Title>Install the ngrok agent</Steps.Title>
 	</Steps.Item>
-	<Steps.Item className="max-md:border-s-0 max-md:ps-0 max-md:[&_[data-slot=steps-marker]]:hidden">
+	<Steps.Item className="max-md:border-s-0 max-md:ps-0 max-md:[&>[data-slot=steps-marker]]:hidden">
 		<Steps.Title>Add your authtoken</Steps.Title>
 	</Steps.Item>
 </Steps.Root>;
@@ -196,7 +195,7 @@ All props from [ol](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol
 | ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Steps.Root` styling onto other element types or your own React components. |
 
-Both CSS variables are design tokens that each theme sets, not knobs for one guide. Override them on an ancestor to re-theme each guide below it, and override both together.
+Both CSS variables are design tokens that each theme sets, not knobs for one guide. Override them on an ancestor to re-theme each guide below it, and override both together. An `invert-theme` island sets both tokens again, so an override outside the island does not reach a guide inside it. Set the override inside the island.
 
 | CSS Variable           | Default                    | Description                                                                                            |
 | ---------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -209,9 +208,9 @@ Both CSS variables are design tokens that each theme sets, not knobs for one gui
 
 ### Steps.Item
 
-One step. Renders an `<li>` that increments the step counter, draws its own segment of the rail, and mounts the numbered marker before its children. Under `asChild`, the child must render an `<li>`.
+One step. Renders an `<li>` that increments the step counter, draws its own segment of the rail, and mounts the numbered marker before its children. Under `asChild`, the child must render an `<li>`. A `hidden` item and a `<template>` take no position. Set `dir` on the content of a step, not on `Steps.Item`: the gutter is on the start side of the list, and an item in the other direction puts its rail and marker outside the gutter.
 
-All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes) except `value`, plus:
+All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes) except `value` and `dangerouslySetInnerHTML`, plus:
 
 | Prop       | Type      | Default | Description                                                                                                       |
 | ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
