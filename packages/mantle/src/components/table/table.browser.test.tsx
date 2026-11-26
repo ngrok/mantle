@@ -333,18 +333,36 @@ describe("Table.Root edge fade", () => {
 		expect(maskOf(scroller)).toBe("none");
 	});
 
-	test("a table that grows past its root gets the fade", async () => {
-		// The streaming case: an answer's table starts narrow and gains columns.
-		const { rerender } = render(<ColumnsTable columns={1} width={400} />);
-		const scroller = requireScroller();
-		await new Promise(requestAnimationFrame);
-		await new Promise(requestAnimationFrame);
-		expect(maskOf(scroller)).toBe("none");
+	// Why the skip: without scroll timelines, the documented fallback is no mask.
+	test.skipIf(!CSS.supports("animation-timeline: scroll()"))(
+		"a table that grows past its root gets the fade",
+		async () => {
+			// The streaming case: an answer's table starts narrow and gains columns.
+			const { rerender } = render(<ColumnsTable columns={1} width={400} />);
+			const scroller = requireScroller();
+			await new Promise(requestAnimationFrame);
+			await new Promise(requestAnimationFrame);
+			expect(maskOf(scroller)).toBe("none");
 
-		rerender(<ColumnsTable columns={4} width={400} />);
+			rerender(<ColumnsTable columns={4} width={400} />);
 
-		await waitFor(() => {
-			expect(maskOf(scroller)).toContain("linear-gradient");
-		});
-	});
+			await waitFor(() => {
+				expect(maskOf(scroller)).toContain("linear-gradient");
+			});
+
+			// Why each edge: an all-black mask is a gradient too, and it fades nothing.
+			const opaque = "rgb(0, 0, 0)";
+			const clear = "rgba(0, 0, 0, 0)";
+			const edgesAt = async (scrollLeft: number) => {
+				scroller.scrollLeft = scrollLeft;
+				await new Promise(requestAnimationFrame);
+				await new Promise(requestAnimationFrame);
+				const stops = maskOf(scroller).match(/rgba?\([^)]*\)/g) ?? [];
+				return [stops.at(0), stops.at(-1)];
+			};
+			expect(await edgesAt(0)).toEqual([opaque, clear]);
+			expect(await edgesAt(100)).toEqual([clear, clear]);
+			expect(await edgesAt(scroller.scrollWidth)).toEqual([clear, opaque]);
+		},
+	);
 });
