@@ -35,7 +35,7 @@ function docsPages(): ReadonlyArray<string> {
 
 const parser = unified().use(remarkParse).use(remarkFrontmatter).use(remarkGfm).use(remarkMdx);
 
-/** Each `<Example>` in the docs with no `name` or `title`. */
+/** Each `<Example>` in the docs with no `title`, or with neither a `name` nor a routed demo `path`. */
 function malformedFrames(): ReadonlyArray<string> {
 	const out: Array<string> = [];
 	for (const page of docsPages()) {
@@ -48,7 +48,7 @@ function malformedFrames(): ReadonlyArray<string> {
 							attr.name === name &&
 							typeof attr.value === "string",
 					);
-				if (!has("name") || !has("title")) {
+				if ((!has("name") && !has("path")) || !has("title")) {
 					out.push(`${page}:${node.position?.start.line ?? 0}`);
 				}
 			}

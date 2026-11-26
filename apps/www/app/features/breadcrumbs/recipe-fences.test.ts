@@ -15,6 +15,10 @@ const RECIPE = "app/docs/recipes/breadcrumbs-from-routes.mdx";
 const FENCED_FILES = [
 	"app/features/breadcrumbs/breadcrumbs.tsx",
 	"app/features/breadcrumbs/breadcrumbs.test.tsx",
+	"app/features/navigation-origin/origin-trail.ts",
+	"app/features/navigation-origin/origin-link.tsx",
+	"app/features/navigation-origin/origin-labels.tsx",
+	"app/features/navigation-origin/use-origin-crumbs.tsx",
 ] as const;
 
 /** This file's own location, three directories below the app root. */

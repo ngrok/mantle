@@ -103,6 +103,12 @@ describe("legacyPreviewRedirectFor", () => {
 		);
 	});
 
+	it("sends a frame key that a routed demo replaced to the demo", () => {
+		expect(
+			legacyPreviewRedirectFor("recipes/breadcrumbs-from-routes/building-and-rendering-the-trail"),
+		).toBe("/preview/breadcrumbs-from-routes/endpoints");
+	});
+
 	it("leaves a current frame key and a shell demo name alone", () => {
 		expect(legacyPreviewRedirectFor("components/structure/panel/overview")).toBeNull();
 		expect(legacyPreviewRedirectFor("chat-panel")).toBeNull();
