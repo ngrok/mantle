@@ -157,6 +157,7 @@ Set a component in `components` to replace the built-in one for a kind of token,
 - Unfinished syntax, such as `**bol`, an open fence, or a link with no URL yet, renders closed.
 - A fence highlights in a module worker, one changed line at a time. A finished line never renders again.
 - When `streaming` turns off, the whole answer parses once more, so a reference link that comes before its definition resolves.
+- Set `truncated` for an answer that ended before it finished, such as one the reader stopped or one whose stream failed. Its unfinished end stays closed, as it rendered while streaming, so `**bol` stays bold. Set it from the answer's stored status, so the answer renders the same after a reload.
 
 ## Security
 
@@ -189,6 +190,7 @@ A task-list checkbox takes its item's text as its name. The caret and the fade-i
 | ----------------- | ------------------------------------- | ------- | -------------------------------------------------------------------------------------------------- |
 | `children`        | `string`                              |         | The Markdown so far. While it streams, each update appends to it.                                  |
 | `streaming`       | `boolean`                             | `false` | Whether more Markdown can arrive. Closes unfinished syntax, renders once per frame, shows a caret. |
+| `truncated`       | `boolean`                             | `false` | Whether the answer ended before it finished. Keeps unfinished syntax at the end closed.            |
 | `components`      | `MarkdownComponents`                  |         | The components that replace the built-in one for a token. Keep the object stable.                  |
 | `extensions`      | `readonly MarkdownExtension[]`        |         | Tokenizers for more kinds of tokens, such as `markdownMath()`. Keep the array stable.              |
 | `onBlockComplete` | `(block: MarkdownBlockEvent) => void` |         | Called once for each block that finishes after mount, in order.                                    |

@@ -80,6 +80,26 @@ describe("createMarkdownParser", () => {
 		);
 	});
 
+	test("a truncated answer parses as its last frame, and more text can still join its last block", () => {
+		// Why a fence in a list item: the item ends at the list's end, which a scan of the whole answer misses.
+		const parser = createMarkdownParser();
+		const fenced = "[r]: /docs\n\n- ~~~\n  code\n\nNext **bold";
+		parser.parse(fenced.slice(0, -7), { streaming: true });
+		parser.parse(fenced, { streaming: true });
+		const stopped = parser.parse(fenced, { streaming: false, truncated: true });
+		expect(JSON.stringify(stopped.blocks.at(-1))).toContain('"type":"strong"');
+
+		// Why math: the closer `$$` splits `$$E` from `Intro`, and the rest of the line joins them again.
+		const math = createMarkdownParser({ extensions: [markdownMath()] });
+		math.parse("[r]: /docs\n\nIntro", { streaming: true });
+		math.parse("[r]: /docs\n\nIntro\n$$E", { streaming: true });
+		math.parse("[r]: /docs\n\nIntro\n$$E", { streaming: false, truncated: true });
+		const resumed = math.parse("[r]: /docs\n\nIntro\n$$E = mc^2$$ where m is mass.", {
+			streaming: true,
+		});
+		expect(resumed.blocks.map((block) => block.type)).toEqual(["def", "paragraph"]);
+	});
+
 	test("starts over when the text before a finished block changes", () => {
 		const parser = createMarkdownParser();
 		parser.parse("First answer.\n\nMore", { streaming: true });
