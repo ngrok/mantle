@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { userEvent } from "@testing-library/user-event";
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands, page, server } from "vitest/browser";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as Drawer from "../drawer/drawer-parts.js";
 import * as Sandbar from "../sandbar/sandbar-parts.js";
 import * as Popover from "./popover-parts.js";
@@ -161,6 +162,57 @@ describe.runIf(server.browser === "chromium")('Popover presentation="auto"', () 
 
 		await user.click(screen.getByRole("button", { name: "Done" }));
 		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
+	});
+
+	test("keeps the dismissal rule of an enclosing Drawer.Root for a drawer in the content", async () => {
+		await page.viewport(390, 844);
+		await commands.emulateMedia({ hover: "none" });
+		const user = userEvent.setup();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<Drawer.Root dismissible={false} onOpenChange={onOpenChange}>
+				<Popover.Root presentation="auto">
+					<Popover.Trigger>Add reminder</Popover.Trigger>
+					<Popover.Content>
+						<Drawer.Trigger>Edit</Drawer.Trigger>
+						<Drawer.Content aria-label="Editor">Draft</Drawer.Content>
+					</Popover.Content>
+				</Popover.Root>
+			</Drawer.Root>,
+		);
+		await openDrawer(user);
+		await user.click(screen.getByRole("button", { name: "Edit" }));
+		const editor = await screen.findByRole("dialog", { name: "Editor" });
+
+		await user.click(editor);
+		expect(onOpenChange).not.toHaveBeenCalledWith(false);
+		expect(editor).toBeInTheDocument();
+	});
+
+	test("survives a translated page when a text child becomes an element", async () => {
+		await page.viewport(390, 844);
+		await commands.emulateMedia({ hover: "none" });
+		const user = userEvent.setup();
+		function Loading({ ready }: { ready: boolean }) {
+			return (
+				<Popover.Root presentation="auto">
+					<Popover.Trigger>Add reminder</Popover.Trigger>
+					<Popover.Content>
+						{ready ? <button type="button">Retry</button> : "Loading"}
+					</Popover.Content>
+				</Popover.Root>
+			);
+		}
+		const { rerender } = render(<Loading ready={false} />);
+		await openDrawer(user);
+		const panel = document.querySelector("[data-slot~='popover-content']");
+		if (panel == null) {
+			throw new Error("no drawer");
+		}
+		translateTextNodes(panel);
+
+		rerender(<Loading ready />);
+		expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
 	});
 
 	test("keeps a press on the scrim from a clickable parent of the trigger", async () => {
