@@ -74,6 +74,50 @@ export const columns = columnHelper.columns([
 		header: () => <DataTable.ActionHeader />,
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	}),
+	// A formatter wraps a long header in parentheses, or a block returns it.
+	columnHelper.display({
+		id: "parenthesized-column-actions",
+		header: () => (
+			<DataTable.ActionHeader className="w-0 whitespace-nowrap text-right">
+				Actions
+			</DataTable.ActionHeader>
+		),
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	columnHelper.display({
+		id: "block-column-actions",
+		header: () => {
+			return <DataTable.ActionHeader />;
+		},
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	// Negative cases: another read of the parameter keeps it, as do a default
+	// value and a parameter that never fed `column`.
+	columnHelper.display({
+		id: "child-column-actions",
+		header: (props) => (
+			<DataTable.ActionHeader>
+				<Labels.Header column={props.column} />
+			</DataTable.ActionHeader>
+		),
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	columnHelper.display({
+		id: "shorthand-column-actions",
+		header: (props) => <DataTable.ActionHeader data-x={JSON.stringify({ props })} />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	columnHelper.display({
+		id: "default-column-actions",
+		// oxlint-disable-next-line no-unused-vars -- a default value stays manual
+		header: (props = { column: undefined }) => <DataTable.ActionHeader />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	columnHelper.display({
+		id: "unread-column-actions",
+		header: (_context: unknown) => <DataTable.ActionHeader />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
 	// Negative case: a spread still reads the parameter, so it stays.
 	columnHelper.display({
 		id: "spread-column-actions",
