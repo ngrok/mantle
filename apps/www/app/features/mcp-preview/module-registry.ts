@@ -85,6 +85,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/slider": () => import("@ngrok/mantle/slider"),
 	"@ngrok/mantle/slot": () => import("@ngrok/mantle/slot"),
 	"@ngrok/mantle/split-button": () => import("@ngrok/mantle/split-button"),
+	"@ngrok/mantle/steps": () => import("@ngrok/mantle/steps"),
 	"@ngrok/mantle/strata": () => import("@ngrok/mantle/strata"),
 	"@ngrok/mantle/switch": () => import("@ngrok/mantle/switch"),
 	"@ngrok/mantle/table": () => import("@ngrok/mantle/table"),

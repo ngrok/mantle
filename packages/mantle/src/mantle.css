@@ -403,6 +403,12 @@ shadow `:host` it makes the token invalid, so the host does not inherit the page
 	--color-card-border-muted: var(--color-card-border-muted);
 	--color-separator: var(--color-separator);
 
+	/* Steps tokens: the rail and the marker fill, and the number on the marker. Both
+	   are opaque, because the marker's stubs overlay the rail in the same color and a
+	   translucent fill shows a seam there. steps/tokens.test.tsx measures both. */
+	--color-steps-rail: var(--color-steps-rail);
+	--color-steps-number: var(--color-steps-number);
+
 	--color-active-menu-item: var(--color-active-menu-item);
 	--color-selected-menu-item: var(--color-selected-menu-item);
 	--color-active-selected-menu-item: var(--color-active-selected-menu-item);
@@ -915,6 +921,10 @@ from `:root` (see MARK: INVERT THEME below).
 		--border-color-form: var(--color-neutral-300);
 		--color-card-border: var(--color-neutral-300);
 		--color-card-border-muted: var(--color-neutral-200);
+		/* The rail takes the step the card borders take. Dark inverts the neutral
+		   ramp, so the number at the far end of it reads on the rail in each theme. */
+		--color-steps-rail: var(--color-neutral-300);
+		--color-steps-number: var(--color-neutral-950);
 		--color-active-menu-item: --alpha(var(--color-neutral-500) / 0.05);
 		--color-selected-menu-item: --alpha(var(--color-accent-500) / 0.1);
 		--color-active-selected-menu-item: --alpha(var(--color-accent-500) / 0.15);

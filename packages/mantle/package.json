@@ -443,6 +443,11 @@
 			"types": "./dist/split-button.d.ts",
 			"import": "./dist/split-button.js"
 		},
+		"./steps": {
+			"@ngrok/src-live-types": "./src/components/steps/index.ts",
+			"types": "./dist/steps.d.ts",
+			"import": "./dist/steps.js"
+		},
 		"./strata": {
 			"@ngrok/src-live-types": "./src/components/strata/index.ts",
 			"types": "./dist/strata.d.ts",

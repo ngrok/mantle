@@ -147,6 +147,7 @@ const docsPages = [
 	"components/structure/media-object",
 	"components/structure/panel",
 	"components/structure/separator",
+	"components/structure/steps",
 	"components/structure/strata",
 	"components/structure/well",
 

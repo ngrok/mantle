@@ -3,10 +3,11 @@
  * CSS custom-property resolution that feeds them.
  *
  * This module is internal shared implementation. The package does not
- * export it. `tokens.test.ts` is its only consumer: it resolves every
+ * export it, and only tests use it. `tokens.test.ts` resolves every
  * `--color-chart-*` slot in every theme down to a concrete color and runs the
  * gates on the result, so a slot that drifts below a threshold fails CI instead
- * of shipping.
+ * of shipping. `decorative-contrast.test.tsx` and `steps/tokens.test.tsx` use the
+ * same resolver and the same WCAG ratio for their own token pairs.
  *
  * The thresholds and the pairlist rules come from the ASD dataviz color formula
  * this repo follows. The sRGB transfer functions, the OKLab matrices, the WCAG
