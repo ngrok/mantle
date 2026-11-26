@@ -277,9 +277,15 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		if (exit == null) {
 			throw new Error("The line has no exit transition.");
 		}
-		// Why wait: Firefox can drop a seek that lands before the pause settles.
-		await exit.ready;
-		exit.currentTime = 40;
+		/** Seeks each of the line's paused transitions to one time, so width and position agree. */
+		const seekAll = async (time: number) => {
+			for (const animation of match.getAnimations()) {
+				// Why wait: Firefox can drop a seek that lands before the pause settles.
+				await animation.ready;
+				animation.currentTime = time;
+			}
+		};
+		await seekAll(40);
 		const midway = sunk(match);
 		expect(midway).toBeGreaterThan(0);
 		expect(midway).toBeLessThan(2);
@@ -291,10 +297,11 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		if (back == null) {
 			throw new Error("The line has no return transition.");
 		}
-		await back.ready;
-		back.currentTime = 0;
+		await seekAll(0);
 		expect(sunk(match)).toBeCloseTo(midway, 1);
-		back.finish();
+		for (const animation of match.getAnimations()) {
+			animation.finish();
+		}
 
 		// Reduced motion: each state shows at once, with no transition.
 		await commands.emulateMedia({ reducedMotion: "reduce" });
