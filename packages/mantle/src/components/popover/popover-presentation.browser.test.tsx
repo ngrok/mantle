@@ -3,8 +3,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { useCallback, useState } from "react";
 import { userEvent } from "@testing-library/user-event";
-import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands, page, server } from "vitest/browser";
+import * as Drawer from "../drawer/drawer-parts.js";
 import * as Sandbar from "../sandbar/sandbar-parts.js";
 import * as Popover from "./popover-parts.js";
 
@@ -37,7 +38,9 @@ async function openDrawer(user: ReturnType<typeof userEvent.setup>) {
 				await user.click(trigger);
 			}
 			await user.click(trigger);
-			return document.querySelector("dialog[data-slot='drawer-positioner']:modal") != null;
+			return (
+				document.querySelector("[data-slot~='popover-content'][data-presentation='drawer']") != null
+			);
 		})
 		.toBe(true);
 	return trigger;
@@ -136,6 +139,51 @@ describe.runIf(server.browser === "chromium")('Popover presentation="auto"', () 
 			expect(document.querySelector("dialog[data-slot='drawer-positioner']")).toBeNull(),
 		);
 		expect(outer).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("binds a Drawer.Close in the content to the enclosing Drawer.Root, as a popover does", async () => {
+		await page.viewport(390, 844);
+		await commands.emulateMedia({ hover: "none" });
+		const user = userEvent.setup();
+		render(
+			<Drawer.Root defaultOpen>
+				<Drawer.Content aria-label="Settings">
+					<Popover.Root presentation="auto">
+						<Popover.Trigger>Add reminder</Popover.Trigger>
+						<Popover.Content>
+							<Drawer.Close>Done</Drawer.Close>
+						</Popover.Content>
+					</Popover.Root>
+				</Drawer.Content>
+			</Drawer.Root>,
+		);
+		await openDrawer(user);
+
+		await user.click(screen.getByRole("button", { name: "Done" }));
+		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
+	});
+
+	test("keeps a press on the scrim from a clickable parent of the trigger", async () => {
+		await page.viewport(390, 844);
+		await commands.emulateMedia({ hover: "none" });
+		const user = userEvent.setup();
+		const rowAction = vi.fn<() => void>();
+		render(
+			// oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- Why: a clickable row, as in a table.
+			<div onClick={rowAction}>
+				<Reminder />
+			</div>,
+		);
+		await openDrawer(user);
+		rowAction.mockClear();
+
+		const scrim = document.querySelector("dialog[data-slot='drawer-positioner']");
+		if (scrim == null) {
+			throw new Error("no drawer");
+		}
+		await user.click(scrim);
+		await waitFor(() => expect(scrim).not.toBeInTheDocument());
+		expect(rowAction).not.toHaveBeenCalled();
 	});
 
 	test("keeps a consumer ref that measures the content attached once", async () => {
