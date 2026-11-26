@@ -26,16 +26,21 @@ function renderPalette() {
 	return render(<Stub />);
 }
 
+/**
+ * Waits for the lazy dialog `import()` and the render that follows it.
+ * Why: under load the first import outlasts the 1s `waitFor`.
+ */
+function loadDialog() {
+	return act(() => import("./command-palette-dialog"));
+}
+
 async function openPalette() {
 	const [trigger] = screen.getAllByRole("button", { name: /search mantle/i });
 	if (trigger == null) {
 		throw new Error("expected a palette trigger button");
 	}
-	// Why: the palette loads its dialog with a lazy `import()`. Under load the first import
-	// outlasts the 1s `waitFor`. Inside `act`, the closed dialog mounts once the import
-	// resolves, so the click renders the open dialog at once.
-	await act(() => import("./command-palette-dialog"));
 	fireEvent.click(trigger);
+	await loadDialog();
 	return await waitFor(() => screen.getByPlaceholderText("Search Mantle..."));
 }
 
@@ -187,6 +192,7 @@ describe("CommandPalette", () => {
 		});
 
 		expect(notPrevented).toBe(false);
+		await loadDialog();
 		await waitFor(() => {
 			expect(screen.queryByPlaceholderText("Search Mantle...")).not.toBeNull();
 		});

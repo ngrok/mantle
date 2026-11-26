@@ -274,9 +274,13 @@ describe("Slider track press (browser)", () => {
 	 * Why an observer: it runs after the press handler and before the next frame.
 	 * Why a stub, not fake timers: the glide ends on a 250ms timer, and the end
 	 * cancels a paused glide. Vitest advances fake timers while a `userEvent` action runs.
+	 * Why it runs timers shorter than the 200ms glide: an end that cuts the glide short then fails the read.
 	 */
 	function holdGlides(root: HTMLElement) {
-		vi.stubGlobal("setTimeout", () => 0);
+		const runTimer = window.setTimeout.bind(window);
+		vi.stubGlobal("setTimeout", (handler: () => void, delay = 0) =>
+			delay < 200 ? runTimer(handler, delay) : 0,
+		);
 		new MutationObserver(() => {
 			for (const animation of root.getAnimations({ subtree: true })) {
 				animation.pause();
