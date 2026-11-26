@@ -157,6 +157,63 @@ describe("computeFoldRanges (bracket strategy)", () => {
 		]);
 	});
 
+	test("ignores a brace inside a regex character class", () => {
+		// The innermost scope of `{` here is the character class, not `string.regexp.ts`.
+		const tokens: FoldLine[] = [
+			line(["function run() ", "source.ts"], ["{", "source.ts", "punctuation.definition.block.ts"]),
+			line(
+				["  const re = ", "source.ts"],
+				["/", "source.ts", "string.regexp.ts", "punctuation.definition.string.begin.ts"],
+				["[{]", "source.ts", "string.regexp.ts", "constant.other.character-class.set.regexp"],
+				["/", "source.ts", "string.regexp.ts", "punctuation.definition.string.end.ts"],
+				[";", "source.ts"],
+			),
+			line(["  return re;", "source.ts"]),
+			line(["}", "source.ts", "punctuation.definition.block.ts"]),
+		];
+
+		expect(computeFoldRanges({ language: "ts", tokens })).toEqual([
+			{ id: "1", startLine: 1, endLine: 4 },
+		]);
+	});
+
+	test("folds code interpolated in a regex", () => {
+		const tokens: FoldLine[] = [
+			line(
+				["pattern = ", "source.ruby"],
+				["/", "source.ruby", "string.regexp.interpolated.ruby", "punctuation.section.regexp.ruby"],
+				[
+					"#{",
+					"source.ruby",
+					"string.regexp.interpolated.ruby",
+					"meta.embedded.line.ruby",
+					"punctuation.section.embedded.begin.ruby",
+				],
+			),
+			line([
+				"  name",
+				"source.ruby",
+				"string.regexp.interpolated.ruby",
+				"meta.embedded.line.ruby",
+				"source.ruby",
+			]),
+			line(
+				[
+					"}",
+					"source.ruby",
+					"string.regexp.interpolated.ruby",
+					"meta.embedded.line.ruby",
+					"punctuation.section.embedded.end.ruby",
+				],
+				["/", "source.ruby", "string.regexp.interpolated.ruby", "punctuation.section.regexp.ruby"],
+			),
+		];
+
+		expect(computeFoldRanges({ language: "ruby", tokens })).toEqual([
+			{ id: "1", startLine: 1, endLine: 3 },
+		]);
+	});
+
 	test("keeps template-literal interpolation punctuation foldable", () => {
 		// Only the INNERMOST scope decides inertness: `${` / `}` sit under
 		// `punctuation.definition.template-expression.*` while `string.template`

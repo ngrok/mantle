@@ -4,6 +4,7 @@ import { render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
+import type { ReactElement } from "react";
 import { describe, expect, test, vi } from "vitest";
 import * as CodeBlock from "./code-block-parts.js";
 import { jsonCodeBlockValue } from "./json-highlight.js";
@@ -930,6 +931,27 @@ describe("useCodeBlockStream", () => {
 			</CodeBlock.Root>
 		);
 	}
+
+	test("reserves the fold gutter only for a caller that passes complete, in a language that folds", () => {
+		function Folding({ complete, language }: { complete?: boolean; language: "ts" | "text" }) {
+			return (
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code value={useCodeBlockStream({ code: "a {\n}", language, complete })} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>
+			);
+		}
+		const foldable = (element: ReactElement) => {
+			const { container, unmount } = render(element);
+			const value = container.querySelector("pre")?.hasAttribute("data-foldable");
+			unmount();
+			return value;
+		};
+		expect(foldable(<Folding language="ts" />)).toBe(false);
+		expect(foldable(<Folding language="ts" complete={false} />)).toBe(true);
+		expect(foldable(<Folding language="text" complete={false} />)).toBe(false);
+	});
 
 	test("server HTML of CRLF code holds one line break for each line ending", () => {
 		const container = document.createElement("div");

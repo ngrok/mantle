@@ -15,6 +15,7 @@ describe("tokenizeChangedLines", () => {
 	beforeAll(async () => {
 		await registerGrammar(await loadGrammar("typescript"));
 		await registerGrammar(await loadGrammar("yaml"));
+		await registerGrammar(await loadGrammar("json"));
 	});
 
 	test("highlights only the lines from the first changed line", async () => {
@@ -58,5 +59,19 @@ describe("tokenizeChangedLines", () => {
 		const result = await tokenizeChangedLines({ state, code: "a: 1\nb: 2", grammar: "yaml" });
 		expect(result.start + result.lines.length).toBe(2);
 		expect(result.lineCount).toBe(2);
+	});
+
+	test("folds a JSON object around a bracket in a key", async () => {
+		const state: LineTokenizerState = { lines: [], endStates: [] };
+		const code = JSON.stringify({ "[": 1, two: 2 }, null, 2);
+		const result = await tokenizeChangedLines({
+			state,
+			code,
+			grammar: "json",
+			foldLanguage: "json",
+		});
+		expect(result.foldableRanges?.map(({ startLine, endLine }) => [startLine, endLine])).toEqual([
+			[1, 4],
+		]);
 	});
 });

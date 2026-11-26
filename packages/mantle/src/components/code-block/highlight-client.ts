@@ -7,8 +7,10 @@
 import { loadGrammar, type GrammarId } from "./grammars.js";
 import type { HighlightRequest, HighlightResponse } from "./highlight-protocol.js";
 import type { CodeLine, LineTokenizerResult, LineTokenizerState } from "./line-tokenizer.js";
+import type { SupportedLanguage } from "./supported-languages.js";
 
-type Listener = (result: LineTokenizerResult) => void;
+/** Gets each result with the code it is for, so fold ranges never reach other code. */
+type Listener = (result: LineTokenizerResult, code: string) => void;
 
 /**
  * One block's highlight requests for one grammar: the listener, the code of
@@ -24,6 +26,10 @@ type Stream = {
 	grammar: GrammarId;
 	inFlight: string | undefined;
 	queued: string | undefined;
+	/** The language of the request in flight's fold ranges, when its code is final. */
+	foldLanguage: SupportedLanguage | undefined;
+	/** The same for the queued code. Why apart: a final request must not make the one in flight compute folds too. */
+	queuedFoldLanguage: SupportedLanguage | undefined;
 };
 
 const streams = new Map<number, Stream>();
@@ -70,11 +76,12 @@ function failWorker() {
 	worker?.terminate();
 	worker = null;
 	for (const stream of streams.values()) {
+		const isQueued = stream.queued !== undefined;
 		const code = stream.queued ?? stream.inFlight;
 		stream.inFlight = undefined;
 		stream.queued = undefined;
 		if (code !== undefined) {
-			send(stream.id, code);
+			send(stream.id, code, isQueued ? stream.queuedFoldLanguage : stream.foldLanguage);
 		}
 	}
 }
@@ -84,12 +91,12 @@ function deliver(stream: Stream, result: LineTokenizerResult) {
 	if (streams.get(stream.id) !== stream) {
 		return;
 	}
-	stream.listener(result);
+	stream.listener(result, stream.inFlight ?? "");
 	stream.inFlight = undefined;
 	const queued = stream.queued;
 	stream.queued = undefined;
 	if (queued !== undefined) {
-		send(stream.id, queued);
+		send(stream.id, queued, stream.queuedFoldLanguage);
 	}
 }
 
@@ -115,7 +122,7 @@ async function tokenizeOnMainThread(stream: Stream, code: string) {
 		state = { lines: [], endStates: [] };
 		mainStates.set(key, state);
 	}
-	return tokenizeChangedLines({ state, code, grammar });
+	return tokenizeChangedLines({ state, code, grammar, foldLanguage: stream.foldLanguage });
 }
 
 /**
@@ -123,17 +130,22 @@ async function tokenizeOnMainThread(stream: Stream, code: string) {
  * flight. Only the newest queued code goes next, so a fast stream costs one
  * request at a time for each block. The first block of a grammar loads it on
  * the main thread, as its own chunk, and sends it to the worker.
+ *
+ * Pass `foldLanguage` when the code is final: the result then carries the
+ * block's fold ranges.
  */
-function send(id: number, code: string) {
+function send(id: number, code: string, foldLanguage?: SupportedLanguage) {
 	const stream = streams.get(id);
 	if (stream == null) {
 		return;
 	}
 	if (stream.inFlight !== undefined) {
 		stream.queued = code;
+		stream.queuedFoldLanguage = foldLanguage;
 		return;
 	}
 	stream.inFlight = code;
+	stream.foldLanguage = foldLanguage;
 	const target = getWorker();
 	if (target == null) {
 		void highlightOnMainThread(stream, code);
@@ -170,7 +182,13 @@ async function highlightInWorker(target: Worker, stream: Stream, code: string) {
 	}
 	// Why the check: the worker can fail while the grammar loads, and `failWorker` already sent this code again.
 	if (worker === target && streams.get(stream.id) === stream && stream.inFlight === code) {
-		post(target, { type: "highlight", id: stream.key, code, grammar: stream.grammar });
+		post(target, {
+			type: "highlight",
+			id: stream.key,
+			code,
+			grammar: stream.grammar,
+			foldLanguage: stream.foldLanguage,
+		});
 	}
 }
 
@@ -251,6 +269,8 @@ function openStream(id: number, grammar: GrammarId, listener: Listener) {
 		grammar,
 		inFlight: undefined,
 		queued: undefined,
+		foldLanguage: undefined,
+		queuedFoldLanguage: undefined,
 	};
 	streams.set(id, stream);
 	streamsByKey.set(stream.key, stream);
