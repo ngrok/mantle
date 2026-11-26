@@ -574,6 +574,7 @@ const CodeLineGroup = memo(function CodeLineGroup({
  * | `data-mantle-line-number-start` | a number as a string | The first line number. |
  * | `data-mantle-highlight-lines` | comma-separated line numbers | Present when lines are highlighted. |
  * | `data-line-number` | a number | On each `.mantle-code-line`. The line number the gutter shows. |
+ * | `data-mantle-gutter` | present with a gutter | Presence-only. On the `<code>` of streamed lines with line numbers. The first line of each group of 64 holds one sticky `.mantle-code-gutter` that draws the group's numbers, in place of a number on each line. |
  * | `data-fold-line` | a fold id | On each fold toggle `<button>`. The URI-encoded id of the region the button folds. |
  * | `data-fold-regions` | space-separated fold ids | On each line inside a foldable region. The id of each region that holds it. |
  * | `data-folded-regions` | space-separated fold ids | On the `<code>` while a region is folded. The id of each folded region. |
