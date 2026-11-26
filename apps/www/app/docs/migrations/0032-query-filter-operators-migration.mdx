@@ -9,7 +9,7 @@ introducedIn: "0.96.0"
 
 `@ngrok/mantle/query-filter` now reads more of a query as structure. Under the `"full"` and `"conjunction"` syntax, `NOT` and a leading `!` exclude, as `-` does, and `(` and `)` group. A key with a `type` takes operators such as `>3`, `2..5`, and `api*`. `FilterToken` has three new kinds: `"not"`, `"group-start"`, and `"group-end"`. `FilterKeyDefinition` is now a union of a key with `matches` and a typed key with `getValue`, so `matches` is optional on the union. `parseFilterExpression` returns the query as a tree.
 
-**TL;DR:** Handle the three new token kinds wherever you switch on `token.kind`. A loop that skips `"not"` runs `NOT a:b` as `a:b`, so read negation from `getEffectiveNegations`. Narrow a key with `definition.matches != null` before you call `matches`. Read a group or an `OR` from `parseFilterExpression`, not from the token list. A grammar that only declares keys and a list that only calls `filterItemsByQuery` change nothing.
+**TL;DR:** Handle the three new token kinds wherever you switch on `token.kind`. A loop that skips `"not"` runs `NOT a:b` as `a:b`, so read negation from `getEffectiveNegations`. Narrow a key with `definition.matches != null` before you call `matches`. Read a group or an `OR` from `parseFilterExpression`, not from the token list. Where a backend runs one AND group, read the query with `getFilterConjunction`. A grammar that only declares keys and a list that only calls `filterItemsByQuery` change nothing.
 
 ## Codemod
 
@@ -21,7 +21,8 @@ Codemod: manual: each step depends on what the call site does with a token or a 
 
 1. Search for `parseFilterQuery(` and for the `FilterToken` type. Where code switches on `token.kind` or compares it with `"or"` or `"and"`, decide what `"not"`, `"group-start"`, and `"group-end"` mean there. A check that a query holds only qualifiers keeps working: it already rejects every kind but `"facet"`.
    - Do not skip a `"not"` token. The facet after it keeps `negated: false`, so a loop that collects facets and skips the other kinds runs `NOT status:500` as `status:500`. Read each token's negation from `getEffectiveNegations(tokens)[index]`, or reject the `"not"` token.
-   - Do not skip a `"group-start"` token in code that reads the query as one AND group. `NOT (a b)` means `NOT a OR NOT b`, but `getEffectiveNegations` marks both `a` and `b` negated, and an AND of the two is `NOT a AND NOT b`. Reject the group, or walk `parseFilterExpression` as in step 2.
+   - Do not skip a `"group-start"` token in code that reads the query as one AND group. `NOT (a b)` means `NOT a OR NOT b`, but `getEffectiveNegations` marks both `a` and `b` negated, and an AND of the two is `NOT a AND NOT b`.
+   - Where code reads the query as one AND group for a backend, replace the loop with `getFilterConjunction(tokens, { or })`. It returns the AND group's clauses, each term with its effective negation, and a problem for each `OR` and negated group that one AND group cannot hold. Pass `{ or: "same-key" }` when the backend runs `status:404 OR status:500` as one value list.
    - The type checker does not find these: a `switch` with no `default` compiles when it misses a kind.
 2. Where code rebuilds the `OR` groups from the token list, replace that code with `parseFilterExpression(grammar, query)` and walk its `and`, `or`, `not`, `facet`, and `text` nodes. The tree has the grouping and the negation of `NOT`, `!`, and parentheses already applied.
 3. Search for `.matches(` on a value typed `FilterKeyDefinition`. Narrow it first: `if (definition.matches != null) { definition.matches(item, value, context) }`. A key literal in a grammar needs no change.
@@ -55,24 +56,15 @@ for (const token of parseFilterQuery(grammar, query)) {
 	}
 }
 
-// AFTER: `terms` is one AND group, so a negation moves onto each term, and an OR or a group is refused
-const tokens = parseFilterQuery(grammar, query);
-const negations = getEffectiveNegations(tokens);
-for (const [index, token] of tokens.entries()) {
-	switch (token.kind) {
-		case "facet":
-		case "text":
-			terms.push({ ...token, negated: negations[index] ?? false });
-			break;
-		case "or":
-		case "group-start":
-			problems.push({ kind: "or-unsupported", span: token });
-			break;
-		case "and":
-		case "not":
-		case "group-end":
-			break;
-	}
+// AFTER: one AND group, each term with its effective negation. Refuse the query when one AND group cannot hold it.
+const { clauses, problems } = getFilterConjunction(parseFilterQuery(grammar, query));
+if (problems.length > 0) {
+	return { ok: false, problems };
+}
+// With the default `or: "none"`, each clause is one term. With `or: "same-key"`, compile each clause as an OR.
+for (const { token, negated } of clauses.flat()) {
+	// Check each term yourself, such as an exclusion on a key with `negatable: false`.
+	terms.push({ ...token, negated });
 }
 ```
 

@@ -5,6 +5,18 @@ export type {
 } from "./comparison.js";
 export {
 	//,
+	getFilterConjunction,
+} from "./conjunction.js";
+export type {
+	//,
+	FilterConjunction,
+	FilterConjunctionOptions,
+	FilterConjunctionOr,
+	FilterConjunctionProblem,
+	FilterConjunctionTerm,
+} from "./conjunction.js";
+export {
+	//,
 	parseFilterExpression,
 } from "./expression.js";
 export type {

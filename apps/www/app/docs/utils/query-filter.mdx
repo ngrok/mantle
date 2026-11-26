@@ -17,6 +17,7 @@ import {
 	findTokenAtCaret,
 	formatFacet,
 	getEffectiveNegations,
+	getFilterConjunction,
 	getFilterKeyDefinition,
 	getFilterOperators,
 	getFilterSuggestions,
@@ -237,6 +238,28 @@ The tree comes normalized, so a compiler handles few shapes:
 - A `"range"` keeps `from` and `to` in the order they were written, and `replicas:5..2` keeps the same items as `replicas:2..5`. Use the smaller bound as the lower bound. On a date key, resolve a duration bound to a date first.
 
 It returns `null` when the query asks nothing, so send no filter at all.
+
+### A backend that runs one AND group
+
+Many list APIs take one value list for each key, and run the lists as one AND group. `getFilterConjunction` reads a query that way. It returns each clause of the AND group, with each term's effective negation, and a problem for each part one AND group cannot hold. Compile the clauses only when `problems` is empty, and name the first problem to the person.
+
+```ts
+import { getFilterConjunction, parseFilterQuery } from "@ngrok/mantle/query-filter";
+
+// `requestFilterGrammar` is a remote grammar with `syntax: "conjunction"`, so it reads `OR`, `NOT`, and parentheses.
+const { clauses, problems } = getFilterConjunction(
+	parseFilterQuery(requestFilterGrammar, "(status:404 OR status:500) NOT method:GET"),
+	{ or: "same-key" },
+);
+// clauses: [[status:404, status:500], [method:GET, negated]]. problems: [].
+```
+
+- Each clause is an OR of its terms. A comma list is one term.
+- The clauses are an AND. Two clauses on one key, such as `state:live state:paused`, intersect, so do not join them into one value list.
+- `NOT (a OR b)` reads as two clauses, `a` and `b`, each negated.
+- `NOT (a b)` is `NOT a OR NOT b`, so it reports a `"negated-group"` problem.
+- `or: "none"` (the default) reports an `"or"` problem for each OR expression, which spans all of its sides. `or: "same-key"` accepts an `OR` whose sides are each one qualifier on one key, not negated, such as `status:404 OR status:500`.
+- Check each term's key and value yourself, such as a key that takes no exclusion. A qualifier still being typed, such as `status:`, is a term with no `members`, so ask for a value.
 
 ## Natural language search
 
