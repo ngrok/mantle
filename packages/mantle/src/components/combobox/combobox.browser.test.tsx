@@ -263,10 +263,14 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		expect(getComputedStyle(match).backgroundSize).toBe("100% 2px");
 		await userEvent.keyboard("{Backspace}");
 		const back = positionTransition(match);
-		back?.pause();
-		expect(back).toBeDefined();
+		if (back == null) {
+			throw new Error("The line has no return transition.");
+		}
+		// The transition runs while the Backspace resolves. Seek to its start to read the retarget origin.
+		back.pause();
+		back.currentTime = 0;
 		expect(sunk(match)).toBeCloseTo(midway, 1);
-		back?.finish();
+		back.finish();
 
 		// Reduced motion: each state shows at once, with no transition.
 		await commands.emulateMedia({ reducedMotion: "reduce" });
