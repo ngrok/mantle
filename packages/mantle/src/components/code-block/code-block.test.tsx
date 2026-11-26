@@ -899,4 +899,40 @@ describe("useCodeBlockStream", () => {
 		const code = container.querySelector("[data-slot='code-block-code'] code");
 		expect(code?.textContent).toBe("alpha\nbeta");
 	});
+
+	test("a long block keeps each line break and line number as it streams past 64 lines", () => {
+		const lines = Array.from({ length: 130 }, (_, index) => `line ${index + 1}`);
+		const { container, rerender } = render(<StreamedCode code={lines.slice(0, 70).join("\n")} />);
+		const code = container.querySelector("[data-slot='code-block-code'] code");
+		// Why the same length first: a group with the same count of lines must still show an edited line.
+		lines[65] = "line 66 changed";
+		rerender(<StreamedCode code={lines.slice(0, 70).join("\n")} />);
+		expect(code?.textContent).toBe(lines.slice(0, 70).join("\n"));
+
+		rerender(<StreamedCode code={lines.join("\n")} />);
+		expect(code?.textContent).toBe(lines.join("\n"));
+		const numbers = [...container.querySelectorAll(".mantle-code-line")].map((line) =>
+			Number(line.getAttribute("data-line-number")),
+		);
+		expect(numbers).toEqual(lines.map((_, index) => index + 1));
+	});
+
+	test("a line that fills a hole in the lines shows", () => {
+		function LineCode({ code, lines }: { code: string; lines: readonly string[] }) {
+			return (
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code value={createMantleCodeBlockValue({ language: "text", code, lines })} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>
+			);
+		}
+		// Why `length`: it leaves a hole at index 1, as a caller that reserves slots does.
+		const sparse: string[] = ["A"];
+		sparse.length = 2;
+		const { container, rerender } = render(<LineCode code="A" lines={sparse} />);
+		rerender(<LineCode code={"A\nB"} lines={["A", "B"]} />);
+
+		expect(container.querySelector("[data-slot='code-block-code'] code")?.textContent).toBe("A\nB");
+	});
 });
