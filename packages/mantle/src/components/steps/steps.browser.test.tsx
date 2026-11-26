@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import invariant from "tiny-invariant";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
-import { commands, page } from "vitest/browser";
+import { commands, page, server } from "vitest/browser";
 import { $cssProperties } from "../../types/css-properties.js";
 import * as Steps from "./steps-parts.js";
 
@@ -18,6 +18,8 @@ beforeAll(async () => {
 		await commands.tailwindCss("./steps.tsx", { mantleCss: true }),
 		// A test-only override: a marker with `data-probe` paints that literal digit.
 		"[data-probe]::after { content: attr(data-probe) !important; }",
+		// Why a system font: the full stylesheet sets Roobert, and a test sends no network request.
+		'[data-slot~="steps"] { font-family: monospace; }',
 	].join("\n");
 	document.head.appendChild(styleElement);
 });
@@ -131,6 +133,20 @@ describe("Steps position skips what takes no number (browser)", () => {
 		expect(getComputedStyle(visible).borderInlineStartColor).toBe("rgba(0, 0, 0, 0)");
 	});
 
+	test("a script in the list after a lone item leaves it the only shape and no rail", () => {
+		render(
+			<Steps.Root>
+				<Steps.Item data-testid="only">
+					<Steps.Title>Install the ngrok agent</Steps.Title>
+				</Steps.Item>
+				<script type="application/json">{"{}"}</script>
+			</Steps.Root>,
+		);
+		const only = screen.getByTestId("only");
+		expect(paintedShapeIn(markerOf(only))).toBe("only");
+		expect(getComputedStyle(only).borderInlineStartColor).toBe("rgba(0, 0, 0, 0)");
+	});
+
 	test("a server Suspense placeholder after the last item leaves it the last shape", () => {
 		// Why a `<template>`: a pending `<Suspense>` renders one on the server
 		// until its content streams in.
@@ -169,6 +185,24 @@ describe("Steps rail (browser)", () => {
 		expect(last.borderInlineStartWidth).toBe("4px");
 		expect(first.borderInlineStartColor).not.toBe("rgba(0, 0, 0, 0)");
 		expect(last.borderInlineStartColor).toBe("rgba(0, 0, 0, 0)");
+	});
+
+	test("a larger spacing scale grows the rail and the marker together", () => {
+		render(
+			<Steps.Root style={$cssProperties({ "--spacing": "0.5rem" })}>
+				<Steps.Item data-testid="first">
+					<Steps.Title>Install the ngrok agent</Steps.Title>
+				</Steps.Item>
+				<Steps.Item>
+					<Steps.Title>Add your authtoken</Steps.Title>
+				</Steps.Item>
+			</Steps.Root>,
+		);
+		const item = screen.getByTestId("first");
+		// The stub is a tenth of the marker's width, so the rail must be a tenth too.
+		const marker = markerOf(item).getBoundingClientRect();
+		expect(getComputedStyle(item).borderInlineStartWidth).toBe("8px");
+		expect(marker.width).toBe(80);
 	});
 
 	test("a token override on the root reaches the rail, the blob, and the number", () => {
@@ -319,18 +353,23 @@ describe("Steps in forced colors (browser)", () => {
 		await commands.emulateMedia({ forcedColors: "none", colorScheme: "light" });
 	});
 
-	test("the last item draws no rail below its marker", async () => {
-		await commands.emulateMedia({ forcedColors: "active" });
-		render(<TwoSteps />);
-		// Forced colors paint a transparent border in CanvasText, so the last rail
-		// must name the page color itself.
-		expect(getComputedStyle(screen.getByTestId("first")).borderInlineStartColor).toBe(
-			systemColor("CanvasText"),
-		);
-		expect(getComputedStyle(screen.getByTestId("last")).borderInlineStartColor).toBe(
-			systemColor("Canvas"),
-		);
-	});
+	// Why not WebKit: it matches `forced-colors: active` under emulation, but it
+	// does not force a border color or report `forced-color-adjust`.
+	test.skipIf(server.browser === "webkit")(
+		"the last item draws no rail below its marker",
+		async () => {
+			await commands.emulateMedia({ forcedColors: "active" });
+			render(<TwoSteps />);
+			// Forced colors paint a transparent border in CanvasText, so the last rail
+			// must name the page color itself.
+			expect(getComputedStyle(screen.getByTestId("first")).borderInlineStartColor).toBe(
+				systemColor("CanvasText"),
+			);
+			expect(getComputedStyle(screen.getByTestId("last")).borderInlineStartColor).toBe(
+				systemColor("Canvas"),
+			);
+		},
+	);
 
 	test("a light forced colors palette paints a different glyph for 1 and 8", async () => {
 		await commands.emulateMedia({ forcedColors: "active", colorScheme: "light" });
@@ -346,13 +385,16 @@ describe("Steps in forced colors (browser)", () => {
 		expect(one.some((value, offset) => value !== eight[offset])).toBe(true);
 	});
 
-	test("the number keeps its Canvas color, with no backplate over the blob", async () => {
-		await commands.emulateMedia({ forcedColors: "active" });
-		render(<TwoSteps />);
-		const number = getComputedStyle(markerOf(screen.getByTestId("first")), "::after");
-		expect(number.color).toBe(systemColor("Canvas"));
-		// Why the mechanism: no computed style shows the backplate, and
-		// `forced-color-adjust: none` is what turns it off for this text.
-		expect(number.forcedColorAdjust).toBe("none");
-	});
+	test.skipIf(server.browser === "webkit")(
+		"the number keeps its Canvas color, with no backplate over the blob",
+		async () => {
+			await commands.emulateMedia({ forcedColors: "active" });
+			render(<TwoSteps />);
+			const number = getComputedStyle(markerOf(screen.getByTestId("first")), "::after");
+			expect(number.color).toBe(systemColor("Canvas"));
+			// Why the mechanism: no computed style shows the backplate, and
+			// `forced-color-adjust: none` is what turns it off for this text.
+			expect(number.forcedColorAdjust).toBe("none");
+		},
+	);
 });

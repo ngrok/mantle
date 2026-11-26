@@ -181,10 +181,11 @@ const Root = ({
 }: StepsRootProps) => {
 	const Comp = asChild ? Slot : "ol";
 	// Slot merges child props over slot props, so with asChild the role must
-	// be on the child element itself or the child can override it.
+	// be on the child element itself or the child can override it. Why clear
+	// `start` and `reversed`: the visible counter ignores them.
 	const content =
 		asChild && isValidElement<ComponentProps<"ol">>(children)
-			? cloneElement(children, { role: "list" })
+			? cloneElement(children, { role: "list", start: undefined, reversed: undefined })
 			: children;
 
 	return (
@@ -243,8 +244,9 @@ type StepsItemProps = Omit<ComponentProps<"li">, "value" | "dangerouslySetInnerH
  *
  * Under `asChild` the child must render an `<li>`. Any other element between
  * the `<ol>` and its items is invalid HTML, and the item's position in the
- * list then stops describing the step. A `hidden` item and a `<template>`
- * take no position.
+ * list then stops describing the step. Only a visible `Steps.Item` takes a
+ * number and a position. To hide a step, unmount it or set `hidden`: CSS
+ * cannot see a step that a style hides, such as React's `<Activity>` does.
  *
  * Set `dir` on the step's content, not on the item: the list's gutter is on
  * the list's own start side, and an item in the other direction puts its rail
@@ -291,25 +293,26 @@ const Item = ({
 	const itemProps = {
 		"data-slot": joinDataSlot(dataSlot, "steps-item"),
 		className: cx(
-			// Why a rem rail width and not `border-s-4`: the marker scales with the
-			// root font size, and the stub must stay as wide as the border under it.
-			"border-s-steps-rail relative border-s-[0.25rem] pt-1.5 pb-10 ps-8.5",
+			// Why a spacing step and not `border-s-4`: the marker's offsets are spacing
+			// steps, and the stub must stay as wide as the border under it.
+			"border-s-steps-rail relative [border-inline-start-width:--spacing(1)] pt-1.5 pb-10 ps-8.5",
 			"[counter-increment:mantle-steps]",
-			// Why `of :not([hidden], template)`: a hidden item and a server Suspense
-			// placeholder take no number, so they must not take a position either.
+			// Why `of [data-slot~=steps-item]:not([hidden])`: only a visible step takes a
+			// number, so only a visible step counts for the position. A script or a
+			// server Suspense placeholder in the list does not count.
 			// The width stays so the content keeps its indent; only the color goes.
-			"[&:nth-last-child(1_of_:not([hidden],template))]:border-s-transparent",
+			"[&:nth-last-child(1_of_[data-slot~=steps-item]:not([hidden]))]:border-s-transparent",
 			// Why Canvas: forced colors paint a transparent border in CanvasText, but
 			// keep a system color that the page sets.
-			"forced-colors:[&:nth-last-child(1_of_:not([hidden],template))]:border-s-[Canvas]",
+			"forced-colors:[&:nth-last-child(1_of_[data-slot~=steps-item]:not([hidden]))]:border-s-[Canvas]",
 			// Why a variable per silhouette: the item's own position picks the shape,
 			// with no structural selector before a combinator. The four conditions
 			// do not overlap, so no cascade order picks the shape.
 			"[--_steps-first:none] [--_steps-middle:none] [--_steps-last:none] [--_steps-only:none]",
-			"[&:nth-child(1_of_:not([hidden],template)):not(:nth-last-child(1_of_:not([hidden],template)))]:[--_steps-first:inline]",
-			"[&:not(:nth-child(1_of_:not([hidden],template))):not(:nth-last-child(1_of_:not([hidden],template)))]:[--_steps-middle:inline]",
-			"[&:nth-last-child(1_of_:not([hidden],template)):not(:nth-child(1_of_:not([hidden],template)))]:[--_steps-last:inline]",
-			"[&:nth-child(1_of_:not([hidden],template)):nth-last-child(1_of_:not([hidden],template))]:[--_steps-only:inline]",
+			"[&:nth-child(1_of_[data-slot~=steps-item]:not([hidden])):not(:nth-last-child(1_of_[data-slot~=steps-item]:not([hidden])))]:[--_steps-first:inline]",
+			"[&:not(:nth-child(1_of_[data-slot~=steps-item]:not([hidden]))):not(:nth-last-child(1_of_[data-slot~=steps-item]:not([hidden])))]:[--_steps-middle:inline]",
+			"[&:nth-last-child(1_of_[data-slot~=steps-item]:not([hidden])):not(:nth-child(1_of_[data-slot~=steps-item]:not([hidden])))]:[--_steps-last:inline]",
+			"[&:nth-child(1_of_[data-slot~=steps-item]:not([hidden])):nth-last-child(1_of_[data-slot~=steps-item]:not([hidden]))]:[--_steps-only:inline]",
 			className,
 		),
 		...props,
@@ -317,7 +320,7 @@ const Item = ({
 
 	if (asChild) {
 		invariant(
-			isValidElement<{ children?: ReactNode }>(children) && Children.only(children),
+			isValidElement<ComponentProps<"li">>(children) && Children.only(children),
 			"When using `asChild`, Steps.Item must be passed a single child as a JSX tag.",
 		);
 
@@ -325,7 +328,9 @@ const Item = ({
 			<Slot ref={ref} {...itemProps}>
 				{cloneElement(
 					children,
-					{},
+					// Why clear these: the visible counter ignores `value`, and React throws
+					// when an element has children and inner HTML.
+					{ value: undefined, dangerouslySetInnerHTML: undefined },
 					<>
 						<StepMarker />
 						<StepLabel>{children.props.children}</StepLabel>

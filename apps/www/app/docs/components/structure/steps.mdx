@@ -187,7 +187,7 @@ Nothing is focusable, and there is no keyboard contract, because this is static 
 
 ### Steps.Root
 
-The ordered list that holds every step. Renders an `<ol role="list">` that resets the step counter and opens the gutter that the markers sit in. The number is a CSS counter that counts up from 1. Thus the part takes no `start` or `reversed`, because they would make the numbering of the list disagree with the numbers a reader sees.
+The ordered list that holds every step. Renders an `<ol role="list">` that resets the step counter and opens the gutter that the markers sit in. The number is a CSS counter that counts up from 1. Thus the part takes no `start` or `reversed`, because they would make the numbering of the list disagree with the numbers a reader sees. Under `asChild`, it clears the `start` and `reversed` of its child for the same reason.
 
 All props from [ol](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol#attributes) except `role`, `start`, and `reversed`, plus:
 
@@ -208,7 +208,7 @@ Both CSS variables are design tokens that each theme sets, not knobs for one gui
 
 ### Steps.Item
 
-One step. Renders an `<li>` that increments the step counter, draws its own segment of the rail, and mounts the numbered marker before its children. Under `asChild`, the child must render an `<li>`. A `hidden` item and a `<template>` take no position. Set `dir` on the content of a step, not on `Steps.Item`: the gutter is on the start side of the list, and an item in the other direction puts its rail and marker outside the gutter.
+One step. Renders an `<li>` that increments the step counter, draws its own segment of the rail, and mounts the numbered marker before its children. Under `asChild`, the child must render an `<li>`, and the item clears its `value` and `dangerouslySetInnerHTML`. Only a visible `Steps.Item` takes a number and a position, so a script or a placeholder in the list changes nothing. To hide a step, unmount it or set `hidden`: CSS cannot see a step that a style hides, such as React's `<Activity>` does. Set `dir` on the content of a step, not on `Steps.Item`: the gutter is on the start side of the list, and an item in the other direction puts its rail and marker outside the gutter.
 
 All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes) except `value` and `dangerouslySetInnerHTML`, plus:
 

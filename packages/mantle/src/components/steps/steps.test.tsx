@@ -81,6 +81,41 @@ describe("Steps.Root", () => {
 		expect(screen.getByTestId("root")).toHaveAttribute("data-slot", "setup-guide steps");
 	});
 
+	test("under asChild the swap merges the className and forwards the ref", () => {
+		const ref = createRef<HTMLOListElement>();
+		render(
+			<Steps.Root asChild className="max-w-xl" ref={ref}>
+				<ol className="mt-4" data-testid="root">
+					<Steps.Item>
+						<Steps.Title>Install the ngrok agent</Steps.Title>
+					</Steps.Item>
+				</ol>
+			</Steps.Root>,
+		);
+		const root = screen.getByTestId("root");
+		expect(ref.current).toBe(root);
+		expect(root.className).toContain("mt-4");
+		expect(root.className).toContain("max-w-xl");
+	});
+
+	test("under asChild the list drops a native start and reversed", () => {
+		// The visible counter counts up from 1, so a native ordinal would disagree with it.
+		render(
+			<Steps.Root asChild>
+				<ol data-testid="root" reversed start={7}>
+					<Steps.Item asChild>
+						<li data-testid="step" value={4}>
+							<Steps.Title>Install the ngrok agent</Steps.Title>
+						</li>
+					</Steps.Item>
+				</ol>
+			</Steps.Root>,
+		);
+		expect(screen.getByTestId("root")).not.toHaveAttribute("start");
+		expect(screen.getByTestId("root")).not.toHaveAttribute("reversed");
+		expect(screen.getByTestId("step")).not.toHaveAttribute("value");
+	});
+
 	test("renders as child element when asChild is true, keeping data-slot and the role", () => {
 		render(
 			<Steps.Root asChild>
@@ -447,6 +482,17 @@ describe("Steps numbering", () => {
 });
 
 describe("Steps server rendering", () => {
+	test("an asChild item with inner HTML renders its marker instead of throwing", () => {
+		const html = renderToString(
+			<Steps.Root>
+				<Steps.Item asChild>
+					<li dangerouslySetInnerHTML={{ __html: "<p>Install</p>" }} />
+				</Steps.Item>
+			</Steps.Root>,
+		);
+		expect(html).toContain('data-slot="steps-marker"');
+	});
+
 	test("the first paint is the finished guide, markers and all", () => {
 		// Numbering and the silhouette choice are CSS, so nothing waits for an
 		// effect: the server markup is what a reader sees in the first frame.
