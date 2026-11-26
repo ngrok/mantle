@@ -1,5 +1,343 @@
 # @ngrok/mantle
 
+## 0.96.0
+
+### Minor Changes
+
+- [#1876](https://github.com/ngrok/mantle/pull/1876) [`8b07508`](https://github.com/ngrok/mantle/commit/8b07508c53088846f29b9f4cb1fefc3fe2398d9b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `Attachment` at `@ngrok/mantle/attachment`: a file attached to a chat message, as a chip.
+
+  - `Attachment.List` is the list of chips, which wrap.
+  - `Attachment.Root` is one chip. Set `busy` while your app reads the file, and the chip sets `aria-busy`.
+  - `Attachment.Preview` shows a 32-pixel thumbnail of an image, or a file icon without `src`.
+  - `Attachment.Name` shows the file's name, truncates, and sets `translate="no"`.
+  - `Attachment.Size` formats a size in bytes, such as "1.5 KB".
+  - `Attachment.Remove` is an icon button with a required `label`.
+
+  Docs: https://mantle.ngrok.com/components/ai/attachment
+
+- [#1940](https://github.com/ngrok/mantle/pull/1940) [`7298a40`](https://github.com/ngrok/mantle/commit/7298a403171c50b5be1f6025add85c7210bf55c0) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `CodeBlock` scopes three styles without `:has()`, so a streamed block no longer restyles all of its lines for each line that a stream inserts:
+
+  - The copy-button space on the first two lines comes from a sibling selector on a `CodeBlock.CopyButton` before the code, not `:has()`. A copy button after the code no longer reserves the space on highlighted lines; put it first, as the docs show (migration 0033, step 7).
+  - `CodeBlock.Code` sets `data-foldable` on its `<pre>` when the highlighted HTML has fold toggles. The fold gutter and fold line height key off that attribute, not `pre:has(.mantle-code-fold-toggle)`. A `<pre>` that you render yourself with folding HTML must set `data-foldable` too.
+  - The folded `⋯` marker shows after a collapsed fold toggle through a sibling selector, not `.mantle-code-line:has(> .mantle-code-fold-toggle[aria-expanded="false"])`.
+
+  Docs: https://mantle.ngrok.com/components/data-display/code-block#api-reference
+
+- [#1891](https://github.com/ngrok/mantle/pull/1891) [`1fb6a16`](https://github.com/ngrok/mantle/commit/1fb6a1622c19683e01bda5cd46663293c4a806e1) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A `Combobox.Item` pick now writes the text that the item's children show into the input, not its `value`. The input is a plain text input, so it shows only that text, never the item's icons, avatars, badges, or other elements. The text skips `hidden` and `aria-hidden` parts, such as an icon or an avatar. `value` stays the value that `Combobox.Root` holds and submits, so an item can pick an ID and show a name. A preset `value` or `defaultValue`, a controlled `value` that changes, and a form reset now show the item's text too, also on the server, where the input was empty before. An item with no text to read shows its `value`. Long text stays on one line and ends with an ellipsis.
+
+  An item whose children show other text than its `value` changes: filter on the shown text, and submit the value with `name` on `Combobox.Root`, not on `Combobox.Input`. Read the [migration guide](https://mantle.ngrok.com/migrations/0034-combobox-item-text-migration).
+
+- [#1909](https://github.com/ngrok/mantle/pull/1909) [`9e07185`](https://github.com/ngrok/mantle/commit/9e071850f31142c3b7e56294b05886be2814d1b3) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Highlighted code renders with less markup. A token has a short color class, such as `tk` for a keyword, in place of an inline `style="color:var(--shiki-token-…)"`, and a token in the foreground color has no element. `mantle.css` draws the line number from a CSS counter, and the fold caret and the fold ellipsis as pseudo-elements. Lines are separated by a newline, so the code's `textContent` is the code, with no line numbers. An empty line holds one space, as before, so each browser copies it as a blank line. A 29-block Markdown answer drops from 123 KB to 52 KB of code markup, and from 1,641 to 1,046 elements in its code.
+
+  Breaking: the elements `.mantle-code-line-number`, `.mantle-code-fold-caret`, and `.mantle-code-fold-ellipsis` are gone, and so are `data-slot="line-number"`, `"line-content"`, `"fold-toggle"`, and `"fold-ellipsis"`. Style the number through `pre[data-mantle-line-numbers="true"] .mantle-code-line::before`. `decorateHighlightedHtml`'s `showLineNumbers` has no effect: the `<pre>`'s `data-mantle-line-numbers` shows the numbers. A `<pre>` that is not `CodeBlock.Code` needs `data-slot="code-block-code"` and `data-syntax-highlighted` to color the tokens. Upgrade `@ngrok/mantle-server-syntax-highlighter` and `@ngrok/mantle-vite-plugins` with this version. A call site that renders `CodeBlock` with `mantleCode()`, the Vite plugin, or `useCodeBlockStream()` changes nothing. Migration guide: https://mantle.ngrok.com/migrations/0033-compact-code-markup-migration
+
+- [#1870](https://github.com/ngrok/mantle/pull/1870) [`5f0580f`](https://github.com/ngrok/mantle/commit/5f0580f260d39b481aa111739d46577693cba367) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `Conversation` and `Message`, the chat transcript parts.
+
+  `Conversation` at `@ngrok/mantle/conversation` is a chat transcript that follows the newest message while an answer streams:
+
+  - `Conversation.Viewport` follows the end while the reader is at the end. When the reader scrolls up by any means, the view stays where they put it. It follows again when they scroll back to the end, press `Conversation.ScrollButton`, or send a message. The bottom edge fades with `scroll-fade-b` while newer text is below the view; the top does not fade. It reserves the scrollbar's space on both sides, so centered content lines up with a centered composer. It takes no Tab stop of its own.
+  - `Conversation.ScrollButton` is a round button at the bottom right of the viewport that goes back to the newest message. It shows only while the end is out of view, and grows in and out. Its fill stays solid when you hover it, so the transcript does not show through.
+  - `Conversation.Content` is an ARIA feed of the messages, named with `aria-label`. One message at a time is in the tab order, as in Claude's chat: the newest, or the one the reader focused. Up and Down move focus between messages, and Control+End and Control+Home move focus past the conversation, such as to the composer. Page Up, Page Down, Space, Home, and End scroll. A visually hidden hint describes the keys; translate it with `keyboardHint` on `Conversation.Root`.
+  - `Conversation.Root` owns the chat's one status announcement. Set `streaming`, and screen readers hear "Answering…" when an answer starts and "Answer ended." when it ends. It stamps `data-scrolled-up` while the end is out of view, and `data-streaming` while `streaming` is set.
+
+  The viewport preserves a place restored by `useScrollAnchor`, including the top of a long transcript. Loading older history does not resume following. The scroll button respects reduced motion and moves focus to the newest message before it becomes inert. A `conversation-label` wrapper protects translated loading text when it changes to a transcript.
+
+  `Message` at `@ngrok/mantle/message` is one message of a chat:
+
+  - `Message.Root` renders an `<article>` with `from="user"` or `from="assistant"`, and stamps `data-from`. It takes keyboard focus, and the focus ring goes around it.
+  - `Message.Content` renders a person's message in a bubble and the assistant's answer as full-width prose. It starts with a visually hidden speaker label.
+  - `Message.Pending` marks an answer on its way with a pulsing dot.
+  - `Message.Actions` holds actions such as copy.
+
+  Docs: https://mantle.ngrok.com/components/ai/conversation and https://mantle.ngrok.com/components/ai/message
+
+- [#1906](https://github.com/ngrok/mantle/pull/1906) [`47f23e4`](https://github.com/ngrok/mantle/commit/47f23e4bf76be17ceb9208cd47cbdb89cddf9585) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `ConversationOutline`, a list of the person's messages in a long chat, as Amp's conversation outline does.
+
+  `ConversationOutline` at `@ngrok/mantle/conversation-outline` composes with `Conversation` and `Message`:
+
+  - `ConversationOutline.Trigger` is an icon button that opens the outline. Put it in the chat's header at every width, once the person has sent a few messages.
+  - `ConversationOutline.Content` is a popover that lists the messages. It flips above the trigger when there is no room below, and closes on Escape or a press outside. When it opens, focus moves to the current message's item.
+  - `ConversationOutline.Item` is one message, as one line of text. Pass the `id` of its `Message.Root` as `target`. A press closes the outline, scrolls the message to the top of the transcript, and moves focus to it. The item of each message in view carries `data-in-view` and shows in the strong color. The current one carries `aria-current="location"`.
+
+  A jump up while an answer streams stays at the message. `Conversation.Viewport` follows the end again as usual: when the reader scrolls back to the end, presses `Conversation.ScrollButton`, or sends a message. The jump respects reduced motion.
+
+  Docs: https://mantle.ngrok.com/components/ai/conversation-outline
+
+- [#1921](https://github.com/ngrok/mantle/pull/1921) [`57ee149`](https://github.com/ngrok/mantle/commit/57ee1499b931dc38d170a39d028e3b79b8e36b75) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `Panel` in `@ngrok/mantle/panel`: the look of `AppLayout.SidePanel` as a part of its own, so a surface outside the app shell can use the same presentation. `Panel.Root` renders an `<aside>` card (pass `asChild` for another element), `Panel.Header` is a toolbar row on the same band as `AppLayout.Header`, `Panel.Body` is the scroll region, and `Panel.Footer` is a bar pinned to the bottom. It has no open state. Each part stamps a `data-slot`: `panel`, `panel-header`, `panel-body`, and `panel-footer`. See the [Panel docs](https://mantle.ngrok.com/components/structure/panel).
+
+  `AppLayout.SidePanel`, `AppLayout.SidePanelHeader`, `AppLayout.SidePanelBody`, and `AppLayout.SidePanelFooter` now render the `Panel` parts. Their look and behavior do not change. The card inside `AppLayout.SidePanel`'s `<aside>` carries `data-slot="panel"`. The header, the body, and the footer keep their `app-layout-side-panel-*` slot and join the matching `panel-*` slot after it, as in `data-slot="app-layout-side-panel-header panel-header"`. A selector with `~=`, such as `[data-slot~=app-layout-side-panel-header]`, keeps matching. A selector that matches the whole attribute, such as `[data-slot="app-layout-side-panel-header"]`, no longer does: change it to `~=`.
+
+  The line under `AppLayout.Header`, `AppLayout.SidePanelHeader`, and `Panel.Header` now uses `border-separator` in place of `border-card-muted`, as the [Borders and dividers](https://mantle.ngrok.com/base/colors#borders-and-dividers) rule says for a divider. The card edges keep `border-card-muted`. Merge `border-card-muted` on the header to keep the old line.
+
+- [#1865](https://github.com/ngrok/mantle/pull/1865) [`6853b70`](https://github.com/ngrok/mantle/commit/6853b70f7f7ae2fd8db4c84418d079aca3bd4b62) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `PromptInput` at `@ngrok/mantle/prompt-input`: the message box of a chat.
+
+  - `PromptInput.Root` renders a native `<form>`, so you read the message in `onSubmit` or `action`. Its frame draws the focus ring when a control inside it has focus. Set `streaming` and `onStop` while an answer streams. It stamps `data-streaming` while `streaming` is set.
+  - `PromptInput.TextArea` grows with its text up to `max-h-48`. Enter submits the form and Shift+Enter adds a line. On a touch screen, Return adds a line. The Enter that confirms an input method editor (IME) candidate does not submit, in Safari too. While an answer streams, the field stays editable and Enter does not submit.
+  - `PromptInput.Footer` holds the message's controls.
+  - Set `onFilesAdd` on `PromptInput.Root` to take files. `PromptInput.AttachButton` opens the file picker, and a drop on the frame or a paste into the field also passes files. A paste with both text and files keeps the native text insertion. The frame stamps `data-drag-over` while files drag over it.
+  - `PromptInput.Dictate` is a toggle that turns speech into text in `PromptInput.TextArea` with the browser's speech recognition. Each final phrase replaces the selection and runs the field's `onChange`. The browser supplies spacing; `maxLength` limits the edit. Disabled and read-only fields stay unchanged. Dictated edits do not enter the browser's undo history. The toggle reports `aria-pressed` while it listens. After an error or the end of a session, press it to start again. Disabling the toggle ends the session. It renders nothing on the server and in browsers without speech recognition.
+  - `PromptInput.Submit` sends the message, and stops the answer while one streams. It is one button in both states, so focus stays on it.
+
+  Enter activates the form's default submit button, including its click handler and submission overrides. A disabled default button blocks Enter, including a button inside a disabled fieldset. Stopping an answer does not submit the next draft.
+
+  Composed triggers cannot change the send/stop button type. Enter preserves default-button behavior when the composer is portaled into another window.
+
+  Docs: https://mantle.ngrok.com/components/ai/prompt-input
+
+- [#1729](https://github.com/ngrok/mantle/pull/1729) [`1fa7ea0`](https://github.com/ngrok/mantle/commit/1fa7ea0b922e64b669b6e399a04a9de0a8ab3c18) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add comparison and match operators, typed keys, grouping, and an expression tree to `@ngrok/mantle/query-filter`.
+
+  - A key with `type` (`"text"`, `"enum"`, `"number"`, `"date"`, `"duration"`, or `"boolean"`) and `getValue` takes operators, and the engine runs them: `name:=api`, `name:api*`, `name:*api`, `replicas:>3`, `replicas:<=3`, `replicas:2..5`, `created:<2026-01-01`, `created:>7d`, and `uptime:>90s`. Set `operators` to limit a key to what your backend runs. A value that does not parse for its type, or an operator the key does not accept, paints as invalid, matches no item, and is a problem in `checkFilterQuery` (`"invalid-value"` or `"unsupported-operator"`).
+  - `NOT` and a leading `!` exclude, as `-` does. Parentheses group: `(is:shared OR is:new) -name:api*`. `OR` binds looser than `AND`, and both bind looser than `NOT`.
+  - `parseFilterExpression` returns the query as a tree of `and`, `or`, `not`, `facet`, and `text` nodes, with the comma lists, the negations, and the constants normalized. Compile it to your backend's query language.
+  - `defineRemoteFilterGrammar` accepts `syntax: "full"` and typed keys.
+  - `formatFacet` takes an optional `grammar`, and writes the value the way that grammar reads it.
+  - `getEffectiveNegations(tokens)` reads whether each token excludes in effect, through each `NOT` and each negated group around it.
+  - The suggestions offer the comparisons of a number, date, or duration key, recent windows such as `>7d` for a date key, `true` and `false` for a boolean key, and the exact, prefix, and suffix forms of a word typed into a text key. `Query.Legend` names the comparisons and groups when the grammar has them.
+  - `filterItemsByQuery` compiles the query into one test before it scans. In our benchmark of 50,000 items, `is:active` went from 1.43 ms to 0.88 ms, and no filter query got slower. Parsing a query costs about 0.1 µs more.
+
+  This is a breaking change:
+
+  - `FilterToken` has three new kinds: `"not"`, `"group-start"`, and `"group-end"`. Handle them where you switch on `token.kind`.
+  - `FilterKeyDefinition` is a union of a key with `matches` and a typed key with `getValue`. Narrow a key with `definition.matches != null` before you call `matches`.
+  - Under the `"full"` and `"conjunction"` syntax, a term that starts with `!`, the bare word `NOT`, and a term that starts with `(` now parse as structure, and a later `)` closes the group. Quote such a term to keep searching for it: `"!important"`. `quoteFilterValue` now also quotes a value with a parenthesis, a leading `=` or `*`, or a trailing `*`, so a typed key reads it as text. Groups nest 32 deep at most.
+
+  See the [migration guide](https://mantle.ngrok.com/migrations/0032-query-filter-operators-migration).
+
+- [#1718](https://github.com/ngrok/mantle/pull/1718) [`e3308ac`](https://github.com/ngrok/mantle/commit/e3308acbabb0bd4fea3bfa089db8b17eb6fecdc2) Thanks [@nricky8](https://github.com/nricky8)! - Add `Chip` for compact values, at `@ngrok/mantle/chip`. A chip can show a label, a leading
+  icon, or a removable value with a named remove button. Set `selectable` to
+  render a toggle button with `aria-pressed`. Set `size` to a step of the `Button`
+  scale, from `"xs"` (the default) to `"xl"`. Set `appearance` to `"pill"` (the
+  default) for a fully rounded chip, or to `"square"` for small corner radii. A long pill label ends in an ellipsis. `aria-disabled`
+  styles a chip as disabled and disables its remove button. The
+  `chip-label` slot keeps text safe when the browser translates a page. The
+  component exposes `data-slot`, `data-appearance`, `data-size`, `data-state`, and
+  `data-locked` for styling. See the
+  [Chip docs](https://mantle.ngrok.com/components/forms/chip).
+
+  `MultiSelect.Tag` now renders a `square` `Chip` at the `sm` size, so it also
+  carries `data-appearance="square"` and `data-size="sm"`. Its layout does not
+  change. Its remove icon is more opaque, so it meets the 3:1 contrast that WCAG asks
+  for a control. A locked tag now stamps `data-locked=""` in place of `data-locked="true"`. Select it with
+  `data-locked:` or `[data-locked]`, not `[data-locked="true"]`.
+
+- [#1873](https://github.com/ngrok/mantle/pull/1873) [`269eb6b`](https://github.com/ngrok/mantle/commit/269eb6be6cb6df3501112d6693ebb3b2f3157615) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `Reasoning` and `ToolCall`, the steps of a chat answer. Each one folds under a one-line row and starts closed, so the answer stays what the reader sees first.
+
+  - `Reasoning` at `@ngrok/mantle/reasoning` holds a model's reasoning. Set `streaming` on `Reasoning.Root`, and `Reasoning.Trigger` reads "Thinking…" and pulses. After that it shows its children, such as "Thought for 4 seconds", or "Reasoning". `Reasoning.Content` holds the text. `Reasoning.Root` stamps `data-streaming` while `streaming` is set.
+  - `ToolCall` at `@ngrok/mantle/tool-call` holds one tool call. `ToolCall.Root` takes `status`: `"running"`, `"done"`, `"failed"`, or `"interrupted"`, and stamps `data-status`. `ToolCall.Trigger` shows an icon and a word for the state beside its children. `ToolCall.Name` shows the tool's name in code type and sets `translate="no"`. `ToolCall.Content` holds the arguments and the result, such as two `CodeBlock`s.
+
+  Docs: https://mantle.ngrok.com/components/ai/reasoning and https://mantle.ngrok.com/components/ai/tool-call
+
+- [#1903](https://github.com/ngrok/mantle/pull/1903) [`466dcce`](https://github.com/ngrok/mantle/commit/466dcce90c620446de0c0e2219c21154ada2263f) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Table` and `DataTable` columns now get equal shares of the spare width, and cells stay on one line.
+
+  - With no `width`, a `Table.Cell` keeps its value on one line. The column asks for the full value and shares the spare width with the other columns. When the row is too narrow, the value truncates with an ellipsis, and the column holds at least 6rem. `Table.Header` also stays on one line.
+  - `Table.Cell` and `Table.Header` take a `width` prop: `"fit"` never truncates, for a short value such as a date or a status, and `"wrap"` lets prose wrap. `DataTable` columns read the same value from `meta.width`, which now also takes `"wrap"`.
+  - A table with a header row of 2 to 24 cells is a CSS grid: each column gets an equal share of the spare width, so the column with the longest values no longer takes most of the row. A first column of `DataTable.ControlCell` and a last column of `DataTable.ActionHeader` stay as narrow as their controls. A table too narrow for its columns scrolls, as before. A table with no header row, with more than 24 columns, or with a spanning cell in its last header row keeps the table layout.
+  - Each part sets its ARIA role (`table`, `rowgroup`, `row`, `columnheader` or `rowheader`, `cell`), so screen readers keep the table semantics in the grid. A cell with `colSpan` also sets `aria-colspan`.
+  - A `"fit"` column no longer gives its spare width to the other columns. It gets its own share.
+  - A `w-*` or `max-w-*` class on a cell or header does nothing: the grid sizes each column. `min-w-*` sets a column's least width. A `vertical-align` class such as `align-top` does nothing in the grid; use `content-start`.
+  - A cell with no `width` wraps its children in a `<div data-slot="table-cell-content">`.
+
+  Breaking: a cell whose text wrapped now truncates. Pass `width="wrap"` to keep it wrapping. The codemod adds it where the cell's `className` wraps text. See https://mantle.ngrok.com/migrations/0035-table-column-width-migration.
+
+- [#1905](https://github.com/ngrok/mantle/pull/1905) [`72a3d90`](https://github.com/ngrok/mantle/commit/72a3d905c3686d95da95bddc1797bdd75c96a2ba) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `Work` at `@ngrok/mantle/work`. It folds the reasoning and the tool calls of one chat answer under one toggle that reads "Show work" or "Hide work". Set `streaming` on `Work.Root`, and the work shows while the answer streams and folds away when it ends. The reader's choice wins: a press on the toggle, or a press or a find-in-page match in a step while the answer streams, keeps the work the way the reader left it. `Work.Root` stamps `data-streaming` while `streaming` is set.
+
+  `ToolCall.Trigger` and `Reasoning.Trigger` now show their caret only on hover, keyboard focus, or while open. On a touch screen the caret always shows, and the row is taller to tap.
+
+  Docs: https://mantle.ngrok.com/components/ai/work
+
+### Patch Changes
+
+- [#1897](https://github.com/ngrok/mantle/pull/1897) [`b74644c`](https://github.com/ngrok/mantle/commit/b74644c6d0395ea1d970778d791bca9ecfab938e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - An `Accordion` section that a find-in-page or fragment-link reveal opens now stays open when the root accepts the open at once and the browser draws two frames before React commits it. Before, WebKit and Firefox could hide the accepted section again and drop its full height. The check for a refused reveal now starts after the commit, and a new reveal cancels the check of an earlier one.
+
+- [#1918](https://github.com/ngrok/mantle/pull/1918) [`7d63eaa`](https://github.com/ngrok/mantle/commit/7d63eaa96f2510c86d67318b7023f68cb89a68db) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A border with no color class now draws in the separator color, not the text color. In Tailwind v4 a bare `border-b` was `currentColor`: black in light mode and white in dark mode. Any `border-*` color class, such as `border-current`, still wins. Write the color class anyway: `border-separator` for a divider, the surface token such as `border-card-muted` for an edge, and `border-form` for a control.
+
+  Docs: https://mantle.ngrok.com/base/colors#borders-and-dividers
+
+- [#1889](https://github.com/ngrok/mantle/pull/1889) [`4b498fc`](https://github.com/ngrok/mantle/commit/4b498fc2982e38399ac1c2a82eae7a072b66401a) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `CodeBlock.CopyButton` announces "Copied" in one shared `role="status"` region at the end of the page, or of the dialog around it, and no longer renders a region of its own. An answer with 29 code blocks held 29 regions; now it holds one. `ThemeSwitcher` and the `CopyButton` of `BarChart`, `LineChart`, `AreaChart`, and `ScatterPlot` use the same region. The chart copy buttons no longer render a `live-region` beside them. The region's `data-slot` is now `shared-status`, not `theme-switcher-status`. The region has `aria-atomic="true"`, like `LiveRegion`, and clears 7 seconds after each message, so a screen reader does not find an old "Copied" at the end of the page. The region lives in the closest `<dialog>` or `aria-modal="true"` element, also across a shadow root, else in `<body>`. A new region takes its first message after a paint, so a screen reader sees it empty first.
+
+  A `CodeBlock.CopyButton` whose `onClick` cancels a click within 2 seconds of a copy now shows the copy icon again. Before, the check icon stayed.
+
+  `CodeBlock.CopyButton` renders its copy and check icons as one `<svg>`, and CSS swaps them on a new `data-copied` attribute. It does not render `IconSwap`. Mount of a 29-fence Markdown answer at 4× CPU slowdown drops about 6%.
+
+  Each `ThemeSwitcher` press now announces, also when another control reset the theme and the region still holds the same text. `CodeBlock.CopyButton` swaps its icons on its own `data-copied` only, not on an ancestor's.
+
+- [#1909](https://github.com/ngrok/mantle/pull/1909) [`9e07185`](https://github.com/ngrok/mantle/commit/9e071850f31142c3b7e56294b05886be2814d1b3) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A code block fold opens and closes with motion, the same as `Accordion`: the lines grow or shrink and fade in 200ms on a strong ease-out, and a second click turns the motion back from where it is. With reduced motion, the fold opens and closes at once.
+
+- [#1951](https://github.com/ngrok/mantle/pull/1951) [`ac670a7`](https://github.com/ngrok/mantle/commit/ac670a7e18c77ff110aab77ec745606d32f03c3d) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Streamed code folds once its stream ends, the same as pre-rendered code. `useCodeBlockStream` takes `complete`: while it is `false`, each line of a language that folds makes room for the fold gutter, so the toggles shift no code when they appear; once it is `true`, the worker computes the fold ranges in one pass. `Markdown` passes it, so a fence folds when the answer stops streaming. A caller that leaves `complete` unset sees no change. Streamed code folds at brackets and indentation; JSX element and Bash keyword folds stay server-only.
+
+  A brace inside a regex, such as `/[{]/`, no longer moves a fold.
+
+- [#1945](https://github.com/ngrok/mantle/pull/1945) [`ab514c6`](https://github.com/ngrok/mantle/commit/ab514c6b9631b90e0416484dc3f2babaeef12970) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - While a `CodeBlock.Code` streams its lines in, such as a fence in a `Markdown` answer, its line numbers draw in one sticky column for each group of 64 lines, in place of a sticky number on each line. The numbers look and pin the same, and a long block costs less layout on each update, most of all in Safari. Once the stream ends and the block has its fold ranges, each line draws its own number again. Code with pre-rendered HTML is unchanged.
+
+  Until the stream ends, two hooks do not apply to the numbers:
+
+  - A rule on `.mantle-code-line::before`. Style the streaming numbers through `.mantle-code-gutter::before`.
+  - A `--mantle-line-number-start` that you set in CSS. The streaming numbers start at 1, because `useCodeBlockStream` has no start option.
+
+  A streamed block keeps the gutter when its caller never passes `complete`, or when its language does not fold.
+
+  `CodeBlock.Code` now sets `dir="ltr"` on its `<pre>`, so code reads left to right in a right-to-left page. Before, the lines aligned right, the numbers moved to the right edge, and the bidi algorithm moved punctuation, such as the `;` at the end of a line. The copy button stays at the top right, at the end of the first lines, as in a left-to-right page. Set `dir` on `CodeBlock.Code` to change it.
+
+- [#1942](https://github.com/ngrok/mantle/pull/1942) [`4663665`](https://github.com/ngrok/mantle/commit/4663665d1f2195061d3b734a1df96f59123a18bb) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A `CodeBlock.Code` that renders streamed lines, such as a fence in a `Markdown` answer, now does less work for each update. It renders its lines in groups of 64, and only a group with a changed line renders again. It also no longer escapes the whole code as HTML on each update, because streamed lines never read that HTML. The output is the same.
+
+- [#1802](https://github.com/ngrok/mantle/pull/1802) [`081bca2`](https://github.com/ngrok/mantle/commit/081bca231b893db48b2e150344e2b6bcac8e7866) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `useCodeBlockStream`, which highlights code in the browser as it streams, for a `CodeBlock` whose code is not known on the server. It tokenizes in a worker, and only the lines that changed since the last update. A grammar loads only when a block uses its language.
+
+- [#1893](https://github.com/ngrok/mantle/pull/1893) [`f70cf16`](https://github.com/ngrok/mantle/commit/f70cf16dfd2e79ef7206d259a48a9e0d4253cd4a) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `Combobox.ContentFooter`, and move `MultiSelect.ContentFooter` out of the listbox.
+
+  A footer holds controls such as a "Show expired" switch, an "Upload certificate" button, or "Load more". It renders at the bottom of the open popover, after the `role="listbox"` element and not in it, because a listbox holds only options and groups. The keyboard contract is the same for both components:
+
+  - Tab from the input moves to the footer's first control, and the list stays open.
+  - Shift+Tab from that control returns to the input.
+  - Tab from the last control moves to the control after the field and closes the list.
+  - Escape closes the list and returns focus to the input. A press outside still closes it.
+  - Arrow keys in the input still move through the options.
+
+  `Combobox.Content` and `MultiSelect.Content` stay the `role="listbox"` element, with their props, `ref`, `className`, and `asChild`. A popover box around the listbox now holds the footer, with `data-slot="combobox-popup"` or `"multi-select-popup"`, and carries `data-side` and the border and shadow. A footer control that turns disabled or unmounts while it has focus returns focus to the input. A press outside a `Combobox` now closes its list even when focus is in the footer.
+
+  With no footer, Tab from an open `MultiSelect` input now leaves the field and closes the list, as it does in `Combobox`. It did nothing before.
+
+  Docs: https://mantle.ngrok.com/components/forms/combobox#with-a-footer
+
+- [#1910](https://github.com/ngrok/mantle/pull/1910) [`ecc0c1f`](https://github.com/ngrok/mantle/commit/ecc0c1f3a94f861d012b01791649f44b726489de) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Combobox.ItemValue` now animates the line under the typed match. When a match appears, its line grows from the left. When the typed text stops matching, the line sinks out of view, and a Backspace during the exit brings it back from its current position. Reduced motion shows the end state at once. While the line leaves, the last match keeps its own span with `data-autocomplete-value`, so the line leaves from the same text. A match at a new place in the label grows in on its own.
+
+- [#1899](https://github.com/ngrok/mantle/pull/1899) [`eaa77a4`](https://github.com/ngrok/mantle/commit/eaa77a40ba356bd19c4cf2c9bb6077b2c97d583c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Combobox.ItemValue` now marks the typed match with an accent underline, not a heavier weight. Before, the heavier match was wider, so the option text moved as the user typed, and the match was hard to see. The underline has at least 3:1 contrast on each row background in light and dark themes, and it stays in forced-colors mode.
+
+- [#1893](https://github.com/ngrok/mantle/pull/1893) [`f70cf16`](https://github.com/ngrok/mantle/commit/f70cf16dfd2e79ef7206d259a48a9e0d4253cd4a) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A Tab into `Combobox.Input` or `MultiSelect.Input` now opens the list, as a click does, also after Escape closed it. Focus from script, such as a dialog's autofocus or the return from a pick or the footer, still opens nothing.
+
+- [#1927](https://github.com/ngrok/mantle/pull/1927) [`530e2fb`](https://github.com/ngrok/mantle/commit/530e2fb87b4c82c111bb7570a30d39a68dc67c55) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Conversation.Viewport` draws no focus ring. Before, a click in the blank space of the transcript focused the viewport, and the next key press drew the browser's ring around the whole transcript. Only the focused `Message.Root` draws the ring. When no message is left, such as after the focused one leaves, focus falls back to the viewport, and the viewport draws the ring.
+
+- [#1898](https://github.com/ngrok/mantle/pull/1898) [`5f60db7`](https://github.com/ngrok/mantle/commit/5f60db7e32bcdbcd36ef140b2f6b1fa2d70b6248) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix disabled `asChild` items in `Combobox`, `MultiSelect`, `Select`, `Command`, and `DropdownMenu`:
+
+  - A child's own `onClickCapture` does not run on a click.
+  - A middle click on a disabled `Combobox.Item` or `MultiSelect.Item` link does not open it in a new tab.
+
+- [#1895](https://github.com/ngrok/mantle/pull/1895) [`6dd1f35`](https://github.com/ngrok/mantle/commit/6dd1f358c83398e3559c4e8bcbe2729b35e68631) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix disabled items in `Combobox`, `MultiSelect`, `Select`, `Command`, and `DropdownMenu` so a click runs no click handler, as on a disabled button. This covers a handler on an `asChild` child and on a function child's element, and an `asChild` link does not navigate. A `Combobox.Item` with no `value` is disabled, so it also ignores a click.
+
+  - A scripted or assistive click on a disabled `Select.Item` no longer blanks the trigger label.
+  - Disabled `Combobox.Item` and `MultiSelect.Item` rows show the default cursor.
+
+- [#1943](https://github.com/ngrok/mantle/pull/1943) [`8d2ec67`](https://github.com/ngrok/mantle/commit/8d2ec67b8d91f34b3cfd11480929a0d8fd02a383) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Document every data attribute that mantle components render.
+
+  - Each part's JSDoc and its docs page now list each `data-*` attribute it renders, with its values and meaning. This includes internal markers such as `data-mantle-popup`, `data-value`, and `data-closing`.
+  - Each component record in `dist/agent.json` has a new `dataAttributes` field, read from the docs page's API reference. `/api/components.json` and the MCP `get` tool serve the same data.
+  - `Table.Root`'s data attributes are now a JSDoc table, not a list. The `Query` JSDoc tables use the `Data Attribute` column name.
+
+  Docs: https://mantle.ngrok.com/components/navigation/tabs#api-reference
+
+- [#1931](https://github.com/ngrok/mantle/pull/1931) [`821ce77`](https://github.com/ngrok/mantle/commit/821ce77577e92677b639c2daebd77115004e2e0c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `@ngrok/mantle` no longer depends on `class-variance-authority`. `Button`, `IconButton`, `ButtonGroup`, `Tabs`, `Alert`, and `Flag` pick their classes from plain variant maps. Their props and the classes they render do not change. A page with a `Button` or `Tabs` loads about 0.3 to 0.5 KB less JavaScript (gzip). `VariantProps` from `@ngrok/mantle/types` keeps its result, and it now also accepts a function whose props argument is required.
+
+- [#1884](https://github.com/ngrok/mantle/pull/1884) [`1b600a0`](https://github.com/ngrok/mantle/commit/1b600a01e37824425fe629c55c7d27f4342feea6) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Remove the stale Radix, Ariakit, and cmdk mentions from the package README, the `radix-ui` keyword, and the `MultiSelect` and `Command` JSDoc. Mantle builds on native HTML and its own behavior hooks.
+
+- [#1917](https://github.com/ngrok/mantle/pull/1917) [`d146614`](https://github.com/ngrok/mantle/commit/d146614a1a7359a9ac6d5b36cac518a3bb1669d2) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Open `DropdownMenu` from a click with no press, as a screen reader or `element.click()` sends.
+
+  `DropdownMenu.Trigger` opened only on a pointer press or a key. A screen reader that activates the button with a click got no menu. Now that click toggles the menu and moves focus to its first item. A pointer click and Enter or Space work as before.
+
+  In tests, `fireEvent.click(trigger)` and `trigger.click()` now open the menu and focus its first item. A test that clicked the trigger only to check that its row does not react now also gets the menu, and a first item that is a link with `prefetch="intent"` can start its prefetch. Mock that request, or assert on what the row does.
+
+  Docs: https://mantle.ngrok.com/components/overlays/dropdown-menu
+
+- [#1887](https://github.com/ngrok/mantle/pull/1887) [`c4b0bf1`](https://github.com/ngrok/mantle/commit/c4b0bf142b93dabbb192ec773ca3a0d2edff39dd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A float no longer gives Escape to a Radix popper that renders inside it without a portal. Mantle renders no Radix poppers. A Radix popper that portals to `<body>` (the Radix default) does not change.
+
+- [#1917](https://github.com/ngrok/mantle/pull/1917) [`d146614`](https://github.com/ngrok/mantle/commit/d146614a1a7359a9ac6d5b36cac518a3bb1669d2) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Keep a `DropdownMenu` submenu on screen when neither side of its menu has room.
+
+  On a narrow screen, a `DropdownMenu.SubContent` can have no room to the right or the left of its menu. It went off the screen before. Now it covers part of its menu and stays 8px inside the viewport, as a native menu does. A submenu whose trigger scrolls off the screen still follows it. `Tooltip`, `Popover`, and `HoverCard` do not change.
+
+  Docs: https://mantle.ngrok.com/components/overlays/dropdown-menu
+
+- [#1936](https://github.com/ngrok/mantle/pull/1936) [`a538f92`](https://github.com/ngrok/mantle/commit/a538f928ddbf2e13413a98fd1c0ae42ee2e1c51c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Let a modified click on a link item leave the link to the browser without a pick, in `Combobox`, `Select`, and `MultiSelect`.
+
+  A `Combobox.Item` with `asChild` around a link picked on each click. A ⌘-click, a Ctrl-click, a Shift-click, or an Alt-click leaves the link to the browser, which opens it in another tab or window or downloads it, but the pick also wrote the item's text into the input and closed the list in this tab. Now such a click picks nothing, so this tab keeps its text and its value, as a link in `Tabs` or `DataTable` does. When the browser moves focus to a new tab, the list closes as on any blur. A plain click picks as before.
+
+  Docs: https://mantle.ngrok.com/components/forms/combobox
+
+- [#1932](https://github.com/ngrok/mantle/pull/1932) [`fe9ef76`](https://github.com/ngrok/mantle/commit/fe9ef7649a7a6449976cb0a91f23c2fb395d6864) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Keep `Select`, `Combobox`, and `MultiSelect` options out of the Tab order, and close an open `Combobox` or `MultiSelect` list when focus leaves the input for anything but a footer control. Since `Combobox.ContentFooter` ([#1893](https://github.com/ngrok/mantle/issues/1893)), a `Combobox` that was the last control on the page sent Tab to an `asChild` link option and kept the list open. Now Tab leaves the field and the list closes, as in 0.95.0.
+
+- [#1941](https://github.com/ngrok/mantle/pull/1941) [`6548e63`](https://github.com/ngrok/mantle/commit/6548e63644c762b43201d6ca7ac41c522f40234f) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The streaming caret of `Markdown` finds the last paragraph, heading, or list item with `:last-child`, not `:not(:has(+ *))`. With the sibling `:has()` rule on the page, Chromium restyled much of a long answer for each update as it streamed. The caret shows in the same places, and the `:last-child` tests add no specificity, so a consumer override still wins the same way.
+
+- [#1802](https://github.com/ngrok/mantle/pull/1802) [`081bca2`](https://github.com/ngrok/mantle/commit/081bca231b893db48b2e150344e2b6bcac8e7866) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `Markdown` at `@ngrok/mantle/markdown`, a renderer for a Markdown answer that streams in, such as an AI assistant reply. While `streaming`, it closes unfinished syntax at the end of the text, such as `**bo` or an open fence, so the answer never flashes raw Markdown. It reads CommonMark and GitHub Markdown with its own lexer, which takes linear time on any input. It lexes only the text after the last finished block, and a finished block does not render again. Code fences render as `CodeBlock` and tables as `Table`. The answer is not a live region: the root is `aria-busy` while it streams, and the docs show how a chat announces the start and end of an answer. Links and images with an unsafe scheme render as text, and raw HTML outside a short list of inline tags renders as text. Pass `components` to replace the element for a token type, and `extensions` for more tokenizers, such as `markdownMath()` for `$` math.
+
+  Add `useMarkdownStream` to read an answer from a stream of text chunks, with resume from the last offset and retry.
+
+  `Markdown` loads the syntax highlighter, its worker, and each grammar only when a code fence renders. An import of only `useMarkdownStream` or `markdownMath` tree-shakes the renderer, and costs about 1 KB gzip.
+
+  `@ngrok/mantle` no longer depends on `marked`. `Markdown` reads Markdown with its own lexer, and mantle owns the token types: `MarkdownToken`, `MarkdownExtensionToken`, and `MarkdownTokens` take the place of marked's `Token` and `Tokens`. Their shapes are marked's, minus the fields that the lexer never sets: `escaped` on a code token, `autolink` on a link, and `pre` on a paragraph. The `html` token is a union on `block`: a block has `pre`, and an inline tag has `inLink` and `inRawBlock`. A component or an extension that imported a type from `marked` imports it from `@ngrok/mantle/markdown` now, and stops reading those fields. An extension's tokenizer gets no `this.lexer`.
+
+- [#1914](https://github.com/ngrok/mantle/pull/1914) [`0b4d976`](https://github.com/ngrok/mantle/commit/0b4d9760daf9d107e5a671eaae7a22cbe4bacfef) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The mantle MCP `migrate` tool now offers the codemod for migration guides 0014, 0015, 0017, 0018, 0019, 0021, and 0024. Those guides shipped a codemod but did not say which release shipped it, so the tool told you to migrate by hand. The codemods for 0014 and 0015 ship in 0.94.0, and the others ship in 0.95.0.
+
+- [#1892](https://github.com/ngrok/mantle/pull/1892) [`de14a54`](https://github.com/ngrok/mantle/commit/de14a54d288d4573003fb14504065a3abb4410b6) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `MultiSelect` now clears its filter text when the list closes, by Escape, a press outside, or focus that leaves. The text only filters the open list and is not a value, so a closed field no longer shows stale text over the full list. `onInputValueChange` gets `""`, so a filter that reads it resets too. A pick still clears the text and keeps the list open.
+
+- [#1937](https://github.com/ngrok/mantle/pull/1937) [`454e365`](https://github.com/ngrok/mantle/commit/454e3657bc167af6d7cece6972c8d7ff6bc9a724) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `OtpInput.Slot` now shows its caret. Before, the empty active slot drew the caret with `bg-strong`, which emits no CSS, so the caret was invisible. The caret now looks like a native text caret: 1px wide, as tall as the slot's text, and in the slot's text color, also in dark mode and forced colors. It blinks on and off every 500ms with no fade, and it stays steady when the user prefers reduced motion. It shows only at the insertion slot while the input has focus, and it does not change the slot's height.
+
+- [#1952](https://github.com/ngrok/mantle/pull/1952) [`dad9848`](https://github.com/ngrok/mantle/commit/dad98486c2be83b3de5463305eea58b4a9d61876) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `getFilterConjunction` to `@ngrok/mantle/query-filter`. It reads a query as one AND group, for a backend that runs only that, such as a list API that takes one value list for each key. It returns the clauses of the AND group, each term with its effective negation, and a problem for each `OR` and negated group that one AND group cannot hold. Pass `{ or: "same-key" }` when the backend runs `status:404 OR status:500` as one value list. Migration 0032 now uses it in place of a loop over `getEffectiveNegations`.
+
+  Docs: https://mantle.ngrok.com/utils/query-filter#a-backend-that-runs-one-and-group
+
+- [#1896](https://github.com/ngrok/mantle/pull/1896) [`3cdd70d`](https://github.com/ngrok/mantle/commit/3cdd70dac5e68e28d4b7a1bebb9584cc1693e75a) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The `Query` JSDoc now names its `keyboardShortcut` prop, which makes the slash key (`/`) focus the field while no other text field has focus. The `Command` JSDoc names its Cmd+K and Ctrl+K chord, and names `Query` as its sibling for a filter on the page. `Command` also gets the `cmd k` and `ctrl k` aliases, and `Sidebar` gets `cmd b` and `ctrl b` for its toggle. `dist/agent.json` carries the new text, so the MCP `find` tool ranks `Query` first for a search field that `/` focuses, `Command` first for a `⌘K` search, and `Sidebar` first for `Ctrl+B`.
+
+- [#1934](https://github.com/ngrok/mantle/pull/1934) [`bf01273`](https://github.com/ngrok/mantle/commit/bf01273a54f36505a698deba5ba204f08d894a7b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Remove class names that emit no CSS from `Button`, `Calendar`, `DropdownMenu`, `Popover`, and `TextArea`. Mantle's styles do not change, and the `class` attributes of `Button`, `Calendar`, `DropdownMenu`, and `Popover` are shorter.
+
+  - `Button` with `appearance="link"` no longer sets the `group/button-link` group. If a child uses a `group-*/button-link:` variant, add `group/button-link` to the button's `className`.
+  - `Calendar` no longer sets `day` on each day button, or `day-outside` and `day-range-middle` on day cells. `day-range-start` and `day-range-end` stay. To target outside days, use `[data-outside]`. To add a class to the middle of a range, pass `classNames.range_middle`; it replaces mantle's classes for those cells.
+  - `DropdownMenu` and `Popover` no longer set `text-popover-foreground`, `focus:bg-accent`, `aria-expanded:bg-accent`, or `focus:text-accent-foreground`. If your theme defines `--color-popover-foreground`, `--color-accent`, or `--color-accent-foreground`, these parts no longer read them. Set the colors through `className`.
+  - An `asChild` child of `DropdownMenu.Item`, `DropdownMenu.SubTrigger`, or `DropdownMenu.Content` that merges its own `focus:text-*`, `focus:bg-*`, `aria-expanded:bg-*`, or `text-*` default with `cx` now keeps that default. Before, the removed class replaced it.
+
+- [#1888](https://github.com/ngrok/mantle/pull/1888) [`072a571`](https://github.com/ngrok/mantle/commit/072a571e65c543fffdd20155726ddced17021023) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Remove the `--animate-exit-hold` theme token and its `animate-exit-hold` utility. Mantle did not document or use it.
+
+- [#1886](https://github.com/ngrok/mantle/pull/1886) [`27a7af5`](https://github.com/ngrok/mantle/commit/27a7af5cd7cfb0bd534136de7789f3157f95c965) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Remove the Ariakit links and the "builds on the ariakit Combobox" line from the `Combobox` and `MultiSelect` JSDoc, and the Radix error text from the `Sheet` JSDoc. Both components build on mantle's own listbox behavior.
+
+- [#1911](https://github.com/ngrok/mantle/pull/1911) [`3ea8e8f`](https://github.com/ngrok/mantle/commit/3ea8e8f2e1a860973589be6912c6caba91e6ce8e) Thanks [@forzalupo](https://github.com/forzalupo)! - Make the corners of surface components rounder by default. These parts now use `rounded-xl` (0.75rem):
+
+  - `Card.Root`, from `rounded-md`
+  - `Alert.Root`, from `rounded-md`. The `banner` appearance keeps its square corners.
+  - `CodeBlock.Root`, from `rounded-md`
+  - `Table.Root`, from `rounded-lg`
+  - `RadioGroup.Card`, from `rounded-md`
+  - `CheckboxGroup.Card`, from `rounded-md`
+  - `Attachment.Root`, from `rounded-lg`
+  - `DescriptionList.Root`, from `rounded-lg`
+  - `Well`, from `rounded-md`
+
+  If your app sets `rounded-xl` on one of these parts, you can remove that class. To keep the old corners, pass the old class, such as `className="rounded-md"`. `RadioGroup.Card` now merges its classes with `cx`, so a radius class you pass replaces the default.
+
+- [#1913](https://github.com/ngrok/mantle/pull/1913) [`5344a72`](https://github.com/ngrok/mantle/commit/5344a7280ac513ff2d81448b59dd0f724f64143e) Thanks [@forzalupo](https://github.com/forzalupo)! - `SegmentedControl` now looks like a `ButtonGroup` panel of ghost `IconButton`s. The track has a border, the form background, and the `rounded-md` corner of a button. The thumb is a flat neutral tint with no shadow, and it takes the fill of a pressed ghost button. The thumb is the only fill. A segment that is not checked has `text-muted`, and it turns `text-strong` on hover. The checked segment has `text-strong`. An icon takes the same color. Labels are `font-medium`, as on a `Button`.
+
+  At every size, the thumb sits 4px inside the track and has a 2px corner. The control is still as high as a `Button` of the same `size`. At `xs` and `sm`, the segments are 4px shorter than before (16px and 20px), and the labels have a shorter line, so they keep 2px above and below.
+
+  A segment whose children are an `svg` and `sr-only` text is now square at every size, like an `IconButton`. Wrap a visible label beside an icon in an element, such as a `<span>`. At `xs` and `sm`, a text segment is at least 24px wide, so one-character targets stay 24px apart.
+
+  Docs: https://mantle.ngrok.com/components/forms/segmented-control
+
+- [#1908](https://github.com/ngrok/mantle/pull/1908) [`0bab88a`](https://github.com/ngrok/mantle/commit/0bab88a2d8e69fc0704dd8298abafedbabdbecab) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add a `size` prop to `SegmentedControl.Root`, on the button family's scale: `"xs"`, `"sm"`, `"md"`, `"lg"`, and `"xl"`. The default is `"md"`, so a control with no `size` renders as before. Each size is as high as an `IconButton` of the same size, or a `Button` with any `appearance` except `"link"` (24px, 28px, 36px, 40px, and 48px), so a control lines up with buttons of the same size in a toolbar. The items get the horizontal padding of a text-only `Button` of the same size. At `"xs"`, the labels are `text-xs`, so they have room inside the 20px thumb. The root stamps the size as `data-size`. The items do not accept `size`, so the items of one control always share one height.
+
+  See https://mantle.ngrok.com/components/forms/segmented-control#size.
+
+- [#1920](https://github.com/ngrok/mantle/pull/1920) [`0e8f1cc`](https://github.com/ngrok/mantle/commit/0e8f1cc12c6a43ad2cbe7c6118e430740d24752b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - An `AppLayout.SidePanel` that is open on mount (`defaultOpen` or a saved cookie) and covers the card at a phone width no longer moves focus into itself. Before, the page load put focus in the panel and trapped `Tab` there, and a demo in a narrow frame took focus from the parent page. The panel still covers the card and keeps the card and the sidebar `inert`. The focus trap starts when focus first enters the panel, when a resize covers the card while it holds focus, or when the reader opens it again.
+
+- [#1912](https://github.com/ngrok/mantle/pull/1912) [`118256d`](https://github.com/ngrok/mantle/commit/118256d5674418e489444d5c9ec33d582ea50161) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - New migration guides are named by slug, with no number in the file name or the URL. A new guide lives at `https://mantle.ngrok.com/migrations/<slug>-migration`, and its codemod ships at `node_modules/@ngrok/mantle/dist/migrations/<slug>.yml`. Each release gives the guides it ships the next numbers, and the migrations index shows that number. Guides 0001 to 0035 keep their URLs and codemod paths.
+
+- [#1722](https://github.com/ngrok/mantle/pull/1722) [`08a28b9`](https://github.com/ngrok/mantle/commit/08a28b98373dcbb2886fb0e98c06ef13eb2f1f37) Thanks [@sajethm](https://github.com/sajethm)! - `SplitButton.MenuContent` is now at least as wide as the whole split button: the primary action and the menu trigger together. When an item is wider, the menu grows to fit it. With `align="end"` (the default), a menu as wide as the split button lines up with both of its edges. The menu keeps its 8rem minimum and is never wider than the viewport less 8px on each side. The menu is anchored to the split button, so it follows the split button's width while it is open. Before, the menu took the width of its widest item and lined up with the menu trigger.
+
+  `SplitButton.MenuContent` takes `width`: `"root"` (the default, as above), `"trigger"` (the width of the menu trigger), or `"content"` (the width of the widest item, as before). To keep the old menu, pass `width="content"`.
+
+  `SplitButton.Root` is now as wide as its parts, also in a block container. Before, it stretched to the width of a block container, past its two buttons. A split button whose parts fill the row, such as a `PrimaryAction` with `flex-1`, now hugs its content. To stretch `Root` as before, pass a width class such as `className="w-full"`.
+
+  See https://mantle.ngrok.com/components/actions/split-button#menu-width.
+
+- [#1938](https://github.com/ngrok/mantle/pull/1938) [`24ad797`](https://github.com/ngrok/mantle/commit/24ad797a440e7b2e17bddc2fb62778e58551ca11) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Table.Head` draws its dividers as a bottom border on the cells of each header row. Before, it used `tr:not(:has(+tr))` and `tr+tr`. With that rule on the page, Chromium restyled about 3,700 elements for each node that a streamed 665-line `Markdown` answer inserted, even with no table on the page. A one-row head looks the same. In a head with more rows, the divider between two rows moves up by 1px.
+
+- [#1923](https://github.com/ngrok/mantle/pull/1923) [`02f3d94`](https://github.com/ngrok/mantle/commit/02f3d94332c6492722606e7259dcdd69252f2290) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The active indicator of `Tabs` now slides and resizes from the tab that was active to the new one, in the classic and the pill appearance, horizontal or vertical. A mouse or a finger can drag it, as on `SegmentedControl`: press the active tab and move along the list. On release, the nearest enabled tab activates once, and a tab the drag passes over does not. A touch swipe on the active tab of a horizontal list that scrolls, or that the page has not measured yet, still scrolls the list. A drag with a modifier key held activates nothing. With reduced motion, the indicator moves at once. In forced colors, the indicator shows in the `Highlight` color.
+
+  `SegmentedControl` and `Tabs` share one hook for the slide and the drag. The checked `SegmentedControl` item now draws the thumb as its own `::before`, so the thumb no longer needs CSS anchor positioning. It slides and resizes in every browser. A slide between items of different widths still lays out the item for each frame of its 200ms.
+
+- [#1900](https://github.com/ngrok/mantle/pull/1900) [`b18286f`](https://github.com/ngrok/mantle/commit/b18286f0670d5d16e51434900c6b0b1a6a518708) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `TextArea` grows with its text, and the native `rows` attribute sets its minimum height.
+
+  - The field grows as the person types, up to `15rem` (`max-h-60`), then scrolls. Set a `max-h-*` class to change the cap. Browsers without `field-sizing` keep a fixed height and scroll, as before.
+  - `rows` sets the minimum height in lines, so `rows={1}` and `rows={2}` now give a compact field. Before, a `6rem` minimum height overrode `rows={1}`, `rows={2}`, and `rows={3}`.
+  - A `TextArea` without `rows` keeps the `6rem` minimum height.
+  - A drag on the resize handle cannot make the field shorter than its minimum height.
+
+  If you set a small `rows` value and want the old height, remove `rows` or add `className="min-h-24"`. If you want a fixed height that does not grow, add `className="field-sizing-fixed"`.
+
 ## 0.95.0
 
 ### Minor Changes
