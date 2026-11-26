@@ -2095,12 +2095,16 @@ pre[data-mantle-line-numbers="true"] .mantle-code-line {
  * `CodeBlock.Code` sets, and a full group's numbers never change. Each line
  * keeps the space of its number, so the code does not move.
  *
+ * Why only left to right: right to left, the numbers of the first two lines
+ * move clear of the copy button, and one column cannot do that. There, and in
+ * a browser without `:dir()`, each line draws its own number as before.
+ *
  * Why in the group's first line, with no height and a negative margin: the
  * column pins to the line's edge as the number on each line did, it takes no
  * space, and its numbers go down from that line. A code line does not wrap,
  * so the rows of the column match the lines.
  */
-pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] .mantle-code-gutter {
+pre[data-mantle-line-numbers="true"]:dir(ltr) > code[data-mantle-gutter] .mantle-code-gutter {
 	position: sticky;
 	inset-inline-start: 0;
 	z-index: 1;
@@ -2114,7 +2118,9 @@ pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] .mantle-code-gut
 	);
 }
 
-pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] .mantle-code-gutter::before {
+pre[data-mantle-line-numbers="true"]:dir(ltr)
+	> code[data-mantle-gutter]
+	.mantle-code-gutter::before {
 	/*
 	 * Why an attribute and not an inline custom property: a CSP that blocks
 	 * `style` attributes leaves server-rendered HTML with no numbers. Why no
@@ -2135,7 +2141,7 @@ pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] .mantle-code-gut
 	background-color: var(--background-color-base);
 }
 
-pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] > .mantle-code-line {
+pre[data-mantle-line-numbers="true"]:dir(ltr) > code[data-mantle-gutter] > .mantle-code-line {
 	/* Why: with no number in the line, a line of only a form feed has no height of its own. */
 	min-height: 1lh;
 	padding-inline-start: calc(
@@ -2143,7 +2149,9 @@ pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] > .mantle-code-l
 	);
 }
 
-pre[data-mantle-line-numbers="true"] > code[data-mantle-gutter] > .mantle-code-line::before {
+pre[data-mantle-line-numbers="true"]:dir(ltr)
+	> code[data-mantle-gutter]
+	> .mantle-code-line::before {
 	content: none;
 }
 

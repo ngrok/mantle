@@ -289,7 +289,7 @@ describe("CodeBlock (browser)", () => {
 	 */
 	function streamedGutterCss(): string {
 		const match =
-			/pre\[data-mantle-line-numbers="true"\] > code\[data-mantle-gutter\] \.mantle-code-gutter \{[\s\S]*?> \.mantle-code-line::before \{[\s\S]*?\n\}/.exec(
+			/pre\[data-mantle-line-numbers="true"\]:dir\(ltr\) > code\[data-mantle-gutter\] \.mantle-code-gutter \{[\s\S]*?> \.mantle-code-line::before \{[\s\S]*?\n\}/.exec(
 				mantleCss,
 			);
 		if (match == null) {
@@ -684,6 +684,36 @@ describe("CodeBlock (browser)", () => {
 			expect(contents).toHaveLength(3);
 			for (const content of contents) {
 				expect(content).toMatch(/^counter\(mantle-line\)/);
+			}
+		});
+
+		test("streamed lines right to left draw a number on each line, clear of the copy button", () => {
+			const lines = ["a", "b", "c"];
+			render(
+				<div dir="rtl">
+					<CodeBlock.Root>
+						<CodeBlock.Body>
+							<CodeBlock.Code
+								value={createMantleCodeBlockValue({
+									language: "text",
+									code: lines.join("\n"),
+									lines,
+									showLineNumbers: true,
+								})}
+							/>
+						</CodeBlock.Body>
+					</CodeBlock.Root>
+				</div>,
+			);
+
+			const pre = getPre();
+			const gutter = pre.querySelector(".mantle-code-gutter");
+			if (gutter == null) {
+				throw new Error("expected the gutter");
+			}
+			expect(getComputedStyle(gutter, "::before").content).toBe("none");
+			for (const row of pre.querySelectorAll(".mantle-code-line")) {
+				expect(getComputedStyle(row, "::before").content).toMatch(/^counter\(mantle-line\)/);
 			}
 		});
 
