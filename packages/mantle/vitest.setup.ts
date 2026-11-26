@@ -38,11 +38,12 @@ declare module "vitest/browser" {
 		 * paths relative to the test file. Browser project only; the config
 		 * registers the command. `theme` adds the first `@theme` block of
 		 * `mantle.css`. `mantleCss` compiles against all of `mantle.css`, with
-		 * the light and dark tokens.
+		 * the light and dark tokens. `css` adds CSS after `mantle.css`, such as an
+		 * app's `@theme` block.
 		 */
 		tailwindCss: (
 			sourceFiles: string | readonly string[],
-			options?: { theme?: boolean; mantleCss?: boolean },
+			options?: { theme?: boolean; mantleCss?: boolean; css?: string },
 		) => Promise<string>;
 	}
 }
