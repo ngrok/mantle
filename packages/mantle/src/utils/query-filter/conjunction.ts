@@ -49,8 +49,10 @@ type FilterConjunction = {
 	/**
 	 * The AND group, in query order. Each clause is an OR of its terms: one
 	 * term, or the terms of an `OR` that the `or` option accepts. A comma list
-	 * is one term. A qualifier still being typed, such as `is:`, is a term with
-	 * no `members`, so the caller can ask for a value.
+	 * is one term. Two clauses on one key intersect: a backend with one value
+	 * list for each key must not join them into one list. A qualifier still
+	 * being typed, such as `is:`, is a clause of its own with no `members`, so
+	 * the caller can ask for a value.
 	 */
 	clauses: FilterConjunctionTerm[][];
 	/**
@@ -100,6 +102,8 @@ function getFilterConjunction(
 	{ or = "none" }: FilterConjunctionOptions = {},
 ): FilterConjunction {
 	const problems: FilterConjunctionProblem[] = [];
+	// Qualifiers still being typed. The tree drops them from their group, so they join no OR.
+	const typing: Clause[] = [];
 	let index = 0;
 
 	/** Joins the parts of an AND, or of an OR, into the clauses of one AND group. */
@@ -154,7 +158,12 @@ function getFilterConjunction(
 			}
 			return inner;
 		}
-		return [{ start: token.start, end: token.end, terms: [{ token, negated: negate }] }];
+		const clause = { start: token.start, end: token.end, terms: [{ token, negated: negate }] };
+		if (token.kind === "facet" && token.members.length === 0) {
+			typing.push(clause);
+			return null;
+		}
+		return [clause];
 	}
 
 	function readAnd(negated: boolean): Clause[] | null {
@@ -203,8 +212,11 @@ function getFilterConjunction(
 			index += 1;
 		}
 	}
-	problems.sort((a, b) => a.start - b.start);
-	return { clauses: clauses.map((clause) => clause.terms), problems };
+	// Why the end: of two problems that start on one term, the outer one is wider and comes first.
+	problems.sort((a, b) => a.start - b.start || b.end - a.end);
+	const all =
+		typing.length === 0 ? clauses : [...clauses, ...typing].toSorted((a, b) => a.start - b.start);
+	return { clauses: all.map((clause) => clause.terms), problems };
 }
 
 export {

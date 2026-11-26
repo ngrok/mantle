@@ -84,6 +84,11 @@ describe("getFilterConjunction", () => {
 		expect(
 			read("(is:shared OR name:api) NOT (is:new acme)").problems.map(({ kind }) => kind),
 		).toEqual(["or", "negated-group"]);
+		// Both start on `is:shared`; the outer negated group is the first problem.
+		expect(read("NOT (NOT (is:shared OR is:new) acme)").problems.map(({ kind }) => kind)).toEqual([
+			"negated-group",
+			"or",
+		]);
 	});
 
 	test.each([
@@ -123,9 +128,15 @@ describe("getFilterConjunction", () => {
 		expect(problems).toHaveLength(1);
 	});
 
-	test("keeps a qualifier still being typed, and asks nothing of an empty query", () => {
+	test("keeps a qualifier still being typed as its own clause, and asks nothing of an empty query", () => {
 		// The caller sees `is:` with no members and can ask for a value; a backend must not drop it in silence.
 		expect(read("is: name:api")).toEqual({ clauses: [["is:"], ["name:api"]], problems: [] });
+		// The tree drops `is:` from the OR, so it is no OR operand.
+		expect(read("is: OR is:new", { or: "same-key" })).toEqual({
+			clauses: [["is:"], ["is:new"]],
+			problems: [],
+		});
+		expect(read("is: OR name:api")).toEqual({ clauses: [["is:"], ["name:api"]], problems: [] });
 		expect(read("")).toEqual({ clauses: [], problems: [] });
 		expect(read("OR")).toEqual({ clauses: [], problems: [] });
 	});
