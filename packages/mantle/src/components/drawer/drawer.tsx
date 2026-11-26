@@ -267,47 +267,8 @@ function SwipeHandle() {
 		},
 	});
 
-	// Why `visualViewport`: the layout viewport keeps its height under an
-	// on-screen keyboard, so a panel at `bottom: 0` would sit behind it.
-	useEffect(() => {
-		const viewport = window.visualViewport;
-		const dialog = panelRef.current?.closest("dialog");
-		if (viewport == null || dialog == null) {
-			return undefined;
-		}
-		const update = () => {
-			const inset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
-			dialog.style.setProperty("--drawer-keyboard-inset", `${inset}px`);
-		};
-		update();
-		viewport.addEventListener("resize", update);
-		viewport.addEventListener("scroll", update);
-		return () => {
-			viewport.removeEventListener("resize", update);
-			viewport.removeEventListener("scroll", update);
-		};
-	}, []);
-
-	// Why: a reopen during the exit slides in to rest, not to where the
-	// finger let go.
-	useEffect(() => {
-		const panel = panelRef.current;
-		const reopen = (event: AnimationEvent) => {
-			if (
-				panel != null &&
-				(drag.current.swiped || drag.current.selectionOff) &&
-				event.target === panel &&
-				!panel.hasAttribute("data-closing")
-			) {
-				rest(panel, drag.current);
-			}
-		};
-		panel?.addEventListener("animationstart", reopen);
-		return () => panel?.removeEventListener("animationstart", reopen);
-	}, []);
-
-	// Why a capture listener: the native primitive closes on `cancel`, the
-	// close request of the back gesture, and its listener must not run.
+	// Why a capture listener for `cancel`: the native primitive closes on it,
+	// the close request of the back gesture, and its listener must not run.
 	const blocksBack = useCallbackRef((event: Event) => {
 		if (!dismissible && event.target === event.currentTarget) {
 			event.preventDefault();
@@ -315,9 +276,42 @@ function SwipeHandle() {
 		}
 	});
 	useEffect(() => {
-		const dialog = panelRef.current?.closest("dialog");
-		dialog?.addEventListener("cancel", blocksBack, { capture: true });
-		return () => dialog?.removeEventListener("cancel", blocksBack, { capture: true });
+		const panel = panelRef.current;
+		const dialog = panel?.closest("dialog");
+		const viewport = window.visualViewport;
+		if (panel == null || dialog == null) {
+			return undefined;
+		}
+		// Why `visualViewport`: the layout viewport keeps its height under an
+		// on-screen keyboard, so a panel at `bottom: 0` would sit behind it.
+		const inset = () => {
+			if (viewport != null) {
+				const height = Math.max(0, innerHeight - viewport.height - viewport.offsetTop);
+				dialog.style.setProperty("--drawer-keyboard-inset", `${height}px`);
+			}
+		};
+		// Why: a reopen during the exit slides in to rest, not to where the
+		// finger let go.
+		const reopen = (event: AnimationEvent) => {
+			if (
+				(drag.current.swiped || drag.current.selectionOff) &&
+				event.target === panel &&
+				!panel.hasAttribute("data-closing")
+			) {
+				rest(panel, drag.current);
+			}
+		};
+		inset();
+		viewport?.addEventListener("resize", inset);
+		viewport?.addEventListener("scroll", inset);
+		panel.addEventListener("animationstart", reopen);
+		dialog.addEventListener("cancel", blocksBack, { capture: true });
+		return () => {
+			viewport?.removeEventListener("resize", inset);
+			viewport?.removeEventListener("scroll", inset);
+			panel.removeEventListener("animationstart", reopen);
+			dialog.removeEventListener("cancel", blocksBack, { capture: true });
+		};
 	}, [blocksBack]);
 
 	return (
@@ -398,17 +392,22 @@ const Content = ({
 	...props
 }: DrawerContentProps) => {
 	const { dismissible } = useContext(DrawerContext);
+	/** Runs the consumer's handler, then keeps a drawer that is not dismissible open. */
+	const guard =
+		<E extends Event>(handler?: (event: E) => void) =>
+		(event: E) => {
+			handler?.(event);
+			if (!dismissible) {
+				event.preventDefault();
+			}
+		};
 	return (
 		<DrawerPrimitiveContent
 			scope={scope}
 			positionerSlot="drawer-positioner"
 			// Why a light scrim with no blur: the drawer is a short task beside
 			// the page, and a blur over the page repaints on each frame of a drag.
-			positionerClassName={cx(
-				"fixed z-60",
-				"backdrop:bg-black/20 backdrop:backdrop-blur-none",
-				"backdrop:opacity-[calc(1-var(--drawer-swipe,0))]",
-			)}
+			positionerClassName="fixed z-60 backdrop:bg-black/20 backdrop:opacity-[calc(1-var(--drawer-swipe,0))] backdrop:backdrop-blur-none"
 			data-slot={joinDataSlot(dataSlot, "drawer-content")}
 			className={cx(
 				"bg-dialog border-dialog fixed inset-x-0 bottom-(--drawer-keyboard-inset,0px) flex max-h-[calc(100dvh-2rem-var(--drawer-keyboard-inset,0px))] w-full flex-col rounded-t-2xl border-t shadow-lg outline-hidden sm:mx-auto sm:max-w-lg",
@@ -425,18 +424,8 @@ const Content = ({
 				onOpenAutoFocus?.(event);
 				event.preventDefault();
 			}}
-			onEscapeKeyDown={(event) => {
-				onEscapeKeyDown?.(event);
-				if (!dismissible) {
-					event.preventDefault();
-				}
-			}}
-			onPointerDownOutside={(event) => {
-				onPointerDownOutside?.(event);
-				if (!dismissible) {
-					event.preventDefault();
-				}
-			}}
+			onEscapeKeyDown={guard(onEscapeKeyDown)}
+			onPointerDownOutside={guard(onPointerDownOutside)}
 			{...props}
 		>
 			<SwipeHandle />

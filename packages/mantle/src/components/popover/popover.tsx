@@ -148,15 +148,22 @@ function Root({
 	// Why a decision at each open, in render: a controlled `open` opens with no
 	// event here, and the decision must hold until the close and its exit.
 	// Why `Drawer` must have loaded: a tap never waits on the network, so an
-	// open before the load presents as a popover. The server renders no content.
-	// Why the server agrees: it renders no content, and `Drawer` loads after hydration.
+	// open before the load presents as a popover. Why the server agrees: it
+	// renders no content, and `Drawer` loads after hydration.
 	const [opened, setOpened] = useState(() => ({
 		open,
 		drawer: open && wantsDrawer(presentation) ? Drawer : null,
 	}));
 	if (opened.open !== open) {
+		const wanted = open && wantsDrawer(presentation);
+		// Why a load here, in render: a phone that rotates below `sm`, or a
+		// failed load, loads the drawer for the next open. As with React's
+		// `preload`, the call only starts a fetch, and a repeat changes nothing.
+		if (wanted && Drawer == null) {
+			loadDrawer();
+		}
 		// Why keep the drawer on close: the drawer plays its exit before it unmounts.
-		const drawer = open && wantsDrawer(presentation) ? Drawer : null;
+		const drawer = wanted ? Drawer : null;
 		setOpened({ open, drawer: open ? drawer : opened.drawer });
 	}
 	// Why after mount, and only on a matching device: a desktop page never
@@ -166,13 +173,6 @@ function Root({
 			loadDrawer();
 		}
 	}, [presentation]);
-	// Why again at each open, from the trigger or the owner: a phone that
-	// rotates below `sm`, or a failed load, loads the drawer for the next open.
-	useEffect(() => {
-		if (open && Drawer == null && wantsDrawer(presentation)) {
-			loadDrawer();
-		}
-	}, [open, presentation]);
 	const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
 	const {
 		triggerRef: anchorRef,
@@ -591,27 +591,7 @@ const FloatContent = ({
 const Content = (props: PopoverContentProps) => {
 	const state = usePopoverState("Content");
 	const Drawer = state.drawer;
-	if (Drawer == null) {
-		return <FloatContent {...props} />;
-	}
-	// Why drop these: they place a float, and a drawer has no anchor.
-	const {
-		align: _align,
-		side: _side,
-		sideOffset: _sideOffset,
-		preferredWidth: _preferredWidth,
-		onFocusOutside: _onFocusOutside,
-		...drawerProps
-	} = props;
-	return (
-		<Drawer
-			open={state.open}
-			onOpenChange={state.setOpen}
-			id={state.contentId}
-			triggerRef={state.triggerRef}
-			{...drawerProps}
-		/>
-	);
+	return Drawer == null ? <FloatContent {...props} /> : <Drawer state={state} {...props} />;
 };
 
 type PopoverArrowProps = Omit<ComponentProps<"svg">, "children" | "width" | "height"> &
@@ -662,6 +642,12 @@ type PopoverArrowProps = Omit<ComponentProps<"svg">, "children" | "width" | "hei
 const Arrow = ({ "data-slot": dataSlot, ...props }: PopoverArrowProps) => (
 	<FloatArrow data-slot={joinDataSlot(dataSlot, "popover-arrow")} {...props} />
 );
+
+export type {
+	//,
+	PopoverContentProps,
+	PopoverState,
+};
 
 export {
 	//,

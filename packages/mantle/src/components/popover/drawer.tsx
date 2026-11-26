@@ -1,11 +1,10 @@
 "use client";
 
-import type { ComponentProps, RefObject } from "react";
 import { useEffect } from "react";
-import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { ScrollBody } from "../dialog/scroll-body.js";
 import { Content, Root } from "../drawer/drawer.js";
+import type { PopoverContentProps, PopoverState } from "./popover.js";
 
 /**
  * The drawer presentation of `Popover.Content`: the content in a `Drawer`.
@@ -13,51 +12,50 @@ import { Content, Root } from "../drawer/drawer.js";
  * presents a drawer does not pay for the dialog and swipe behavior.
  */
 
-type PopoverDrawerProps = ComponentProps<typeof Content> &
-	WithDataSlot & {
-		open: boolean;
-		onOpenChange: (open: boolean) => void;
-		/** The popover trigger, which names the drawer when the content has no name. */
-		triggerRef: RefObject<HTMLElement | null>;
-	};
-
 /**
  * Renders `Popover.Content` as a `Drawer`. The popover owns the open state;
  * the drawer reports each close a swipe, Escape, back, or the scrim asks for.
+ * Why the props and the state arrive whole: the popover chunk, which every
+ * page with a popover loads, then carries no drawer wiring.
  *
  * Why the scroll box: content taller than the screen scrolls, and a drag on
  * the grab handle moves the panel. `Popover.Arrow` has no anchor to point
  * at, so it hides.
  */
 const PopoverDrawer = ({
+	// Why drop these: they place a float, and a drawer has no anchor.
+	align: _align,
+	side: _side,
+	sideOffset: _sideOffset,
+	preferredWidth: _preferredWidth,
+	onFocusOutside: _onFocusOutside,
 	children,
-	className,
 	"data-slot": dataSlot,
+	id,
 	onClick,
 	onCloseAutoFocus,
-	onOpenChange,
-	open,
-	triggerRef,
+	state: { contentId, open, setOpen, triggerRef },
 	...props
-}: PopoverDrawerProps) => {
-	const { id, "aria-label": label, "aria-labelledby": labelledBy } = props;
+}: PopoverContentProps & { state: PopoverState }) => {
+	const { "aria-label": label, "aria-labelledby": labelledBy } = props;
+	const panelId = id ?? contentId;
 	// Why the trigger names the drawer: as in the popover, the trigger says
 	// what opens. Why its rendered `id`, after the commit: a consumer can set
 	// one, and the trigger can render after the content.
 	useEffect(() => {
 		const triggerId = triggerRef.current?.id;
-		const dialog = id == null ? null : document.getElementById(id)?.closest("dialog");
+		const dialog = document.getElementById(panelId)?.closest("dialog");
 		if (open && dialog != null && triggerId && label == null && labelledBy == null) {
 			dialog.setAttribute("aria-labelledby", triggerId);
 		}
-	}, [id, label, labelledBy, open, triggerRef]);
+	}, [panelId, label, labelledBy, open, triggerRef]);
 
 	return (
-		<Root open={open} onOpenChange={onOpenChange}>
+		<Root open={open} onOpenChange={setOpen}>
 			<Content
+				id={panelId}
 				data-slot={joinDataSlot(dataSlot, "popover-content")}
 				data-presentation="drawer"
-				className={className}
 				// Why: the trigger names the popover in `aria-controls`, not the
 				// `<dialog>`, so the drawer's own fallback does not find it after a
 				// tap that did not focus it.
