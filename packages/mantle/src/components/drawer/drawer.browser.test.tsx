@@ -135,4 +135,18 @@ describe("Drawer", () => {
 		expect(dialog.style.getPropertyValue("--drawer-swipe")).toBe("0");
 		expect(dialog.matches(":modal")).toBe(true);
 	});
+
+	test("keeps the consumer's own inline styles through a drag", async () => {
+		render(
+			<Drawer.Root open>
+				<Drawer.Content aria-label="Edit" style={{ userSelect: "none" }}>
+					<Drawer.Body>Name</Drawer.Body>
+				</Drawer.Content>
+			</Drawer.Root>,
+		);
+		const panel = panelOf(await screen.findByRole("dialog", { name: "Edit" }));
+		dragDown(panel, -24)();
+		dragDown(panel, panel.offsetHeight * 0.1)();
+		expect(panel.style.userSelect).toBe("none");
+	});
 });

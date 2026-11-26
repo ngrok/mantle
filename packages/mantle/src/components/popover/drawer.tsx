@@ -4,6 +4,7 @@ import type { ComponentProps, RefObject } from "react";
 import { useEffect } from "react";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { ScrollBody } from "../dialog/scroll-body.js";
 import { Content, Root } from "../drawer/drawer.js";
 
 /**
@@ -75,9 +76,9 @@ const PopoverDrawer = ({
 				}}
 			>
 				{/* Why `>` for the arrow: an arrow of a float inside is not this one. */}
-				<div className="min-h-0 flex-1 touch-pan-y touch-pinch-zoom overflow-y-auto overscroll-contain px-4 pb-4 [&>[data-float-arrow]]:hidden">
+				<ScrollBody className="min-h-0 flex-1 touch-pan-y touch-pinch-zoom overflow-y-auto overscroll-contain px-4 pb-4 focus-visible:focus-ring focus-visible:ring-inset [&>[data-float-arrow]]:hidden">
 					{children}
-				</div>
+				</ScrollBody>
 			</Content>
 		</Root>
 	);

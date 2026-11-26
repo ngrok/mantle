@@ -163,7 +163,10 @@ function pressBelongsToContent(target: EventTarget | null, panel: HTMLElement): 
 	) {
 		return true;
 	}
-	if ((target.ownerDocument.getSelection()?.toString() ?? "") !== "") {
+	// Why only a press on the selection: a drag there extends it, and a drag
+	// on the handle still moves the panel.
+	const selection = target.ownerDocument.getSelection();
+	if (selection != null && !selection.isCollapsed && selection.containsNode(target, true)) {
 		return true;
 	}
 	// Why: content that is scrolled scrolls back first, as on iOS. A control
@@ -180,10 +183,27 @@ function pressBelongsToContent(target: EventTarget | null, panel: HTMLElement): 
 	return false;
 }
 
-/** Puts the panel back at rest, with its scrim and text selection. */
-function rest(panel: HTMLElement): void {
-	panel.style.removeProperty("translate");
-	panel.style.removeProperty("user-select");
+/** The inline styles that a drag set on the panel. */
+type DragStyles = {
+	/** Whether a swipe that closed the drawer left the panel displaced. */
+	swiped: boolean;
+	/** Whether a drag turned off text selection on the panel. */
+	selectionOff: boolean;
+};
+
+/**
+ * Puts the panel back at rest, with its scrim. Why the flags: it resets
+ * only the styles that a drag set, not the consumer's own.
+ */
+function rest(panel: HTMLElement, styles: DragStyles): void {
+	if (styles.swiped) {
+		styles.swiped = false;
+		panel.style.removeProperty("translate");
+	}
+	if (styles.selectionOff) {
+		styles.selectionOff = false;
+		panel.style.removeProperty("user-select");
+	}
 	panel.closest("dialog")?.style.setProperty("--drawer-swipe", "0");
 }
 
@@ -196,8 +216,7 @@ function SwipeHandle() {
 	const { dismissible, setOpen } = useContext(DrawerContext);
 	const panelRef = useRef<HTMLElement | null>(null);
 	const progress = useRef(0);
-	/** Whether a swipe that closed the drawer left the panel displaced. */
-	const swiped = useRef(false);
+	const drag = useRef<DragStyles>({ swiped: false, selectionOff: false });
 	const attach = (element: HTMLDivElement | null) => {
 		panelRef.current = element?.parentElement ?? null;
 	};
@@ -213,34 +232,36 @@ function SwipeHandle() {
 			const panel = panelRef.current;
 			panel?.closest("dialog")?.style.setProperty("--drawer-swipe", String(next));
 			// Why: a mouse drag would select the text it passes over.
-			if (panel != null && next > 0 && panel.style.userSelect !== "none") {
+			if (panel != null && next > 0 && !drag.current.selectionOff) {
+				drag.current.selectionOff = true;
 				panel.style.userSelect = "none";
 				panel.ownerDocument.getSelection()?.removeAllRanges();
-			} else if (panel != null && next === 0) {
+			} else if (panel != null && next === 0 && drag.current.selectionOff) {
+				drag.current.selectionOff = false;
 				panel.style.removeProperty("user-select");
 			}
 		},
 		onDismiss: () => {
 			const panel = panelRef.current;
 			// Why the `data-closing` check: Escape can close the drawer while the
-			// finger is down, and one close reports once.
+			// finger is down, and one close reports once. A reopen during that
+			// exit puts the panel back at rest.
 			if (panel == null || panel.hasAttribute("data-closing")) {
 				return;
 			}
 			if (!dismissible) {
-				rest(panel);
+				rest(panel, drag.current);
 				return;
 			}
 			// Why: the exit slides from where the finger let go, not from rest.
 			panel.style.translate = `0 ${progress.current * panel.offsetHeight}px`;
-			swiped.current = true;
+			drag.current.swiped = true;
 			setOpen(false);
 			// Why: a controlled owner can keep the drawer open, and the panel
 			// then goes back to rest.
 			requestAnimationFrame(() => {
 				if (!panel.hasAttribute("data-closing")) {
-					swiped.current = false;
-					rest(panel);
+					rest(panel, drag.current);
 				}
 			});
 		},
@@ -274,12 +295,11 @@ function SwipeHandle() {
 		const reopen = (event: AnimationEvent) => {
 			if (
 				panel != null &&
-				swiped.current &&
+				(drag.current.swiped || drag.current.selectionOff) &&
 				event.target === panel &&
 				!panel.hasAttribute("data-closing")
 			) {
-				swiped.current = false;
-				rest(panel);
+				rest(panel, drag.current);
 			}
 		};
 		panel?.addEventListener("animationstart", reopen);
