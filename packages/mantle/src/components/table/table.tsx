@@ -338,13 +338,13 @@ const Head = ({
 			"[display:var(--_table-display,table-header-group)]",
 			subgridClassName,
 			// In border-separate, <tr>/<thead> borders don't render, so apply
-			// dividers directly to cells. Why `:not(:has(+tr))` and not `:last-child`:
-			// a structural pseudo-class before `>*` makes Chromium restyle the whole
-			// page each time a portal is appended to `<body>`.
-			"[&>tr:not(:has(+tr))>*]:border-b [&>tr:not(:has(+tr))>*]:border-card-muted",
-			// Why `tr+tr`: see `Body`.
-			// oxlint-disable-next-line mantle/no-structural-combinator -- Why: a measured trade-off; see `Body`.
-			"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
+			// dividers directly to cells. Why a bottom border on each row: it draws
+			// the same lines as a divider between rows plus one under the last row,
+			// with no sibling or structural selector. With `tr:not(:has(+tr))`,
+			// Chromium restyled about 3,700 elements for each node that a streamed
+			// 665-line answer inserted, even with no table on the page. Why
+			// `border-b-*`: a cell's own side border keeps its color.
+			"[&>tr>*]:border-b [&>tr>*]:border-b-card-muted",
 			"text-muted bg-base",
 			"[&>tr]:bg-base", // Row styling
 			className,
@@ -423,7 +423,7 @@ const Body = ({
 			// on each append, and `nth-child(n+2)` on each middle insert. This rule
 			// also keeps the restyle when a `data-slot` element is inserted into a
 			// parent that sibling rules mark (4,259 elements on a docs page, 84
-			// without it). `Head` above has the same rule.
+			// without it).
 			// oxlint-disable-next-line mantle/no-structural-combinator -- Why: the measured trade-off above.
 			"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
 			"text-body",
