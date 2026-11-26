@@ -9,4 +9,4 @@ Until the stream ends, two hooks do not apply to the numbers:
 - A rule on `.mantle-code-line::before`. Style the streaming numbers through `.mantle-code-gutter::before`.
 - A `--mantle-line-number-start` that you set in CSS. Set `lineNumberStart` on the value.
 
-A streamed block whose caller never passes `complete` keeps the gutter.
+A streamed block keeps the gutter when its caller never passes `complete`, or when its language does not fold.

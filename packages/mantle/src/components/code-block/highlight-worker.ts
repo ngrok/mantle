@@ -41,6 +41,7 @@ addEventListener("message", (event: MessageEvent<HighlightRequest>) => {
 			state: blockState,
 			code: request.code,
 			grammar: request.grammar,
+			foldLanguage: request.foldLanguage,
 		});
 	});
 });

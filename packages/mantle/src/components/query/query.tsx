@@ -803,6 +803,7 @@ function Input({
 					<Kbd
 						aria-hidden
 						data-slot="query-input-shortcut"
+						// oxlint-disable-next-line mantle/no-structural-combinator -- Why: the `:has()` reads one search field and hides one hint. It also matches an input in a disabled fieldset, which `data-disabled` does not.
 						className="hover-none:hidden [[data-slot=input]:focus-within>&]:hidden [[data-slot=input]:has(input:disabled)>&]:hidden"
 					>
 						/

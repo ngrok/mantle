@@ -11,6 +11,7 @@ import mantleCss from "../../mantle.css?raw";
 import * as CodeBlock from "./code-block-parts.js";
 import type { FoldableRange } from "./compute-json-fold-ranges.js";
 import { decorateHighlightedHtml } from "./decorate-highlighted-html.js";
+import { pendingFoldRanges } from "./fold-range-utils.js";
 import { createMantleCodeBlockValue } from "./mantle-code.js";
 
 function makeValue(code: string, preHtml?: string) {
@@ -608,6 +609,41 @@ describe("CodeBlock (browser)", () => {
 			row.scrollIntoView({ block: "center" });
 			const { top, height } = row.getBoundingClientRect();
 			expect(row.contains(document.elementFromPoint(preLeft + 2, top + height / 2))).toBe(true);
+		});
+
+		test("streamed lines draw one group gutter until the fold ranges arrive, then a number on each line", () => {
+			const lines = ["{", '  "a": 1', "}"];
+			const view = (foldableRanges: readonly FoldableRange[]) => (
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code
+							value={createMantleCodeBlockValue({
+								language: "json",
+								code: lines.join("\n"),
+								lines,
+								foldableRanges,
+								showLineNumbers: true,
+							})}
+						/>
+					</CodeBlock.Body>
+				</CodeBlock.Root>
+			);
+			const { rerender } = render(view(pendingFoldRanges));
+			const pre = getPre();
+			expect(pre.querySelectorAll(".mantle-code-gutter")).toHaveLength(1);
+
+			// Why: a fold hides its lines with `display: none`, and a group gutter would still draw their numbers.
+			rerender(view([{ id: "1", startLine: 1, endLine: 3 }]));
+			expect(pre.querySelector(".mantle-code-gutter")).toBeNull();
+			expect(pre.querySelector("code[data-mantle-gutter]")).toBeNull();
+			const contents = Array.from(
+				pre.querySelectorAll(".mantle-code-line"),
+				(row) => getComputedStyle(row, "::before").content,
+			);
+			expect(contents).toHaveLength(3);
+			for (const content of contents) {
+				expect(content).toMatch(/^counter\(mantle-line\)/);
+			}
 		});
 
 		test("fold toggles pin with the line numbers while the code scrolls", () => {

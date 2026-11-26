@@ -293,6 +293,7 @@ describe("AppLayout.Header", () => {
 		expect([...root.classList]).toContain("group/app-layout");
 		expect(root.querySelector('[data-slot~="sidebar-header"]')).not.toBeNull();
 		const derivedHeight =
+			// oxlint-disable-next-line mantle/no-structural-combinator -- Why: asserts the class of panel.tsx.
 			"group-has-[[data-slot~=sidebar-header]:not([data-mobile]_*)]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]";
 		expect(screen.getByTestId("header").className).toContain(derivedHeight);
 		// The panel header sits on the same band, so a derivation that reaches one

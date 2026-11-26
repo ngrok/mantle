@@ -2,6 +2,7 @@ export {
 	createMantleServerSyntaxHighlighter,
 	getMantleShikiHighlighter,
 	highlightWithMantleShiki,
+	mantleHighlightCacheMaxBytes,
 	mantleHighlightCacheMaxEntries,
 	mantleShikiLanguageGrammarIds,
 	mantleShikiThemeName,

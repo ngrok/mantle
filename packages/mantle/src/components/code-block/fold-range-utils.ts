@@ -55,5 +55,16 @@ function finalizeFoldRanges(ranges: FoldableRange[]): FoldableRange[] {
 	return filtered;
 }
 
-export { finalizeFoldRanges };
+/**
+ * The fold ranges of a streamed block that can fold, until the worker computes
+ * them at the end of the stream. Why shared: `Code` compares it by reference,
+ * and draws one gutter for a group of lines only while the ranges are pending.
+ */
+const pendingFoldRanges: readonly FoldableRange[] = [];
+
+export {
+	//,
+	finalizeFoldRanges,
+	pendingFoldRanges,
+};
 export type { FoldableRange };

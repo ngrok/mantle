@@ -7,6 +7,23 @@
  * (#1794). A structural pseudo-class in the last compound, such as
  * `[&>*:last-child]`, and one inside `:has()` are fine.
  *
+ * It flags two shapes of `:has()`, the arbitrary ones and Tailwind's
+ * `has-*`, `group-has-*`, `peer-has-*`, and `in-has-*` variants:
+ * - A `:has()` before a combinator whose argument reaches past the anchor's
+ *   children, such as `[&:has(.x)_.line]`, `group-has-[.x]:`, or
+ *   `:has(> a b) .c`. Chromium checks the argument again for each node
+ *   inserted anywhere under the anchor, and restyles each match of the rule
+ *   under it.
+ * - A `:has()` that tests a sibling, such as `:not(:has(+tr))`.
+ * With such rules on the lines of a streamed code block, Chromium restyled
+ * about 3,700 elements for each inserted node (#1938, #1940, #1941). A
+ * `:has()` on the subject, such as `has-focus-within:`, and a `:has()` that
+ * tests only a chain of children, such as `group-has-[>input:checked]:`, are
+ * fine: Chromium checks those only when a child of the anchor changes.
+ * The cost grows with the number of elements the rule styles. When the rule
+ * styles one element, such as one panel, disable the rule for the line and
+ * say why.
+ *
  * It also flags two shapes whose subject has no class, id, attribute, or
  * tag, such as `*` or `:not(.x)`. Chromium tries such a rule on each element.
  * - A sibling combinator anywhere, such as `[&+*]` or `[&>tr+tr>*]`. When
@@ -29,10 +46,14 @@
  * cx("[&>tr:last-child>*]:border-b");
  * cx("group-first:hidden");
  * cx("[&+*]:ml-2");
+ * cx("[&:has([data-slot=x])_.line]:pr-4");
+ * cx("group-has-data-open:block");
  *
  * // ✅ Correct
- * cx("[&>tr:not(:has(+tr))>*]:border-b");
+ * cx("group-has-[>input:checked]:block");
+ * cx("[&>tr>*]:border-b");
  * cx("[&>*:last-child]:border-b");
+ * cx("has-focus-within:border-accent-600");
  * cx("[&+[data-slot=x]]:ml-2");
  */
 
@@ -52,7 +73,11 @@ const RELATIVE_ARBITRARY_VARIANT = /^(?:group|peer|in)-\[(.+)\](?:\/\S+)?$/;
 
 /** The message for a selector, with the fix it names. */
 const fixHint =
-	"A structural pseudo-class before a combinator makes Chromium restyle the whole subtree of an element whose position changes, such as the app root on each portal. Use `:not(:has(+…))` for a last item, a selector with no position, or a structural pseudo-class in the last compound.";
+	"A structural pseudo-class before a combinator makes Chromium restyle the whole subtree of an element whose position changes, such as the app root on each portal. Use a selector with no position, such as a border on each row, a data attribute that the component sets, or a structural pseudo-class in the last compound.";
+
+/** The message for a `:has()` before a combinator or with a sibling argument. */
+const hasHint =
+	"A `:has()` that tests a sibling, or one before a combinator whose argument reaches past the anchor's children, makes Chromium restyle each match of the rule under the anchor for each node inserted under it, such as each line of a streamed answer. Set a data attribute from the component, test only children (`:has(> a > b)`), or put `:has()` on the subject.";
 
 /** The message for a selector whose subject has no class, id, attribute, or tag. */
 const universalHint =
@@ -79,6 +104,54 @@ function dropHasArguments(selector) {
 		}
 	}
 	return result;
+}
+
+/**
+ * The argument of each `:has(…)` that is not inside another `:has()`, in
+ * order.
+ */
+function hasArguments(selector) {
+	const found = [];
+	for (let index = 0; index < selector.length; index++) {
+		if (selector.startsWith(":has(", index)) {
+			let depth = 0;
+			let end = index + 4;
+			for (; end < selector.length; end++) {
+				if (selector[end] === "(") {
+					depth++;
+				} else if (selector[end] === ")" && --depth === 0) {
+					break;
+				}
+			}
+			found.push(selector.slice(index + 5, end));
+			index = end;
+		}
+	}
+	return found;
+}
+
+/**
+ * Whether a `:has()` argument tests more than a chain of children, such as
+ * `.x`, `> a b`, or `+ a`. Chromium checks such an argument again for each
+ * node inserted anywhere under the anchor; a `> a > b` chain only when a child
+ * of the anchor changes.
+ */
+function reachesPastChildren(argument) {
+	return splitTopLevel(argument).some((part) => {
+		// Why keep nested arguments: `:has(> :is(.b .c))` reaches past the children too.
+		// Why drop `An+B`: the `+` of `:nth-child(2n + 1)` is no combinator.
+		// Why keep `of <selector>`: it tests the anchor's descendants too.
+		const chain = part
+			.replace(
+				/:nth-[a-z-]+\(((?:[^()]|\([^()]*\))*)\)/gi,
+				(_, argument) => `:nth(${argument.split(/\s+of\s+/i)[1] ?? ""})`,
+			)
+			.trim()
+			// Why not after `)`: in `:not(.a) .b` that space is a descendant combinator.
+			.replace(/\s*([>+~,(])\s*/g, "$1")
+			.replace(/\s+\)/g, ")");
+		return !chain.startsWith(">") || /[\s+~]/.test(chain.slice(1));
+	});
 }
 
 /** Empties attribute selectors and quoted strings, whose text is not a pseudo-class. */
@@ -114,7 +187,7 @@ function dropAttributes(selector) {
 }
 
 /** Splits at the top-level commas, outside parentheses, brackets, and quotes. */
-function splitTopLevel(selector) {
+export function splitTopLevel(selector) {
 	const parts = [];
 	let depth = 0;
 	let quote = null;
@@ -354,6 +427,56 @@ export function hasStructuralCombinator(selector) {
 }
 
 /**
+ * Whether a selector has a `:has()` that tests a sibling, or a `:has()` that
+ * a combinator follows and whose argument reaches past the anchor's
+ * children. It checks the arguments of `:is()`, `:where()`, and `:not()` the
+ * same way.
+ *
+ * @example
+ * hasCostlyHas(".a:has(.b) .c"); // => true
+ * hasCostlyHas(".a:has(> .b .c) .d"); // => true
+ * hasCostlyHas(".a > tr:not(:has(+tr)) > *"); // => true
+ * hasCostlyHas(".a:has(> input:checked) .c"); // => false
+ * hasCostlyHas(".a:has(.b)"); // => false
+ */
+export function hasCostlyHas(selector) {
+	// Why: an escaped character, such as `\+` or `\(` in a class name, is not syntax, and CSS reads `:HAS(` as `:has(`.
+	const normalized = dropAttributes(selector)
+		.replace(/\\./g, "e")
+		.replace(/:[a-z-]+\(/gi, (name) => name.toLowerCase());
+	for (const part of splitTopLevel(normalized)) {
+		const trimmed = part.trim();
+		const testsSibling = (argument) =>
+			splitTopLevel(argument).some((alternative) => /^\s*[+~]/.test(alternative));
+		if (hasArguments(trimmed).some(testsSibling)) {
+			return true;
+		}
+		const outer = dropHasArguments(trimmed);
+		const anchors = outer.slice(0, lastCompoundStart(outer)).split(":has(").length - 1;
+		if (hasArguments(trimmed).slice(0, anchors).some(reachesPastChildren)) {
+			return true;
+		}
+		// Why the original text: an emptied `:has()` argument would lose its child-chain exemption.
+		for (const match of trimmed.matchAll(/:(?:is|where|not|matches)\(/g)) {
+			let depth = 0;
+			let end = match.index + match[0].length - 1;
+			const open = end;
+			for (; end < trimmed.length; end++) {
+				if (trimmed[end] === "(") {
+					depth++;
+				} else if (trimmed[end] === ")" && --depth === 0) {
+					break;
+				}
+			}
+			if (hasCostlyHas(trimmed.slice(open + 1, end))) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+/**
  * The variants of one Tailwind class that put a structural pseudo-class before
  * a combinator: an arbitrary variant such as `[&>tr:last-child>*]`, a
  * `group-first` or `in-[tr:last-child]` variant, or a structural variant that
@@ -383,9 +506,28 @@ function classifyVariants(token) {
 	let structuralBefore = false;
 	// Why compose: `[&+tr]:[&>*]:` builds `.x+tr>*`, a trap that neither variant shows alone.
 	let composed = "&";
+	// Why apart from `composed`: it also reads the `has-*` and `*` variants, and only for `:has()`.
+	let hasComposed = "&";
+	const addHas = (variant, selector) => {
+		const next = selector.replaceAll("&", hasComposed);
+		if (!hasCostlyHas(hasComposed) && hasCostlyHas(next)) {
+			found.push({ variant, structural: false, universal: false, has: true });
+		}
+		hasComposed = next;
+	};
+	let quote = null;
 	for (let index = 0; index < token.length; index++) {
 		const char = token[index];
-		if (char === "[" || char === "(") {
+		// Why: a `(` or `:` in a quoted attribute value is text, not syntax.
+		if (quote != null) {
+			if (char === "\\") {
+				index++;
+			} else if (char === quote) {
+				quote = null;
+			}
+		} else if (char === "'" || char === '"') {
+			quote = char;
+		} else if (char === "[" || char === "(") {
 			depth++;
 		} else if (char === "]" || char === ")") {
 			depth--;
@@ -393,6 +535,54 @@ function classifyVariants(token) {
 			const variant = token.slice(start, index);
 			start = index + 1;
 			const relative = RELATIVE_ARBITRARY_VARIANT.exec(variant);
+			const hasArbitrary = /^(not-)?has-\[(.+)\]$/.exec(variant);
+			const relativeHas = /^(?:not-)?(group|peer|in)-(not-)?has-(?:\[(.+)\]|[^/]+)(?:\/\S+)?$/.exec(
+				variant,
+			);
+			if (hasArbitrary != null) {
+				const argument = (hasArbitrary[2] ?? "").replace(/(?<!\\)_/g, " ");
+				addHas(
+					variant,
+					hasArbitrary[1] == null ? `&:has(${argument})` : `&:not(:has(${argument}))`,
+				);
+			} else if (/^(?:not-)?has-/.test(variant)) {
+				addHas(variant, "&:has(.x)");
+			} else if (relativeHas != null) {
+				// Why `.x` for a named variant: `group-has-checked` tests any descendant.
+				const argument = (relativeHas[3] ?? ".x").replace(/(?<!\\)_/g, " ");
+				const test = relativeHas[2] == null ? `:has(${argument})` : `:not(:has(${argument}))`;
+				const relation = `.g${test} ${relativeHas[1] === "peer" ? "~ " : ""}&`;
+				addHas(variant, relation);
+				// Why: a peer's `~` before a later `>*` is the universal-subject trap.
+				composed = relation.replace("&", composed);
+			} else if (variant === "marker" || variant === "selection") {
+				// Why: Tailwind emits `& *::marker` beside `&::marker`, so the rule reaches the descendants.
+				addHas(variant, "& *");
+			} else if (variant === "*" || variant === "**" || variant === "between") {
+				// Why `between`: mantle's variant styles the children too (`mantle.css`).
+				addHas(variant, variant === "**" ? "& *" : "& > *");
+			} else if (
+				variant.startsWith("[") &&
+				variant.endsWith("]") &&
+				!variant.includes("&") &&
+				!variant.startsWith("[@")
+			) {
+				// Why not `[@…]`: a feature query, such as `@supports`, holds no selector.
+				// Why: an arbitrary variant with no `&` still compiles, with the selector on the element.
+				addHas(variant, `&:is(${variant.slice(1, -1).replace(/(?<!\\)_/g, " ")})`);
+			} else if (relative != null || /^not-\[.+\]$/.test(variant)) {
+				// Why: `group-[…]`, `peer-[…]`, `in-[…]`, and `not-[…]` can hold a `:has()` too.
+				const kind = relative == null ? "not" : variant.slice(0, variant.indexOf("-"));
+				const inner = (relative?.[1] ?? variant.slice(5, -1)).replace(/(?<!\\)_/g, " ");
+				const anchor = inner.includes("&") ? inner.replaceAll("&", ".g") : `.g:is(${inner})`;
+				const composedBy = {
+					not: `&:not(${inner})`,
+					in: `:where(${inner}) &`,
+					group: `${anchor} &`,
+					peer: `${anchor} ~ &`,
+				};
+				addHas(variant, composedBy[kind]);
+			}
 			if (variant.startsWith("[") && variant.endsWith("]") && variant.includes("&")) {
 				// Why the swap: Tailwind reads `_` as a space in an arbitrary value.
 				const selector = variant.slice(1, -1).replace(/(?<!\\)_/g, " ");
@@ -402,8 +592,11 @@ function classifyVariants(token) {
 				const structural =
 					hasStructuralCombinator(selector) || (structuralBefore && addsCombinator);
 				const universal = hasUniversalSubjectTrap(composed);
-				if (structural || universal) {
-					found.push({ variant, structural, universal });
+				const hasNext = selector.replaceAll("&", hasComposed);
+				const has = !hasCostlyHas(hasComposed) && hasCostlyHas(hasNext);
+				hasComposed = hasNext;
+				if (structural || universal || has) {
+					found.push({ variant, structural, universal, has });
 				}
 				const self = dropHasArguments(dropAttributes(selector.slice(selfStart)));
 				structuralBefore = (structuralBefore && !addsCombinator) || STRUCTURAL.test(self);
@@ -436,8 +629,8 @@ const noStructuralCombinator = {
 	create(context) {
 		function check(node, value) {
 			for (const token of value.split(/\s+/)) {
-				for (const { variant, structural, universal } of classifyVariants(token)) {
-					const hint = [structural && fixHint, universal && universalHint]
+				for (const { variant, structural, universal, has } of classifyVariants(token)) {
+					const hint = [structural && fixHint, universal && universalHint, has && hasHint]
 						.filter(Boolean)
 						.join(" ");
 					context.report({ message: `\`${variant}\` in \`${token}\`: ${hint}`, node });
@@ -467,6 +660,7 @@ const plugin = {
 export {
 	//,
 	fixHint,
+	hasHint,
 	universalHint,
 };
 export default plugin;

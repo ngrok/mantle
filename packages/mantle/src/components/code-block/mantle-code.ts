@@ -2,6 +2,7 @@ import type { SupportedLanguage } from "../code-block/supported-languages.js";
 import type { LineRange } from "../code-block/line-numbers.js";
 import type { Indentation } from "../code-block/indentation.js";
 import type { CodeLine } from "../code-block/line-tokenizer.js";
+import type { FoldableRange } from "../code-block/fold-range-utils.js";
 
 /** Languages that represent shell/terminal commands. */
 const shellLanguages = new Set<SupportedLanguage>(["bash", "sh", "shell"]);
@@ -52,6 +53,12 @@ type MantleCodeBlockValue = {
 	 * lines and ignores `~preHtml`. `useCodeBlockStream` sets it.
 	 */
 	"~lines"?: readonly (CodeLine | string)[] | undefined;
+	/**
+	 * The fold ranges of `~lines`. When set, even empty, each line makes room
+	 * for the fold gutter, and each range's first line shows a fold toggle.
+	 * Pre-rendered HTML carries its folds in its markup and ignores this.
+	 */
+	"~foldableRanges"?: readonly FoldableRange[] | undefined;
 	/**
 	 * Runtime values used to replace `SHIKI_VAL_N` placeholders in `~preHtml`.
 	 * This enables interpolated template expressions while preserving build-time highlighting.
@@ -116,6 +123,7 @@ type MantleCodeOptions = {
  */
 function createMantleCodeBlockValue({
 	lines,
+	foldableRanges,
 	preHtml,
 	preValToken,
 	preVals,
@@ -131,6 +139,7 @@ function createMantleCodeBlockValue({
 		code,
 		"~preHtml": preHtml,
 		"~lines": lines,
+		"~foldableRanges": foldableRanges,
 		"~preValToken": preValToken,
 		"~preVals": preVals,
 		"~highlightLines": highlightLines,

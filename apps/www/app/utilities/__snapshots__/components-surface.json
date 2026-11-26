@@ -1492,7 +1492,7 @@
         "part": "CodeBlock.Code",
         "name": "data-foldable",
         "value": "present when foldable",
-        "description": "Presence-only. The pre-rendered HTML has fold toggles, so each line makes room for the fold gutter."
+        "description": "Presence-only. The pre-rendered HTML has fold toggles, or `useCodeBlockStream` got `complete` for a language that folds, so each line makes room for the fold gutter."
       },
       {
         "part": "CodeBlock.Code",
@@ -1528,7 +1528,7 @@
         "part": "CodeBlock.Code",
         "name": "data-mantle-gutter",
         "value": "present with a gutter",
-        "description": "Presence-only. On the `<code>` of streamed lines with line numbers. The first line of each group of 64 holds one sticky `.mantle-code-gutter` that draws the group's numbers, in place of a number on each line."
+        "description": "Presence-only. On the `<code>` of streamed lines with line numbers, until the block gets its fold ranges at the end of the stream. The first line of each group of 64 holds one sticky `.mantle-code-gutter` that draws the group's numbers, in place of a number on each line."
       },
       {
         "part": "CodeBlock.Code",

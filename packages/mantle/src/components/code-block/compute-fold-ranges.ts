@@ -139,7 +139,27 @@ function isInertScope(scopes: FoldScope[]): boolean {
 		innermost === "comment" ||
 		innermost.startsWith("string.") ||
 		innermost.startsWith("comment.") ||
-		innermost.startsWith("constant.character.escape")
+		innermost.startsWith("constant.character.escape") ||
+		isInsideRegex(scopes)
+	);
+}
+
+/**
+ * Whether a token is regex text. Why apart from the innermost scope: a
+ * character class, such as `[{]`, has a scope of its own. An interpolation,
+ * such as Ruby's `#{…}`, is code again.
+ */
+function isInsideRegex(scopes: FoldScope[]): boolean {
+	const regex = scopes.findLastIndex((scope) => scope.scopeName.startsWith("string.regexp"));
+	return (
+		regex >= 0 &&
+		!scopes
+			.slice(regex + 1)
+			.some(({ scopeName }) =>
+				/^(?:meta\.embedded|meta\.interpolation|punctuation\.section\.embedded|source\.)/.test(
+					scopeName,
+				),
+			)
 	);
 }
 
