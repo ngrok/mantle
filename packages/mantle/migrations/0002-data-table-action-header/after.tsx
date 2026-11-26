@@ -15,6 +15,7 @@ type Payment = { id: string; amount: number };
 // A part that reads `column`, nested in a header attribute.
 declare function ColumnLabel(props: { column: unknown }): null;
 declare const Labels: { Header: typeof ColumnLabel };
+declare function renderSection(props: { header: () => unknown }): null;
 
 const features = tableFeatures({});
 const columnHelper = createColumnHelper<typeof features, Payment>();
@@ -50,17 +51,90 @@ export const columns = columnHelper.columns([
 		header: () => <DataTable.ActionHeader />,
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	}),
-	// DataTable.ActionHeader takes no `column`, so the rewrite drops it.
+	// DataTable.ActionHeader takes no `column`, so the rewrite drops it, and the
+	// arrow drops the parameter that only fed it.
 	columnHelper.display({
 		id: "column-actions",
-		// oxlint-disable-next-line no-unused-vars -- the rewrite leaves `props` unused
-		header: (props) => <DataTable.ActionHeader>Actions</DataTable.ActionHeader>,
+		header: () => <DataTable.ActionHeader>Actions</DataTable.ActionHeader>,
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	}),
 	columnHelper.display({
 		id: "self-closing-column-actions",
-		// oxlint-disable-next-line no-unused-vars -- the rewrite leaves `props` unused
-		header: (props) => <DataTable.ActionHeader className="w-0" />,
+		header: () => <DataTable.ActionHeader className="w-0" />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	// Negative case: a type annotation can hold the only use of a type, so a
+	// typed parameter stays.
+	columnHelper.display({
+		id: "typed-column-actions",
+		// oxlint-disable-next-line no-unused-vars -- a typed parameter stays manual
+		header: (props: { column: unknown }) => <DataTable.ActionHeader />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	// A bare parameter, without parentheses.
+	columnHelper.display({
+		id: "bare-column-actions",
+		header: () => <DataTable.ActionHeader />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	// A formatter wraps a long header in parentheses, or a block returns it.
+	columnHelper.display({
+		id: "parenthesized-column-actions",
+		header: () => (
+			<DataTable.ActionHeader className="w-0 whitespace-nowrap text-right">
+				Actions
+			</DataTable.ActionHeader>
+		),
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	columnHelper.display({
+		id: "block-column-actions",
+		header: () => {
+			return <DataTable.ActionHeader />;
+		},
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	// Negative cases: another read of the parameter keeps it, as do a default
+	// value and a parameter that never fed `column`.
+	columnHelper.display({
+		id: "child-column-actions",
+		header: (props) => (
+			<DataTable.ActionHeader>
+				<Labels.Header column={props.column} />
+			</DataTable.ActionHeader>
+		),
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	columnHelper.display({
+		id: "shorthand-column-actions",
+		header: (props) => <DataTable.ActionHeader data-x={JSON.stringify({ props })} />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	columnHelper.display({
+		id: "default-column-actions",
+		// oxlint-disable-next-line no-unused-vars -- a default value stays manual
+		header: (props = { column: undefined }) => <DataTable.ActionHeader />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	columnHelper.display({
+		id: "unread-column-actions",
+		header: (_context: unknown) => <DataTable.ActionHeader />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	// Negative case: a nested `header` captures the parameter, so it stays.
+	columnHelper.display({
+		id: "captured-column-actions",
+		header: (props) => (
+			<DataTable.ActionHeader>
+				{renderSection({ header: () => <Labels.Header column={props.column} /> })}
+			</DataTable.ActionHeader>
+		),
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	// Negative case: a spread still reads the parameter, so it stays.
+	columnHelper.display({
+		id: "spread-column-actions",
+		header: (props) => <DataTable.ActionHeader {...props} />,
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	}),
 	columnHelper.display({
@@ -158,8 +232,7 @@ export const nestedColumns = columnHelper.columns([
 					},
 					columnHelper.display({
 						id: "column-actions",
-						// oxlint-disable-next-line no-unused-vars -- the rewrite leaves `props` unused
-						header: (props) => <DataTable.ActionHeader />,
+						header: () => <DataTable.ActionHeader />,
 						cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 					}),
 				]}
@@ -172,7 +245,7 @@ export const nestedColumns = columnHelper.columns([
 export function shadowedColumn(DataTable: typeof Grid) {
 	return columnHelper.display({
 		id: "actions",
-		header: () => <DataTable.Header />,
+		header: (props) => <DataTable.Header column={props.column} />,
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	});
 }
