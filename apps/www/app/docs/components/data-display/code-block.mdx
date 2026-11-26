@@ -656,6 +656,10 @@ All props from [standard HTML div attributes](https://developer.mozilla.org/en-U
 | :--------- | :-------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `CodeBlock.Body` styling and functionality onto alternative element types or your own React components. |
 
+| Data Attribute     | Value                      | Description                                                                                                     |
+| :----------------- | :------------------------- | :-------------------------------------------------------------------------------------------------------------- |
+| `data-copy-button` | present with a copy button | Presence-only. A direct child is a `CodeBlock.CopyButton`, so the first two lines of the code make room for it. |
+
 ### CodeBlock.Code
 
 The `CodeBlock` content. This is where the code is rendered with pre-highlighted Shiki HTML.
@@ -668,14 +672,15 @@ All props from [standard HTML pre attributes](https://developer.mozilla.org/en-U
 | :------ | :--------------------- | :------ | :------------------------------------------------------------------------------------------------- |
 | `value` | `MantleCodeBlockValue` |         | The code value produced by `mantleCode("lang")` tagged template or `createMantleCodeBlockValue()`. |
 
-| Data Attribute                  | Value                        | Description                                                                                    |
-| :------------------------------ | :--------------------------- | :--------------------------------------------------------------------------------------------- |
-| `data-expanded`                 | present when expanded        | Presence-only. Only with a composed `CodeBlock.ExpanderButton`, which carries `aria-expanded`. |
-| `data-syntax-highlighted`       | present when highlighted     | Presence-only. The value carried pre-rendered Shiki HTML.                                      |
-| `data-lang`                     | the language id              | The value's language.                                                                          |
-| `data-mantle-line-numbers`      | `"true"` \| `"false"`        | Whether the gutter shows line numbers.                                                         |
-| `data-mantle-line-number-start` | a number as a string         | The first line number.                                                                         |
-| `data-mantle-highlight-lines`   | comma-separated line numbers | Present when lines are highlighted.                                                            |
+| Data Attribute                  | Value                        | Description                                                                                         |
+| :------------------------------ | :--------------------------- | :-------------------------------------------------------------------------------------------------- |
+| `data-expanded`                 | present when expanded        | Presence-only. Only with a composed `CodeBlock.ExpanderButton`, which carries `aria-expanded`.      |
+| `data-syntax-highlighted`       | present when highlighted     | Presence-only. The value carried pre-rendered Shiki HTML.                                           |
+| `data-foldable`                 | present when foldable        | Presence-only. The pre-rendered HTML has fold toggles, so each line makes room for the fold gutter. |
+| `data-lang`                     | the language id              | The value's language.                                                                               |
+| `data-mantle-line-numbers`      | `"true"` \| `"false"`        | Whether the gutter shows line numbers.                                                              |
+| `data-mantle-line-number-start` | a number as a string         | The first line number.                                                                              |
+| `data-mantle-highlight-lines`   | comma-separated line numbers | Present when lines are highlighted.                                                                 |
 
 Inside the highlighted HTML, each line is a `.mantle-code-line` with `data-line-number`. CSS draws the gutter number, the fold caret, and the folded marker, so the code's text holds none of them. A token has a short color class, such as `tk` for a keyword, or no element when it has the foreground color.
 

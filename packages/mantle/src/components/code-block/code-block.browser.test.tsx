@@ -116,8 +116,7 @@ describe("CodeBlock (browser)", () => {
 	 * this exact class string. When the component's class drifts from this
 	 * constant, the rule stops matching and the clearance assertions fail.
 	 */
-	const CLEARANCE_CLASS =
-		"[&>[data-slot=code-block-copy-button]~[data-slot]_.mantle-code-line:nth-child(-n+2)]:pr-14";
+	const CLEARANCE_CLASS = "[&[data-copy-button]_.mantle-code-line:nth-child(-n+2)]:pr-14";
 
 	/**
 	 * The end-of-line breathing-room utility on `CodeBlock.Body`: every line
@@ -172,7 +171,7 @@ describe("CodeBlock (browser)", () => {
 		.${CSS.escape(BREATHING_ROOM_CLASS)} .mantle-code-line {
 			padding-right: 1rem;
 		}
-		.${CSS.escape(CLEARANCE_CLASS)} > [data-slot=code-block-copy-button] ~ [data-slot]
+		.${CSS.escape(CLEARANCE_CLASS)}[data-copy-button]
 			.mantle-code-line:nth-child(-n + 2) {
 			padding-right: 3.5rem;
 		}
@@ -439,6 +438,24 @@ describe("CodeBlock (browser)", () => {
 			for (const line of document.querySelectorAll(".mantle-code-line")) {
 				expect(getComputedStyle(line).paddingRight).toBe(`${rootFontSizePx()}px`);
 			}
+
+			// A CopyButton after the code reserves the same clearance.
+			rerender(
+				<div style={{ width: 340 }}>
+					<CodeBlock.Root>
+						<CodeBlock.Body>
+							<CodeBlock.Code value={makeFixedWidthValue([100, 100, 100])} />
+							<CodeBlock.CopyButton />
+						</CodeBlock.Body>
+					</CodeBlock.Root>
+				</div>,
+			);
+			const lines = Array.from(document.querySelectorAll(".mantle-code-line"));
+			expect(lines.map((line) => getComputedStyle(line).paddingRight)).toEqual([
+				`${3.5 * remPx}px`,
+				`${3.5 * remPx}px`,
+				`${remPx}px`,
+			]);
 		});
 	});
 

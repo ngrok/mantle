@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import * as CodeBlock from "./code-block-parts.js";
+import { jsonCodeBlockValue } from "./json-highlight.js";
 import { createMantleCodeBlockValue } from "./mantle-code.js";
 import { useCodeBlockStream } from "./use-code-block-stream.js";
 
@@ -72,6 +73,32 @@ describe("CodeBlock", () => {
 
 			expect(html).toMatch(/tab-size:2[;"]/);
 			expect(html).not.toContain("-moz-tab-size");
+		});
+
+		test("marks the <pre> foldable only when its HTML has a fold toggle", () => {
+			const pre = (value: ReturnType<typeof jsonCodeBlockValue>) => {
+				const { container, unmount } = render(
+					<CodeBlock.Root>
+						<CodeBlock.Body>
+							<CodeBlock.Code value={value} />
+						</CodeBlock.Body>
+					</CodeBlock.Root>,
+				);
+				const foldable = container.querySelector("pre")?.hasAttribute("data-foldable");
+				unmount();
+				return foldable;
+			};
+
+			expect(pre(jsonCodeBlockValue({ a: [1, 2] }))).toBe(true);
+			// Why: the class name in the code's text is not a fold toggle.
+			expect(
+				pre(
+					jsonCodeBlockValue(
+						{ '<button type="button" class="mantle-code-fold-toggle"': [1, 2] },
+						{ foldable: false },
+					),
+				),
+			).toBe(false);
 		});
 
 		test("drops a prefixed tab size from a consumer style", () => {
