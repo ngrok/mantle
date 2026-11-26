@@ -54,7 +54,10 @@ export function selectorProblems(text: string): Problem[] {
 		const hints = [
 			!parentFails && hasStructuralCombinator(resolved) && fixHint,
 			hasUniversalSubjectTrap(resolved) && universalHint,
-			!(parent != null && hasCostlyHas(parent)) && hasCostlyHas(resolved) && hasHint,
+			// Why the selector alone too: a parent's exemption covers only the `:has()` it holds.
+			(parent == null || !hasCostlyHas(parent) || hasCostlyHas(selector.replaceAll("&", ".x"))) &&
+				hasCostlyHas(resolved) &&
+				hasHint,
 		].filter((hint) => hint !== false);
 		if (!allowed && hints.length > 0) {
 			problems.push({

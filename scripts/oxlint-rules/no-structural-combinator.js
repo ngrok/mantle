@@ -138,17 +138,12 @@ function hasArguments(selector) {
  */
 function reachesPastChildren(argument) {
 	return splitTopLevel(argument).some((part) => {
-		let flat = "";
-		let depth = 0;
-		for (const char of part) {
-			if (char === "(") {
-				depth++;
-			} else if (char === ")") {
-				depth--;
-			}
-			flat += depth > 0 && char !== "(" ? "" : char;
-		}
-		const chain = flat.trim().replace(/\s*([>+~])\s*/g, "$1");
+		// Why keep nested arguments: `:has(> :is(.b .c))` reaches past the children too.
+		// Why drop `An+B`: the `+` of `:nth-child(2n + 1)` is no combinator.
+		const chain = part
+			.replace(/:nth-[a-z-]+\([^()]*\)/g, ":nth()")
+			.trim()
+			.replace(/\s*([>+~,()])\s*/g, "$1");
 		return !chain.startsWith(">") || /[\s+~]/.test(chain.slice(1));
 	});
 }
@@ -439,9 +434,15 @@ export function hasStructuralCombinator(selector) {
  * hasCostlyHas(".a:has(.b)"); // => false
  */
 export function hasCostlyHas(selector) {
-	for (const part of splitTopLevel(dropAttributes(selector))) {
+	// Why: an escaped character, such as `\+` or `\(` in a class name, is not syntax, and CSS reads `:HAS(` as `:has(`.
+	const normalized = dropAttributes(selector)
+		.replace(/\\./g, "e")
+		.replace(/:[a-z-]+\(/gi, (name) => name.toLowerCase());
+	for (const part of splitTopLevel(normalized)) {
 		const trimmed = part.trim();
-		if (/:has\(\s*[+~]/.test(trimmed)) {
+		const testsSibling = (argument) =>
+			splitTopLevel(argument).some((alternative) => /^\s*[+~]/.test(alternative));
+		if (hasArguments(trimmed).some(testsSibling)) {
 			return true;
 		}
 		const outer = dropHasArguments(trimmed);
@@ -449,18 +450,19 @@ export function hasCostlyHas(selector) {
 		if (hasArguments(trimmed).slice(0, anchors).some(reachesPastChildren)) {
 			return true;
 		}
-		for (const match of outer.matchAll(/:(?:is|where|not|matches)\(/g)) {
+		// Why the original text: an emptied `:has()` argument would lose its child-chain exemption.
+		for (const match of trimmed.matchAll(/:(?:is|where|not|matches)\(/g)) {
 			let depth = 0;
 			let end = match.index + match[0].length - 1;
 			const open = end;
-			for (; end < outer.length; end++) {
-				if (outer[end] === "(") {
+			for (; end < trimmed.length; end++) {
+				if (trimmed[end] === "(") {
 					depth++;
-				} else if (outer[end] === ")" && --depth === 0) {
+				} else if (trimmed[end] === ")" && --depth === 0) {
 					break;
 				}
 			}
-			if (hasCostlyHas(outer.slice(open + 1, end))) {
+			if (hasCostlyHas(trimmed.slice(open + 1, end))) {
 				return true;
 			}
 		}
@@ -507,9 +509,19 @@ function classifyVariants(token) {
 		}
 		hasComposed = next;
 	};
+	let quote = null;
 	for (let index = 0; index < token.length; index++) {
 		const char = token[index];
-		if (char === "[" || char === "(") {
+		// Why: a `(` or `:` in a quoted attribute value is text, not syntax.
+		if (quote != null) {
+			if (char === "\\") {
+				index++;
+			} else if (char === quote) {
+				quote = null;
+			}
+		} else if (char === "'" || char === '"') {
+			quote = char;
+		} else if (char === "[" || char === "(") {
 			depth++;
 		} else if (char === "]" || char === ")") {
 			depth--;
@@ -518,7 +530,7 @@ function classifyVariants(token) {
 			start = index + 1;
 			const relative = RELATIVE_ARBITRARY_VARIANT.exec(variant);
 			const hasArbitrary = /^(not-)?has-\[(.+)\]$/.exec(variant);
-			const relativeHas = /^(group|peer|in)-has-(?:\[(.+)\]|[^/]+)(?:\/\S+)?$/.exec(variant);
+			const relativeHas = /^(group|peer|in)-(not-)?has-(?:\[(.+)\]|[^/]+)(?:\/\S+)?$/.exec(variant);
 			if (hasArbitrary != null) {
 				const argument = (hasArbitrary[2] ?? "").replace(/(?<!\\)_/g, " ");
 				addHas(
@@ -529,10 +541,27 @@ function classifyVariants(token) {
 				addHas(variant, "&:has(.x)");
 			} else if (relativeHas != null) {
 				// Why `.x` for a named variant: `group-has-checked` tests any descendant.
-				const argument = (relativeHas[2] ?? ".x").replace(/(?<!\\)_/g, " ");
-				addHas(variant, `.g:has(${argument}) ${relativeHas[1] === "peer" ? "~ " : ""}&`);
-			} else if (variant === "*" || variant === "**") {
-				addHas(variant, variant === "*" ? "& > *" : "& *");
+				const argument = (relativeHas[3] ?? ".x").replace(/(?<!\\)_/g, " ");
+				const test = relativeHas[2] == null ? `:has(${argument})` : `:not(:has(${argument}))`;
+				addHas(variant, `.g${test} ${relativeHas[1] === "peer" ? "~ " : ""}&`);
+			} else if (variant === "*" || variant === "**" || variant === "between") {
+				// Why `between`: mantle's variant styles the children too (`mantle.css`).
+				addHas(variant, variant === "**" ? "& *" : "& > *");
+			} else if (variant.startsWith("[") && variant.endsWith("]") && !variant.includes("&")) {
+				// Why: an arbitrary variant with no `&` still compiles, with the selector on the element.
+				addHas(variant, `&:is(${variant.slice(1, -1).replace(/(?<!\\)_/g, " ")})`);
+			} else if (relative != null || /^not-\[.+\]$/.test(variant)) {
+				// Why: `group-[…]`, `peer-[…]`, `in-[…]`, and `not-[…]` can hold a `:has()` too.
+				const kind = relative == null ? "not" : variant.slice(0, variant.indexOf("-"));
+				const inner = (relative?.[1] ?? variant.slice(5, -1)).replace(/(?<!\\)_/g, " ");
+				const anchor = inner.includes("&") ? inner.replaceAll("&", ".g") : `.g:is(${inner})`;
+				const composedBy = {
+					not: `&:not(${inner})`,
+					in: `:where(${inner}) &`,
+					group: `${anchor} &`,
+					peer: `${anchor} ~ &`,
+				};
+				addHas(variant, composedBy[kind]);
 			}
 			if (variant.startsWith("[") && variant.endsWith("]") && variant.includes("&")) {
 				// Why the swap: Tailwind reads `_` as a space in an arbitrary value.

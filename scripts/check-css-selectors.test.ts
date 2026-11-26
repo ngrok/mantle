@@ -57,6 +57,20 @@ describe("selectorProblems", () => {
 		]);
 	});
 
+	it("flags a nested rule's own :has() under a parent that holds an exempted one", () => {
+		const css =
+			"/* structural-selector-ok: one panel. */\n.p:has(.d) .q {\n\t& .label { color: red; }\n\t& .item:has(+ .d) .label { color: red; }\n}\n";
+
+		expect(selectorProblems(css).map((problem) => problem.line)).toEqual([4]);
+	});
+
+	it("reads an escaped character as text and a pseudo-class in any case", () => {
+		const css =
+			"article:has(.mark\\() .line { color: red; }\narticle:has(>.foo\\+bar) .line { color: red; }\narticle:HAS(.line) .line { color: red; }\n";
+
+		expect(selectorProblems(css).map((problem) => problem.line)).toEqual([1, 3]);
+	});
+
 	it("reads past an escaped quote", () => {
 		expect(
 			selectorProblems('.x { content: "\\""; }\n.a:first-child > b { color: red; }').length,

@@ -1080,7 +1080,7 @@ const barEnter = "starting:h-0 starting:opacity-0";
  * compose one center per parent.
  */
 const serverBarClassName =
-	// oxlint-disable-next-line mantle/no-structural-combinator -- Why: the sibling test reads only the few server bars of one center, and it hides one bar.
+	// oxlint-disable-next-line mantle/no-structural-combinator -- Why: the sibling tests read only the few server bars of one center, and they style those bars and their alert contents. Nothing streams into a bar.
 	"hidden shrink-0 overflow-hidden [[data-slot=alert-center-bar-anchor]~&[data-alert-center-server-claim]]:block [[data-slot=alert-center-bar-anchor]~&[data-alert-center-server-claim]:has(~[data-alert-center-server-claim])]:hidden [:has(>[data-slot=alert-center-server-bar]~[data-slot=alert-center-server-bar])>[data-alert-center-content-anchor]~&]:[&_[data-slot~=alert-content]]:pr-16 md:[:has(>[data-slot=alert-center-server-bar]~[data-slot=alert-center-server-bar])>[data-alert-center-content-anchor]~&]:[&_[data-slot~=alert-content]]:pr-24";
 
 /** How long to keep the bar mounted for its exit slide if no `transitionend`
