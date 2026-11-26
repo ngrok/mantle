@@ -31,8 +31,9 @@ export function stampedDataAttributes(code: string): string[] {
 	const stripped = code.replace(/\/\*[\s\S]*?\*\/|^\s*\/\/.*$/gm, "");
 	const patterns = [
 		/(?<![[\w-])(data-[a-z][a-z0-9-]*)\s*=\s*[{"'`$]/g,
-		// A JSX attribute with no value, such as `<div data-input-otp>`.
-		/(?<![[\w:.-])(data-[a-z][a-z0-9-]*)(?=\s*\/?>|\s+[a-zA-Z][\w:-]*=|\s*\n\s*(?:[a-zA-Z{]|\/?>))/g,
+		// A JSX attribute with no value, such as `<div data-input-otp>`, also before a
+		// spread or another prop.
+		/(?<![[\w:.-])(data-[a-z][a-z0-9-]*)(?=\s*\/?>|\s+(?:[a-zA-Z][\w:-]*\s*(?:=|\/?>)|data-|\{\.\.\.)|\s*\n\s*(?:[a-zA-Z{]|\/?>))/g,
 		/["'`](data-[a-z][a-z0-9-]*)["'`]\s*:/g,
 		/(?:set|toggle|remove)Attribute\(\s*["'`](data-[a-z][a-z0-9-]*)/g,
 		// A constant that a DOM write names, such as `const DRAGGING = "data-dragging"`.
@@ -133,6 +134,12 @@ const notRendered: Record<string, Record<string, Record<string, string>>> = {
 			"data-protonpass-ignore": "`OtpInput` spreads only `data-lpignore` from it.",
 		},
 	},
+	"selectable-list": {
+		"list/primitive.tsx": {
+			"data-disabled": "A list row only. `SelectableList` renders grid rows.",
+			"data-selected": "A list row only. `SelectableList` renders grid rows.",
+		},
+	},
 	list: {
 		"list/primitive.tsx": {
 			"data-highlighted":
@@ -143,9 +150,32 @@ const notRendered: Record<string, Record<string, Record<string, string>>> = {
 
 type Gap = { component: string; attribute: string; missing: ("JSDoc" | "docs page")[] };
 
-// Why a new expression: `seeLink` is global, so its `test` would resume at the last match.
-const isPrivate = (file: string) =>
-	file.startsWith(`${srcDir}/`) && !new RegExp(seeLink.source).test(fs.readFileSync(file, "utf8"));
+/**
+ * The modules a component's `index.ts` exports from, through its `-parts.ts`
+ * re-exports: the public parts, which document their own attributes. Any other
+ * module is private, even one with an `@see` link, such as
+ * `list/primitive.tsx`, which backs `SelectableList` too.
+ */
+function publicModules(): Set<string> {
+	const queue = fs
+		.readdirSync(componentsDir)
+		.map((folder) => `${componentsDir}/${folder}/index.ts`)
+		.filter((index) => fs.existsSync(index));
+	const modules = new Set(queue);
+	while (queue.length > 0) {
+		const file = queue.pop() ?? "";
+		for (const match of fs.readFileSync(file, "utf8").matchAll(/from\s+"(\.{1,2}\/[^"]+)"/g)) {
+			const target = resolveImport(file, match[1] ?? "");
+			if (target != null && !modules.has(target)) {
+				modules.add(target);
+				if (target.endsWith("-parts.ts")) {
+					queue.push(target);
+				}
+			}
+		}
+	}
+	return modules;
+}
 
 /**
  * Compare the `data-*` attributes each public component stamps with the ones
@@ -171,6 +201,7 @@ export function dataAttributeGaps(): Gap[] {
 			pagesOf.set(folder, [...slugs]);
 		}
 	}
+	const publicModule = publicModules();
 	const gaps: Gap[] = [];
 	for (const [folder, slugs] of pagesOf) {
 		const own = sourceFiles(`${componentsDir}/${folder}`);
@@ -196,7 +227,7 @@ export function dataAttributeGaps(): Gap[] {
 				/^\s*(?:import|export)\s+(?!type\s)[^;]*?from\s+"(\.{1,2}\/[^"]+)"/gm,
 			)) {
 				const target = resolveImport(file, match[1] ?? "");
-				if (target != null && !seen.has(target) && isPrivate(target)) {
+				if (target != null && !seen.has(target) && !publicModule.has(target)) {
 					queue.push(target);
 				}
 			}

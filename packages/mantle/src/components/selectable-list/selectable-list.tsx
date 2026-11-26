@@ -492,6 +492,8 @@ type SelectableListItemProps = Omit<ComponentProps<"div">, "children" | "id"> & 
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-value` | the `value` prop | The option's selection value. |
+ * | `data-index` | a number | Its position in the list. |
+ * | `data-highlighted` | present when active | Presence-only. The row the keyboard is on. |
  *
  * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *

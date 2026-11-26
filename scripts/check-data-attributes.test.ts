@@ -7,6 +7,9 @@ describe("stampedDataAttributes", () => {
 		const code = [
 			'<div data-open={open ? "" : undefined} data-side="top">',
 			"<span data-input-otp />",
+			'<div data-unlisted className="x" />',
+			"<div data-spread {...props} />",
+			"<i data-first data-second />",
 			'const props = { "data-value": value };',
 			'element.setAttribute("data-shake", "");',
 			'element.toggleAttribute("data-thumb-over", over);',
@@ -17,13 +20,17 @@ describe("stampedDataAttributes", () => {
 
 		expect(stampedDataAttributes(code)).toEqual([
 			"data-dragging",
+			"data-first",
 			"data-input-otp",
 			"data-line-number",
 			"data-open",
+			"data-second",
 			"data-shake",
 			"data-side",
+			"data-spread",
 			"data-theme-transition",
 			"data-thumb-over",
+			"data-unlisted",
 			"data-value",
 		]);
 	});
@@ -36,6 +43,7 @@ describe("stampedDataAttributes", () => {
 			'observer.observe(node, { attributeFilter: ["data-target"] });',
 			"/** | `data-documented` | present | In a JSDoc table. | */",
 			"// <div data-commented={x} />",
+			'const hint = "use data-prose for that";',
 		].join("\n");
 
 		expect(stampedDataAttributes(code)).toEqual([]);
