@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import mantlePackageJson from "@ngrok/mantle/package.json" with { type: "json" };
 import { describe, expect, it, vi } from "vitest";
+import { buildSiteAgentManifest } from "~/utilities/agent-manifest.server";
 import { urlToFileMap } from "~/utilities/docs";
 import type { McpFlags } from "~/utilities/mcp/flags.server";
 import {
@@ -837,6 +839,63 @@ it("keeps the aliases of a component's docs page", async () => {
 	const page = pages.find(({ docsSlug }) => docsSlug === "components/forms/segmented-control");
 
 	expect(page).toMatchObject({ kind: "page", aliases: expect.arrayContaining(["toggle group"]) });
+});
+
+// The docs build documents parts that an older version lacks, such as the unreleased Drawer.
+describe("find for a version with no Drawer record", () => {
+	/** `find` "drawer" in the current docs build, for a version with no Drawer record that exports Drawer or not. */
+	async function findDrawer({ exportsDrawer }: { exportsDrawer: boolean }) {
+		const [current, manifest] = await Promise.all([
+			currentDependencies(),
+			buildSiteAgentManifest(),
+		]);
+		const { "./drawer": _, ...exportsWithoutDrawer } = mantlePackageJson.exports;
+		const data = versionDataFromFiles(
+			"0.96.0",
+			new Map([
+				[
+					"package.json",
+					JSON.stringify({
+						...mantlePackageJson,
+						exports: exportsDrawer ? mantlePackageJson.exports : exportsWithoutDrawer,
+					}),
+				],
+				[
+					"dist/agent.json",
+					JSON.stringify({
+						...manifest,
+						components: manifest.components.filter(({ name }) => name !== "Drawer"),
+					}),
+				],
+			]),
+		);
+		const { result } = await rpc(
+			// Why the current loader for other versions: its data exports Drawer, so `find` must read the pinned exports.
+			{
+				...current,
+				loader: {
+					...current.loader,
+					load: async (version) => (version === "0.96.0" ? data : current.loader.load(version)),
+				},
+			},
+			"tools/call",
+			{ name: "find", arguments: { query: "drawer", version: "0.96.0" } },
+		);
+		const found = result?.structuredContent as { results: { name: string; kind: string }[] };
+		return found.results;
+	}
+
+	it("finds no Drawer docs page when the version does not export Drawer", async () => {
+		const results = await findDrawer({ exportsDrawer: false });
+
+		expect(results.map(({ name }) => name)).not.toContain("Drawer");
+	});
+
+	it("finds the Drawer docs page when the version exports Drawer", async () => {
+		const results = await findDrawer({ exportsDrawer: true });
+
+		expect(results).toContainEqual(expect.objectContaining({ name: "Drawer", kind: "page" }));
+	});
 });
 
 describe("loadMigrationGuides", () => {
