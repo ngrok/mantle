@@ -180,12 +180,20 @@ const Root = ({
 	...props
 }: StepsRootProps) => {
 	const Comp = asChild ? Slot : "ol";
+	// Why strip `start` and `reversed`: the visible counter ignores them, and the
+	// type omits them, but a spread of a wider props object can carry them.
+	const { start: _start, reversed: _reversed, ...listProps }: ComponentProps<"ol"> = props;
 	// Slot merges child props over slot props, so with asChild the role must
-	// be on the child element itself or the child can override it. Why clear
-	// `start` and `reversed`: the visible counter ignores them.
+	// be on the child element itself or the child can override it. Only an
+	// intrinsic child loses its ordinals: a component owns what it forwards.
 	const content =
 		asChild && isValidElement<ComponentProps<"ol">>(children)
-			? cloneElement(children, { role: "list", start: undefined, reversed: undefined })
+			? cloneElement(
+					children,
+					typeof children.type === "string"
+						? { role: "list", start: undefined, reversed: undefined }
+						: { role: "list" },
+				)
 			: children;
 
 	return (
@@ -198,7 +206,7 @@ const Root = ({
 				"list-none ps-4.5 [counter-reset:mantle-steps]",
 				className,
 			)}
-			{...props}
+			{...listProps}
 			// Why after the spread: `StepsRootProps` omits `role`, but a wider
 			// props object can still carry one, and the list must keep its role.
 			role="list"
@@ -290,12 +298,16 @@ const Item = ({
 	ref,
 	...props
 }: StepsItemProps) => {
+	// Why strip `value` and `dangerouslySetInnerHTML`: the type omits them, but a
+	// spread of a wider props object can carry them to the `<li>`.
+	const { value: _value, dangerouslySetInnerHTML: _html, ...liProps }: ComponentProps<"li"> = props;
 	const itemProps = {
 		"data-slot": joinDataSlot(dataSlot, "steps-item"),
 		className: cx(
-			// Why a spacing step and not `border-s-4`: the marker's offsets are spacing
-			// steps, and the stub must stay as wide as the border under it.
-			"border-s-steps-rail relative [border-inline-start-width:--spacing(1)] pt-1.5 pb-10 ps-8.5",
+			// Why one spacing step and not `border-s-4`: the marker's offsets are spacing
+			// steps, and the stub must stay as wide as the border under it. `cx` reads
+			// this spelling as a border width, so a caller's `border-s-0` replaces it.
+			"border-s-steps-rail relative border-s-(length:--spacing) pt-1.5 pb-10 ps-8.5",
 			"[counter-increment:mantle-steps]",
 			// Why `of [data-slot~=steps-item]:not([hidden])`: only a visible step takes a
 			// number, so only a visible step counts for the position. A script or a
@@ -315,7 +327,7 @@ const Item = ({
 			"[&:nth-child(1_of_[data-slot~=steps-item]:not([hidden])):nth-last-child(1_of_[data-slot~=steps-item]:not([hidden]))]:[--_steps-only:inline]",
 			className,
 		),
-		...props,
+		...liProps,
 	};
 
 	if (asChild) {
@@ -328,9 +340,12 @@ const Item = ({
 			<Slot ref={ref} {...itemProps}>
 				{cloneElement(
 					children,
-					// Why clear these: the visible counter ignores `value`, and React throws
-					// when an element has children and inner HTML.
-					{ value: undefined, dangerouslySetInnerHTML: undefined },
+					// Why clear these on an intrinsic child only: the visible counter ignores
+					// `value`, and React throws when an element has children and inner HTML.
+					// A component child owns what it forwards, such as its own `value`.
+					typeof children.type === "string"
+						? { value: undefined, dangerouslySetInnerHTML: undefined }
+						: {},
 					<>
 						<StepMarker />
 						<StepLabel>{children.props.children}</StepLabel>

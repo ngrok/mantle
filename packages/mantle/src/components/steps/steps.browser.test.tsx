@@ -187,6 +187,20 @@ describe("Steps rail (browser)", () => {
 		expect(last.borderInlineStartColor).toBe("rgba(0, 0, 0, 0)");
 	});
 
+	test("a caller's border-s-0 removes the rail", () => {
+		render(
+			<Steps.Root>
+				<Steps.Item className="border-s-0" data-testid="first">
+					<Steps.Title>Install the ngrok agent</Steps.Title>
+				</Steps.Item>
+				<Steps.Item>
+					<Steps.Title>Add your authtoken</Steps.Title>
+				</Steps.Item>
+			</Steps.Root>,
+		);
+		expect(getComputedStyle(screen.getByTestId("first")).borderInlineStartWidth).toBe("0px");
+	});
+
 	test("a larger spacing scale grows the rail and the marker together", () => {
 		render(
 			<Steps.Root style={$cssProperties({ "--spacing": "0.5rem" })}>

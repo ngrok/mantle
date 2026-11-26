@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { createRef, type PropsWithChildren, type ReactNode } from "react";
+import { type ComponentProps, createRef, type PropsWithChildren, type ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import invariant from "tiny-invariant";
 import { describe, expect, expectTypeOf, test } from "vitest";
@@ -478,6 +478,39 @@ describe("Steps numbering", () => {
 		const items = screen.getAllByRole("listitem");
 		expect(items).toHaveLength(2);
 		expect(screen.getByTestId("wrapped").matches(":last-child")).toBe(true);
+	});
+});
+
+describe("Steps native ordinals", () => {
+	test("a spread of wider props drops start, reversed, value, and inner HTML", () => {
+		// The types omit these props, but a spread of a native props object can carry them.
+		const ol: ComponentProps<"ol"> = { reversed: true, start: 7 };
+		const li: ComponentProps<"li"> = {
+			value: 4,
+			dangerouslySetInnerHTML: { __html: "<p>Install</p>" },
+		};
+		const html = renderToString(
+			<Steps.Root {...ol}>
+				<Steps.Item {...li} />
+			</Steps.Root>,
+		);
+		expect(html).not.toMatch(/ start=| reversed| value=/);
+		expect(html).toContain('data-slot="steps-marker"');
+	});
+
+	test("under asChild a component child keeps the props it owns", () => {
+		// A component decides what it forwards, so its `value` is application data.
+		const Row = ({ value, ...li }: ComponentProps<"li"> & { value: string }) => (
+			<li {...li} aria-label={value.trim()} />
+		);
+		render(
+			<Steps.Root>
+				<Steps.Item asChild>
+					<Row value=" Install ">Install the ngrok agent</Row>
+				</Steps.Item>
+			</Steps.Root>,
+		);
+		expect(screen.getByRole("listitem")).toHaveAttribute("aria-label", "Install");
 	});
 });
 
