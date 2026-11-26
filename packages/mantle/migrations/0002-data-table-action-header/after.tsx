@@ -12,6 +12,9 @@ import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
 
 type Payment = { id: string; amount: number };
 
+// A part that reads `column`, nested in a header attribute.
+declare function ColumnLabel(props: { column: unknown }): null;
+
 const features = tableFeatures({});
 const columnHelper = createColumnHelper<typeof features, Payment>();
 
@@ -57,6 +60,16 @@ export const columns = columnHelper.columns([
 		id: "self-closing-column-actions",
 		// oxlint-disable-next-line no-unused-vars -- the rewrite leaves `props` unused
 		header: (props) => <DataTable.ActionHeader className="w-0" />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	}),
+	columnHelper.display({
+		id: "nested-column-actions",
+		header: (props) => (
+			<DataTable.ActionHeader
+				// oxlint-disable-next-line react/no-children-prop -- the case is an element in a prop
+				children={<ColumnLabel column={props.column} />}
+			/>
+		),
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	}),
 	// The aliased import is the same part.

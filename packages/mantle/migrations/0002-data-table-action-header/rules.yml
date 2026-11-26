@@ -183,7 +183,8 @@ rule:
                   field: name
                   pattern: $DT
 # Why: DataTable.ActionHeader takes no `column`, so a copied
-# `column={props.column}` fails typecheck.
+# `column={props.column}` fails typecheck. A `column` inside another
+# attribute's value belongs to another element, so it stays.
 rewriters:
   - id: drop-column
     rule:
@@ -191,6 +192,10 @@ rewriters:
       has:
         kind: property_identifier
         regex: ^column$
+      not:
+        inside:
+          stopBy: end
+          kind: jsx_attribute
     fix: ""
 transform:
   KEPT:
@@ -381,7 +386,8 @@ rule:
                   field: name
                   pattern: $DT
 # Why: DataTable.ActionHeader takes no `column`, so a copied
-# `column={props.column}` fails typecheck.
+# `column={props.column}` fails typecheck. A `column` inside another
+# attribute's value belongs to another element, so it stays.
 rewriters:
   - id: drop-column
     rule:
@@ -389,6 +395,10 @@ rewriters:
       has:
         kind: property_identifier
         regex: ^column$
+      not:
+        inside:
+          stopBy: end
+          kind: jsx_attribute
     fix: ""
 transform:
   KEPT:
