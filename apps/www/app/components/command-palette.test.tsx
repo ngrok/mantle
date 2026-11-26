@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { ThemeProvider } from "@ngrok/mantle/theme";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createRoutesStub } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { CommandPalette } from "./command-palette";
@@ -31,6 +31,10 @@ async function openPalette() {
 	if (trigger == null) {
 		throw new Error("expected a palette trigger button");
 	}
+	// Why: the palette loads its dialog with a lazy `import()`. Under load the first import
+	// outlasts the 1s `waitFor`. Inside `act`, the closed dialog mounts once the import
+	// resolves, so the click renders the open dialog at once.
+	await act(() => import("./command-palette-dialog"));
 	fireEvent.click(trigger);
 	return await waitFor(() => screen.getByPlaceholderText("Search Mantle..."));
 }
