@@ -1233,13 +1233,18 @@ const Content = ({
 			// Why a press and a click on the `<dialog>` itself: the backdrop and
 			// the area around the panel are the `<dialog>`. A drag out of the panel
 			// ends with a click there too, so the press must start there as well.
+			// Why stop the click: React sends it through the portal to a
+			// clickable parent of the trigger, such as a table row.
 			onPointerDown={(event) => {
 				pressedOutside.current =
 					root.modal && event.target === event.currentTarget && pressOutside(event.nativeEvent);
 			}}
 			onClick={(event) => {
-				if (pressedOutside.current && event.target === event.currentTarget) {
-					close();
+				if (event.target === event.currentTarget) {
+					event.stopPropagation();
+					if (pressedOutside.current) {
+						close();
+					}
 				}
 			}}
 		>

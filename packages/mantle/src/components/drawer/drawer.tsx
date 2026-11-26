@@ -566,6 +566,8 @@ const Footer = ({
 export {
 	//,
 	Root,
+	scope,
+	DrawerContext,
 	Body,
 	Close,
 	Content,
