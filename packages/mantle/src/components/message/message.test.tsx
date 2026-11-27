@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as Message from "./message-parts.js";
@@ -70,6 +71,19 @@ describe("Message", () => {
 		);
 	});
 
+	test("without speaker, Root renders no aria-label, so a message with no Content needs speaker", () => {
+		render(
+			<div role="feed" aria-label="Messages">
+				<Message.Root from="user">
+					<img src="chart.png" alt="Traffic chart" width={320} height={180} />
+				</Message.Root>
+			</div>,
+		);
+
+		expect(screen.getByRole("article")).not.toHaveAttribute("aria-label");
+		expect(screen.getByRole("article")).toHaveAccessibleName("");
+	});
+
 	test("each part forwards className, ref, and data attributes, and joins data-slot", () => {
 		const ref = vi.fn<(node: HTMLElement | null) => void>();
 		const { container } = render(
@@ -108,6 +122,23 @@ describe("Message", () => {
 		expect(item).toHaveAttribute("data-slot", "message");
 		expect(item).toHaveAttribute("data-from", "user");
 		expect(ref).toHaveBeenLastCalledWith(item);
+	});
+
+	test("Root with asChild and no speaker keeps a component child's own aria-label", () => {
+		const Photo = (props: ComponentProps<"article">) => (
+			<article aria-label="Attached photo" {...props} />
+		);
+		render(
+			<div role="feed">
+				<Message.Root asChild from="user">
+					<Photo>
+						<img src="map.png" alt="Map" width={320} height={180} />
+					</Photo>
+				</Message.Root>
+			</div>,
+		);
+
+		expect(screen.getByRole("article")).toHaveAccessibleName("Attached photo");
 	});
 
 	test("Content and Pending survive a translated page when their text changes", () => {

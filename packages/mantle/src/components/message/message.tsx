@@ -63,7 +63,8 @@ type MessageRootProps = ComponentProps<"article"> &
 		 * article and starts the body for a screen reader, in place of "You said:"
 		 * or "The assistant said:". It does not change the layout, which `from` sets.
 		 * `Message.Content` renders the label. A message with no `Message.Content`,
-		 * such as one that holds only images, still takes `speaker` as its name.
+		 * such as one that holds only images, still takes `speaker` as its name, so
+		 * set `speaker` on it even when the default label fits.
 		 * An `aria-label` on the root replaces the article's name.
 		 *
 		 * @default "You said:" when `from` is "user", else "The assistant said:"
@@ -126,6 +127,7 @@ function Root({
 	const Component = asChild ? Slot : "article";
 	const labelId = useId();
 	const label = speaker ?? speakerLabels[from];
+	const name = ariaLabel ?? speaker;
 	const context = useMemo(() => ({ from, speaker: label, labelId }), [from, label, labelId]);
 
 	return (
@@ -136,7 +138,9 @@ function Root({
 				aria-labelledby={ariaLabel == null ? labelId : undefined}
 				// Why both: `aria-labelledby` wins while `Message.Content` renders the label. With no
 				// `Message.Content`, its id matches no element, so the name falls back to `speaker`.
-				aria-label={ariaLabel ?? speaker}
+				// Why only when set: an `asChild` component child spreads its props after its own
+				// defaults, so an explicit `undefined` erases its own `aria-label`.
+				{...(name == null ? {} : { "aria-label": name })}
 				data-slot={joinDataSlot(dataSlot, "message")}
 				data-from={from}
 				className={cx(
