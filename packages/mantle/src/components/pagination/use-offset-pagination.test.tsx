@@ -473,8 +473,9 @@ describe("useOffsetPagination", () => {
 			expect(onPageChange).not.toHaveBeenCalled();
 		});
 
-		test("reportClampedPage stores the clamp, so a list that grows back stays on the shown page", () => {
+		test("onPageClamp stores the clamp, so a list that grows back stays on the shown page", () => {
 			const onPageChange = vi.fn<(page: number) => void>();
+			const onPageClamp = vi.fn<(page: number) => void>();
 			const { result, rerender } = renderHook(
 				({ listSize }) => {
 					const [page, setPage] = useState(10);
@@ -482,11 +483,11 @@ describe("useOffsetPagination", () => {
 						listSize,
 						pageSize: 10,
 						page,
-						onPageChange: (next) => {
-							onPageChange(next);
+						onPageChange,
+						onPageClamp: (next) => {
+							onPageClamp(next);
 							setPage(next);
 						},
-						reportClampedPage: true,
 						resetPageOnListSizeChange: false,
 					});
 				},
@@ -494,23 +495,22 @@ describe("useOffsetPagination", () => {
 			);
 			// A list that loads has no items yet; a report then would erase page 10.
 			rerender({ listSize: 0 });
-			expect(onPageChange).not.toHaveBeenCalled();
+			expect(onPageClamp).not.toHaveBeenCalled();
 			rerender({ listSize: 25 });
-			expect(onPageChange).toHaveBeenCalledTimes(1);
-			expect(onPageChange).toHaveBeenLastCalledWith(3);
+			expect(onPageClamp).toHaveBeenCalledTimes(1);
+			expect(onPageClamp).toHaveBeenLastCalledWith(3);
 			rerender({ listSize: 100 });
 			expect(result.current.currentPage).toBe(3);
-			expect(onPageChange).toHaveBeenCalledTimes(1);
+			expect(onPageClamp).toHaveBeenCalledTimes(1);
+			// Why a separate callback: the parent writes a correction in place,
+			// and a navigation as a new history entry.
+			expect(onPageChange).not.toHaveBeenCalled();
 		});
 
-		test("reportClampedPage waits for a pending resize, so the new size still applies", () => {
+		test("onPageClamp waits for a page the hook requested", () => {
 			const onPageChange = vi.fn<(page: number) => void>();
-			const props = {
-				pageSize: 10,
-				onPageChange,
-				reportClampedPage: true,
-				resetPageOnListSizeChange: false,
-			};
+			const onPageClamp = vi.fn<(page: number) => void>();
+			const props = { pageSize: 10, onPageChange, onPageClamp, resetPageOnListSizeChange: false };
 			const { result, rerender } = renderHook((p) => useOffsetPagination(p), {
 				initialProps: { ...props, listSize: 100, page: 8 },
 			});
@@ -518,11 +518,37 @@ describe("useOffsetPagination", () => {
 			expect(onPageChange).toHaveBeenLastCalledWith(4);
 			// The router has not committed page 4 yet when the list shrinks.
 			rerender({ ...props, listSize: 50, page: 8 });
-			expect(onPageChange).toHaveBeenCalledTimes(1);
+			expect(onPageClamp).not.toHaveBeenCalled();
 			rerender({ ...props, listSize: 50, page: 4 });
 			expect(result.current.pageSize).toBe(20);
 			expect(result.current.currentPage).toBe(3);
-			expect(onPageChange).toHaveBeenLastCalledWith(3);
+			expect(onPageClamp).toHaveBeenLastCalledWith(3);
+
+			rerender({ ...props, listSize: 50, page: 3 });
+			// The router has not committed page 1 yet when the list shrinks.
+			act(() => result.current.goToFirstPage());
+			rerender({ ...props, listSize: 20, page: 3 });
+			expect(onPageClamp).toHaveBeenCalledTimes(1);
+		});
+
+		test("onPageClamp skips a NaN page size", () => {
+			const onPageClamp = vi.fn<(page: number) => void>();
+			const { rerender } = renderHook((props) => useOffsetPagination(props), {
+				initialProps: { listSize: 100, pageSize: 10, page: 4, onPageClamp },
+			});
+			rerender({ listSize: 100, pageSize: Number.NaN, page: 4, onPageClamp });
+			expect(onPageClamp).not.toHaveBeenCalled();
+		});
+
+		test("a list reset does not repeat a clamp to page 1", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const onPageClamp = vi.fn<(page: number) => void>();
+			const { rerender } = renderHook((props) => useOffsetPagination(props), {
+				initialProps: { listSize: 8, pageSize: 10, page: 8, onPageChange, onPageClamp },
+			});
+			expect(onPageClamp).toHaveBeenLastCalledWith(1);
+			rerender({ listSize: 9, pageSize: 10, page: 8, onPageChange, onPageClamp });
+			expect(onPageChange).not.toHaveBeenCalled();
 		});
 
 		// Regression: separate effects for `pageSize` and `listSize` each called

@@ -55,15 +55,14 @@ type UseOffsetPaginationProps = {
 	 */
 	resetPageOnListSizeChange?: boolean;
 	/**
-	 * Whether to call `onPageChange` with `currentPage` when it differs from the
-	 * controlled `page`, such as after a shorter list clamps it. Set `true` so
-	 * the stored page follows the clamp, and a list that grows back stays on
-	 * the shown page. The hook reports each stored value once, and never for an
-	 * empty list, because `listSize` is 0 while a list loads.
-	 *
-	 * @default false
+	 * Called with `currentPage` when it differs from the controlled `page`, such
+	 * as after a shorter list clamps it. Pass it so the stored page follows the
+	 * clamp, and a list that grows back stays on the shown page. Write the page
+	 * in place of the current history entry: a new entry traps the back button.
+	 * Not called while the list has no pages, because `listSize` is 0 while a
+	 * list loads, or before the parent commits a page that the hook requested.
 	 */
-	reportClampedPage?: boolean;
+	onPageClamp?: (page: number) => void;
 };
 
 type OffsetPaginationState = {
@@ -178,10 +177,10 @@ function useOffsetPagination({
 	defaultPage = 1,
 	listSize,
 	onPageChange,
+	onPageClamp,
 	onPageSizeChange,
 	page: pageProp,
 	pageSize,
-	reportClampedPage = false,
 	resetPageOnListSizeChange = true,
 }: UseOffsetPaginationProps): OffsetPaginationState {
 	const isPageControlled = pageProp != null;
@@ -236,6 +235,11 @@ function useOffsetPagination({
 	const hasPreviousPage = currentPage > 1;
 	const hasNextPage = currentPage < totalPages;
 
+	// The page and size of the render that last wrote a page to the parent, and
+	// the page it wrote. Why: a router can commit a write a render late, and a
+	// clamp or reset in that window must not cancel or repeat it.
+	const awaitedEcho = useRef<{ page: number; size: number; to: number } | null>(null);
+
 	const setPage = useCallback(
 		(next: number) => {
 			// Why compare the stored page: a clamped `currentPage` hides a stale
@@ -247,55 +251,56 @@ function useOffsetPagination({
 				setInternalPage(next);
 				setPending(null);
 			}
+			awaitedEcho.current = { page: storedPage, size: currentPageSize, to: next };
 			onPageChange?.(next);
 		},
-		[isPageControlled, onPageChange, storedPage],
+		[currentPageSize, isPageControlled, onPageChange, storedPage],
 	);
 
 	// Why the ref: an effect also runs on mount, and a mount must keep
 	// `defaultPage` and `page`. Only a real change resets.
 	const previousListSize = useRef(listSize);
-	// The stored page that the last reset or clamp report moved away from. Why:
-	// a router can commit the new `page` a render late, and a second report in
-	// that render must not repeat the write or undo the reset.
-	const reportedFromPage = useRef<number | null>(null);
-	// Why an effect: the reset and the clamp report call `onPageChange`, an
-	// external callback that must not run during render.
+	// Why an effect: the reset and the clamp report call external callbacks,
+	// which must not run during render.
 	useEffect(() => {
 		const listSizeChanged = previousListSize.current !== listSize;
 		previousListSize.current = listSize;
-		if (!Object.is(reportedFromPage.current, storedPage)) {
-			reportedFromPage.current = null;
+		const echo = awaitedEcho.current;
+		if (
+			echo != null &&
+			!(Object.is(echo.page, storedPage) && Object.is(echo.size, currentPageSize))
+		) {
+			awaitedEcho.current = null;
 		}
 		if (listSizeChanged && resetPageOnListSizeChange) {
-			reportedFromPage.current = storedPage;
-			setPage(1);
+			if (awaitedEcho.current?.to !== 1) {
+				setPage(1);
+			}
 			return;
 		}
-		// Why skip an empty list: `listSize` is 0 while a list loads, and a
-		// report then erases the page that the URL restores. Why skip a pending
-		// resize: a report replaces the requested page, so the size never applies.
+		// Why skip zero pages: `listSize` is 0 while a list loads, and a report
+		// then erases the page that the URL restores. A `NaN` size has no page.
 		if (
-			!reportClampedPage ||
+			onPageClamp == null ||
 			!isPageControlled ||
-			pending != null ||
-			listSize === 0 ||
+			!(totalPages > 0) ||
 			storedPage === currentPage ||
-			reportedFromPage.current != null
+			awaitedEcho.current != null
 		) {
 			return;
 		}
-		reportedFromPage.current = storedPage;
-		setPage(currentPage);
+		awaitedEcho.current = { page: storedPage, size: currentPageSize, to: currentPage };
+		onPageClamp(currentPage);
 	}, [
 		currentPage,
+		currentPageSize,
 		isPageControlled,
 		listSize,
-		pending,
-		reportClampedPage,
+		onPageClamp,
 		resetPageOnListSizeChange,
 		setPage,
 		storedPage,
+		totalPages,
 	]);
 
 	function goToPage(page: number) {
@@ -332,6 +337,7 @@ function useOffsetPagination({
 			}
 			// Why one callback: two router writes in one tick do not compose, so
 			// separate size and page callbacks lose one of the values.
+			awaitedEcho.current = { page: storedPage, size: currentPageSize, to: nextPage };
 			onPageSizeChange(size, nextPage);
 			return;
 		}
@@ -339,6 +345,7 @@ function useOffsetPagination({
 			// Why wait for the prop: the new size with the old page shows the
 			// wrong rows until the parent commits the page.
 			setPending({ page: nextPage, size });
+			awaitedEcho.current = { page: storedPage, size: currentPageSize, to: nextPage };
 			onPageChange?.(nextPage);
 			return;
 		}
