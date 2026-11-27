@@ -624,13 +624,14 @@ The `footer` and `children` render props receive a `HoverSnapshot`: the active `
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded to the tooltip element the `Root` renders) except `children`, plus:
 
-| Prop           | Type                                                    | Default  | Description                                                             |
-| -------------- | ------------------------------------------------------- | -------- | ----------------------------------------------------------------------- |
-| `labelFormat?` | `(value: string \| number \| Date) => ReactNode`        |          | Format the x/label row of the readout.                                  |
-| `valueFormat?` | `(value: number, dataKey: string) => ReactNode`         |          | Format each series value.                                               |
-| `indicator?`   | `"line"` \| `"none"`                                    | `"line"` | The per-series color key: a short stroke or nothing.                    |
-| `footer?`      | `ReactNode \| ((snapshot: HoverSnapshot) => ReactNode)` |          | Extra content appended below the series rows (e.g. a "view logs" hint). |
-| `children?`    | `(snapshot: HoverSnapshot) => ReactNode`                |          | Replace the entire readout.                                             |
+| Prop           | Type                                                    | Default  | Description                                                                                                                                                                     |
+| -------------- | ------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `labelFormat?` | `(value: string \| number \| Date) => ReactNode`        |          | Format the x/label row of the readout.                                                                                                                                          |
+| `valueFormat?` | `(value: number, dataKey: string) => ReactNode`         |          | Format each series value.                                                                                                                                                       |
+| `indicator?`   | `"line"` \| `"none"`                                    | `"line"` | The per-series color key: a short stroke or nothing.                                                                                                                            |
+| `footer?`      | `ReactNode \| ((snapshot: HoverSnapshot) => ReactNode)` |          | Extra content appended below the series rows (e.g. a "view logs" hint).                                                                                                         |
+| `maxRows?`     | `number`                                                | `8`      | The most series rows the readout shows, largest value first. The rest fold into a "+N more" row, and only the rows that fit the plot show. Not applied to a `children` readout. |
+| `children?`    | `(snapshot: HoverSnapshot) => ReactNode`                |          | Replace the entire readout.                                                                                                                                                     |
 
 **Data attributes**
 

@@ -1,9 +1,8 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
-import { afterAll, beforeAll, describe, expect, onTestFinished, test, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
 import * as AreaChart from "../area-chart/area-chart-parts.js";
 import * as BarChart from "../bar-chart/bar-chart-parts.js";
@@ -77,16 +76,8 @@ const STYLE = `
 	position: absolute;
 	left: 0;
 	top: 0;
-	/* Mirrors right-auto bottom-auto m-0 overflow-visible open:fixed, which undo the [popover] box. */
-	right: auto;
-	bottom: auto;
-	margin: 0;
-	overflow: visible;
 	/* Why: the product class is \`pointer-events-none\`. The real mouse of an earlier file can rest here; see docs/testing.md. */
 	pointer-events: none;
-}
-[data-slot="bar-chart-tooltip"]:popover-open {
-	position: fixed;
 }
 `;
 
@@ -1142,59 +1133,14 @@ const findTooltip = async (container: HTMLElement, overlay: HTMLElement): Promis
 };
 
 describe("tooltip placement", () => {
-	test("a readout taller than the plot starts at the top of the plot box", async () => {
-		// A readout that cannot fit the plot rect falls back to the wrapper's top
-		// edge. Clamping it against the inset rect instead pins it below the top
-		// padding and spills the whole overflow past the bottom.
-		const series = Array.from({ length: 12 }, (_, index) => `key${index}`);
-		const row: Record<string, string | number> = { day: "Mon" };
-		for (const key of series) {
-			row[key] = 5;
-		}
-		const { container } = render(
-			<div style={{ width: 600, height: 160 }}>
-				<CanvasBarChartRoot
-					data={[row]}
-					xKey="day"
-					stacked
-					animate={false}
-					aria-label="Many series"
-				>
-					{series.map((key) => (
-						<BarChart.Bar key={key} dataKey={key} label={key} color="blue" />
-					))}
-				</CanvasBarChartRoot>
-			</div>,
-		);
-		const canvas = await findChartCanvas(container);
-		await waitForPlot(canvas);
-		const overlay = overlayOf(container);
-		const tooltip = await findTooltip(container, overlay);
-
-		// Re-hover inside the poll: the first pointer event can race the first
-		// layout commit, and the engine repositions again once its size observer
-		// measures the readout. React renders the rows during the event itself
-		// while the engine positions on an animation frame, so wait for the
-		// transform. Without it the readout still sits at its unpositioned
-		// origin, which is the very place this test expects to find it.
-		await waitFor(() => {
-			const plot = overlay.getBoundingClientRect();
-			hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
-			expect(tooltip.style.transform).not.toBe("");
-			const readout = tooltip.getBoundingClientRect();
-			expect(readout.height).toBeGreaterThan(plot.height);
-			expect(readout.top).toBeCloseTo(plot.top, 1);
-		});
-	});
-
-	test("a readout taller than the plot is not clipped by an overflow-clip card", async () => {
+	test("a readout with more rows than fit shows the largest ones inside a clipping card", async () => {
 		// A short chart with many series inside a card that clips, as mantle's
-		// `Panel` (`overflow-clip`) and `Table` (`overflow-hidden`) do. The readout
-		// spills past the plot (the test above), so the card must not cut it off.
+		// `Panel` (`overflow-clip`) and `Table` (`overflow-hidden`) do. The rows
+		// that do not fit fold into a count, so the card cuts none off.
 		const series = Array.from({ length: 12 }, (_, index) => `key${index}`);
 		const row: Record<string, string | number> = { day: "Mon" };
-		for (const key of series) {
-			row[key] = 5;
+		for (const [index, key] of series.entries()) {
+			row[key] = index + 1;
 		}
 		const { container } = render(
 			<div style={{ width: 600, height: 160, overflow: "clip" }}>
@@ -1208,6 +1154,7 @@ describe("tooltip placement", () => {
 					{series.map((key) => (
 						<BarChart.Bar key={key} dataKey={key} label={key} color="blue" />
 					))}
+					<BarChart.Tooltip maxRows={Number.POSITIVE_INFINITY} />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -1215,11 +1162,8 @@ describe("tooltip placement", () => {
 		await waitForPlot(canvas);
 		const overlay = overlayOf(container);
 		const tooltip = await findTooltip(container, overlay);
-
 		// Why an intersection ratio: a box keeps its full rect when an ancestor
 		// clips it, but the ratio counts only the part the clip leaves visible.
-		// Under the card's clip, about 160 of 266 pixels show. Why inside the
-		// poll: the readout hides when the hover ends, so each try hovers again.
 		const visibleRatio = (): Promise<number> =>
 			new Promise((resolve) => {
 				const observer = new IntersectionObserver(([entry]) => {
@@ -1231,240 +1175,13 @@ describe("tooltip placement", () => {
 		await waitFor(async () => {
 			const plot = overlay.getBoundingClientRect();
 			hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
-			expect(tooltip.style.transform).not.toBe("");
-			expect(tooltip.getBoundingClientRect().height).toBeGreaterThan(plot.height);
+			expect(tooltip.textContent).toMatch(/\+\d+ more/);
 			expect(await visibleRatio()).toBeGreaterThan(0.99);
 		});
-	});
-
-	/** Render a three-segment stacked chart in a 600 by 300 box, with `style` on the box. */
-	const renderThreeSegments = (style: CSSProperties = {}) =>
-		render(
-			<div data-testid="box" style={{ width: 600, height: 300, ...style }}>
-				<CanvasBarChartRoot
-					data={threeEqualSegments}
-					xKey="day"
-					stacked
-					animate={false}
-					aria-label="Three segments"
-				>
-					<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
-					<BarChart.Bar dataKey="middle" label="Middle" color="emerald" />
-					<BarChart.Bar dataKey="top" label="Top" color="pink" />
-				</CanvasBarChartRoot>
-			</div>,
-		);
-
-	/**
-	 * Hover a point a fraction down the plot until the readout's vertical center
-	 * lands on it, in viewport pixels. The plot box comes from the overlay, so a
-	 * scale or a move of the chart moves the expected point too.
-	 */
-	const expectReadoutOnPointer = async (
-		overlay: HTMLElement,
-		tooltip: HTMLElement,
-		fraction: number,
-	): Promise<void> => {
-		await waitFor(() => {
-			const plot = overlay.getBoundingClientRect();
-			const pointerY = plot.top + plot.height * fraction;
-			hoverAt(overlay, plot.left + plot.width / 2, pointerY);
-			const readout = tooltip.getBoundingClientRect();
-			expect(readout.height).toBeGreaterThan(0);
-			expect(Math.abs(readout.top + readout.height / 2 - pointerY)).toBeLessThanOrEqual(2);
-		});
-	};
-
-	test("a readout follows the pointer in a chart an ancestor scales", async () => {
-		// The top-layer readout has no ancestor transform, so plot-local pixels
-		// must scale with the chart. Unscaled, the center lands twice as far down.
-		const { container } = renderThreeSegments({ transform: "scale(0.5)", transformOrigin: "0 0" });
-		const canvas = await findChartCanvas(container);
-		await waitForPlot(canvas);
-		const overlay = overlayOf(container);
-		const tooltip = await findTooltip(container, overlay);
-		await expectReadoutOnPointer(overlay, tooltip, 0.5);
-	});
-
-	test("a readout keeps its gap from the hover band in a chart an ancestor zooms", async () => {
-		// The top-layer readout keeps the ancestor's `zoom`, which scales its own
-		// `translate` too. The band stays in the plot, so it shows where the chart
-		// puts the category: the readout sits 12 plot pixels (6 at half zoom) to
-		// one side of the band's center.
-		const { container } = renderThreeSegments({ zoom: 0.5 });
-		const canvas = await findChartCanvas(container);
-		await waitForPlot(canvas);
-		const overlay = overlayOf(container);
-		const tooltip = await findTooltip(container, overlay);
-		await waitFor(() => {
-			const plot = overlay.getBoundingClientRect();
-			hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
-			const band = hoverBandOf(container).getBoundingClientRect();
-			const readout = tooltip.getBoundingClientRect();
-			expect(readout.width).toBeGreaterThan(0);
-			const center = band.left + band.width / 2;
-			const gap = Math.min(
-				Math.abs(readout.left - (center + 6)),
-				Math.abs(readout.right - (center - 6)),
-			);
-			expect(gap).toBeLessThanOrEqual(1);
-		});
-	});
-
-	test("a readout follows a chart that moves with no scroll", async () => {
-		// A layout shift above the chart fires no scroll or resize event. A
-		// readout placed from a cached plot offset stays 40px off.
-		const { container } = renderThreeSegments();
-		const canvas = await findChartCanvas(container);
-		await waitForPlot(canvas);
-		const overlay = overlayOf(container);
-		const tooltip = await findTooltip(container, overlay);
-		await expectReadoutOnPointer(overlay, tooltip, 0.5);
-		screen.getByTestId("box").style.marginTop = "40px";
-		await expectReadoutOnPointer(overlay, tooltip, 0.5);
-	});
-
-	/** The readout of a chart pinned to its first category, once the engine places it. */
-	const pinnedReadout = async (container: HTMLElement): Promise<HTMLElement> =>
-		waitFor(() => {
-			const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
-			if (!(tooltip instanceof HTMLElement) || tooltip.style.transform === "") {
-				throw new Error("expected the pinned readout to be placed");
-			}
-			return tooltip;
-		});
-
-	const renderPinned = () =>
-		render(
-			<div data-testid="box" style={{ width: 600, height: 300 }}>
-				<CanvasBarChartRoot
-					data={threeEqualSegments}
-					xKey="day"
-					stacked
-					animate={false}
-					activeIndex={0}
-					aria-label="Pinned"
-				>
-					<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
-					<BarChart.Bar dataKey="middle" label="Middle" color="emerald" />
-					<BarChart.Bar dataKey="top" label="Top" color="pink" />
-				</CanvasBarChartRoot>
-			</div>,
-		);
-
-	test("a pinned readout opens again after its chart moves in the DOM", async () => {
-		// A move takes the readout out of the top layer with no call to the engine.
-		const { container } = renderPinned();
-		const tooltip = await pinnedReadout(container);
-		const box = screen.getByTestId("box");
-		const parent = box.parentElement;
-		parent?.append(document.createElement("div"), box);
-		const overlay = overlayOf(container);
-		await waitFor(() => {
-			const plot = overlay.getBoundingClientRect();
-			hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
-			expect(tooltip.matches(":popover-open")).toBe(true);
-		});
-	});
-
-	test("a pinned readout stays under a modal when its plot center is off screen", async () => {
-		// The center misses the viewport, so the hit test clamps to the visible
-		// part of the plot, where the modal's backdrop is on top.
-		const dialog = document.createElement("dialog");
-		document.body.append(dialog);
-		onTestFinished(() => dialog.remove());
-		dialog.showModal();
-		const { container } = render(
-			<div style={{ width: 400, height: 300, marginTop: innerHeight - 100 }}>
-				<CanvasBarChartRoot
-					data={threeEqualSegments}
-					xKey="day"
-					stacked
-					animate={false}
-					activeIndex={0}
-					aria-label="Below the fold"
-				>
-					<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
-				</CanvasBarChartRoot>
-			</div>,
-		);
-		const tooltip = await pinnedReadout(container);
-		const plot = overlayOf(container).getBoundingClientRect();
-		// The plot straddles the bottom edge, so its center is off screen.
-		expect(plot.top).toBeLessThan(innerHeight);
-		expect(plot.top + plot.height / 2).toBeGreaterThan(innerHeight);
-		expect(tooltip.matches(":popover-open")).toBe(false);
-	});
-
-	test("a browser with no popover API places the readout in the plot", async () => {
-		// Such a browser does not know `:popover-open`, and `matches` throws on it.
-		const toggle = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "togglePopover");
-		Reflect.deleteProperty(HTMLElement.prototype, "togglePopover");
-		vi.spyOn(Element.prototype, "matches").mockImplementation(function (
-			this: Element,
-			selector: string,
-		) {
-			if (selector.includes(":popover-open")) {
-				throw new SyntaxError(`'${selector}' is not a valid selector.`);
-			}
-			// Why `closest`: it matches the same as `matches` without calling the spy.
-			return this.closest(selector) === this;
-		});
-		onTestFinished(() => {
-			vi.restoreAllMocks();
-			if (toggle != null) {
-				Object.defineProperty(HTMLElement.prototype, "togglePopover", toggle);
-			}
-		});
-		const { container } = renderPinned();
-		const tooltip = await pinnedReadout(container);
-		expect(tooltip.hasAttribute("popover")).toBe(false);
-	});
-
-	test("only the chart in the front modal opens its readout", async () => {
-		// The rear modal and its chart are inert under the front modal's backdrop.
-		const chartIn = (dialog: HTMLDialogElement) => {
-			const host = document.createElement("div");
-			dialog.append(host);
-			return render(
-				<div style={{ width: 400, height: 200 }}>
-					<CanvasBarChartRoot
-						data={threeEqualSegments}
-						xKey="day"
-						stacked
-						animate={false}
-						activeIndex={0}
-						aria-label="In a dialog"
-					>
-						<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
-					</CanvasBarChartRoot>
-				</div>,
-				{ container: host },
-			).container;
-		};
-		const [rear, front] = [0, 1].map(() => {
-			const dialog = document.createElement("dialog");
-			document.body.append(dialog);
-			onTestFinished(() => dialog.remove());
-			return dialog;
-		});
-		if (rear == null || front == null) {
-			throw new Error("expected two dialogs");
-		}
-		rear.showModal();
-		front.showModal();
-		const rearReadout = chartIn(rear);
-		const frontReadout = chartIn(front);
-		const frontTooltip = await pinnedReadout(frontReadout);
-		const rearTooltip = await waitFor(() => {
-			const tooltip = rearReadout.querySelector('[data-slot="bar-chart-tooltip"]');
-			if (!(tooltip instanceof HTMLElement)) {
-				throw new Error("expected the rear readout surface");
-			}
-			return tooltip;
-		});
-		await waitFor(() => expect(frontTooltip.matches(":popover-open")).toBe(true));
-		expect(rearTooltip.matches(":popover-open")).toBe(false);
+		// The largest value reads first, and the smallest folds into the count.
+		const text = tooltip.textContent ?? "";
+		expect(text.indexOf("key11")).toBeGreaterThan(-1);
+		expect(text).not.toContain("key0");
 	});
 
 	test("a readout that fits stays inside the plot box", async () => {

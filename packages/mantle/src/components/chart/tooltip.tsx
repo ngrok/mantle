@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps, CSSProperties, ReactNode, Ref } from "react";
-import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
+import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -48,6 +48,14 @@ type TooltipPrimitiveProps = Omit<ComponentProps<"div">, "children"> & {
 	footer?: ReactNode | ((snapshot: HoverSnapshot) => ReactNode);
 	/** Replace the entire readout. */
 	children?: (snapshot: HoverSnapshot) => ReactNode;
+	/**
+	 * The most series rows the default readout shows, largest value first. The
+	 * rest fold into a "+N more" row. The readout also shows only the rows that
+	 * fit the plot, so the cap can be lower. It does not apply to a `children`
+	 * readout.
+	 * @default 8
+	 */
+	maxRows?: number;
 };
 
 /**
@@ -56,7 +64,15 @@ type TooltipPrimitiveProps = Omit<ComponentProps<"div">, "children"> & {
  */
 const useTooltipPrimitive = (partName: string, props: TooltipPrimitiveProps): null => {
 	const context = useChartContext(partName);
-	const { labelFormat, valueFormat, indicator = "line", footer, children, ...divProps } = props;
+	const {
+		labelFormat,
+		valueFormat,
+		indicator = "line",
+		footer,
+		children,
+		maxRows = 8,
+		...divProps
+	} = props;
 	// Why a stable rest object: every render rebuilds `divProps`. Without a
 	// stable identity, every parent re-render re-registers the tooltip, and each
 	// registration republishes to every DOM consumer.
@@ -69,9 +85,10 @@ const useTooltipPrimitive = (partName: string, props: TooltipPrimitiveProps): nu
 				indicator,
 				footer,
 				children,
+				maxRows,
 				divProps: stableDivProps,
 			}),
-		[context.store, labelFormat, valueFormat, indicator, footer, children, stableDivProps],
+		[context.store, labelFormat, valueFormat, indicator, footer, children, maxRows, stableDivProps],
 	);
 	return null;
 };
@@ -116,6 +133,19 @@ const ChartTooltipSurface = ({
 	xHasTimeOfDay: boolean;
 }) => {
 	const { hover, config } = useTooltipState(store);
+	const space = useSyncExternalStore(
+		store.subscribe,
+		() => store.readoutSpace,
+		() => 0,
+	);
+	// Why a measured cap: a readout taller than the plot spills past it, and a
+	// card that clips cuts its last rows off. The rows that fit depend on the
+	// space and the row count, not on the hovered index, so one measure of the
+	// full readout serves every hover until either changes.
+	const rowCount = hover == null || hover.emptySlotLabel != null ? 0 : hover.points.length;
+	const fitKey = `${space}:${rowCount}`;
+	const [fit, setFit] = useState<{ key: string; rows: number } | null>(null);
+	const fitRows = fit?.key === fitKey ? fit.rows : Number.POSITIVE_INFINITY;
 	const { className, ref: consumerRef, style, ...divProps } = config?.divProps ?? {};
 	const surfaceRef = useRef<HTMLDivElement | null>(null);
 	const composedRef = useComposedRefs(tooltipRef, surfaceRef);
@@ -140,18 +170,34 @@ const ChartTooltipSurface = ({
 			}
 		};
 	}, [consumerRef]);
+	const rowsRef = useRef<HTMLDivElement | null>(null);
+	useLayoutEffect(() => {
+		const surface = surfaceRef.current;
+		const rows = rowsRef.current;
+		if (surface == null || rows == null || rowCount === 0 || space === 0 || fit?.key === fitKey) {
+			return;
+		}
+		const overflow = surface.offsetHeight - space;
+		const last = rows.lastElementChild;
+		const previous = last?.previousElementSibling;
+		if (overflow <= 0 || !(last instanceof HTMLElement) || !(previous instanceof HTMLElement)) {
+			setFit({ key: fitKey, rows: Number.POSITIVE_INFINITY });
+			return;
+		}
+		// The measure runs on the uncapped rows, which `maxRows` alone limits.
+		const shown = Math.min(rowCount, config?.maxRows ?? 8);
+		const step = last.offsetTop - previous.offsetTop;
+		// Why the extra row without a count yet: the "+N more" row takes a row's height.
+		const extra = shown < rowCount ? 0 : 1;
+		const drop = step > 0 ? Math.ceil(overflow / step) + extra : shown;
+		setFit({ key: fitKey, rows: Math.max(0, shown - drop) });
+	}, [config?.maxRows, fit, fitKey, rowCount, space]);
 	return (
 		<div
 			data-slot={`${slotName}-tooltip`}
 			ref={composedRef}
-			// Why a manual popover: in the top layer, a card that clips the plot does
-			// not cut off a readout taller than the plot. The engine shows and hides
-			// it. With no popover API, the readout stays in the plot. The surface
-			// mounts on the first hover, so the server never renders this check.
-			popover={"togglePopover" in HTMLElement.prototype ? "manual" : undefined}
 			className={cx(
-				// Why `open:fixed`, `m-0`, `right-auto`, `bottom-auto`, and `overflow-visible`: they undo the browser's centered `[popover]` box.
-				"bg-popover border-popover text-strong pointer-events-none absolute open:fixed max-w-(--chart-readout-max-width) left-0 top-0 right-auto bottom-auto m-0 overflow-visible z-10 min-w-32 rounded-md border px-2.5 py-1.5 text-xs shadow-md",
+				"bg-popover border-popover text-strong pointer-events-none absolute left-0 top-0 z-10 min-w-32 rounded-md border px-2.5 py-1.5 text-xs shadow-md",
 				className,
 			)}
 			style={{ opacity: 0, ...style } satisfies CSSProperties}
@@ -162,6 +208,8 @@ const ChartTooltipSurface = ({
 					slotName={slotName}
 					config={config}
 					hover={hover}
+					fitRows={fitRows}
+					rowsRef={rowsRef}
 					xHasTimeOfDay={xHasTimeOfDay}
 					readout={readout}
 				/>
@@ -175,12 +223,18 @@ const ChartTooltipReadout = ({
 	slotName,
 	config,
 	hover,
+	fitRows,
+	rowsRef,
 	xHasTimeOfDay,
 	readout,
 }: {
 	slotName: string;
 	config: TooltipConfig | null;
 	hover: HoverSnapshot;
+	/** The series rows that fit the plot, `Infinity` before a measure. */
+	fitRows: number;
+	/** The rows' container, which the surface measures to fit the plot. */
+	rowsRef: Ref<HTMLDivElement>;
 	xHasTimeOfDay: boolean;
 	readout?: ChartReadout;
 }) => {
@@ -196,6 +250,13 @@ const ChartTooltipReadout = ({
 		return <readout.Tooltip hover={hover} config={config} />;
 	}
 	const footer = config?.footer;
+	// Why largest first: a capped readout keeps the leaders, and the order does
+	// not change when the cap does. A missing value sorts last. `toSorted` is
+	// stable, so ties keep the drawn order.
+	const points = hover.points.toSorted(
+		(a, b) => (b.value ?? Number.NEGATIVE_INFINITY) - (a.value ?? Number.NEGATIVE_INFINITY),
+	);
+	const shown = Math.min(points.length, config?.maxRows ?? 8, fitRows);
 	return (
 		<>
 			<div className="text-muted font-medium">
@@ -203,7 +264,7 @@ const ChartTooltipReadout = ({
 					? formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay })
 					: config.labelFormat(hover.xValue)}
 			</div>
-			<div className="mt-1 grid gap-1">
+			<div ref={rowsRef} className="mt-1 grid gap-1">
 				{hover.emptySlotLabel != null && (
 					<span className="text-strong">{hover.emptySlotLabel}</span>
 				)}
@@ -223,7 +284,7 @@ const ChartTooltipReadout = ({
 				)}
 				{/* Why no rows for an empty slot: a column of em dashes repeats what its label says. */}
 				{hover.emptySlotLabel == null &&
-					hover.points.map((point) => (
+					points.slice(0, shown).map((point) => (
 						<div key={point.dataKey} className="flex items-center gap-1.5">
 							{config?.indicator !== "none" && (
 								<span
@@ -240,6 +301,9 @@ const ChartTooltipReadout = ({
 							</span>
 						</div>
 					))}
+				{hover.emptySlotLabel == null && shown < points.length && (
+					<div className="text-muted">+{points.length - shown} more</div>
+				)}
 			</div>
 			{hover.zValue !== undefined && (
 				<div className="mt-1 flex items-center gap-1.5">

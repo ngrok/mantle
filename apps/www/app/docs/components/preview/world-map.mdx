@@ -451,11 +451,12 @@ Customizes the hover and keyboard readout. The tooltip renders even when this pa
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), except `children`, plus:
 
-| Prop         | Type                                                    | Default | Description                                                                 |
-| ------------ | ------------------------------------------------------- | ------- | --------------------------------------------------------------------------- |
-| `indicator?` | `"dot" \| "none"`                                       | `"dot"` | The series color key beside each series name.                               |
-| `footer?`    | `ReactNode \| ((snapshot: HoverSnapshot) => ReactNode)` |         | Content below the series rows.                                              |
-| `children?`  | `(snapshot: HoverSnapshot) => ReactNode`                |         | Replace the whole readout. The snapshot carries the hovered row as `datum`. |
+| Prop         | Type                                                    | Default | Description                                                                                                                                                                     |
+| ------------ | ------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `indicator?` | `"dot" \| "none"`                                       | `"dot"` | The series color key beside each series name.                                                                                                                                   |
+| `footer?`    | `ReactNode \| ((snapshot: HoverSnapshot) => ReactNode)` |         | Content below the series rows.                                                                                                                                                  |
+| `maxRows?`   | `number`                                                | `8`     | The most series rows the readout shows, largest value first. The rest fold into a "+N more" row, and only the rows that fit the plot show. Not applied to a `children` readout. |
+| `children?`  | `(snapshot: HoverSnapshot) => ReactNode`                |         | Replace the whole readout. The snapshot carries the hovered row as `datum`.                                                                                                     |
 
 **Data attributes**
 

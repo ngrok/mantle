@@ -27,7 +27,6 @@ import {
 	prefersReducedMotion,
 	watchDevicePixelRatio,
 } from "./environment.js";
-import { observeMove, zoomOf } from "../../utils/float/observe-move.js";
 import { requestSharedFrame } from "./frame-loop.js";
 import type {
 	PaintBackend,
@@ -243,8 +242,6 @@ class ChartEngine {
 	#stopResize: (() => void) | null = null;
 	#stopRatio: (() => void) | null = null;
 	#stopTooltipResize: (() => void) | null = null;
-	/** Removes the scroll and resize listeners of an open top-layer readout. */
-	#closeTooltipLayer: (() => void) | null = null;
 	#fontsCleanup: (() => void) | null = null;
 	/** The owning window, or `null` in a detached document. */
 	#view: Window | null = null;
@@ -413,14 +410,6 @@ class ChartEngine {
 	#pointerX: number | null = null;
 	#pointerY: number | null = null;
 	#tooltipSize: { width: number; height: number } = { width: 0, height: 0 };
-	/**
-	 * The plot's viewport box and its scale, for a readout in the top layer.
-	 * Each overlay frame reads it before its writes. `null` while the readout
-	 * stays in the plot.
-	 */
-	#tooltipOrigin: TooltipOrigin | null = null;
-	/** The readout's CSS zoom, read when it opens in the top layer. */
-	#tooltipZoom = 1;
 
 	#scheduled = false;
 	#needsPaint = false;
@@ -603,7 +592,6 @@ class ChartEngine {
 		this.#stopResize?.();
 		this.#stopRatio?.();
 		this.#stopTooltipResize?.();
-		this.#closeTooltipLayer?.();
 		this.#backend.destroy();
 		this.#backend.element.remove();
 		this.#fontsCleanup?.();
@@ -657,10 +645,6 @@ class ChartEngine {
 			return;
 		}
 		this.#onScreen = onScreen;
-		// Why: a readout in the top layer hides while its chart is out of sight.
-		if (this.#elements.tooltip?.hasAttribute("popover") && this.#effectiveIndex() != null) {
-			this.#scheduleOverlay();
-		}
 		// Why the pending paint: each retarget schedules one, and so does a commit
 		// that left a tween, a chase, or a fade in motion. A chart at rest has none.
 		if (!onScreen && this.#needsPaint) {
@@ -739,7 +723,6 @@ class ChartEngine {
 		}
 		this.#stopTooltipResize?.();
 		this.#stopTooltipResize = null;
-		this.#closeTooltipLayer?.();
 		this.#tooltipSize = { width: 0, height: 0 };
 		this.#elements.tooltip = element;
 		if (element != null && this.#inView) {
@@ -798,7 +781,6 @@ class ChartEngine {
 			return;
 		}
 		this.#printing = false;
-		this.#scheduleOverlay();
 		if (!this.#inView) {
 			this.releaseBackingStores();
 		}
@@ -1824,6 +1806,8 @@ class ChartEngine {
 			width: Math.max(0, this.#cssWidth - left - padding),
 			height,
 		};
+		// The readout clamps between the wrapper top and the plot bottom.
+		this.#store.setReadoutSpace(top + height);
 		// The category band lays out along whichever pixel axis carries categories:
 		// x when vertical, y when horizontal.
 		const bandRangeStart = horizontal ? this.#plot.top : this.#plot.left;
@@ -3109,17 +3093,8 @@ class ChartEngine {
 		band.style.opacity = visible && isBar ? "1" : "0";
 		markers.style.opacity = visible && !isBar ? "1" : "0";
 		if (tooltip != null) {
-			// Why the opacity from the open: a closed `[popover]` hides through
-			// `display`, which a consumer's own `display` overrides.
-			tooltip.style.opacity = this.#setTooltipLayerOpen(tooltip, visible) ? "1" : "0";
+			tooltip.style.opacity = visible ? "1" : "0";
 		}
-		// Why each frame, before the geometry writes: the plot can move or scale
-		// with no scroll, such as a layout shift or a dialog's open animation. The
-		// opacity writes above do not dirty layout, so this read forces none.
-		this.#tooltipOrigin =
-			tooltip?.hasAttribute("popover") === true && tooltip.matches(":popover-open")
-				? this.#readTooltipOrigin(tooltip)
-				: null;
 		if (!visible) {
 			return;
 		}
@@ -3134,7 +3109,6 @@ class ChartEngine {
 				markers.style.opacity = "0";
 				if (tooltip != null) {
 					tooltip.style.opacity = "0";
-					this.#setTooltipLayerOpen(tooltip, false);
 				}
 				return;
 			}
@@ -3282,28 +3256,7 @@ class ChartEngine {
 		if (this.#inView && this.#tooltipSize.width === 0 && this.#tooltipSize.height === 0) {
 			this.#tooltipSize = { width: tooltip.offsetWidth, height: tooltip.offsetHeight };
 		}
-		// Why the top layer: a readout taller than the plot spills past it, and a
-		// card that clips (`overflow: clip` or `hidden`) would cut off its rows.
-		// There the readout is `fixed` and unscaled, so the math below runs in
-		// plot-local pixels on the readout's size in those pixels.
-		const origin = this.#tooltipOrigin;
-		const size =
-			origin == null
-				? this.#tooltipSize
-				: {
-						width: (this.#tooltipSize.width * origin.zoom) / origin.scaleX,
-						height: (this.#tooltipSize.height * origin.zoom) / origin.scaleY,
-					};
-		const maxWidth = origin == null ? "" : `${(this.#cssWidth * origin.scaleX) / origin.zoom}px`;
-		if (
-			origin != null &&
-			tooltip.style.getPropertyValue("--chart-readout-max-width") !== maxWidth
-		) {
-			// Why: in the top layer the readout sizes against the viewport, so a
-			// long footer would take the page width instead of wrapping in the
-			// chart. A variable, so a consumer's own `maxWidth` still wins.
-			tooltip.style.setProperty("--chart-readout-max-width", maxWidth);
-		}
+		const size = this.#tooltipSize;
 		let tooltipLeft = anchorX + gapX;
 		if (
 			tooltipLeft + size.width > plot.left + plot.width &&
@@ -3317,141 +3270,9 @@ class ChartEngine {
 			0,
 			Math.min(anchorY - size.height / 2, plot.top + plot.height - size.height),
 		);
-		if (origin == null) {
-			tooltip.style.transform = `translate(${tooltipLeft}px, ${tooltipTop}px)`;
-			return;
-		}
-		// Why the scale: the plot-local pixels shrink with an ancestor's
-		// transform, and the top layer has none. Why the zoom: the readout keeps
-		// an ancestor's `zoom`, which scales its own `translate` again.
-		// Why the viewport clamp: a fixed readout does not grow the page's scroll
-		// area, so its last rows must fit the viewport. Across, the readout keeps
-		// the plot's flip, as it did in the plot.
-		const height = this.#tooltipSize.height * origin.zoom;
-		const left = origin.left + tooltipLeft * origin.scaleX;
-		const top = Math.max(
-			0,
-			Math.min(origin.top + tooltipTop * origin.scaleY, origin.viewHeight - height),
-		);
-		tooltip.style.transform = `translate(${left / origin.zoom}px, ${top / origin.zoom}px)`;
-	}
-
-	/**
-	 * The plot's viewport box, its scale against its layout size, and the
-	 * viewport size. The plot read forces the frame's layout, so the reads
-	 * after it force none. A readout with no size yet takes it here too, before
-	 * the frame's writes dirty the layout again.
-	 */
-	#readTooltipOrigin(tooltip: HTMLElement): TooltipOrigin {
-		const plot = this.#elements.plot;
-		const rect = plot.getBoundingClientRect();
-		if (this.#tooltipSize.width === 0 && this.#tooltipSize.height === 0) {
-			this.#tooltipSize = { width: tooltip.offsetWidth, height: tooltip.offsetHeight };
-		}
-		const root = plot.ownerDocument.documentElement;
-		return {
-			left: rect.left,
-			top: rect.top,
-			scaleX: plot.offsetWidth > 0 ? rect.width / plot.offsetWidth : 1,
-			scaleY: plot.offsetHeight > 0 ? rect.height / plot.offsetHeight : 1,
-			zoom: this.#tooltipZoom,
-			viewHeight: root.clientHeight,
-		};
-	}
-
-	/** Whether the plot is on top at its center, clamped to the part in the viewport. */
-	#hitsPlot(plot: HTMLElement): boolean {
-		const rect = plot.getBoundingClientRect();
-		// Why: a plot with no box, as in a test DOM with no layout, has no point to test.
-		if (rect.width === 0 || rect.height === 0) {
-			return true;
-		}
-		const page = plot.ownerDocument.documentElement;
-		const x = Math.min(
-			Math.max(rect.left + rect.width / 2, Math.max(rect.left, 0)),
-			Math.min(rect.right, page.clientWidth) - 1,
-		);
-		const y = Math.min(
-			Math.max(rect.top + rect.height / 2, Math.max(rect.top, 0)),
-			Math.min(rect.bottom, page.clientHeight) - 1,
-		);
-		// Why `in`, not `instanceof Document`: a chart that a parent window
-		// renders into an iframe has the iframe's `Document`.
-		const root = plot.getRootNode();
-		const hit = isHitRoot(root) ? root.elementFromPoint(x, y) : null;
-		return hit != null && plot.contains(hit);
-	}
-
-	/**
-	 * Show or hide a readout that the Root rendered as a `popover="manual"`.
-	 * A readout with no `popover` attribute (a browser with no popover API)
-	 * stays in the plot. A closed `[popover]` does not render, so the readout
-	 * also hides while its chart is out of sight, under a modal it is not in,
-	 * or in print, where a fixed box repeats on each page. While it is open, a
-	 * scroll, a resize, or a move of the plot places it again. Returns whether
-	 * the readout shows.
-	 */
-	#setTooltipLayerOpen(tooltip: HTMLElement, want: boolean): boolean {
-		if (!tooltip.hasAttribute("popover")) {
-			return want;
-		}
-		const plot = this.#elements.plot;
-		const open = want && tooltip.isConnected && this.#onScreen && !this.#printing;
-		if (!open) {
-			this.#closeTooltipLayer?.();
-			return false;
-		}
-		// Why the DOM check, not only the cleanup: a chart moved in the DOM
-		// closes its popover with no call here.
-		if (tooltip.matches(":popover-open")) {
-			return true;
-		}
-		// Why a hit test for a pinned or keyboard readout: what covers the
-		// chart, such as a modal's backdrop or a menu, stays above its readout.
-		// A pointer on the plot needs none, because the plot took its event. The
-		// test runs at the plot center, clamped to the part in the viewport, and
-		// a miss keeps the readout closed. It runs before the open dirties layout.
-		if (this.#pointerX == null && !this.#hitsPlot(plot)) {
-			return false;
-		}
-		tooltip.showPopover();
-		// Why at each open: a chart moved in the DOM can sit under a new zoom.
-		this.#tooltipZoom = zoomOf(tooltip);
-		if (this.#closeTooltipLayer != null) {
-			return true;
-		}
-		const view = this.#view;
-		const moved = () => this.#scheduleOverlay();
-		view?.addEventListener("scroll", moved, { capture: true, passive: true });
-		view?.addEventListener("resize", moved, { passive: true });
-		// Why: a layout shift, or a scroll in a shadow root, fires no window event.
-		const stopMove = observeMove(plot, moved);
-		this.#closeTooltipLayer = () => {
-			this.#closeTooltipLayer = null;
-			view?.removeEventListener("scroll", moved, { capture: true });
-			view?.removeEventListener("resize", moved);
-			stopMove();
-			tooltip.style.removeProperty("--chart-readout-max-width");
-			if (tooltip.matches(":popover-open")) {
-				tooltip.hidePopover();
-			}
-		};
-		return true;
+		tooltip.style.transform = `translate(${tooltipLeft}px, ${tooltipTop}px)`;
 	}
 }
-
-/** Whether `node` can hit-test a point: a document, from any window, or a shadow root. */
-const isHitRoot = (node: Node): node is Node & DocumentOrShadowRoot => "elementFromPoint" in node;
-
-/** Where a top-layer readout maps plot-local pixels: the plot's viewport box, its scale, and the readout's zoom. */
-type TooltipOrigin = {
-	left: number;
-	top: number;
-	scaleX: number;
-	scaleY: number;
-	zoom: number;
-	viewHeight: number;
-};
 
 /**
  * Whether two category values name the same category. A `Date` compares by

@@ -754,13 +754,14 @@ A `children` readout renders inside a `<div data-slot="area-chart-tooltip-label"
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded onto the tooltip element the Root renders) except `children`, plus:
 
-| Prop          | Type                                                  | Default  | Description                                                             |
-| ------------- | ----------------------------------------------------- | -------- | ----------------------------------------------------------------------- |
-| `labelFormat` | `(value: string \| number \| Date) => ReactNode`      |          | Format the x/label row of the readout.                                  |
-| `valueFormat` | `(value: number, dataKey: string) => ReactNode`       |          | Format each series value.                                               |
-| `indicator`   | `"line"` \| `"none"`                                  | `"line"` | The per-series color key: a short stroke or nothing.                    |
-| `footer`      | `ReactNode \| (snapshot: HoverSnapshot) => ReactNode` |          | Extra content appended below the series rows (e.g. a "view logs" hint). |
-| `children`    | `(snapshot: HoverSnapshot) => ReactNode`              |          | Replace the entire readout.                                             |
+| Prop          | Type                                                  | Default  | Description                                                                                                                                                                     |
+| ------------- | ----------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `labelFormat` | `(value: string \| number \| Date) => ReactNode`      |          | Format the x/label row of the readout.                                                                                                                                          |
+| `valueFormat` | `(value: number, dataKey: string) => ReactNode`       |          | Format each series value.                                                                                                                                                       |
+| `indicator`   | `"line"` \| `"none"`                                  | `"line"` | The per-series color key: a short stroke or nothing.                                                                                                                            |
+| `footer`      | `ReactNode \| (snapshot: HoverSnapshot) => ReactNode` |          | Extra content appended below the series rows (e.g. a "view logs" hint).                                                                                                         |
+| `maxRows`     | `number`                                              | `8`      | The most series rows the readout shows, largest value first. The rest fold into a "+N more" row, and only the rows that fit the plot show. Not applied to a `children` readout. |
+| `children`    | `(snapshot: HoverSnapshot) => ReactNode`              |          | Replace the entire readout.                                                                                                                                                     |
 
 The `HoverSnapshot` passed to `footer` and `children` describes the active x position: `{ index, xValue, datum, points, viaKeyboard }`, where `points` holds every series' value at that position. Stacked, the rows run from the top of the pile back to the baseline; unstacked, they follow registration order.
 

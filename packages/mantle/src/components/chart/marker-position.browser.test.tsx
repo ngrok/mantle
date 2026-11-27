@@ -84,16 +84,8 @@ const STYLE = `
 	position: absolute;
 	left: 0;
 	top: 0;
-	/* Mirrors right-auto bottom-auto m-0 overflow-visible open:fixed, which undo the [popover] box. */
-	right: auto;
-	bottom: auto;
-	margin: 0;
-	overflow: visible;
 	/* Why: the product class is \`pointer-events-none\`. The real mouse of an earlier file can rest here; see docs/testing.md. */
 	pointer-events: none;
-}
-[data-slot$="-tooltip"]:popover-open {
-	position: fixed;
 }
 `;
 

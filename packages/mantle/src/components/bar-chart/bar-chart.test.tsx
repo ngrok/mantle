@@ -322,7 +322,7 @@ describe("BarChart keyboard interaction", () => {
 		expect(tooltip?.textContent).toContain("January");
 	});
 
-	test("a stacked chart's readout leads with the column total, then the series from the top down", async () => {
+	test("a stacked chart's readout leads with the column total, then the series by value, largest first", async () => {
 		const user = userEvent.setup();
 		renderChart({ stacked: true });
 		await user.tab();
@@ -331,7 +331,26 @@ describe("BarChart keyboard interaction", () => {
 		const rows = [...(tooltip?.querySelectorAll(".grid > div") ?? [])].map(
 			(row) => row.textContent,
 		);
-		expect(rows).toEqual(["Total266", "Mobile80", "Desktop186"]);
+		// Desktop is drawn below Mobile, but its larger value reads first.
+		expect(rows).toEqual(["Total266", "Desktop186", "Mobile80"]);
+	});
+
+	test("maxRows keeps the largest series and folds the rest into a count", async () => {
+		const user = userEvent.setup();
+		render(
+			<BarChart.Root data={data} xKey="month" stacked aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
+				<BarChart.Tooltip maxRows={1} />
+			</BarChart.Root>,
+		);
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+		const rows = [...(tooltip?.querySelectorAll(".grid > div") ?? [])].map(
+			(row) => row.textContent,
+		);
+		expect(rows).toEqual(["Total266", "Desktop186", "+1 more"]);
 	});
 
 	test("an unstacked chart's readout has no total", async () => {
