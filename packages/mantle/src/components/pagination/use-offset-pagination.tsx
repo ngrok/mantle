@@ -223,11 +223,10 @@ function useOffsetPagination({
 	} else if (
 		pending != null &&
 		!isPageSizeControlled &&
-		isPageControlled &&
-		!Object.is(pageProp, pending.from)
+		(!isPageControlled || !Object.is(pageProp, pending.from))
 	) {
-		// Why: a parent move to another page, such as a back move, cancels the
-		// resize, so a later write of its page must not apply the size.
+		// Why: a parent move to another page, such as a back move, or a parent
+		// that drops `page` cancels the resize, so a later page must not apply it.
 		setPending(null);
 	}
 	// Why read `pending` here: the state updates above land in the next render,
@@ -251,7 +250,8 @@ function useOffsetPagination({
 	const awaitedEcho = useRef<{
 		fromPage: number;
 		toPage: number;
-		toSize: number;
+		// `null` for a page-only write, which any size completes.
+		toSize: number | null;
 		fromClamp: boolean;
 	} | null>(null);
 
@@ -264,7 +264,10 @@ function useOffsetPagination({
 			}
 			if (isPageControlled) {
 				// Why keep a resize to the same page: the write still carries it.
-				setPending((current) => (current?.page === next ? current : null));
+				// Why keep it without `onPageChange`: no write replaces it.
+				if (onPageChange != null) {
+					setPending((current) => (current?.page === next ? current : null));
+				}
 			} else {
 				setInternalPage(next);
 				setPending(null);
@@ -273,13 +276,13 @@ function useOffsetPagination({
 				awaitedEcho.current = {
 					fromPage: storedPage,
 					toPage: next,
-					toSize: currentPageSize,
+					toSize: null,
 					fromClamp: false,
 				};
 			}
 			onPageChange?.(next);
 		},
-		[currentPageSize, isPageControlled, onPageChange, storedPage],
+		[isPageControlled, onPageChange, storedPage],
 	);
 
 	// Why the ref: an effect also runs on mount, and a mount must keep
@@ -297,7 +300,7 @@ function useOffsetPagination({
 			echo != null &&
 			(!isPageControlled ||
 				(storedPage === echo.toPage
-					? Object.is(currentPageSize, echo.toSize)
+					? echo.toSize == null || Object.is(currentPageSize, echo.toSize)
 					: !Object.is(storedPage, echo.fromPage)))
 		) {
 			awaitedEcho.current = null;
@@ -326,7 +329,7 @@ function useOffsetPagination({
 		awaitedEcho.current = {
 			fromPage: storedPage,
 			toPage: currentPage,
-			toSize: currentPageSize,
+			toSize: null,
 			fromClamp: true,
 		};
 		onPageClamp(currentPage);
@@ -404,11 +407,12 @@ function useOffsetPagination({
 			return;
 		}
 		setInternalPageSize(size);
+		// Why: this size replaces a resize that still waits for its page.
+		setPending(null);
 		if (!isPageControlled) {
 			// Why not `setPage`: it compares against the page of this render, and
 			// a second resize in the same batch must still win.
 			setInternalPage(nextPage);
-			setPending(null);
 			if (nextPage !== storedPage) {
 				onPageChange?.(nextPage);
 			}

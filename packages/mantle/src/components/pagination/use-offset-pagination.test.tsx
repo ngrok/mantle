@@ -685,6 +685,70 @@ describe("useOffsetPagination", () => {
 			expect(result.current.currentPage).toBe(1);
 		});
 
+		test("a clamp that lands with a new size lets the next clamp report", () => {
+			const onPageClamp = vi.fn<(page: number) => void>();
+			const props = { listSize: 25, onPageClamp, resetPageOnListSizeChange: false };
+			const { rerender } = renderHook((p) => useOffsetPagination(p), {
+				initialProps: { ...props, page: 8, pageSize: 10 },
+			});
+			expect(onPageClamp).toHaveBeenLastCalledWith(3);
+			rerender({ ...props, page: 3, pageSize: 20 });
+			expect(onPageClamp).toHaveBeenLastCalledWith(2);
+		});
+
+		test("a list reset without onPageChange keeps a resize that waits for its page", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const initialProps: UseOffsetPaginationProps = {
+				listSize: 100,
+				pageSize: 10,
+				page: 8,
+				onPageChange,
+			};
+			const { result, rerender } = renderHook((p) => useOffsetPagination(p), { initialProps });
+			act(() => result.current.setPageSize(20));
+			expect(onPageChange).toHaveBeenLastCalledWith(4);
+			rerender({ listSize: 99, pageSize: 10, page: 8 });
+			rerender({ listSize: 99, pageSize: 10, page: 4, onPageChange });
+			expect(result.current.pageSize).toBe(20);
+			expect(result.current.offset).toBe(60);
+		});
+
+		test("a resize that keeps the page replaces a resize that never reached the parent", () => {
+			const { result, rerender } = renderHook(
+				({ listSize }) => {
+					const [page, setPage] = useState(3);
+					return useOffsetPagination({
+						listSize,
+						pageSize: 25,
+						page,
+						onPageClamp: setPage,
+						resetPageOnListSizeChange: false,
+					});
+				},
+				{ initialProps: { listSize: 100 } },
+			);
+			act(() => result.current.setPageSize(50));
+			act(() => result.current.setPageSize(20));
+			rerender({ listSize: 40 });
+			expect(result.current.pageSize).toBe(20);
+			expect(result.current.currentPage).toBe(2);
+		});
+
+		test("dropping page cancels a resize that waits for its page", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const initialProps: UseOffsetPaginationProps = {
+				listSize: 80,
+				pageSize: 10,
+				page: 8,
+				onPageChange,
+			};
+			const { result, rerender } = renderHook((p) => useOffsetPagination(p), { initialProps });
+			act(() => result.current.setPageSize(20));
+			rerender({ listSize: 80, pageSize: 10, onPageChange });
+			rerender({ listSize: 80, pageSize: 10, page: 4, onPageChange });
+			expect(result.current.pageSize).toBe(10);
+		});
+
 		// Regression: separate effects for `pageSize` and `listSize` each called
 		// `setPage(1)`, so one render that changed both reported page 1 twice.
 		test("a pageSize and listSize change in one render reports page 1 once", () => {
