@@ -265,6 +265,44 @@ See the [DataTable pagination recipe](/components/data-display/data-table#pagina
 
 The line is a live region (`role="status"`), so a screen reader announces the new range when the page changes. It stays in the DOM while the list is empty, because a live region added together with its text isn't announced. It shows the total alone when one page holds every row, and no text for an empty list, which shows its own empty state. Cursor data has no total, so it has no count line.
 
+### Loading
+
+While the rows load, pass `isLoading`. The line says "Loading", then the plural `noun`, and it stamps `data-loading`. Keep the same `PaginationRange` mounted for the whole load, so its live region announces the count when the rows arrive. Don't add a second `role="status"` element for the load. Press the button to load the rows again.
+
+<Example name="components/navigation/pagination/loading" title="PaginationRange loading example">
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { PaginationRange } from "@ngrok/mantle/pagination";
+import { useState } from "react";
+
+function LoadingCountLine() {
+	const [isLoading, setIsLoading] = useState(true);
+
+	return (
+		<div className="flex items-center gap-4">
+			<Button
+				type="button"
+				appearance="outlined"
+				intent="neutral"
+				onClick={() => setIsLoading((loading) => !loading)}
+			>
+				{isLoading ? "Finish loading" : "Load again"}
+			</Button>
+			<PaginationRange
+				isLoading={isLoading}
+				offset={0}
+				pageSize={10}
+				total={23}
+				noun={{ singular: "payment", plural: "payments" }}
+			/>
+		</div>
+	);
+}
+```
+
+</Example>
+
 ## Composition
 
 Compose the parts of a `CursorPagination` together to build your own:
@@ -319,17 +357,19 @@ Displays the current page size as a read-only value (e.g. "100 per page"). Accep
 
 The count line for one page of a list. It renders a `span` with `role="status"`. Accepts standard `span` attributes except `children`, plus:
 
-| Prop       | Type                                   | Default                                     | Description                                                                       |
-| :--------- | :------------------------------------- | :------------------------------------------ | :-------------------------------------------------------------------------------- |
-| `offset`   | `number`                               |                                             | The index of the first row on the page, from 0. A non-negative integer.           |
-| `pageSize` | `number`                               |                                             | The most rows a page holds. A positive integer.                                   |
-| `total`    | `number`                               |                                             | How many rows the list holds after its filter. A non-negative integer.            |
-| `noun?`    | `{ singular: string; plural: string }` | `{ singular: "result", plural: "results" }` | The noun to count, in both forms, because an English plural is irregular.         |
-| `asChild?` | `boolean`                              | `false`                                     | Renders the text in your own element. The child must have no children of its own. |
+| Prop         | Type                                   | Default                                     | Description                                                                       |
+| :----------- | :------------------------------------- | :------------------------------------------ | :-------------------------------------------------------------------------------- |
+| `offset`     | `number`                               |                                             | The index of the first row on the page, from 0. A non-negative integer.           |
+| `pageSize`   | `number`                               |                                             | The most rows a page holds. A positive integer.                                   |
+| `total`      | `number`                               |                                             | How many rows the list holds after its filter. A non-negative integer.            |
+| `noun?`      | `{ singular: string; plural: string }` | `{ singular: "result", plural: "results" }` | The noun to count, in both forms, because an English plural is irregular.         |
+| `isLoading?` | `boolean`                              | `false`                                     | Shows "Loading", then the plural `noun`, in place of the count.                   |
+| `asChild?`   | `boolean`                              | `false`                                     | Renders the text in your own element. The child must have no children of its own. |
 
-| Data Attribute | Value                | Description  |
-| :------------- | :------------------- | :----------- |
-| `data-slot`    | `"pagination-range"` | On the root. |
+| Data Attribute | Value                    | Description                                |
+| :------------- | :----------------------- | :----------------------------------------- |
+| `data-slot`    | `"pagination-range"`     | On the root.                               |
+| `data-loading` | present when `isLoading` | Presence-only. Style with `data-loading:`. |
 
 ## Offset pagination
 

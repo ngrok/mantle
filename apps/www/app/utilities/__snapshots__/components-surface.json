@@ -3734,6 +3734,12 @@
         "name": "data-slot",
         "value": "`\"pagination-range\"`",
         "description": "On the root."
+      },
+      {
+        "part": "PaginationRange",
+        "name": "data-loading",
+        "value": "present when `isLoading`",
+        "description": "Presence-only. Style with `data-loading:`."
       }
     ]
   },

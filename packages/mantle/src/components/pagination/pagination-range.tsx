@@ -97,7 +97,15 @@ function formatPaginationRange({
 type PaginationRangeProps = Omit<ComponentProps<"span">, "children"> &
 	SelfClosingWithAsChild &
 	WithDataSlot &
-	PaginationRangeValue;
+	PaginationRangeValue & {
+		/**
+		 * Whether the list loads. The line then says "Loading", then the plural
+		 * `noun`, in place of the count, such as "Loading domains…".
+		 *
+		 * @default false
+		 */
+		isLoading?: boolean;
+	};
 
 /**
  * The count line beside a paginated list or table, such as "1–20 of 2,396
@@ -110,6 +118,9 @@ type PaginationRangeProps = Omit<ComponentProps<"span">, "children"> &
  * renders in every state, because a live region added together with its text
  * is not announced.
  *
+ * While the list loads, pass `isLoading`. The same live region then says
+ * "Loading domains…", and it announces the count when the load ends.
+ *
  * It takes `offset`, `pageSize`, and `total`, so the same part serves offset
  * state from `useOffsetPagination` beside a `Table` and a TanStack table
  * instance beside a `DataTable`. Place it in `CursorPagination.Root`, beside
@@ -119,9 +130,10 @@ type PaginationRangeProps = Omit<ComponentProps<"span">, "children"> &
  * **Polymorphism.** Pass `asChild` to render the text in your own element. The
  * child must have no children of its own, because the part renders the text.
  *
- * | Data Attribute | Value                | Description  |
- * | -------------- | -------------------- | ------------ |
- * | `data-slot`    | `"pagination-range"` | On the root. |
+ * | Data Attribute | Value                    | Description                                |
+ * | -------------- | ------------------------ | ------------------------------------------ |
+ * | `data-slot`    | `"pagination-range"`     | On the root.                               |
+ * | `data-loading` | present when `isLoading` | Presence-only. Style with `data-loading:`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/pagination#paginationrange
  *
@@ -153,15 +165,19 @@ function PaginationRange({
 	children,
 	className,
 	"data-slot": dataSlot,
+	isLoading = false,
 	noun,
 	offset,
 	pageSize,
 	total,
 	...props
 }: PaginationRangeProps) {
-	const text = formatPaginationRange({ offset, pageSize, total, noun });
+	const text = isLoading
+		? `Loading ${(noun ?? defaultNoun).plural}…`
+		: formatPaginationRange({ offset, pageSize, total, noun });
 	const rootProps = {
 		role: "status",
+		"data-loading": isLoading ? "" : undefined,
 		"data-slot": joinDataSlot(dataSlot, "pagination-range"),
 		className: cx("text-muted text-sm font-normal", className),
 		...props,

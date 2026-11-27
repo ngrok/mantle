@@ -69,6 +69,21 @@ describe("PaginationRange", () => {
 		expect(screen.getByRole("status")).toHaveTextContent("");
 	});
 
+	test("says the list loads in the same live region, then announces the count", () => {
+		const { rerender } = render(
+			<PaginationRange isLoading offset={0} pageSize={20} total={0} noun={noun} />,
+		);
+		const status = screen.getByRole("status");
+		expect(status).toHaveTextContent("Loading domains…");
+		expect(status).toHaveAttribute("data-loading", "");
+
+		rerender(<PaginationRange offset={0} pageSize={20} total={2396} noun={noun} />);
+		// Why the same node: a live region added together with its text is not announced.
+		expect(screen.getByRole("status")).toBe(status);
+		expect(status).toHaveTextContent("1–20 of 2,396 domains");
+		expect(status).not.toHaveAttribute("data-loading");
+	});
+
 	test("renders the text in the child with asChild", () => {
 		render(
 			<PaginationRange asChild offset={0} pageSize={20} total={3} noun={noun}>
