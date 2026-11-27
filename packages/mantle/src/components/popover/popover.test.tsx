@@ -564,6 +564,50 @@ describe("Popover", () => {
 			expect(trigger).toHaveAttribute("aria-expanded", "false");
 		});
 
+		test("a press on the trigger while a slow parent closes a hover open asks to stay open", () => {
+			vi.useFakeTimers();
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+			const onOpenChange = vi.fn<(open: boolean) => void>();
+			const tree = (open: boolean) => (
+				<Popover.Root open={open} onOpenChange={onOpenChange}>
+					<Popover.Trigger openOnHover>About limits</Popover.Trigger>
+					<Popover.Content>Help</Popover.Content>
+				</Popover.Root>
+			);
+			const { rerender } = render(tree(false));
+			const trigger = screen.getByRole("button", { name: "About limits" });
+			hoverOpen(trigger);
+			rerender(tree(true));
+			fireEvent.pointerLeave(trigger, { pointerType: "mouse", clientX: 500, clientY: 500 });
+
+			fireEvent.click(trigger);
+			expect(onOpenChange.mock.calls).toEqual([[true], [false], [true]]);
+		});
+
+		test("a hover open closes when its trigger unmounts", () => {
+			vi.useFakeTimers();
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+			const tree = (withTrigger: boolean) => (
+				<Popover.Root>
+					{withTrigger && <Popover.Trigger openOnHover>About limits</Popover.Trigger>}
+					<Popover.Content>Help</Popover.Content>
+				</Popover.Root>
+			);
+			const { rerender } = render(tree(true));
+			hoverOpen(screen.getByRole("button", { name: "About limits" }));
+			expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+			rerender(tree(false));
+			act(() => {
+				vi.runAllTimers();
+			});
+			expect(screen.queryByRole("dialog")).toBeNull();
+		});
+
 		test("a disabled trigger does not open on hover", () => {
 			vi.useFakeTimers();
 			onTestFinished(() => {

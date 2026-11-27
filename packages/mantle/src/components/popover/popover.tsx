@@ -119,7 +119,7 @@ type PopoverState = {
 	showContent: (shown: ShownContent) => void;
 	/** The content with this element hides. */
 	hideContent: (element: HTMLElement) => void;
-	/** The trigger unmounts or stops opening on hover: drop a pending hover open. */
+	/** The trigger unmounts or stops opening on hover: drop a pending hover open, and close a hover open. */
 	cancelHover: () => void;
 	/** Moves focus into the shown content, as a press open does. */
 	focusContent: () => void;
@@ -248,9 +248,12 @@ function Root({
 	// including a controlled parent that closes it.
 	// Why the hover session ends on any close: a later open by a press or by
 	// the parent must not close on a leave or on a neighbor's hover.
+	// Why not when a newer open waits: a pointer that returned before a slow
+	// parent committed the close asked to open again, by hover.
 	useEffect(() => {
+		const newerOpen = !open && requestedOpen.current;
 		requestedOpen.current = open;
-		if (!open) {
+		if (!open && !newerOpen) {
 			hoverOpenRef.current = false;
 			stopGrace.current?.();
 			if (hoverEntry.current != null && hoverOpenPopover === hoverEntry.current) {
@@ -434,6 +437,10 @@ function Root({
 			cancelHover: () => {
 				pointerOnTrigger.current = false;
 				clearTimeout(hoverTimer.current);
+				// Why: the trigger's leave never comes once it unmounts or opts out.
+				if (open && hoverOpenRef.current) {
+					setOpen(false, { byHover: true });
+				}
 			},
 			onHoverLeave,
 			onHoverStay: stopHover,
@@ -443,6 +450,10 @@ function Root({
 				// the next press must then ask to open.
 				const wasHoverOpen = open && hoverOpenRef.current;
 				endHoverOpen();
+				// Why: a hover close can wait on a slow parent, and the press keeps it open.
+				if (wasHoverOpen && !requestedOpen.current) {
+					setOpen(true);
+				}
 				return wasHoverOpen;
 			},
 			isHoverOpen: () => hoverOpenRef.current,
@@ -531,9 +542,10 @@ const Trigger = ({
 	const state = usePopoverState("Trigger");
 	const composedRef = useComposedRefs(ref, state.setTrigger);
 	const Component = asChild ? Slot : "button";
-	const { cancelHover } = state;
+	// Why the latest handler: an open or close must not run the cleanup.
+	const cancelHover = useCallbackRef(state.cancelHover);
 	// Why an effect: it follows a trigger that unmounts or stops opening on
-	// hover while a hover open waits for its delay.
+	// hover while a hover open waits for its delay or holds the popover.
 	useEffect(() => {
 		if (openOnHover) {
 			return cancelHover;
