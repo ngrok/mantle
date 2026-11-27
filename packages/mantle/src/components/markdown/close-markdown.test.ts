@@ -45,6 +45,10 @@ describe("closeMarkdown", () => {
 		["Text\n\n[^1]", "Text\n\n"],
 		["Text\n\n[^1]:", "Text\n\n"],
 		["x [^a b", "x ^a b"],
+		["See[^1](", "See[^1]("],
+		["Both[^a][^", "Both[^a]"],
+		["one[^_tag]", "one[^_tag]"],
+		["Yes![^n", "Yes!"],
 		// Tables: the header waits for its delimiter row, which completes.
 		["| a | b |", ""],
 		["| a | b |\n", ""],
@@ -184,7 +188,7 @@ describe("closeMarkdown", () => {
 
 		const shown: string[] = [];
 		for (let end = 1; end <= answer.length; end += 1) {
-			const html = render(close(answer.slice(0, end)));
+			const html = render(answer.slice(0, end));
 			const text = visible(html);
 			const extra = [
 				...markers.filter((marker) => count(text, marker) > count(finalText, marker)),

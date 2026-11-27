@@ -283,6 +283,49 @@ describe("Markdown", () => {
 		expect(refs[0]).toHaveAccessibleDescription("Footnotes");
 	});
 
+	test("renders a reference with no note as text once a one-paragraph answer ends", () => {
+		const { container, rerender } = render(<Markdown streaming>{"Claim[^1]."}</Markdown>);
+		// Why no link: the note has not arrived, so there is nothing to go to yet.
+		expect(container.querySelector("sup[data-footnote-ref]")).toHaveTextContent("1");
+		expect(screen.queryByRole("link")).toBeNull();
+		rerender(<Markdown>{"Claim[^1]."}</Markdown>);
+		expect(container.querySelector("sup")).toBeNull();
+		expect(screen.getByText("Claim[^1].")).toBeInTheDocument();
+	});
+
+	test("numbers only the notes that the answer cites, and keeps a reference in a label as text", () => {
+		const { container } = render(
+			<Markdown>
+				{
+					"[^unused]: Hidden[^b]\n\nBody[^a] and [the docs[^a]](/docs).\n\n> Quote[^q]\n>\n> [^q]: Quoted\n\n[^a]: Note a\n[^b]: Note b"
+				}
+			</Markdown>,
+		);
+		const list = screen.getByRole("region", { name: "Footnotes" });
+		expect([...list.querySelectorAll("li")].map((item) => item.id.split("fn-")[1])).toEqual([
+			"1",
+			"2",
+		]);
+		expect(list).toHaveTextContent("Note a");
+		expect(list).toHaveTextContent("Quoted");
+		expect(list).not.toHaveTextContent("Note b");
+		expect(screen.getByRole("link", { name: "the docs[^a]" })).toHaveAttribute("href", "/docs");
+		expect(container.querySelector("a a")).toBeNull();
+	});
+
+	test("resolves a reference link in a note's list item when the stream ends", () => {
+		const answer =
+			"Text[^1]\n\n[^1]: Steps:\n    - [docs][ref]\n\nMore.\n\n[ref]: https://ngrok.com/docs";
+		const { rerender } = render(
+			<Markdown streaming>{answer.slice(0, answer.indexOf("[ref]:"))}</Markdown>,
+		);
+		rerender(<Markdown>{answer}</Markdown>);
+		expect(screen.getByRole("link", { name: "docs" })).toHaveAttribute(
+			"href",
+			"https://ngrok.com/docs",
+		);
+	});
+
 	test("gives the footnotes of two answers different ids", () => {
 		render(
 			<>

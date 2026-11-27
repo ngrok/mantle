@@ -2574,11 +2574,6 @@ pre[data-slot~="code-block-code"][data-foldable]
 		> p:where(:last-child)::after,
 	:where([data-slot~="markdown"][data-streaming])
 		> blockquote:where(:last-child)
-		> p:where(:last-child)::after,
-	:where([data-slot~="markdown"][data-streaming])
-		> section[data-footnotes]:where(:last-child)
-		> ol
-		> li:where(:last-child)
 		> p:where(:last-child)::after {
 		content: "";
 		display: inline-block;

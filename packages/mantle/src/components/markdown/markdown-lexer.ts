@@ -37,6 +37,8 @@ type Context = {
 	/** The footnotes so far. Why copy on write: most answers have none, and a copy for each lex costs each update. */
 	notes: MarkdownFootnotes;
 	ownsNotes: boolean;
+	/** Whether the blocks that lex now are in a note. Why: a reference in a note stays text, so only the answer numbers notes. */
+	inNote: boolean;
 	/** Whether a footnote reference with no definition yet is a reference. Why: a streamed answer defines its notes last. */
 	awaitNotes: boolean;
 };
@@ -100,11 +102,11 @@ const PLAIN_START = /* @__PURE__ */ Uint8Array.from({ length: 128 }, (_, code) =
 /** The first characters of a block that can end a paragraph. Why: a quick test skips most lines. */
 const BLOCK_START = /^ {0,3}[#*+\-_>`~<\d]/;
 const NOT_SPACE = /\S/;
-/** The label of a link reference definition at the start of a line. */
 /** A footnote definition, `[^label]:`. GFM labels hold no space. */
-const FOOTNOTE = /^ {0,3}\[\^([^\s[\]]{1,999})\]:[ \t]?/;
+const FOOTNOTE = /^ {0,3}\[\^([^\s[\]]{1,999})\]:[ \t]*/;
 /** A footnote reference, `[^label]`. */
 const FOOTNOTE_REF = /^\[\^([^\s[\]]{1,999})\]/;
+/** The label of a link reference definition at the start of a line. */
 const DEFINITION_START = /^ {0,3}\[(?:[^\\\]]|\\.)+\]:/;
 const LITERAL = /\\([!-/:-@[-`{-~])|&(?:#\d{1,7}|#[xX][\da-fA-F]{1,6}|[a-zA-Z\d]+);/g;
 /** The indent and markers of a line, up to its last tab. */
@@ -443,7 +445,9 @@ function writableNotes(context: Context): MarkdownFootnotes {
 /** Adds the inline tokens of a block's `text` once every definition is known. */
 function withInline<T extends { text: string }>(token: T, context: Context): T & { tokens: Tok[] } {
 	const out: T & { tokens: Tok[] } = Object.assign(token, { tokens: [] as Tok[] });
+	const { inNote } = context;
 	context.jobs.push(() => {
+		context.inNote = inNote;
 		out.tokens = lexInline(out.text, context);
 	});
 	return out;
@@ -525,7 +529,7 @@ function lexBlocks(
 	// Why the tokenizer after `start`: a line such as `$$x$$ more` starts like math but stays in the paragraph.
 	const interruptsParagraph = (line: string, at: number) =>
 		interrupts(line) ||
-		(context.depth === 0 && FOOTNOTE.test(line)) ||
+		FOOTNOTE.test(line) ||
 		(context.block.some((extension) => extension.start?.(line) === 0) && extensionAt(at) != null);
 	const rawLines = (from: number, to: number) => {
 		const out: string[] = [];
@@ -719,8 +723,8 @@ function lexBlocks(
 				continue;
 			}
 
-			// Why before a link definition: `[^1]: text` is one too, and a footnote is only read at the top level.
-			const note = context.depth === 0 ? FOOTNOTE.exec(line) : null;
+			// Why before a link definition: `[^1]: text` is one too.
+			const note = FOOTNOTE.exec(line);
 			if (note != null) {
 				const parts = [line.slice(note[0].length)];
 				let afterBlank = false;
@@ -741,9 +745,14 @@ function lexBlocks(
 						}
 						afterBlank = true;
 					} else if (indentOf(next) >= 4) {
-						parts.push(next.slice(4));
+						// Why the raw line: a tab after the indent is the note's own, as in code.
+						parts.push(stripColumns(rawLineAt(end), 4, column));
 						end += 1;
-					} else if (!afterBlank && !interruptsParagraph(next, end)) {
+					} else if (
+						!afterBlank &&
+						(parts.at(-1) ?? "").trim() !== "" &&
+						!interruptsParagraph(next, end)
+					) {
 						// A lazy line continues the note's paragraph.
 						parts.push(next);
 						end += 1;
@@ -752,12 +761,15 @@ function lexBlocks(
 					}
 				}
 				const label = normalizeLabel(note[1] ?? "");
+				const inNote = context.inNote;
+				context.inNote = true;
 				const token: FootnoteToken = {
 					type: "footnote",
 					raw: raw(index, end),
 					label,
 					tokens: lexNested(parts.join("\n"), context, { top: true, column: 0, lazy: undefined }),
 				};
+				context.inNote = inNote;
 				if (!(label in context.notes.definitions)) {
 					writableNotes(context).definitions[label] = token;
 				}
@@ -855,6 +867,8 @@ function lexBlocks(
 						: withInline({ text, header: false, align: align[column] ?? null }, context);
 				// Why a budget: each short row pads to the header's width, so a wide header over many short
 				// rows costs their product. At the budget the table ends, as in cmark-gfm.
+				// Why first: the inline jobs run in order, and a footnote takes its number from its first reference.
+				const headerCells = header.map(headerCell);
 				let padding = 0;
 				const rows = [];
 				for (let row = index + 2; row < end; row += 1) {
@@ -869,7 +883,7 @@ function lexBlocks(
 				tokens.push({
 					type: "table",
 					raw: raw(index, end),
-					header: header.map(headerCell),
+					header: headerCells,
 					align,
 					rows,
 				} as Tok);
@@ -904,6 +918,8 @@ function lexBlocks(
 				first < 128 &&
 				PLAIN_START[first] === 1 &&
 				at < 4 &&
+				// Why: a `[^label]:` line starts a footnote, which ends the paragraph.
+				!(first === 91 && source.charCodeAt(from + at + 1) === 94) &&
 				// Why the next line too: a delimiter row under the line makes it a table header.
 				(nextPipe === -1 || nextPipe >= lineEnd(end + 1))
 			) {
@@ -1601,9 +1617,17 @@ function lexInline(source: string, context: Context): Tok[] {
 				index += html[0].length;
 				continue;
 			}
-		} else if (char === "[" || (char === "!" && source[index + 1] === "[")) {
+		} else if (
+			char === "[" ||
+			// Why not before `[^`: `![^1]` is a `!` and a footnote reference.
+			(char === "!" && source[index + 1] === "[" && source[index + 2] !== "^")
+		) {
+			// Why not in a note or a label: a note's reference would number it before the answer does, and a link
+			// cannot hold a link.
 			const note =
-				source[index + 1] === "^" ? FOOTNOTE_REF.exec(source.slice(index, index + 1003)) : null;
+				source[index + 1] === "^" && !context.inNote && brackets.length === 0
+					? FOOTNOTE_REF.exec(source.slice(index, index + 1003))
+					: null;
 			const label = note == null ? "" : normalizeLabel(note[1] ?? "");
 			if (note != null && (context.awaitNotes || label in context.notes.definitions)) {
 				const { references } = writableNotes(context);
@@ -1999,6 +2023,7 @@ function lexMarkdown(
 		defined: links != null && hasKeys(links),
 		notes: notes ?? { definitions: Object.create(null), references: Object.create(null) },
 		ownsNotes: notes == null,
+		inNote: false,
 		awaitNotes,
 	};
 	const normalized = source.includes("\r") ? source.replace(/\r\n?/g, "\n") : source;

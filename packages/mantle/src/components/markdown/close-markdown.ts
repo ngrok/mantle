@@ -424,6 +424,8 @@ function closeLastLines(
 }
 
 type Opener = { char: number; count: number; index: number };
+/** A whole footnote reference, as the lexer reads it. */
+const FOOTNOTE_REF = /^\[\^[^\s[\]]{1,999}\]/;
 type Bracket = { image: boolean; index: number };
 
 const BACKTICK = 96;
@@ -584,7 +586,17 @@ function closeInline(region: string, { math }: { math: boolean }): string {
 			index += 1;
 			continue;
 		}
-		if (char === "[" || (char === "!" && region[index + 1] === "[")) {
+		// Why whole: a `[^label]` is a footnote reference, so its label holds no markup, and a `(` after it is text.
+		const note =
+			char === "[" && region[index + 1] === "^"
+				? FOOTNOTE_REF.exec(region.slice(index, index + 1003))
+				: null;
+		if (note != null) {
+			index += note[0].length;
+			continue;
+		}
+		// Why not before `[^`: `![^1]` is a `!` and a footnote reference.
+		if (char === "[" || (char === "!" && region[index + 1] === "[" && region[index + 2] !== "^")) {
 			const image = char === "!";
 			brackets.push({ image, index });
 			index += image ? 2 : 1;
@@ -604,13 +616,7 @@ function closeInline(region: string, { math }: { math: boolean }): string {
 				const labelEnd = region.indexOf("]", index + 1);
 				close = labelEnd === -1 ? -1 : labelEnd + 1;
 			}
-			if (
-				close === index &&
-				index === region.length &&
-				!isTaskMarker(region, bracket.index) &&
-				// Why: a `[^label]` is a whole footnote reference.
-				region[bracket.index + 1] !== "^"
-			) {
+			if (close === index && index === region.length && !isTaskMarker(region, bracket.index)) {
 				// A label at the very end: its `(` can still arrive, so show the text only.
 				close = -1;
 			}

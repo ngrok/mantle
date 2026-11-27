@@ -173,7 +173,8 @@ function createMarkdownParser({
 	let frozenReadLinks = false;
 	// The footnotes in the finished blocks, and in the whole answer so far.
 	let frozenNotes = noNotes();
-	let notes = noNotes();
+	// Why the same object: the lexer returns its seed when it reads no footnote, so the check of `setNotes` is one compare.
+	let notes = frozenNotes;
 	/** Keeps the `links` object while its definitions stay the same, so a memoized block does not render again. */
 	const setLinks = (next: MarkdownLinks) => {
 		if (!isSameLinks(links, next)) {
@@ -227,8 +228,14 @@ function createMarkdownParser({
 			const text = closes ? closeMarkdown(tail, { math: closeMath }) : tail;
 			// Why `closes`: a stopped answer keeps each reference that showed while it streamed.
 			const tokens = lex(text, { links: frozenLinks, notes: frozenNotes, awaitNotes: closes });
+			const previousLinks = links;
 			setLinks(tokens.links);
-			setNotes(tokens.notes);
+			if (links === previousLinks) {
+				setNotes(tokens.notes);
+			} else {
+				// Why: a note's link can resolve to a new target with no change to its source.
+				notes = tokens.notes;
+			}
 			// Why: a finished block can hold a reference to a footnote that the answer never defined, and GFM shows it
 			// as text. A stopped answer keeps it, as it showed while it streamed.
 			const undefinedNote =
@@ -237,7 +244,11 @@ function createMarkdownParser({
 			if (
 				!streaming &&
 				frozen.length > 0 &&
-				(frozenReadLinks || Object.keys(links).length > 0 || undefinedNote)
+				(frozenReadLinks ||
+					Object.keys(links).length > 0 ||
+					// Why: a reference in a finished block that came before its note was read as text.
+					Object.keys(notes.definitions).length > 0 ||
+					undefinedNote)
 			) {
 				if (truncated) {
 					// Why the closed tail, and no frozen state: it is the text the last frame showed, and a closer can

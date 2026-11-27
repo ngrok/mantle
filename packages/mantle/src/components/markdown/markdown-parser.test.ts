@@ -197,6 +197,36 @@ describe("createMarkdownParser", () => {
 		expect(inline(parser.parse(source, { streaming: false }))).toEqual(["text"]);
 	});
 
+	test.each([
+		["a definition right after its paragraph", "Claim[^1].\n[^1]: Note", "1"],
+		["a `!` before a reference", "Yes![^1]\n\n[^1]: Note", "1"],
+		["a definition with padding", "See[^1].\n\n[^1]:     prose", "1"],
+	])("reads %s", (_, source, label) => {
+		const { notes, blocks } = createMarkdownParser().parse(source, { streaming: false });
+		expect(notes.references[label]).toEqual({ number: 1, count: 1 });
+		expect(notes.definitions[label]?.tokens[0]?.type).toBe("paragraph");
+		expect(blocks.map((token) => token.type)).toEqual(["paragraph", "footnote"]);
+	});
+
+	test("numbers a table's header before its body, and ends an empty note at an unindented line", () => {
+		const source = "| H[^x] |\n| --- |\n| B[^y] |\n\n[^x]:\nOutside\n\n[^y]: Y";
+		const { notes, blocks } = createMarkdownParser().parse(source, { streaming: false });
+		expect(notes.references).toEqual({ X: { number: 1, count: 1 }, Y: { number: 2, count: 1 } });
+		expect(blocks.map((token) => token.type)).toEqual([
+			"table",
+			"footnote",
+			"paragraph",
+			"footnote",
+		]);
+	});
+
+	test("resolves a reference whose note arrives after a completed parse", () => {
+		const parser = createMarkdownParser();
+		parser.parse("A[^x].\n\nTail.", { streaming: false });
+		const { notes } = parser.parse("A[^x].\n\nTail.\n\n[^x]: Note", { streaming: false });
+		expect(notes.references).toEqual({ X: { number: 1, count: 1 } });
+	});
+
 	test("keeps a single tilde as text", () => {
 		const snapshot = createMarkdownParser().parse("Use 20~25 or 30~40 workers.", {
 			streaming: false,

@@ -148,9 +148,9 @@ const components: MarkdownComponents = {
 
 ## Footnotes
 
-`Markdown` reads GitHub footnotes with no setup. A reference, `[^1]`, renders as a superscript link to its note. The notes render at the end of the answer in the order of their first reference, and each note links back to each of its references. A note with more paragraphs indents them by 4 spaces. A reference to a note that the answer never defines stays text, as on GitHub.
+`Markdown` reads GitHub footnotes with no setup. A reference, `[^1]`, renders as a superscript link to its note. The notes render at the end of the answer in the order of their first reference, and each note links back to each of its references. A note with more paragraphs indents them by 4 spaces. A reference to a note that the answer never defines stays text, as on GitHub. A reference inside a note or inside a link's label also stays text.
 
-While the answer streams, a half-typed reference such as `[^1` shows nothing, and a reference shows its number before its note arrives.
+While the answer streams, a half-typed reference such as `[^1` shows nothing. A reference shows its number before its note arrives, and links to the note once it does.
 
 <Example name="components/data-display/markdown/footnotes" title="Markdown footnotes example">
 

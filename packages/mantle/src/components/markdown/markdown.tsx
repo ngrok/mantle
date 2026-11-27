@@ -416,6 +416,10 @@ const footnoteLinkClassName =
 /** A footnote reference: a superscript link to its note. */
 function FootnoteRef({ token }: { token: FootnoteRefToken }) {
 	const id = use(FootnoteIdContext);
+	// Why no link without its note: the list, and its heading, render only the notes that have arrived.
+	if (!(token.label in use(NotesContext).definitions)) {
+		return <sup data-footnote-ref="">{token.number}</sup>;
+	}
 	return (
 		<sup data-footnote-ref="">
 			<a
@@ -458,35 +462,58 @@ const MarkdownFootnoteList = /* @__PURE__ */ memo(function MarkdownFootnoteList(
 			</h2>
 			<ol>
 				{items.map(({ note, number, count }, index) => (
-					<li
+					<MarkdownFootnote
 						key={number}
-						id={`${id}fn-${number}`}
+						note={note}
+						number={number}
+						count={count}
 						// Why: while the answer streams, a reference to a note that has not arrived holds its number.
 						value={number === index + 1 ? undefined : number}
-					>
-						{renderNote(
-							note,
-							Array.from({ length: count }, (_, at) => (
-								<a
-									key={`backref-${at}`}
-									href={`#${id}fnref-${number}-${at + 1}`}
-									aria-label={`Back to reference ${number}${count > 1 ? `-${at + 1}` : ""}`}
-									data-footnote-backref=""
-									// Why: an arrow and a digit need no translation, and the engine must not split the arrow from its `sup`.
-									translate="no"
-									className={footnoteLinkClassName}
-								>
-									{/* Why U+FE0E: it shows the arrow as text, not as an emoji. */}
-									{"\u21a9\ufe0e"}
-									{at > 0 && <sup>{at + 1}</sup>}
-								</a>
-							)),
-							components,
-						)}
-					</li>
+						components={components}
+					/>
 				))}
 			</ol>
 		</section>
+	);
+});
+
+/** One note. Why `memo`: a finished note keeps its token, so it does not render again while a later note streams. */
+const MarkdownFootnote = /* @__PURE__ */ memo(function MarkdownFootnote({
+	note,
+	number,
+	count,
+	value,
+	components,
+}: {
+	note: FootnoteToken;
+	number: number;
+	count: number;
+	value: number | undefined;
+	components: MarkdownComponents;
+}) {
+	const id = use(FootnoteIdContext);
+	return (
+		<li id={`${id}fn-${number}`} value={value}>
+			{renderNote(
+				note,
+				Array.from({ length: count }, (_, at) => (
+					<a
+						key={`backref-${at}`}
+						href={`#${id}fnref-${number}-${at + 1}`}
+						aria-label={`Back to reference ${number}${count > 1 ? `-${at + 1}` : ""}`}
+						data-footnote-backref=""
+						// Why: an arrow and a digit need no translation, and the engine must not split the arrow from its `sup`.
+						translate="no"
+						className={footnoteLinkClassName}
+					>
+						{/* Why U+FE0E: it shows the arrow as text, not as an emoji. */}
+						{"\u21a9\ufe0e"}
+						{at > 0 && <sup>{at + 1}</sup>}
+					</a>
+				)),
+				components,
+			)}
+		</li>
 	);
 });
 
@@ -608,7 +635,12 @@ function TableBlock({ token, components }: { token: TableToken; components: Mark
 const noComponents: MarkdownComponents = {};
 
 /** Props of a memoized block. `links` changes only when a reference definition can change what the block reads. */
-type BlockProps = { token: Token; components: MarkdownComponents; links: MarkdownLinks };
+type BlockProps = {
+	token: Token;
+	components: MarkdownComponents;
+	links: MarkdownLinks;
+	notes: MarkdownFootnotes;
+};
 
 /**
  * Two renders of a block with the same source and context render the same
@@ -619,6 +651,8 @@ function isSameBlock(previous: BlockProps, next: BlockProps): boolean {
 	return (
 		previous.components === next.components &&
 		previous.links === next.links &&
+		// Why only with `[^`: a reference's number, or whether it is one, changes with the footnotes, and its source does not.
+		(previous.notes === next.notes || !next.token.raw.includes("[^")) &&
 		(previous.token === next.token ||
 			(previous.token.raw === next.token.raw &&
 				looseness(previous.token) === looseness(next.token)))
@@ -654,6 +688,7 @@ type GroupProps = {
 	start: number;
 	components: MarkdownComponents;
 	links: MarkdownLinks;
+	notes: MarkdownFootnotes;
 };
 
 /**
@@ -664,6 +699,7 @@ function isSameGroup(previous: GroupProps, next: GroupProps): boolean {
 	return (
 		previous.components === next.components &&
 		previous.links === next.links &&
+		previous.notes === next.notes &&
 		previous.blocks.length === next.blocks.length &&
 		previous.blocks[0] === next.blocks[0] &&
 		previous.blocks.at(-1) === next.blocks.at(-1)
@@ -681,6 +717,7 @@ const MarkdownGroup = /* @__PURE__ */ memo(function MarkdownGroup({
 	start,
 	components,
 	links,
+	notes,
 }: GroupProps) {
 	return blocks.map((token, index) => (
 		<MarkdownBlock
@@ -689,6 +726,7 @@ const MarkdownGroup = /* @__PURE__ */ memo(function MarkdownGroup({
 			token={token}
 			components={components}
 			links={links}
+			notes={notes}
 		/>
 	));
 }, isSameGroup);
@@ -699,6 +737,12 @@ const MarkdownGroup = /* @__PURE__ */ memo(function MarkdownGroup({
  * definition resolves one of their reference links.
  */
 const LinksContext = /* @__PURE__ */ createContext<MarkdownLinks>(Object.create(null));
+
+/** The footnotes of the answer. Why a context: as `LinksContext`, for the items of a list deep in a block. */
+const NotesContext = /* @__PURE__ */ createContext<MarkdownFootnotes>({
+	definitions: {},
+	references: {},
+});
 
 /** One list item. Why `memo`: a long list streams one item at a time, and the items above it keep their source. */
 const MarkdownListItem = /* @__PURE__ */ memo(function MarkdownListItem({
@@ -711,6 +755,7 @@ const MarkdownListItem = /* @__PURE__ */ memo(function MarkdownListItem({
 /** A list, with each item memoized. */
 function MarkdownList({ token, components }: { token: ListToken; components: MarkdownComponents }) {
 	const links = use(LinksContext);
+	const notes = use(NotesContext);
 	return renderComponent(components.list ?? defaultComponents.list, {
 		key: 0,
 		token,
@@ -721,6 +766,7 @@ function MarkdownList({ token, components }: { token: ListToken; components: Mar
 				token={item}
 				components={components}
 				links={links}
+				notes={notes}
 			/>
 		)),
 	});
@@ -891,18 +937,28 @@ function Markdown({
 			<StreamingContext value={streaming}>
 				<FootnoteIdContext value={footnoteId}>
 					<LinksContext value={snapshot.links}>
-						{Array.from({ length: Math.ceil(snapshot.blocks.length / GROUP_SIZE) }, (_, group) => (
-							<MarkdownGroup
-								// oxlint-disable-next-line react/no-array-index-key -- Why: a group holds the same blocks for the life of the answer.
-								key={group}
-								blocks={snapshot.blocks.slice(group * GROUP_SIZE, (group + 1) * GROUP_SIZE)}
-								start={group * GROUP_SIZE}
+						<NotesContext value={snapshot.notes}>
+							{Array.from(
+								{ length: Math.ceil(snapshot.blocks.length / GROUP_SIZE) },
+								(_, group) => (
+									<MarkdownGroup
+										// oxlint-disable-next-line react/no-array-index-key -- Why: a group holds the same blocks for the life of the answer.
+										key={group}
+										blocks={snapshot.blocks.slice(group * GROUP_SIZE, (group + 1) * GROUP_SIZE)}
+										start={group * GROUP_SIZE}
+										components={components ?? noComponents}
+										links={snapshot.links}
+										notes={snapshot.notes}
+									/>
+								),
+							)}
+							{/* Why in the providers: a note's list items compare the definitions, as the answer's do. */}
+							<MarkdownFootnoteList
+								notes={snapshot.notes}
 								components={components ?? noComponents}
-								links={snapshot.links}
 							/>
-						))}
+						</NotesContext>
 					</LinksContext>
-					<MarkdownFootnoteList notes={snapshot.notes} components={components ?? noComponents} />
 				</FootnoteIdContext>
 			</StreamingContext>
 		</div>
