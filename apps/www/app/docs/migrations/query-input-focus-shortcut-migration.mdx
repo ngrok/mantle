@@ -27,11 +27,11 @@ The rules apply steps 1, 2, and 3. They wrap each `Query.Input` that sets `keybo
 
 - Step 4, because a forwarded value such as `keyboardShortcut={enabled}` is known only at runtime. The type checker names each one.
 - A `Query.Input` with a `key`, such as one in a `.map()`, because the key must move to the new outer element. Move it to `FocusShortcut.Root` by hand.
-- A `Query.Input` with a spread, because the spread can set `children` or turn the shortcut off. A flag inside a spread object is also manual.
+- A `Query.Input` with a spread, because the spread can set `children` or turn the shortcut on or off. This includes `keyboardShortcut={false}` before a spread. A flag inside a spread object is also manual.
 - A `Query.Input` with a `children` prop, or with text or an expression as a child. Put the hint first, and wrap text in an element: bare text beside the hint breaks a page that a browser translated.
-- A `Query.Input` inside `Field.Control`, `Slot`, or an `asChild` part, also through a ternary, because the part passes its ref and props to its one child. Put `FocusShortcut.Root` outside the part and `FocusShortcut.Field` inside it, around the `Query.Input`.
+- A `Query.Input` inside `Field.Control`, `Slot` under any name, or an `asChild` part (also through a spread or a ternary), because the part passes its ref and props to its one child. Put `FocusShortcut.Root` outside the part and `FocusShortcut.Field` inside it, around the `Query.Input`.
 - A `Query.Input` with JSX in a prop that also sets `keyboardShortcut`, or with a multi-line string, because the rewrite would change that JSX or the indent of the string.
-- A file that already has its own `FocusShortcut` name, such as a local or another import, because the wrapper would read that binding.
+- A file that already has its own `FocusShortcut` name, such as a local, a type-only import, or a namespace import, because the wrapper would read that binding.
 - Step 5, because a test query is a string.
 
 The codemod leaves no `keyboardShortcut` it can rewrite, so it is safe to run twice. To print the rewrites first, pass `--dry-run` to the mantle command, or leave out `--update-all` from the `ast-grep` command. Run your formatter after the rewrite.
@@ -52,7 +52,7 @@ The codemod leaves no `keyboardShortcut` it can rewrite, so it is safe to run tw
 5. In tests: the hint's `data-slot` changes.
    - Before: `document.querySelector('[data-slot~="query-input-shortcut"]')`
    - After: `document.querySelector('[data-slot~="focus-shortcut-hint"]')`
-   - The hint now stays in the DOM with the `hidden` attribute while it does not show. Replace `expect(hint).toBeNull()` with `expect(hint).not.toBeVisible()`.
+   - Where the field has the shortcut, the hint now stays in the DOM with the `hidden` attribute while it does not show. Replace `expect(hint).toBeNull()` with `expect(hint).not.toBeVisible()`. Where the field has no shortcut, keep `expect(hint).toBeNull()`.
 6. Run your formatter, linter, type checker, and tests.
 
 > **Why a component and not a prop?** The `/` shortcut is not specific to `Query`: a plain `Input`, a `Combobox.Input`, and a `TextArea` need it too, and a prop on each field is four copies of one behavior. A part also lets the hint go where the design puts it, such as beside a bare `Combobox.Input`.

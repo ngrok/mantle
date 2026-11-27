@@ -101,7 +101,7 @@ import { FocusShortcut } from "@ngrok/mantle/focus-shortcut";
 			<FocusShortcut.Field>
 				<Combobox.Input aria-label="Jump to an account" placeholder="Jump to an account" />
 			</FocusShortcut.Field>
-			<FocusShortcut.Hint className="absolute inset-y-0 inset-e-2.5 my-auto" />
+			<FocusShortcut.Hint className="pointer-events-none absolute inset-y-0 inset-e-2.5 my-auto" />
 		</div>
 	</FocusShortcut.Root>
 	<Combobox.Content>
@@ -136,11 +136,13 @@ Inside `Field.Control`, put `FocusShortcut.Root` outside the control and `FocusS
 - `/` does nothing with Meta, Ctrl, or Alt held, while an IME composes, or on a key repeat.
 - A field that is disabled (natively, by a `fieldset`, or with `aria-disabled` on it or a group around it), not displayed, or behind a modal (`inert` or `aria-hidden="true"` on an ancestor) does not take the key. The key then goes to the next field with the shortcut.
 - When two fields have the shortcut, `/` goes to the field that mounted first and can take focus. Give the shortcut to one field per page.
+- The hint follows typing, focus, `disabled`, and a controlled `value`. When your code sets the field's `value` property directly, dispatch an `input` event so the hint updates.
+- To let a user turn the shortcut off, such as from a keyboard-shortcuts setting, render the field without `FocusShortcut.Root` while the setting is off.
 - A listener that calls `preventDefault()` on the key first keeps the key. `FocusShortcut.Field` calls `preventDefault()` when it takes the key, so the slash does not type into the field.
 
 ## Accessibility
 
-- `FocusShortcut.Field` adds `/` to the field's `aria-keyshortcuts`, and keeps the shortcuts you set.
+- `FocusShortcut.Field` adds `/` to the field's `aria-keyshortcuts`, and keeps the shortcuts you set on its direct child. Put `FocusShortcut.Field` directly around the element that takes focus, such as the `InputCapture` inside an `Input`, and set other shortcuts on that element.
 - `FocusShortcut.Hint` is `aria-hidden`, because `aria-keyshortcuts` names the key to assistive tech.
 - A device that cannot hover, such as a phone, usually has no key to press, so the hint does not show there. The shortcut stays.
 

@@ -39,6 +39,7 @@ utils:
           - inside: { kind: rest_pattern }
           - inside: { kind: arrow_function, field: parameter }
           - inside: { kind: catch_clause, field: parameter }
+          - inside: { kind: for_in_statement, field: left }
       - kind: type_identifier
         inside: { kind: class_declaration, field: name }
   # A function declaration opens a scope, so the search above stops at it and
@@ -137,12 +138,23 @@ utils:
     not:
       any:
         - inside: { kind: member_expression, field: object }
+        # The one import the wrapper needs: a value import under its own name.
         - inside:
-            stopBy: end
-            kind: import_statement
-            has:
-              field: source
-              regex: ^["']@ngrok/mantle/focus-shortcut["']$
+            kind: import_specifier
+            # Why regex: `type` is an anonymous token, which `kind` does not match.
+            not:
+              any:
+                - has: { field: alias, kind: identifier }
+                - regex: ^type\s
+            inside:
+              stopBy: end
+              kind: import_statement
+              all:
+                - has:
+                    field: source
+                    regex: ^["']@ngrok/mantle/focus-shortcut["']$
+                - not:
+                    regex: ^import\s+type\s
   # An opening or self-closing tag that the wrap rules rewrite.
   shortcut-tag:
     all:
@@ -196,6 +208,30 @@ utils:
               has:
                 kind: property_identifier
                 regex: ^asChild$
+          # A spread can set `asChild`.
+          - has:
+              kind: jsx_expression
+              has:
+                kind: spread_element
+          # Any local name of mantle's `Slot`.
+          - all:
+              - has:
+                  field: name
+                  kind: identifier
+                  pattern: $SLOT_PARENT
+              - inside:
+                  stopBy: end
+                  kind: program
+                  has:
+                    kind: import_statement
+                    all:
+                      - has:
+                          field: source
+                          regex: ^["']@ngrok/mantle/slot["']$
+                      - has:
+                          stopBy: end
+                          kind: identifier
+                          pattern: $SLOT_PARENT
   # Why: ast-grep indents each line of the wrapped tag, which would change
   # the text of a multi-line string.
   multi-line-string:
@@ -302,6 +338,7 @@ utils:
           - inside: { kind: rest_pattern }
           - inside: { kind: arrow_function, field: parameter }
           - inside: { kind: catch_clause, field: parameter }
+          - inside: { kind: for_in_statement, field: left }
       - kind: type_identifier
         inside: { kind: class_declaration, field: name }
   # A function declaration opens a scope, so the search above stops at it and
@@ -400,12 +437,23 @@ utils:
     not:
       any:
         - inside: { kind: member_expression, field: object }
+        # The one import the wrapper needs: a value import under its own name.
         - inside:
-            stopBy: end
-            kind: import_statement
-            has:
-              field: source
-              regex: ^["']@ngrok/mantle/focus-shortcut["']$
+            kind: import_specifier
+            # Why regex: `type` is an anonymous token, which `kind` does not match.
+            not:
+              any:
+                - has: { field: alias, kind: identifier }
+                - regex: ^type\s
+            inside:
+              stopBy: end
+              kind: import_statement
+              all:
+                - has:
+                    field: source
+                    regex: ^["']@ngrok/mantle/focus-shortcut["']$
+                - not:
+                    regex: ^import\s+type\s
   # An opening or self-closing tag that the wrap rules rewrite.
   shortcut-tag:
     all:
@@ -459,6 +507,30 @@ utils:
               has:
                 kind: property_identifier
                 regex: ^asChild$
+          # A spread can set `asChild`.
+          - has:
+              kind: jsx_expression
+              has:
+                kind: spread_element
+          # Any local name of mantle's `Slot`.
+          - all:
+              - has:
+                  field: name
+                  kind: identifier
+                  pattern: $SLOT_PARENT
+              - inside:
+                  stopBy: end
+                  kind: program
+                  has:
+                    kind: import_statement
+                    all:
+                      - has:
+                          field: source
+                          regex: ^["']@ngrok/mantle/slot["']$
+                      - has:
+                          stopBy: end
+                          kind: identifier
+                          pattern: $SLOT_PARENT
   # Why: ast-grep indents each line of the wrapped tag, which would change
   # the text of a multi-line string.
   multi-line-string:
@@ -564,6 +636,7 @@ utils:
           - inside: { kind: rest_pattern }
           - inside: { kind: arrow_function, field: parameter }
           - inside: { kind: catch_clause, field: parameter }
+          - inside: { kind: for_in_statement, field: left }
       - kind: type_identifier
         inside: { kind: class_declaration, field: name }
   # A function declaration opens a scope, so the search above stops at it and
@@ -662,12 +735,23 @@ utils:
     not:
       any:
         - inside: { kind: member_expression, field: object }
+        # The one import the wrapper needs: a value import under its own name.
         - inside:
-            stopBy: end
-            kind: import_statement
-            has:
-              field: source
-              regex: ^["']@ngrok/mantle/focus-shortcut["']$
+            kind: import_specifier
+            # Why regex: `type` is an anonymous token, which `kind` does not match.
+            not:
+              any:
+                - has: { field: alias, kind: identifier }
+                - regex: ^type\s
+            inside:
+              stopBy: end
+              kind: import_statement
+              all:
+                - has:
+                    field: source
+                    regex: ^["']@ngrok/mantle/focus-shortcut["']$
+                - not:
+                    regex: ^import\s+type\s
   # An opening or self-closing tag that the wrap rules rewrite.
   shortcut-tag:
     all:
@@ -721,6 +805,30 @@ utils:
               has:
                 kind: property_identifier
                 regex: ^asChild$
+          # A spread can set `asChild`.
+          - has:
+              kind: jsx_expression
+              has:
+                kind: spread_element
+          # Any local name of mantle's `Slot`.
+          - all:
+              - has:
+                  field: name
+                  kind: identifier
+                  pattern: $SLOT_PARENT
+              - inside:
+                  stopBy: end
+                  kind: program
+                  has:
+                    kind: import_statement
+                    all:
+                      - has:
+                          field: source
+                          regex: ^["']@ngrok/mantle/slot["']$
+                      - has:
+                          stopBy: end
+                          kind: identifier
+                          pattern: $SLOT_PARENT
   # Why: ast-grep indents each line of the wrapped tag, which would change
   # the text of a multi-line string.
   multi-line-string:
@@ -769,6 +877,12 @@ rule:
       - kind: jsx_opening_element
       - kind: jsx_self_closing_element
     matches: mantle-query-input
+    # Why: a later spread can turn the shortcut on, so the site stays manual.
+    not:
+      has:
+        kind: jsx_expression
+        has:
+          kind: spread_element
 fix: ""
 
 ---
@@ -810,6 +924,7 @@ utils:
           - inside: { kind: rest_pattern }
           - inside: { kind: arrow_function, field: parameter }
           - inside: { kind: catch_clause, field: parameter }
+          - inside: { kind: for_in_statement, field: left }
       - kind: type_identifier
         inside: { kind: class_declaration, field: name }
   # A function declaration opens a scope, so the search above stops at it and
@@ -908,12 +1023,23 @@ utils:
     not:
       any:
         - inside: { kind: member_expression, field: object }
+        # The one import the wrapper needs: a value import under its own name.
         - inside:
-            stopBy: end
-            kind: import_statement
-            has:
-              field: source
-              regex: ^["']@ngrok/mantle/focus-shortcut["']$
+            kind: import_specifier
+            # Why regex: `type` is an anonymous token, which `kind` does not match.
+            not:
+              any:
+                - has: { field: alias, kind: identifier }
+                - regex: ^type\s
+            inside:
+              stopBy: end
+              kind: import_statement
+              all:
+                - has:
+                    field: source
+                    regex: ^["']@ngrok/mantle/focus-shortcut["']$
+                - not:
+                    regex: ^import\s+type\s
   # An opening or self-closing tag that the wrap rules rewrite.
   shortcut-tag:
     all:
@@ -967,6 +1093,30 @@ utils:
               has:
                 kind: property_identifier
                 regex: ^asChild$
+          # A spread can set `asChild`.
+          - has:
+              kind: jsx_expression
+              has:
+                kind: spread_element
+          # Any local name of mantle's `Slot`.
+          - all:
+              - has:
+                  field: name
+                  kind: identifier
+                  pattern: $SLOT_PARENT
+              - inside:
+                  stopBy: end
+                  kind: program
+                  has:
+                    kind: import_statement
+                    all:
+                      - has:
+                          field: source
+                          regex: ^["']@ngrok/mantle/slot["']$
+                      - has:
+                          stopBy: end
+                          kind: identifier
+                          pattern: $SLOT_PARENT
   # Why: ast-grep indents each line of the wrapped tag, which would change
   # the text of a multi-line string.
   multi-line-string:

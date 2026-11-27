@@ -5,6 +5,7 @@ import { Query } from "@ngrok/mantle/query";
 import { Query as MantleQuery } from "@ngrok/mantle/query";
 import { Query as OtherQuery } from "other-library";
 import { Slot } from "@ngrok/mantle/slot";
+import { Slot as Box } from "@ngrok/mantle/slot";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 
 declare function show(node: unknown): void;
@@ -182,7 +183,7 @@ export function NestedInProp({ enabled }: { enabled: boolean }) {
 	);
 }
 
-// `Slot` and an `asChild` part pass their ref and props to their one child, so the field stays.
+// `Slot` under any name and an `asChild` part, also through a spread, pass their ref and props to their one child, so the field stays.
 export function InSlot() {
 	return (
 		<>
@@ -190,6 +191,12 @@ export function InSlot() {
 				<Query.Input keyboardShortcut />
 			</Slot>
 			<Tooltip.Trigger asChild>
+				<Query.Input keyboardShortcut />
+			</Tooltip.Trigger>
+			<Box aria-label="Search">
+				<Query.Input keyboardShortcut />
+			</Box>
+			<Tooltip.Trigger {...{ asChild: true }}>
 				<Query.Input keyboardShortcut />
 			</Tooltip.Trigger>
 		</>
@@ -213,4 +220,18 @@ two`)
 			}
 		/>
 	);
+}
+
+// A later spread can turn `{false}` back on, so the prop stays.
+export function OffThenSpread(props: { keyboardShortcut?: boolean }) {
+	return <Query.Input aria-label="Filter" keyboardShortcut={false} {...props} />;
+}
+
+// A loop variable that shadows the import stays.
+export function LoopShadowed({ views }: { views: (typeof OtherQuery)[] }) {
+	const fields = [];
+	for (const Query of views) {
+		fields.push(<Query.Input keyboardShortcut />);
+	}
+	return fields;
 }

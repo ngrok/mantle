@@ -447,6 +447,96 @@ describe("FocusShortcut", () => {
 			expect(onRender).toHaveBeenCalledTimes(mounted);
 		});
 
+		test("stops tracking a replaced field whose child ref returns no cleanup", () => {
+			function Legacy({ ref, ...props }: ComponentProps<"input">) {
+				return (
+					<input
+						{...props}
+						ref={(node) => {
+							if (typeof ref === "function") {
+								ref(node);
+							}
+						}}
+					/>
+				);
+			}
+			function Swap({ legacy }: { legacy: boolean }) {
+				return (
+					<FocusShortcut.Root>
+						<FocusShortcut.Field>
+							{legacy ? <Legacy aria-label="Old" /> : <input aria-label="New" />}
+						</FocusShortcut.Field>
+						<FocusShortcut.Hint data-testid="hint" />
+					</FocusShortcut.Root>
+				);
+			}
+			const { rerender } = render(<Swap legacy />);
+			const old = screen.getByRole<HTMLInputElement>("textbox", { name: "Old" });
+			rerender(<Swap legacy={false} />);
+
+			act(() => {
+				old.value = "acme";
+				old.dispatchEvent(new Event("input"));
+			});
+
+			expect(screen.getByTestId("hint")).not.toHaveAttribute("hidden");
+		});
+
+		test("does not attach the child's ref again when a hint mounts", () => {
+			const childRef = vi.fn<(node: HTMLInputElement | null) => void>();
+			function Toggle({ withHint }: { withHint: boolean }) {
+				return (
+					<FocusShortcut.Root>
+						<FocusShortcut.Field>
+							<input aria-label="Search" ref={childRef} />
+						</FocusShortcut.Field>
+						{withHint && <FocusShortcut.Hint />}
+					</FocusShortcut.Root>
+				);
+			}
+			const { rerender } = render(<Toggle withHint={false} />);
+			const attached = childRef.mock.calls.length;
+
+			rerender(<Toggle withHint />);
+
+			expect(childRef).toHaveBeenCalledTimes(attached);
+		});
+
+		test("ignores a queued reset once the field is replaced", () => {
+			function Replacing() {
+				const [generation, setGeneration] = useState(0);
+				return (
+					<form onReset={() => setGeneration(generation + 1)}>
+						<FocusShortcut.Root>
+							<FocusShortcut.Field>
+								<input
+									aria-label="Search"
+									defaultValue={generation === 0 ? "acme" : undefined}
+									key={generation}
+								/>
+							</FocusShortcut.Field>
+							<FocusShortcut.Hint data-testid="hint" />
+						</FocusShortcut.Root>
+						<button type="reset">Reset</button>
+					</form>
+				);
+			}
+			vi.useFakeTimers();
+			try {
+				const { container } = render(<Replacing />);
+
+				act(() => container.querySelector("form")?.reset());
+				act(() => {
+					vi.runAllTimers();
+				});
+
+				expect(screen.getByRole("textbox", { name: "Search" })).toHaveValue("");
+				expect(screen.getByTestId("hint")).not.toHaveAttribute("hidden");
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
 		test("owns `hidden` and `aria-hidden` over an asChild child", () => {
 			render(
 				<FocusShortcut.Root>

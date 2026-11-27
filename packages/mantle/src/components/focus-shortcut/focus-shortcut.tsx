@@ -53,19 +53,26 @@ function isTextControl(target: EventTarget | null): boolean {
 }
 
 /**
- * Whether the field or an ancestor matches the selector in the rendered tree:
- * through the slot a light-DOM child renders in, and out of each shadow root.
+ * The field and its ancestors in the rendered tree: through the slot a
+ * light-DOM child renders in, and out of each shadow root.
  */
-function isWithin(field: HTMLElement, selector: string): boolean {
+function* renderedAncestors(field: HTMLElement): Generator<Element> {
 	for (let node: Element | null = field; node != null;) {
-		if (node.matches(selector)) {
-			return true;
-		}
+		yield node;
 		const parent: Node | null = node.assignedSlot ?? node.parentNode;
 		if (parent instanceof ShadowRoot) {
 			node = parent.host;
 		} else {
 			node = parent instanceof Element ? parent : null;
+		}
+	}
+}
+
+/** Whether the field or an ancestor in the rendered tree matches the selector. */
+function isWithin(field: HTMLElement, selector: string): boolean {
+	for (const node of renderedAncestors(field)) {
+		if (node.matches(selector)) {
+			return true;
 		}
 	}
 	return false;
@@ -242,48 +249,63 @@ function Field({
 		return () => window.removeEventListener("keydown", handleWindowKeyDown);
 	}, []);
 
-	const fieldCallbackRef = useCallback(
-		(field: HTMLElement | null) => {
-			fieldRef.current = field;
-			// Why only with a hint: without one, nothing reads the field's state.
-			if (field == null || !hasHint) {
-				return;
+	// Why state: the hint tracking below must restart when the child renders another element.
+	const [field, setField] = useState<HTMLElement | null>(null);
+	// Why stable: a new ref callback would detach and attach the child's own ref,
+	// which runs a mount-time callback, such as autofocus, again.
+	const fieldCallbackRef = useCallback((node: HTMLElement | null) => {
+		fieldRef.current = node;
+		setField(node);
+	}, []);
+	const composedRef = useComposedRefs(ref, fieldCallbackRef);
+
+	// Why an effect and not the ref callback: the tracking starts and stops with the hint,
+	// and must not detach the child's ref to do so.
+	useIsomorphicLayoutEffect(() => {
+		// Why only with a hint: without one, nothing reads the field's state.
+		if (field == null || !hasHint) {
+			return;
+		}
+		let resetTimer: ReturnType<typeof setTimeout> | undefined;
+		const syncHint = () => setIsHintShown(field.isConnected && canShowHint(field));
+		// Why the document and after a task: the field's form can change, and the `reset`
+		// event fires before the form restores the values.
+		const handleReset = (event: Event) => {
+			if ("form" in field && event.target === field.form) {
+				resetTimer = setTimeout(syncHint);
 			}
-			const syncHint = () => setIsHintShown(field.isConnected && canShowHint(field));
-			// Why after a task: the `reset` event fires before the form restores the values.
-			const syncAfterReset = () => setTimeout(syncHint);
-			// Why observe attributes: React writes a controlled `value` and `disabled` to the
-			// attributes, so the hint follows state that only the child owns.
-			const observer = new MutationObserver(syncHint);
-			observer.observe(field, {
-				attributeFilter: ["value", "disabled", "aria-disabled"],
-				characterData: true,
-				childList: true,
-				subtree: true,
-			});
-			// A disabled `fieldset` or an `aria-disabled` group disables the field too.
-			for (let node = field.parentElement; node != null; node = node.parentElement) {
+		};
+		// Why observe attributes: React writes a controlled `value` and `disabled` to the
+		// attributes, so the hint follows state that only the child owns.
+		const observer = new MutationObserver(syncHint);
+		observer.observe(field, {
+			attributeFilter: ["value", "disabled", "aria-disabled"],
+			characterData: true,
+			childList: true,
+			subtree: true,
+		});
+		// A disabled `fieldset` or an `aria-disabled` group disables the field too.
+		for (const node of renderedAncestors(field)) {
+			if (node !== field) {
 				observer.observe(node, { attributeFilter: ["disabled", "aria-disabled"] });
 			}
-			const form = "form" in field && field.form instanceof HTMLFormElement ? field.form : null;
-			const events = ["focus", "blur", "input", "change"];
+		}
+		const events = ["focus", "blur", "input", "change"];
+		for (const type of events) {
+			field.addEventListener(type, syncHint);
+		}
+		field.ownerDocument.addEventListener("reset", handleReset);
+		syncHint();
+		return () => {
+			clearTimeout(resetTimer);
+			observer.disconnect();
 			for (const type of events) {
-				field.addEventListener(type, syncHint);
+				field.removeEventListener(type, syncHint);
 			}
-			form?.addEventListener("reset", syncAfterReset);
-			syncHint();
-			return () => {
-				observer.disconnect();
-				for (const type of events) {
-					field.removeEventListener(type, syncHint);
-				}
-				form?.removeEventListener("reset", syncAfterReset);
-				setIsHintShown(false);
-			};
-		},
-		[hasHint, setIsHintShown],
-	);
-	const composedRef = useComposedRefs(ref, fieldCallbackRef);
+			field.ownerDocument.removeEventListener("reset", handleReset);
+			setIsHintShown(false);
+		};
+	}, [field, hasHint, setIsHintShown]);
 
 	// Why on each render, before paint: a new `value` or `disabled` from the app fires no DOM event.
 	useIsomorphicLayoutEffect(() => {

@@ -42,7 +42,7 @@ export function ComboboxExample() {
 						<FocusShortcut.Field>
 							<Combobox.Input aria-label="Jump to an account" placeholder="Jump to an account" />
 						</FocusShortcut.Field>
-						<FocusShortcut.Hint className="absolute inset-y-0 inset-e-2.5 my-auto" />
+						<FocusShortcut.Hint className="pointer-events-none absolute inset-y-0 inset-e-2.5 my-auto" />
 					</div>
 				</FocusShortcut.Root>
 				<Combobox.Content>

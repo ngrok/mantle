@@ -493,9 +493,9 @@ type QueryInputProps = Omit<
  * in a `[data-slot="query-input-actions"]` wrapper with `display: contents`.
  * The clear button sits after that wrapper, not inside it.
  *
- * To let `/` focus the field, wrap it in `FocusShortcut.Field` from
- * `@ngrok/mantle/focus-shortcut`, and pass `FocusShortcut.Hint` as a child to
- * show the `/` hint.
+ * To let `/` focus the field, wrap it in `FocusShortcut.Field` inside
+ * `FocusShortcut.Root` from `@ngrok/mantle/focus-shortcut`, and pass
+ * `FocusShortcut.Hint` as a child to show the `/` hint.
  *
  * **CSS variables:**
  *
