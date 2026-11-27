@@ -3,6 +3,7 @@ import {
 	SidebarNarrowMenuExample,
 	SidebarPolymorphismDemo,
 	SidebarCollapsedTooltipExample,
+	SidebarCollapsibleGroupsExample,
 	SidebarRowWidthMenuExample,
 	SidebarWidthExample,
 } from "~/features/sidebar-demos";
@@ -58,6 +59,15 @@ export function NavigationAnatomyExample() {
 	return (
 		<PreviewCanvas className="min-h-160 p-4 md:p-8">
 			<SidebarAnatomyDemo />
+		</PreviewCanvas>
+	);
+}
+
+/** The "Collapsible groups" example on the Sidebar docs page. */
+export function CollapsibleGroupsExample() {
+	return (
+		<PreviewCanvas className="min-h-160 p-4 md:p-8">
+			<SidebarCollapsibleGroupsExample />
 		</PreviewCanvas>
 	);
 }

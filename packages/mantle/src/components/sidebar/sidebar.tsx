@@ -1,9 +1,21 @@
 "use client";
 
+import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 import { SidebarSimpleIcon } from "@phosphor-icons/react/SidebarSimple";
-import type { ComponentProps, ReactElement, ReactNode } from "react";
+import type {
+	ComponentProps,
+	MouseEvent,
+	PointerEvent,
+	ReactElement,
+	ReactNode,
+	RefObject,
+} from "react";
 import {
+	Children,
+	cloneElement,
 	createContext,
+	Fragment,
+	isValidElement,
 	useCallback,
 	useContext,
 	useEffect,
@@ -15,12 +27,23 @@ import {
 	startTransition,
 } from "react";
 import invariant from "tiny-invariant";
+import { useControllableState } from "../../behaviors/use-controllable-state.js";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useIsBelowBreakpoint } from "../../hooks/use-breakpoint.js";
 import { useIsApplePlatform } from "../../hooks/use-is-apple-platform.js";
+import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { useIsHydratedAfterPaint } from "../../hooks/use-is-hydrated-after-paint.js";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import {
+	floatClassName,
+	hasPopoverApi,
+	useFloat,
+	useReconcileOnTriggerChange,
+	useTriggerRef,
+} from "../../utils/float/use-float.js";
 import {
 	Content as NativeContent,
 	closeAfterExit,
@@ -36,6 +59,7 @@ import { IconButton } from "../button/icon-button.js";
 import { Separator } from "../separator/separator.js";
 import { contentSurfaceClassName } from "../sheet/presentation.js";
 import { Slot } from "../slot/index.js";
+import { slotContent } from "../slot/slot.js";
 import * as Tooltip from "../tooltip/tooltip-parts.js";
 import { SidebarWidthRequestContext } from "./width-request-context.js";
 
@@ -630,6 +654,19 @@ const Root = ({
 			// on `window` in the bubble phase and calls preventDefault(), so
 			// without the guard it reaches inside every input and embedded editor.
 			if (isTextEditingTarget(event.target)) {
+				return;
+			}
+			// Why: a modal makes the page under it inert, so the chord does not
+			// change the sidebar there. The sidebar's own sheet is the exception.
+			// Why the focused modal, else every modal, as when focus fell to `body`:
+			// modals stack, and DOM order is not their order.
+			const focusedModal =
+				event.target instanceof Element ? event.target.closest("dialog:modal") : null;
+			const modals =
+				focusedModal == null ? document.querySelectorAll("dialog:modal") : [focusedModal];
+			if (
+				Array.from(modals).some((modal) => modal.querySelector("[data-slot~=sidebar-nav]") == null)
+			) {
 				return;
 			}
 			const platformModifier = isApple ? event.metaKey : event.ctrlKey;
@@ -1483,6 +1520,58 @@ type SidebarGroupContextValue = {
 
 const SidebarGroupContext = createContext<SidebarGroupContextValue | null>(null);
 
+/** How the flyout of a `Sidebar.Disclosure` opened: a click pins it, a hover closes when the pointer leaves. */
+type FlyoutMode = "click" | "hover";
+
+type SidebarDisclosureContextValue = {
+	/** The id of the trigger. It names the list. */
+	triggerId: string;
+	/** The id of the list. The trigger controls it. */
+	listId: string;
+	/** Whether the list shows in place, in the expanded sidebar and in the mobile sheet. */
+	open: boolean;
+	/** Opens the list in place. Keeps one identity across renders. */
+	reveal: () => void;
+	/** Whether the sidebar is the collapsed rail, where the list is a flyout. */
+	rail: boolean;
+	/** Whether the flyout is open. Only `true` in the rail. */
+	flyoutOpen: boolean;
+	/** Closes the flyout. Keeps one identity across renders. */
+	hideFlyout: () => void;
+	/** Keeps a hover flyout open, as a click does. Keeps one identity across renders. */
+	pinFlyout: () => void;
+	/** The element of the trigger, which the flyout sits next to. */
+	triggerRef: RefObject<HTMLElement | null>;
+	/** Opens the flyout and keeps it open, as a click does. */
+	showFlyout: () => void;
+	/** True when another group's flyout closed this one. Focus then stays where it is. */
+	yieldedRef: RefObject<boolean>;
+	/** Sets the trigger's element, and places an open flyout again when it changes. */
+	setTrigger: (element: HTMLElement | null) => void;
+	/** Runs when the trigger's element changes. The list sets it. */
+	onTriggerChangeRef: RefObject<(() => void) | null>;
+	/** The trigger's click, Enter, and Space. */
+	onTriggerClick: () => void;
+	/** A mouse that enters the trigger or the flyout. */
+	onPointerEnter: (event: PointerEvent<HTMLElement>) => void;
+	/** A mouse that leaves the trigger or the flyout. */
+	onPointerLeave: (event: PointerEvent<HTMLElement>) => void;
+};
+
+const SidebarDisclosureContext = createContext<SidebarDisclosureContextValue | null>(null);
+
+/**
+ * Closes the flyout that is open now, if any. Why one for the page: a hover
+ * on another group's icon switches the flyout at once, as a menu bar does.
+ */
+let closeOpenFlyout: (() => void) | null = null;
+
+/** How long a mouse rests on a group's icon before its flyout opens, in milliseconds. */
+const FLYOUT_OPEN_DELAY = 150;
+
+/** How long a hover flyout stays open after the mouse leaves it, in milliseconds. It matches `HoverCard`. */
+const FLYOUT_CLOSE_DELAY = 300;
+
 type SidebarGroupProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
@@ -1861,27 +1950,136 @@ const Item = ({
  * An array argument skips that cache, and the call then joins and re-hashes a
  * fresh class string on every row render.
  */
-const rowClassName = [
-	"focus-visible:focus-ring flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-normal",
-	"text-body hover:text-strong hover:bg-neutral-500/10",
-	// A row composed as a menu or dialog trigger stays highlighted while the
-	// surface it opens is open, matching Sidebar.SwitcherTrigger.
-	"aria-expanded:bg-neutral-500/15 aria-expanded:text-strong",
+const rowShapeClassName =
+	"focus-visible:focus-ring flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-normal text-body hover:text-strong hover:bg-neutral-500/10";
+
+/** In the collapsed sidebar a row's name clips with no ellipsis, so a collapse shows no shimmer of dots. */
+const railClipClassName = "group-not-data-expanded/sidebar-nav:text-clip";
+
+/** Whether a child is text that shows: a string or a number that is not only whitespace. */
+const isText = (item: ReactNode) =>
+	(typeof item === "string" || typeof item === "number") && String(item).trim() !== "";
+
+/**
+ * Wraps each run of text in `children` in a `<span>` that ends a long name in
+ * an ellipsis. Elements, such as the leading icon, stay children of the row.
+ *
+ * Why a box: a row is a flex container, and `text-overflow` does not apply to
+ * its bare text, so the row alone can only cut a name mid-word. Why not
+ * `contents`: the span must be a box to clip. Why only text: an element beside
+ * the span is safe on a translated page, as an element beside bare text is not.
+ */
+function truncateText(children: ReactNode, slot: string, className?: string): ReactNode {
+	// Why: a router link can take a render function as its children.
+	if (typeof children === "function") {
+		return children;
+	}
+	const items: ReactNode[] = [];
+	const collect = (node: ReactNode, keyPrefix: string) => {
+		for (const child of Children.toArray(node)) {
+			// Why: a fragment's text sits beside its icon in the row all the same.
+			if (isValidElement<{ children?: ReactNode }>(child) && child.type === Fragment) {
+				collect(child.props.children, `${keyPrefix}${child.key ?? ""}`);
+			} else {
+				items.push(
+					isValidElement(child) && keyPrefix !== ""
+						? cloneElement(child, { key: `${keyPrefix}${child.key ?? ""}` })
+						: child,
+				);
+			}
+		}
+	};
+	collect(children, "");
+	// Why unchanged with no text: a slotted child, such as a menu trigger with
+	// `asChild`, needs its one element, and a void element needs no children.
+	// Why the flat list for several children: the keys then match the list with
+	// text, so a keyed sibling does not remount when a name comes and goes.
+	if (!items.some(isText)) {
+		// Why a fragment too: the list with text flattens it.
+		return Array.isArray(children) || (isValidElement(children) && children.type === Fragment)
+			? items
+			: children;
+	}
+	const content: ReactNode[] = [];
+	let text = "";
+	let runs = 0;
+	const flush = () => {
+		// Why whitespace stays bare: a flex row drops it, and a span would add a gap.
+		if (text.trim() === "") {
+			if (text !== "") {
+				content.push(text);
+			}
+		} else {
+			content.push(
+				<span key={`text-${runs++}`} data-slot={slot} className={cx("min-w-0 truncate", className)}>
+					{text}
+				</span>,
+			);
+		}
+		text = "";
+	};
+	for (const item of items) {
+		if (typeof item === "string" || typeof item === "number") {
+			text += item;
+		} else {
+			flush();
+			content.push(item);
+		}
+	}
+	flush();
+	return content.length === 1 ? content[0] : content;
+}
+
+/**
+ * Runs `render` on the content of an `asChild` row. Why it follows the chain:
+ * a slotted element with its own `asChild`, such as a menu trigger, renders
+ * its child, so the text is that child's content.
+ */
+function slotText(element: ReactNode, render: (inner: ReactNode) => ReactNode): ReactNode {
+	return slotContent(element, (inner) =>
+		isValidElement<{ asChild?: boolean }>(element) && element.props.asChild === true
+			? slotText(inner, render)
+			: render(inner),
+	);
+}
+
+/** The name of a group's trigger, which clips in the collapsed sidebar as the other rows do. */
+const triggerText = (inner: ReactNode) =>
+	truncateText(inner, "sidebar-disclosure-trigger-text", railClipClassName);
+
+/**
+ * A row composed as a menu or dialog trigger stays highlighted while the
+ * surface it opens is open, matching Sidebar.SwitcherTrigger.
+ */
+const rowExpandedClassName = "aria-expanded:bg-neutral-500/15 aria-expanded:text-strong";
+
+/**
+ * A row inside `Sidebar.DisclosureList`. It keeps the row shape in the
+ * collapsed sidebar too: there the list is a flyout beside the rail, with room
+ * for each label.
+ */
+const nestedRowClassName = `${rowShapeClassName} ${rowExpandedClassName}`;
+
+/**
+ * The 28px chip that a row in the collapsed sidebar turns into, with the
+ * transition that runs on the sidebar's clock.
+ */
+const rowChipClassName = [
 	// In the collapsed sidebar the row returns to its original 28px square
 	// chip. ml-1 keeps body and footer icons aligned with their expanded
 	// position and the switcher indicators.
 	"group-not-data-expanded/sidebar-nav:ml-1",
 	"group-not-data-expanded/sidebar-nav:w-7",
 	"group-not-data-expanded/sidebar-nav:p-1",
-	// Why text-clip: the label clips with no ellipsis, so a collapse shows no
-	// shimmer of dots as the row narrows.
-	"group-not-data-expanded/sidebar-nav:text-clip",
+	railClipClassName,
 	// Why these three properties: the chip and the row trade width, padding,
 	// and margin, and the sidebar's width runs on the same clock, so the row grows
 	// with the sidebar instead of taking the row shape on the first frame. Colors
 	// stay instant.
 	`transition-[width,padding,margin] ${collapseTransitionClassName}`,
 ].join(" ");
+
+const rowClassName = `${nestedRowClassName} ${rowChipClassName}`;
 
 type SidebarItemButtonProps = ComponentProps<"button"> &
 	WithAsChild &
@@ -1931,6 +2129,7 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
+ * | `data-slot` | `"sidebar-item-button-label"` | On the `<span>` that wraps each run of text in `children`, also under `asChild`. Ends a long name in an ellipsis. |
  * | `aria-current` | `"page"` when `current` | Styles the current row with `aria-[current=page]:`, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop. |
  * | `aria-expanded` | `"true"` \| `"false"` | **Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
  *
@@ -1996,6 +2195,14 @@ const ItemButton = ({
 	...props
 }: SidebarItemButtonProps) => {
 	const Comp = asChild ? Slot : "button";
+	const disclosure = useContext(SidebarDisclosureContext);
+	// Why no rail clip in a group: its rows show in the flyout, with room for an ellipsis.
+	const itemLabel = (content: ReactNode) =>
+		truncateText(
+			content,
+			"sidebar-item-button-label",
+			disclosure == null ? railClipClassName : undefined,
+		);
 
 	return (
 		<Comp
@@ -2003,7 +2210,7 @@ const ItemButton = ({
 			aria-current={current ? "page" : undefined}
 			type={asChild ? type : (type ?? "button")}
 			className={cx(
-				rowClassName,
+				disclosure == null ? rowClassName : nestedRowClassName,
 				// The current row is styled from `aria-current`, so a composed child
 				// that sets `aria-current="page"` on its own (react-router's
 				// `NavLink` does) gets the same style as `current`.
@@ -2016,8 +2223,950 @@ const ItemButton = ({
 			)}
 			{...props}
 		>
-			{children}
+			{asChild ? slotText(children, itemLabel) : itemLabel(children)}
 		</Comp>
+	);
+};
+
+type SidebarDisclosureProps = ComponentProps<"li"> &
+	WithAsChild &
+	WithDataSlot & {
+		/**
+		 * Whether the group's list shows in place, on the first render. Pass
+		 * `true` for the group that holds the current route, so the server render
+		 * is the final one.
+		 */
+		defaultOpen?: boolean;
+		/** Controlled in-place open state. Pair with `onOpenChange`. */
+		open?: boolean;
+		/** Called when the in-place open state changes. The flyout in the collapsed sidebar does not call it. */
+		onOpenChange?: (open: boolean) => void;
+	};
+
+/**
+ * A collapsible group of navigation rows inside a `Sidebar.List`: a row that
+ * shows or hides the pages under it. Renders an `<li>` that holds the group's
+ * state for its `Sidebar.DisclosureTrigger` and `Sidebar.DisclosureList`.
+ *
+ * In the expanded sidebar and the mobile sheet, the trigger folds the list in
+ * place. In the collapsed sidebar, the trigger opens the same list as a flyout
+ * of links beside its icon: on a click, a tap, Enter, or Space, and after a
+ * short rest of the mouse. It is the WAI-ARIA disclosure pattern, not a menu:
+ * the links stay in the page's tab order.
+ *
+ * A row inside the list that becomes `current`, as on a client navigation,
+ * opens its group. For the first render, pass `defaultOpen` from your router.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebardisclosure
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Root>
+ *   <Sidebar.Nav aria-label="Main">
+ *     <Sidebar.Body>
+ *       <Sidebar.Group>
+ *         <Sidebar.List>
+ *           <Sidebar.Item>
+ *             <Sidebar.ItemButton asChild>
+ *               <a href="/setup">
+ *                 <RocketIcon />
+ *                 Setup guide
+ *               </a>
+ *             </Sidebar.ItemButton>
+ *           </Sidebar.Item>
+ *           <Sidebar.Disclosure defaultOpen={pathname.startsWith("/mcp")}>
+ *             <Sidebar.DisclosureTrigger>
+ *               <PlugsIcon />
+ *               MCP Gateway
+ *             </Sidebar.DisclosureTrigger>
+ *             <Sidebar.DisclosureList>
+ *               <Sidebar.Item>
+ *                 <Sidebar.ItemButton asChild current={pathname === "/mcp/servers"}>
+ *                   <a href="/mcp/servers">Servers</a>
+ *                 </Sidebar.ItemButton>
+ *               </Sidebar.Item>
+ *             </Sidebar.DisclosureList>
+ *           </Sidebar.Disclosure>
+ *         </Sidebar.List>
+ *       </Sidebar.Group>
+ *     </Sidebar.Body>
+ *   </Sidebar.Nav>
+ *   <Sidebar.Trigger />
+ * </Sidebar.Root>
+ * ```
+ */
+const Disclosure = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	defaultOpen = false,
+	onOpenChange,
+	open: openProp,
+	...props
+}: SidebarDisclosureProps) => {
+	const { isMobile, open: sidebarOpen } = useSidebarContext("Disclosure");
+	const rail = !isMobile && !sidebarOpen;
+	const [open, setOpen] = useControllableState({
+		value: openProp,
+		defaultValue: defaultOpen,
+		onChange: onOpenChange,
+	});
+	const reveal = useCallbackRef(() => setOpen(true));
+	const baseId = useId();
+	const [flyout, setFlyout] = useState<FlyoutMode | null>(null);
+	// Why in render: the flyout belongs to the rail. A sidebar that expands drops it.
+	if (!rail && flyout != null) {
+		setFlyout(null);
+	}
+	const flyoutOpen = rail && flyout != null;
+	const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
+	const openTimer = useRef(0);
+	const closeTimer = useRef(0);
+	const hideFlyout = useCallback(() => setFlyout(null), []);
+	/** True when another group's flyout took this one's place, so focus stays with the new one. */
+	const yieldedRef = useRef(false);
+	const yieldFlyout = useCallback(() => {
+		yieldedRef.current = true;
+		setFlyout(null);
+	}, []);
+	const showFlyout = useCallback(() => setFlyout("click"), []);
+	const pinFlyout = useCallback(() => {
+		clearTimeout(closeTimer.current);
+		setFlyout((mode) => (mode == null ? null : "click"));
+	}, []);
+
+	useEffect(() => {
+		if (!flyoutOpen) {
+			return;
+		}
+		yieldedRef.current = false;
+		closeOpenFlyout?.();
+		closeOpenFlyout = yieldFlyout;
+		return () => {
+			if (closeOpenFlyout === yieldFlyout) {
+				closeOpenFlyout = null;
+			}
+		};
+	}, [flyoutOpen, yieldFlyout]);
+
+	useEffect(
+		() => () => {
+			clearTimeout(openTimer.current);
+			clearTimeout(closeTimer.current);
+		},
+		[],
+	);
+
+	const onTriggerClick = useCallbackRef(() => {
+		clearTimeout(openTimer.current);
+		clearTimeout(closeTimer.current);
+		if (!rail) {
+			setOpen(!open);
+			return;
+		}
+		// Why a hover flyout pins on a click: the click is the reader asking for it to stay.
+		setFlyout((mode) => (mode === "click" ? null : "click"));
+	});
+
+	/**
+	 * Whether a hover may open the flyout. A disabled trigger opens nothing, and
+	 * a hover must not take a flyout away from a reader whose focus is in it.
+	 */
+	const canHoverOpen = () => {
+		const openFlyout = document.querySelector("[data-flyout][data-open]");
+		return (
+			triggerRef.current?.matches(":disabled, [aria-disabled='true']") !== true &&
+			(openFlyout == null || openFlyout.id === `${baseId}-list` || !holdsFocus(openFlyout))
+		);
+	};
+
+	// Why only a mouse: a touch or a pen has no hover, and its tap is a click.
+	const onPointerEnter = useCallbackRef((event: PointerEvent<HTMLElement>) => {
+		if (event.pointerType !== "mouse" || !rail) {
+			return;
+		}
+		clearTimeout(closeTimer.current);
+		if (flyout != null || !canHoverOpen()) {
+			return;
+		}
+		clearTimeout(openTimer.current);
+		// Why at once when another flyout is open: the reader moves along the rail, as on a menu bar.
+		const delay = closeOpenFlyout == null ? FLYOUT_OPEN_DELAY : 0;
+		// Why check again: the trigger or the focus can change during the rest.
+		openTimer.current = window.setTimeout(() => {
+			if (canHoverOpen()) {
+				setFlyout((mode) => mode ?? "hover");
+			}
+		}, delay);
+	});
+
+	const onPointerLeave = useCallbackRef((event: PointerEvent<HTMLElement>) => {
+		if (event.pointerType !== "mouse" || !rail) {
+			return;
+		}
+		clearTimeout(openTimer.current);
+		if (flyout === "hover") {
+			clearTimeout(closeTimer.current);
+			closeTimer.current = window.setTimeout(hideFlyout, FLYOUT_CLOSE_DELAY);
+		}
+	});
+
+	// Why a memo: each row of the list reads this context, so a new object
+	// would render every row on each hover timer.
+	const contextValue = useMemo<SidebarDisclosureContextValue>(
+		() => ({
+			triggerId: `${baseId}-trigger`,
+			listId: `${baseId}-list`,
+			open,
+			reveal,
+			rail,
+			flyoutOpen,
+			hideFlyout,
+			pinFlyout,
+			showFlyout,
+			triggerRef,
+			yieldedRef,
+			setTrigger,
+			onTriggerChangeRef,
+			onTriggerClick,
+			onPointerEnter,
+			onPointerLeave,
+		}),
+		[
+			baseId,
+			open,
+			reveal,
+			rail,
+			flyoutOpen,
+			hideFlyout,
+			pinFlyout,
+			showFlyout,
+			triggerRef,
+			yieldedRef,
+			setTrigger,
+			onTriggerChangeRef,
+			onTriggerClick,
+			onPointerEnter,
+			onPointerLeave,
+		],
+	);
+	const Comp = asChild ? Slot : "li";
+
+	return (
+		<SidebarDisclosureContext.Provider value={contextValue}>
+			<Comp
+				data-slot={joinDataSlot(dataSlot, "sidebar-disclosure")}
+				className={cx("group/sidebar-disclosure-item list-none", className)}
+				{...props}
+			>
+				{children}
+			</Comp>
+		</SidebarDisclosureContext.Provider>
+	);
+};
+
+/** Reads the nearest `Sidebar.Disclosure`, and throws with the part's name outside one. */
+function useSidebarDisclosureContext(part: string): SidebarDisclosureContextValue {
+	const context = useContext(SidebarDisclosureContext);
+	invariant(context, `Sidebar.${part} must be rendered inside Sidebar.Disclosure.`);
+	return context;
+}
+
+type SidebarDisclosureTriggerProps = ComponentProps<"button"> & WithAsChild & WithDataSlot;
+
+/**
+ * The row that opens a `Sidebar.Disclosure`: a `<button>` with
+ * `aria-expanded` and `aria-controls`. Put the group's icon first, then its
+ * name. The row adds a caret at its end, which turns while the list shows in
+ * place.
+ *
+ * In the collapsed sidebar the row is the group's 28px icon chip, and it opens
+ * the list as a flyout beside it. The flyout repeats the group's name, so do
+ * not wrap this row in `Sidebar.Tooltip`. While a row inside the group is the
+ * current page and the list does not show, this row takes the current-row
+ * fill, so the reader still sees where they are.
+ *
+ * With `asChild`, the row clones your element and adds no label wrapper and no
+ * caret.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"sidebar-disclosure-trigger"` | On the button. |
+ * | `data-slot` | `"sidebar-disclosure-trigger-label"` | On the `<span>` that wraps `children`. Absent under `asChild`. A flex row that keeps the caret beside a long name. |
+ * | `data-slot` | `"sidebar-disclosure-trigger-text"` | On the `<span>` that wraps each run of text in `children`, also under `asChild`. Ends a long name in an ellipsis. |
+ * | `data-slot` | `"sidebar-disclosure-trigger-caret"` | On the caret icon. Absent under `asChild`. |
+ * | `aria-expanded` | `"true"` \| `"false"` | Whether the list shows: in place in the expanded sidebar, as the flyout in the collapsed sidebar. Style with `aria-expanded:`. |
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebardisclosuretrigger
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Root>
+ *   <Sidebar.Nav aria-label="Main">
+ *     <Sidebar.Body>
+ *       <Sidebar.Group>
+ *         <Sidebar.List>
+ *           <Sidebar.Item>
+ *             <Sidebar.ItemButton asChild>
+ *               <a href="/setup">
+ *                 <RocketIcon />
+ *                 Setup guide
+ *               </a>
+ *             </Sidebar.ItemButton>
+ *           </Sidebar.Item>
+ *           <Sidebar.Disclosure defaultOpen={pathname.startsWith("/mcp")}>
+ *             <Sidebar.DisclosureTrigger>
+ *               <PlugsIcon />
+ *               MCP Gateway
+ *             </Sidebar.DisclosureTrigger>
+ *             <Sidebar.DisclosureList>
+ *               <Sidebar.Item>
+ *                 <Sidebar.ItemButton asChild current={pathname === "/mcp/servers"}>
+ *                   <a href="/mcp/servers">Servers</a>
+ *                 </Sidebar.ItemButton>
+ *               </Sidebar.Item>
+ *             </Sidebar.DisclosureList>
+ *           </Sidebar.Disclosure>
+ *         </Sidebar.List>
+ *       </Sidebar.Group>
+ *     </Sidebar.Body>
+ *   </Sidebar.Nav>
+ *   <Sidebar.Trigger />
+ * </Sidebar.Root>
+ * ```
+ */
+const DisclosureTrigger = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	onClick,
+	onPointerEnter,
+	onPointerLeave,
+	ref,
+	type,
+	...props
+}: SidebarDisclosureTriggerProps) => {
+	const disclosure = useSidebarDisclosureContext("DisclosureTrigger");
+	const composedRef = useComposedRefs<HTMLButtonElement>(disclosure.setTrigger, ref);
+	const expanded = disclosure.rail ? disclosure.flyoutOpen : disclosure.open;
+	// Why each render while the flyout is open: the header copies the group's
+	// name, which can change while it shows. A `textContent` write is safe on a
+	// translated page. The header is aria-hidden, so only the eye reads it.
+	useIsomorphicLayoutEffect(() => {
+		if (!disclosure.flyoutOpen) {
+			return;
+		}
+		const label = document
+			.getElementById(disclosure.listId)
+			?.querySelector("[data-slot=sidebar-disclosure-list-label]");
+		if (label != null) {
+			label.textContent = disclosure.triggerRef.current?.textContent ?? "";
+		}
+	});
+	const Comp = asChild ? Slot : "button";
+
+	// Why the label span: the caret never unmounts, so without it a bare text
+	// name is not a lone child, and a consumer's own swap throws on a
+	// translated page. decisions/2026-08-04-translation-safe-label-wrappers.md
+	const content = asChild ? (
+		slotText(children, triggerText)
+	) : (
+		<>
+			<span
+				data-slot="sidebar-disclosure-trigger-label"
+				// Why a clipping flex box: a long name clips before the caret, so the caret stays.
+				className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap"
+			>
+				{triggerText(children)}
+			</span>
+			<CaretRightIcon
+				aria-hidden
+				data-slot="sidebar-disclosure-trigger-caret"
+				className="text-muted ml-auto size-4 shrink-0 group-not-data-expanded/sidebar-nav:hidden transition-[rotate] duration-200 ease-out-strong group-aria-expanded/sidebar-disclosure:rotate-90 motion-reduce:transition-none"
+			/>
+		</>
+	);
+
+	return (
+		<Comp
+			{...props}
+			ref={composedRef}
+			// Why after the spread: the list's `aria-labelledby` and the trigger's
+			// `aria-controls` are wired through these ids.
+			id={disclosure.triggerId}
+			aria-controls={disclosure.listId}
+			aria-expanded={expanded}
+			data-slot={joinDataSlot(dataSlot, "sidebar-disclosure-trigger")}
+			// Why also under `asChild`: the trigger only toggles, so a `<button>` child in
+			// a form must not submit it. A `type` on the child still wins.
+			type={type ?? "button"}
+			className={cx(
+				"group/sidebar-disclosure",
+				rowShapeClassName,
+				rowChipClassName,
+				// Why only in the collapsed sidebar: an open flyout marks its icon, as a
+				// menu trigger does. In place, the open list below already shows it.
+				"group-not-data-expanded/sidebar-nav:aria-expanded:bg-neutral-500/15 group-not-data-expanded/sidebar-nav:aria-expanded:text-strong",
+				// Why CSS: the server render already marks a closed group that holds
+				// the current page, and a router link that sets `aria-current` itself
+				// counts too. The test reads a chain of children, so a row that
+				// streams in restyles no more than its own group.
+				"not-aria-expanded:group-has-[>ul>li>[aria-current=page]]/sidebar-disclosure-item:bg-neutral-500/15 not-aria-expanded:group-has-[>ul>li>[aria-current=page]]/sidebar-disclosure-item:text-strong",
+				"[&>svg:first-child]:text-muted hover:[&>svg:first-child]:text-strong [&>svg:first-child]:size-5",
+				"[&>[data-slot=sidebar-disclosure-trigger-label]>svg:first-child]:text-muted",
+				"hover:[&>[data-slot=sidebar-disclosure-trigger-label]>svg:first-child]:text-strong",
+				"[&>[data-slot=sidebar-disclosure-trigger-label]>svg:first-child]:size-5",
+				"[&_svg]:shrink-0",
+				className,
+			)}
+			onClick={(event: MouseEvent<HTMLButtonElement>) => {
+				onClick?.(event);
+				// Why `aria-disabled`: a trigger that announces it is disabled stays focusable, so
+				// Enter and Space still click it.
+				if (
+					!event.defaultPrevented &&
+					event.currentTarget.getAttribute("aria-disabled") !== "true"
+				) {
+					disclosure.onTriggerClick();
+				}
+			}}
+			onPointerEnter={(event: PointerEvent<HTMLButtonElement>) => {
+				onPointerEnter?.(event);
+				if (!event.defaultPrevented) {
+					disclosure.onPointerEnter(event);
+				}
+			}}
+			onPointerLeave={(event: PointerEvent<HTMLButtonElement>) => {
+				onPointerLeave?.(event);
+				if (!event.defaultPrevented) {
+					disclosure.onPointerLeave(event);
+				}
+			}}
+		>
+			{content}
+		</Comp>
+	);
+};
+
+/**
+ * Whether the browser has `hidden="until-found"` and the `beforematch` event,
+ * so find in page can open a closed list. Client only.
+ */
+function supportsBeforeMatch(): boolean {
+	return document.body != null && "onbeforematch" in document.body;
+}
+
+/** The open popups of the list's rows, such as a row's menu, which renders outside the list. */
+function popupsOf(list: Element): (HTMLElement | null)[] {
+	return [
+		...Array.from(list.querySelectorAll("[aria-expanded='true'][aria-controls]"), (control) =>
+			list.ownerDocument.getElementById(control.getAttribute("aria-controls") ?? ""),
+		),
+		...nativePopupsOf(list),
+	];
+}
+
+/**
+ * The open popovers and dialogs that a row's native `popovertarget` or
+ * `commandfor` button opened. Why apart: the browser gives them no ARIA state.
+ */
+function nativePopupsOf(list: Element): HTMLElement[] {
+	return Array.from(list.querySelectorAll("[popovertarget], [commandfor]"), (control) =>
+		list.ownerDocument.getElementById(
+			control.getAttribute("popovertarget") ?? control.getAttribute("commandfor") ?? "",
+		),
+	).filter((popup): popup is HTMLElement => popup != null && popup !== list && isOpenPopup(popup));
+}
+
+/**
+ * Whether a popover or a dialog is open. Why `:popover-open` alone: a browser
+ * without the popover API throws on it.
+ */
+function isOpenPopup(element: Element): boolean {
+	return (
+		element.matches("dialog[open]") ||
+		(hasPopoverApi && element.hasAttribute("popover") && element.matches(":popover-open"))
+	);
+}
+
+/** The last open dialog or popover inside `element`, not `element` itself. */
+function innerPopupOf(element: Element): HTMLElement | null {
+	return (
+		Array.from(
+			element.querySelectorAll<HTMLElement>(
+				hasPopoverApi ? "dialog[open], [popover]" : "dialog[open]",
+			),
+		)
+			.filter(isOpenPopup)
+			.at(-1) ?? null
+	);
+}
+
+/** A row that opens a popup, such as a menu, a dialog, or a native popover, and does not navigate. */
+const opensPopupSelector =
+	"[aria-haspopup]:not([aria-haspopup='false']), [aria-controls], [popovertarget], [commandfor]";
+
+/**
+ * Whether a row's dialog is open inside the list, as a `forceMount` dialog
+ * renders in place. The list must stay shown, or the dialog hides with it.
+ */
+function holdsDialog(list: Element): boolean {
+	return list.querySelector("dialog[open]") != null;
+}
+
+/**
+ * Whether focus is in a dialog that the list is not in, such as a row's
+ * portaled dialog. It does not hang off a row, so it keeps focus when the row hides.
+ */
+function focusInOtherDialog(list: Element): boolean {
+	const dialog = list.ownerDocument.activeElement?.closest("dialog");
+	return dialog != null && !dialog.contains(list);
+}
+
+/** Whether focus is in the list or in an open popup of one of its rows. */
+function holdsFocus(list: Element): boolean {
+	const focused = list.ownerDocument.activeElement;
+	return (
+		list.contains(focused) || popupsOf(list).some((popup) => popup?.contains(focused) === true)
+	);
+}
+
+/**
+ * Applies a style change with the transition off, so the box is at its end
+ * values when the browser next reads it, then restores the transition. It
+ * matches the helper in `Accordion`.
+ */
+function settle(node: HTMLElement, apply: () => void): void {
+	const { transitionProperty } = node.style;
+	node.style.transitionProperty = "none";
+	apply();
+	node.getBoundingClientRect();
+	node.style.transitionProperty = transitionProperty;
+}
+
+type SidebarDisclosureListProps = ComponentProps<"ul"> & WithDataSlot;
+
+/**
+ * The `<ul>` of rows inside a `Sidebar.Disclosure`. Fill it with
+ * `Sidebar.Item` and `Sidebar.ItemButton`; its rows keep their labels, so an
+ * icon is optional.
+ *
+ * In the expanded sidebar and the mobile sheet it folds in place under its
+ * trigger. A closed list has `hidden="until-found"` where the browser supports
+ * it, so find in page opens the group. In the collapsed sidebar the same list
+ * is a `popover` flyout beside the trigger, in the top layer, with the group's
+ * name as a muted header. The links are the same elements in both, so they stay
+ * inside the `<nav>` landmark and in tab order after the trigger. Escape, a
+ * press outside, Tab past the last link, or a press on a link closes it. A
+ * row that opens a menu, a dialog, or a popover keeps it open, and a dialog
+ * that covers it hides it until the dialog closes.
+ *
+ * No `asChild`: the list changes between an inline list and a `popover`
+ * flyout, so it owns its element.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"sidebar-disclosure-list"` | On the list. |
+ * | `data-slot` | `"sidebar-disclosure-list-label"` | On the flyout's header, the first `<li>`. `aria-hidden`: the trigger already names the list. Hidden in place. |
+ * | `data-open` | present while it shows | Presence-only. In place: the list is open. In the collapsed sidebar: the flyout is open. Drives the height, opacity, and float motion. |
+ * | `data-flyout` | present in the collapsed sidebar | Presence-only. The list is a flyout. Style the flyout with `data-flyout:`. |
+ * | `data-side` | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | On the flyout only: the side of the trigger it shows on, after it flips to fit. Removed in place. |
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebardisclosurelist
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Root>
+ *   <Sidebar.Nav aria-label="Main">
+ *     <Sidebar.Body>
+ *       <Sidebar.Group>
+ *         <Sidebar.List>
+ *           <Sidebar.Item>
+ *             <Sidebar.ItemButton asChild>
+ *               <a href="/setup">
+ *                 <RocketIcon />
+ *                 Setup guide
+ *               </a>
+ *             </Sidebar.ItemButton>
+ *           </Sidebar.Item>
+ *           <Sidebar.Disclosure defaultOpen={pathname.startsWith("/mcp")}>
+ *             <Sidebar.DisclosureTrigger>
+ *               <PlugsIcon />
+ *               MCP Gateway
+ *             </Sidebar.DisclosureTrigger>
+ *             <Sidebar.DisclosureList>
+ *               <Sidebar.Item>
+ *                 <Sidebar.ItemButton asChild current={pathname === "/mcp/servers"}>
+ *                   <a href="/mcp/servers">Servers</a>
+ *                 </Sidebar.ItemButton>
+ *               </Sidebar.Item>
+ *             </Sidebar.DisclosureList>
+ *           </Sidebar.Disclosure>
+ *         </Sidebar.List>
+ *       </Sidebar.Group>
+ *     </Sidebar.Body>
+ *   </Sidebar.Nav>
+ *   <Sidebar.Trigger />
+ * </Sidebar.Root>
+ * ```
+ */
+const DisclosureList = ({
+	children,
+	className,
+	"data-slot": dataSlot,
+	onFocus,
+	onPointerEnter,
+	onPointerLeave,
+	ref,
+	...props
+}: SidebarDisclosureListProps) => {
+	const disclosure = useSidebarDisclosureContext("DisclosureList");
+	const { rail, open, flyoutOpen, hideFlyout, pinFlyout, reveal, triggerRef } = disclosure;
+	const hydrated = useIsHydrated();
+	const listRef = useRef<HTMLUListElement | null>(null);
+	/** The row that last had focus, so focus can stay on it when the sidebar expands. */
+	const lastFocused = useRef<HTMLElement | null>(null);
+	/** The control that an outside press reached, which takes the focus of the flyout. */
+	const pressedOutside = useRef<HTMLElement | null>(null);
+	const { floatingRef, reconcile } = useFloat({
+		open: flyoutOpen,
+		onDismiss: (reason, outside) => {
+			const target = outside?.detail.originalEvent.target;
+			// Why: a press that does not focus a button, as in Safari, leaves focus in
+			// the flyout. Focus then goes to the control the reader pressed.
+			pressedOutside.current =
+				reason === "outside" && target instanceof Element
+					? target.closest<HTMLElement>("a[href], button, input, select, textarea, [tabindex]")
+					: null;
+			hideFlyout();
+		},
+		getAnchor: () => triggerRef.current,
+		// Why the popups of the rows: a row can open a menu, which renders outside
+		// the list, and focus that moves into that menu stays in the flyout.
+		getInsideElements: () => [
+			triggerRef.current,
+			...(listRef.current == null ? [] : popupsOf(listRef.current)),
+		],
+		dismissOnOutside: true,
+		// Why it hides and comes back: a row can open a dialog over the flyout,
+		// and the dialog gives focus back to that row when it closes.
+		dismissWhenCovered: false,
+		side: "right",
+		align: "start",
+		sideOffset: 8,
+		// Why: a row's native popover or dialog has no place in the Escape order
+		// of the floats, so Escape closes it first, and the flyout stays.
+		onEscapeKeyDown: (event) => {
+			const popups = listRef.current == null ? [] : nativePopupsOf(listRef.current);
+			const target = event.target instanceof Node ? event.target : null;
+			let popup = popups.find((each) => each.contains(target)) ?? popups.at(-1);
+			if (popup == null) {
+				return;
+			}
+			event.preventDefault();
+			// Why the innermost open layer: a popover or a confirmation inside the
+			// popup is on top, and it closes alone, as native Escape closes it.
+			for (let inner = innerPopupOf(popup); inner != null; inner = innerPopupOf(popup)) {
+				popup = inner;
+			}
+			// Why: such a dialog closes only on a choice in it.
+			if (popup.getAttribute("closedby") === "none") {
+				return;
+			}
+			// Why the popover first: a `<dialog popover>` is shown as a popover.
+			if (popup.matches(":popover-open")) {
+				popup.hidePopover();
+			} else if (popup instanceof HTMLDialogElement) {
+				// Why `requestClose`: it fires `cancel`, so the dialog's own guard can keep it open.
+				if (typeof popup.requestClose === "function") {
+					popup.requestClose();
+				} else {
+					popup.close();
+				}
+			}
+		},
+		onHide: (floating, focusWasInside) => {
+			const pressed = pressedOutside.current;
+			pressedOutside.current = null;
+			// Why: a row's menu that holds focus renders outside the list.
+			const held = focusWasInside || holdsFocus(floating);
+			// Why: a press that did not move focus switched groups, so focus goes to
+			// the trigger of the group that took over, and Tab reaches its links next.
+			if (disclosure.yieldedRef.current) {
+				if (held || document.activeElement === triggerRef.current) {
+					const next = document.querySelector("[data-flyout][data-open]");
+					document.getElementById(next?.getAttribute("aria-labelledby") ?? "")?.focus({
+						preventScroll: true,
+					});
+				}
+				return;
+			}
+			// Why only focus in the list: focus in a row's own popup stays there.
+			// Why: a row's open dialog keeps the list shown in the other mode, and its focus.
+			if (!focusWasInside || holdsDialog(floating)) {
+				return;
+			}
+			if (pressed?.isConnected === true) {
+				pressed.focus({ preventScroll: true });
+				return;
+			}
+			// Why: a sidebar that expands shows the same rows in place, so focus
+			// stays on the row it was on.
+			const row = lastFocused.current;
+			if (
+				!floating.hasAttribute("data-flyout") &&
+				floating.hasAttribute("data-open") &&
+				row != null &&
+				floating.contains(row)
+			) {
+				row.focus({ preventScroll: true });
+			} else {
+				triggerRef.current?.focus();
+			}
+		},
+	});
+	useReconcileOnTriggerChange(disclosure.onTriggerChangeRef, reconcile);
+	const composedRef = useComposedRefs(listRef, floatingRef, ref);
+	const shown = rail ? flyoutOpen : open;
+
+	// Why a listener on the list: a press on any row in the flyout navigates,
+	// and the flyout is done. The rows are the consumer's.
+	useEffect(() => {
+		const node = listRef.current;
+		if (node == null || !rail) {
+			return;
+		}
+		const onRowPress = (event: Event) => {
+			const row = event.target instanceof Element ? event.target.closest("a[href], button") : null;
+			// Why not a row that opens a popup, or a control in a row's dialog or
+			// popover: the reader is not done. The flyout is a popover too.
+			const layer = row?.parentElement?.closest("dialog, [popover]");
+			if (
+				row == null ||
+				row.matches(opensPopupSelector) ||
+				(layer != null && layer !== node && node.contains(layer))
+			) {
+				return;
+			}
+			// Why a task after the row's own handlers, which React runs at its root:
+			// a row can open a dialog or a popover in the list from `onClick`, and
+			// the popup hides with the list.
+			setTimeout(() => {
+				if (innerPopupOf(node) == null) {
+					hideFlyout();
+				}
+			});
+		};
+		node.addEventListener("click", onRowPress);
+		return () => node.removeEventListener("click", onRowPress);
+	}, [rail, hideFlyout]);
+
+	// Why an observer: a row that becomes the current page opens its group,
+	// also when a router link sets `aria-current` itself. Why it compares the
+	// elements: a row that only moves is not a new current page. Why it keeps
+	// observing through a mode change: a route change in the same commit counts.
+	useEffect(() => {
+		const node = listRef.current;
+		if (node == null) {
+			return;
+		}
+		const currentRows = () => new Set(node.querySelectorAll("[aria-current=page]"));
+		let current = currentRows();
+		const observer = new MutationObserver(() => {
+			const next = currentRows();
+			if (Array.from(next).some((row) => !current.has(row))) {
+				reveal();
+			}
+			current = next;
+		});
+		observer.observe(node, { attributeFilter: ["aria-current"], childList: true, subtree: true });
+		return () => observer.disconnect();
+	}, [reveal]);
+
+	// Why a check two frames later: a controlled group can refuse the open.
+	// Then the list hides again, so its links never sit in the tab order
+	// while they are invisible.
+	const checkFrame = useRef(0);
+	/** Whether find in page showed the list with inline styles. */
+	const shownByFind = useRef(false);
+	useEffect(() => {
+		const node = listRef.current;
+		if (node == null || rail || !supportsBeforeMatch()) {
+			return;
+		}
+		const onBeforeMatch = () => {
+			// Why now: the browser paints its find highlight right after this
+			// event, before React commits the open, and a closed list has no height.
+			shownByFind.current = true;
+			settle(node, () => {
+				node.removeAttribute("hidden");
+				node.style.height = "auto";
+				node.style.opacity = "1";
+			});
+			cancelAnimationFrame(checkFrame.current);
+			reveal();
+			checkFrame.current = requestAnimationFrame(() => {
+				checkFrame.current = requestAnimationFrame(() => {
+					if (!node.hasAttribute("data-open")) {
+						shownByFind.current = false;
+						settle(node, () => {
+							node.setAttribute("hidden", "until-found");
+							node.style.height = "";
+							node.style.opacity = "";
+						});
+					}
+				});
+			});
+		};
+		node.addEventListener("beforematch", onBeforeMatch);
+		return () => {
+			cancelAnimationFrame(checkFrame.current);
+			node.removeEventListener("beforematch", onBeforeMatch);
+		};
+	}, [rail, reveal]);
+
+	// Why imperative: React types `hidden` as a boolean, with no `"until-found"`.
+	// Why a layout effect: a closed list is hidden before the browser paints.
+	const fold = useRef(0);
+	const wasRail = useRef(rail);
+	/** The list's own insets, which the flyout's placement writes over. */
+	const ownInsets = useRef<Record<"top" | "right" | "bottom" | "left", string> | null>(null);
+	useIsomorphicLayoutEffect(() => {
+		const node = listRef.current;
+		if (node == null) {
+			return;
+		}
+		const railChanged = wasRail.current !== rail;
+		wasRail.current = rail;
+		// Why also on the first run: a sidebar can mount collapsed.
+		if (rail && (railChanged || ownInsets.current == null)) {
+			const { top, right, bottom, left } = node.style;
+			ownInsets.current = { top, right, bottom, left };
+		}
+		if (railChanged && holdsDialog(node)) {
+			// Why before paint: a row's open dialog hides with the list, so the list
+			// shows in the new mode at once, and focus stays in the dialog.
+			if (rail) {
+				disclosure.showFlyout();
+			} else {
+				reveal();
+			}
+		} else if ((rail ? railChanged : !open) && holdsFocus(node) && !focusInOtherDialog(node)) {
+			// Why: a list that held focus stops showing when the sidebar collapses or
+			// the group closes, so focus moves to the group's trigger.
+			triggerRef.current?.focus({ preventScroll: true });
+		}
+		// Why only after a flyout: placement wrote the offsets and the side, and
+		// the list takes back its own.
+		if (!rail && railChanged && node.dataset.side != null) {
+			Object.assign(node.style, ownInsets.current);
+			delete node.dataset.side;
+		}
+		// Why: find in page set these to show the list at once. The classes own
+		// the motion after that.
+		if (shownByFind.current) {
+			shownByFind.current = false;
+			node.style.height = "";
+			node.style.opacity = "";
+		}
+		const token = ++fold.current;
+		if (rail || !supportsBeforeMatch()) {
+			node.removeAttribute("hidden");
+			return;
+		}
+		if (open) {
+			node.removeAttribute("inert");
+			node.removeAttribute("hidden");
+			return;
+		}
+		node.setAttribute("hidden", "until-found");
+		// Why `inert` until the fold ends: the list stays rendered while it folds,
+		// and Tab must not reach a row that is about to hide. Why remove it then:
+		// `inert` also hides the rows from find in page.
+		// Why the list's own transitions: they set how long the fold runs, also
+		// under reduced motion or a consumer's duration. Other animations can run forever.
+		node.setAttribute("inert", "");
+		void Promise.allSettled(
+			node
+				.getAnimations?.()
+				.filter((animation) => animation instanceof CSSTransition)
+				.map((animation) => animation.finished) ?? [],
+		).then(() => fold.current === token && node.removeAttribute("inert"));
+	}, [open, rail]);
+
+	// Why after each render: under `asChild` a consumer's `id` on the trigger
+	// replaces the generated one, and the list must name the element that exists.
+	useIsomorphicLayoutEffect(() => {
+		const id = triggerRef.current?.id;
+		if (id) {
+			listRef.current?.setAttribute("aria-labelledby", id);
+		}
+	});
+
+	return (
+		<ul
+			{...props}
+			ref={composedRef}
+			id={disclosure.listId}
+			aria-labelledby={disclosure.triggerId}
+			// Why after hydration: the server has no popover API, and the attribute
+			// must match on the hydration render.
+			popover={rail && hydrated && hasPopoverApi ? "manual" : undefined}
+			// Why: the server and a browser without `hidden="until-found"` keep a
+			// closed list out of the tab order this way. The layout effect above
+			// removes it where `hidden` takes over.
+			inert={!shown}
+			data-slot={joinDataSlot(dataSlot, "sidebar-disclosure-list")}
+			data-open={shown ? "" : undefined}
+			data-flyout={rail ? "" : undefined}
+			className={cx(
+				rail
+					? // Why `hidden` while closed: before hydration, and without the
+						// popover API, nothing else hides the flyout.
+						`${floatClassName} not-data-open:hidden border-popover bg-popover flex max-h-(--available-height) max-w-[min(--spacing(72),var(--available-width))] min-w-44 flex-col gap-px overflow-y-auto rounded-md border p-1 shadow-xl`
+					: // The height and opacity ease open together, as in `Accordion`. Why
+						// the clip margin: a row's 4px focus ring shows past the list's edge.
+						// `interpolate-size` is Chromium only; other engines snap.
+						"h-0 overflow-clip opacity-0 [overflow-clip-margin:4px] transition-[height,opacity,content-visibility] duration-200 ease-out-strong [interpolate-size:allow-keywords] transition-discrete data-open:h-auto data-open:opacity-100 motion-reduce:transition-none group-not-data-hydrated/sidebar-nav:transition-none [&>li]:pl-7",
+				className,
+			)}
+			onFocus={(event) => {
+				onFocus?.(event);
+				if (event.target instanceof HTMLElement) {
+					lastFocused.current = event.target;
+				}
+				// Why: a hover flyout must not close under focus that a reader moved into it.
+				pinFlyout();
+			}}
+			onPointerEnter={(event) => {
+				onPointerEnter?.(event);
+				if (!event.defaultPrevented) {
+					disclosure.onPointerEnter(event);
+				}
+			}}
+			onPointerLeave={(event) => {
+				onPointerLeave?.(event);
+				if (!event.defaultPrevented) {
+					disclosure.onPointerLeave(event);
+				}
+			}}
+		>
+			<li
+				aria-hidden
+				data-slot="sidebar-disclosure-list-label"
+				className={cx(
+					"text-muted shrink-0 list-none truncate px-2 pt-1 pb-0.5 text-xs font-medium",
+					!rail && "hidden",
+				)}
+			/>
+			{children}
+		</ul>
 	);
 };
 
@@ -2703,6 +3852,9 @@ export {
 	List,
 	Item,
 	ItemButton,
+	Disclosure,
+	DisclosureTrigger,
+	DisclosureList,
 	SearchTrigger,
 	SwitcherTrigger,
 	SidebarTooltip,

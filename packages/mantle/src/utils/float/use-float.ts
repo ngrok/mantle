@@ -537,7 +537,10 @@ function useFloat({
 					} else if (focusWasInside && !next.contains(document.activeElement)) {
 						next.focus({ preventScroll: true });
 					}
-					if (shown && hasPopoverApi) {
+					// Why `:popover-open`: a float that loses its `popover` attribute while
+					// open, as a sidebar flyout does when the sidebar expands, is already
+					// hidden, and `hidePopover` throws on it.
+					if (shown && hasPopoverApi && floating.matches(":popover-open")) {
 						shown = false;
 						floating.hidePopover();
 					}
@@ -573,7 +576,24 @@ function useFloat({
 			}
 			const anchor = anchorOf();
 			if (anchor != null && floating.isConnected) {
-				return attach(floating, anchor);
+				if (!(hasPopoverApi && !dismissWhenCovered && isUnderNativeModal(floating))) {
+					return attach(floating, anchor);
+				}
+				// Why: a float that stays open under a native modal shows when the
+				// modal closes, and nothing renders it again then.
+				let stop: (() => void) | undefined;
+				const onClose = () => {
+					const next = anchorOf();
+					if (stop == null && next != null && !isUnderNativeModal(floating)) {
+						stop = attach(floating, next) ?? (() => {});
+					}
+				};
+				// Why the capture phase: `close` does not bubble.
+				floating.ownerDocument.addEventListener("close", onClose, true);
+				return () => {
+					floating.ownerDocument.removeEventListener("close", onClose, true);
+					stop?.();
+				};
 			}
 			// Why wait: an Anchor can mount later, and a float can portal into a
 			// menu that is not in the document yet, where `showPopover` throws.
@@ -608,7 +628,7 @@ function useFloat({
 				stop?.();
 			};
 		},
-		[anchorOf, attach, visible],
+		[anchorOf, attach, dismissWhenCovered, visible],
 	);
 
 	return {

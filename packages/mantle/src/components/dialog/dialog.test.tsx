@@ -558,8 +558,8 @@ describe("isDialogOverlayTarget", () => {
 
 /**
  * A nested popup owner inside a dialog, like a combobox or an input-attached
- * popover: an `aria-expanded` + `aria-controls` trigger paired with the popup it
- * controls. `popupAttributes` stands in for the `data-open` a mantle popup
+ * popover: an `aria-expanded` + `aria-controls` + `aria-haspopup` trigger
+ * paired with the popup it controls. `popupAttributes` stands in for the `data-open` a mantle popup
  * stamps while open.
  */
 function NestedPopupDialog({
@@ -580,7 +580,12 @@ function NestedPopupDialog({
 		<Dialog.Root defaultOpen onOpenChange={onOpenChange}>
 			<Dialog.Content onEscapeKeyDown={onEscapeKeyDown}>
 				<Dialog.Title>Request log</Dialog.Title>
-				<button aria-controls={controlsId} aria-expanded={expanded} type="button">
+				<button
+					aria-controls={controlsId}
+					aria-expanded={expanded}
+					aria-haspopup="listbox"
+					type="button"
+				>
 					Region
 				</button>
 				<div id="nested-popup" role="listbox" {...popupAttributes} />
@@ -678,6 +683,7 @@ describe("Escape with a nested popup open", () => {
 						<button
 							aria-controls="nested-popup"
 							aria-expanded={expanded}
+							aria-haspopup="listbox"
 							onKeyDown={(event) => {
 								if (event.key === "Escape") {
 									setExpanded(false);

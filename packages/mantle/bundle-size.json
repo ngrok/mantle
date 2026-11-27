@@ -33,5 +33,7 @@
   "conversation": "import { Conversation } from \"@ngrok/mantle/conversation\"; export default [Conversation.Root, Conversation.Viewport, Conversation.Content, Conversation.ScrollButton];",
   "conversation-outline": "import { ConversationOutline } from \"@ngrok/mantle/conversation-outline\"; export default [ConversationOutline.Root, ConversationOutline.Trigger, ConversationOutline.Content, ConversationOutline.Item];",
   "message": "import { Message } from \"@ngrok/mantle/message\"; export default [Message.Root, Message.Content, Message.Pending, Message.Actions];",
-  "prompt-input-dictate": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit, PromptInput.Dictate];"
+  "prompt-input-dictate": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit, PromptInput.Dictate];",
+  "sidebar": "import { Sidebar } from \"@ngrok/mantle/sidebar\"; export default [Sidebar.Root, Sidebar.Nav, Sidebar.Trigger, Sidebar.Body, Sidebar.Group, Sidebar.List, Sidebar.Item, Sidebar.ItemButton];",
+  "sidebar-disclosure": "import { Sidebar } from \"@ngrok/mantle/sidebar\"; export default [Sidebar.Root, Sidebar.Nav, Sidebar.Trigger, Sidebar.Body, Sidebar.Group, Sidebar.List, Sidebar.Item, Sidebar.ItemButton, Sidebar.Disclosure, Sidebar.DisclosureTrigger, Sidebar.DisclosureList];"
 }
