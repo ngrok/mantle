@@ -25,8 +25,15 @@ const contentClassNames = {
 	assistant: "text-body w-full min-w-0 leading-relaxed",
 } as const satisfies Record<MessageFrom, string>;
 
+const speakerLabels = {
+	user: "You said:",
+	assistant: "The assistant said:",
+} as const satisfies Record<MessageFrom, string>;
+
 type MessageContextValue = {
 	from: MessageFrom;
+	/** The speaker label that `Message.Content` renders. */
+	speaker: string;
 	/** The `id` of the speaker label, which names the article. */
 	labelId: string;
 };
@@ -51,6 +58,16 @@ type MessageRootProps = ComponentProps<"article"> &
 		 * the room.
 		 */
 		from: MessageFrom;
+		/**
+		 * The speaker label, such as `"Error"` or `"Tool result"`. It names the
+		 * article and starts the body for a screen reader, in place of "You said:"
+		 * or "The assistant said:". It does not change the layout, which `from` sets.
+		 * `Message.Content` renders the label, and an `aria-label` on the root
+		 * replaces the article's name.
+		 *
+		 * @default "You said:" when `from` is "user", else "The assistant said:"
+		 */
+		speaker?: string;
 	};
 
 /**
@@ -63,6 +80,9 @@ type MessageRootProps = ComponentProps<"article"> &
  *
  * A new person's message makes `Conversation.Viewport` follow the end again,
  * because the answer lands there.
+ *
+ * Set `speaker` when the default speaker label is wrong, such as for an error
+ * or a tool result in a captured conversation.
  *
  * | Data Attribute | Value                     | Description                                         |
  * | -------------- | ------------------------- | --------------------------------------------------- |
@@ -98,11 +118,12 @@ function Root({
 	asChild = false,
 	className,
 	from,
+	speaker = speakerLabels[from],
 	...props
 }: MessageRootProps) {
 	const Component = asChild ? Slot : "article";
 	const labelId = useId();
-	const context = useMemo(() => ({ from, labelId }), [from, labelId]);
+	const context = useMemo(() => ({ from, speaker, labelId }), [from, speaker, labelId]);
 
 	return (
 		<MessageContext value={context}>
@@ -129,16 +150,11 @@ function Root({
  */
 type MessageContentProps = ComponentProps<"div"> & WithDataSlot;
 
-const speakerLabels = {
-	user: "You said: ",
-	assistant: "The assistant said: ",
-} as const satisfies Record<MessageFrom, string>;
-
 /**
  * The body of a message. A person's message renders as typed, in a bubble
  * that keeps its line breaks. The assistant's renders full-width prose, the
  * home for formatted text, such as Markdown. A visually hidden speaker label comes first, so a
- * screen reader says who wrote it.
+ * screen reader says who wrote it. `Message.Root`'s `speaker` sets the label.
  *
  * The children sit in a `display: contents` wrapper, `data-slot="message-content-label"`,
  * so a translated page survives a change to them. A child selector such as
@@ -172,7 +188,7 @@ const speakerLabels = {
  */
 // Why no asChild: the part renders its speaker label beside the children, and `Slot` takes one child.
 function Content({ "data-slot": dataSlot, children, className, ...props }: MessageContentProps) {
-	const { from, labelId } = useMessageContext("Content");
+	const { from, speaker, labelId } = useMessageContext("Content");
 
 	return (
 		<div
@@ -180,7 +196,8 @@ function Content({ "data-slot": dataSlot, children, className, ...props }: Messa
 			className={cx("text-sm wrap-break-word", contentClassNames[from], className)}
 			{...props}
 		>
-			<VisuallyHidden id={labelId}>{speakerLabels[from]}</VisuallyHidden>
+			{/* Why the trailing space: the label stays a separate word in the text content. */}
+			<VisuallyHidden id={labelId}>{`${speaker} `}</VisuallyHidden>
 			<div data-slot="message-content-label" className="contents">
 				{children}
 			</div>

@@ -100,6 +100,38 @@ function AnswerOnItsWay() {
 
 </Example>
 
+## Name the speaker
+
+Set `speaker` on `Message.Root` when "You said:" or "The assistant said:" is wrong, such as for an error, a tool result, or the caller's user in a captured conversation. The label names the article and starts the body for a screen reader, so the two always agree. `from` still sets the layout. `Message.Content` renders the label, so keep it in each message. Do not set `aria-label` on `Message.Root` for this: it replaces the article's name, but the label stays in the body.
+
+<Example name="components/ai/message/speaker" title="Message speaker example">
+
+```tsx
+import { Conversation } from "@ngrok/mantle/conversation";
+import { Message } from "@ngrok/mantle/message";
+
+function CapturedConversation() {
+	return (
+		<>
+			<Conversation.Root className="w-full max-w-2xl">
+				<Conversation.Viewport>
+					<Conversation.Content aria-label="Captured conversation" className="p-4">
+						<Message.Root from="user" speaker="The caller said:">
+							<Message.Content>Summarize the last hour of traffic.</Message.Content>
+						</Message.Root>
+						<Message.Root from="assistant" speaker="Error">
+							<Message.Content>Quota exceeded for this API key.</Message.Content>
+						</Message.Root>
+					</Conversation.Content>
+				</Conversation.Viewport>
+			</Conversation.Root>
+		</>
+	);
+}
+```
+
+</Example>
+
 ## Composition
 
 ```text showLineNumbers=false
@@ -115,7 +147,7 @@ Message.Root
 
 ## Accessibility
 
-`Message.Content` starts with a visually hidden speaker label, "You said:" or "The assistant said:", so a screen reader says who wrote each message.
+`Message.Content` starts with a visually hidden speaker label, "You said:" or "The assistant said:", so a screen reader says who wrote each message. The label also names the `<article>` through `aria-labelledby`. `Message.Root`'s `speaker` replaces it in both places.
 
 ## Translation
 
@@ -129,10 +161,11 @@ One message: an `<article>` that lays out the content, the actions, and any pend
 
 All props from [article](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/article#attributes), plus:
 
-| Prop       | Type                    | Default | Description                                                                                 |
-| ---------- | ----------------------- | ------- | ------------------------------------------------------------------------------------------- |
-| `from`     | `"user" \| "assistant"` |         | Who wrote the message. Required. A person's message sits at the end of the row in a bubble. |
-| `asChild?` | `boolean`               | `false` | Render as a different element by passing a child.                                           |
+| Prop       | Type                    | Default                                  | Description                                                                                                    |
+| ---------- | ----------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `from`     | `"user" \| "assistant"` |                                          | Who wrote the message. Required. A person's message sits at the end of the row in a bubble.                    |
+| `speaker?` | `string`                | `"You said:"` or `"The assistant said:"` | The speaker label, such as `"Error"`. It names the article and starts the body. It does not change the layout. |
+| `asChild?` | `boolean`               | `false`                                  | Render as a different element by passing a child.                                                              |
 
 | Data Attribute | Value                     | Description                                            |
 | -------------- | ------------------------- | ------------------------------------------------------ |

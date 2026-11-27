@@ -25,6 +25,27 @@ describe("Message", () => {
 		expect(answer).toHaveTextContent("The assistant said: Three endpoints.");
 	});
 
+	test("speaker replaces the hidden label and the article's name, and from keeps the layout", () => {
+		render(
+			<div role="feed" aria-label="Messages">
+				<Message.Root from="assistant" speaker="Error">
+					<Message.Content>Quota exceeded.</Message.Content>
+				</Message.Root>
+				<Message.Root from="user" speaker="The caller said:">
+					<Message.Content>Hi</Message.Content>
+				</Message.Root>
+			</div>,
+		);
+
+		const error = screen.getByRole("article", { name: "Error" });
+		expect(error).toHaveAttribute("data-from", "assistant");
+		expect(error).toHaveTextContent("Error Quota exceeded.");
+		expect(error).not.toHaveTextContent("The assistant said:");
+		const caller = screen.getByRole("article", { name: "The caller said:" });
+		expect(caller).toHaveAttribute("data-from", "user");
+		expect(caller).not.toHaveTextContent("You said:");
+	});
+
 	test("each part forwards className, ref, and data attributes, and joins data-slot", () => {
 		const ref = vi.fn<(node: HTMLElement | null) => void>();
 		const { container } = render(
