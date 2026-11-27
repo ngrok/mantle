@@ -357,6 +357,7 @@ const upstreamRequestBody = {
 export function RequestDiff() {
 	return (
 		<CodeBlock.Root>
+			<CodeBlock.CopyButton />
 			<CodeBlock.Header>
 				<CodeBlock.Icon preset="file" />
 				<CodeBlock.Title>request.json</CodeBlock.Title>
@@ -656,6 +657,7 @@ CodeBlock.Root
 
 # Diff
 CodeBlock.Root
+├── CodeBlock.CopyButton
 ├── CodeBlock.Header
 │   ├── CodeBlock.Icon
 │   └── CodeBlock.Title
@@ -762,7 +764,7 @@ Inside the highlighted HTML, each line is a `.mantle-code-line` with `data-line-
 
 ### CodeBlock.Diff
 
-Two versions of code side by side. Use it in place of `CodeBlock.Body`, inside a `CodeBlock.Root`. Each pane is a `role="group"` named by `fromLabel` or `toLabel`, and it scrolls sideways on its own. Line numbers and signs are drawn by CSS, so a copy holds only the code. A changed line starts with a visually hidden "Removed:" or "Added:" for a screen reader. A `CodeBlock.CopyButton` in the same `CodeBlock.Root` copies the `to` code. The diff is `dir="ltr"` unless you set `dir`, so code reads left to right in a right-to-left page.
+Two versions of code side by side. Use it in place of `CodeBlock.Body`, inside a `CodeBlock.Root`. Each pane is a `role="group"` named by `fromLabel` or `toLabel`, and it scrolls sideways on its own. Line numbers and signs are drawn by CSS, so a copy holds only the code. A changed line starts with a visually hidden "Removed:" or "Added:" for a screen reader. Put a `CodeBlock.CopyButton` directly in the `CodeBlock.Root`: it sits at the top right, over the header, and copies the `to` code. The diff is `dir="ltr"` unless you set `dir`, so code reads left to right in a right-to-left page.
 
 All props from [standard HTML div attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) except `children`, plus:
 

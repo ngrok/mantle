@@ -30,3 +30,7 @@ test("keeps plain text for a value with no highlighting", () => {
 		"b",
 	]);
 });
+
+test("reads a line that holds a paragraph separator", () => {
+	expect(Array.isArray(readCodeLines(jsonCodeBlockValue({ city: "a\u2029b" }))[1])).toBe(true);
+});

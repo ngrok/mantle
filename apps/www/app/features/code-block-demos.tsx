@@ -791,6 +791,7 @@ export function CodeBlockDiffDemo() {
 	return (
 		<PreviewCanvas>
 			<CodeBlock.Root>
+				<CodeBlock.CopyButton />
 				<CodeBlock.Header>
 					<CodeBlock.Icon preset="file" />
 					<CodeBlock.Title>request.json</CodeBlock.Title>

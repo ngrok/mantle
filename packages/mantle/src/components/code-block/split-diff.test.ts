@@ -28,6 +28,10 @@ describe("getSplitDiff", () => {
 		});
 	});
 
+	test("shows no removed line for empty text", () => {
+		expect(shape(getSplitDiff({ left: "", right: "hello" }))).toEqual([["changed", null, "hello"]]);
+	});
+
 	test("leaves a filler side for a line only one side has", () => {
 		expect(shape(getSplitDiff({ left: "a\nb", right: "a\nx\nb" }))).toEqual([
 			["context", "a", "a"],
@@ -73,10 +77,20 @@ describe("getSplitDiff", () => {
 		expect(first?.kind === "line" && first.line.left?.segments).toEqual([
 			{ text: "l0", changed: false, start: 0 },
 		]);
+		// Why its own row for each line: the two sides are unrelated, so no removed line sits beside an added one.
+		expect(rows).toHaveLength(2400);
+		expect(first?.kind === "line" && first.line.right).toBeNull();
+		const firstAdded = rows[1200];
+		expect(firstAdded?.kind === "line" && firstAdded.line.left).toBeNull();
+		expect(firstAdded?.kind === "line" && firstAdded.line.right?.lineNumber).toBe(1);
 	});
 });
 
 describe("diffWords", () => {
+	test("keeps a flag in one token", () => {
+		expect(diffWords("🇺🇸", "🇺🇦").left).toEqual([{ text: "🇺🇸", changed: true, start: 0 }]);
+	});
+
 	test("keeps an emoji in one token", () => {
 		expect(diffWords("a 😀", "a 😁").left).toEqual([
 			{ text: "a ", changed: false, start: 0 },

@@ -180,6 +180,28 @@ describe("CodeBlock.Diff", () => {
 		expect(within(pane("After")).getByText("b")).toBeInTheDocument();
 	});
 
+	test("keeps a callout mounted when the other side adds a line", async () => {
+		const user = userEvent.setup();
+		const diff = (to: string) => (
+			<CodeBlock.Root>
+				<CodeBlock.Diff from={text("same\nlast")} to={text(to)}>
+					{(line) =>
+						line.side === "from" &&
+						line.lineNumber === 2 && (
+							<CodeBlock.DiffCallout>
+								<input aria-label="Note" />
+							</CodeBlock.DiffCallout>
+						)
+					}
+				</CodeBlock.Diff>
+			</CodeBlock.Root>
+		);
+		const view = render(diff("same\nlast"));
+		await user.type(screen.getByRole("textbox", { name: "Note" }), "draft");
+		view.rerender(diff("new\nsame\nlast"));
+		expect(screen.getByRole("textbox", { name: "Note" })).toHaveValue("draft");
+	});
+
 	test("does not count a trailing comma as a change in JSON", () => {
 		renderDiff({
 			from: jsonCodeBlockValue({ a: 1, b: 2 }),

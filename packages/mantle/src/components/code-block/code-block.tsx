@@ -204,7 +204,8 @@ const Root = ({
 			data-slot={joinDataSlot(dataSlot, "code-block")}
 			data-orientation={hasTabs ? "horizontal" : undefined}
 			className={cx(
-				"text-mono w-full overflow-hidden rounded-xl border border-gray-300 bg-base font-mono",
+				// Why `relative`: a `CopyButton` placed directly in the root, as beside a `CodeBlock.Diff`, sits at its top right.
+				"relative text-mono w-full overflow-hidden rounded-xl border border-gray-300 bg-base font-mono",
 				"[&_svg]:shrink-0",
 				className,
 			)}

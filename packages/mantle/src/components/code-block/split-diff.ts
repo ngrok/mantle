@@ -180,10 +180,17 @@ function backtrack({
 	return ops.toReversed();
 }
 
-/** Splits a line into words, whitespace runs, and single punctuation marks. */
+/**
+ * A word with its combining marks, a whitespace run, a flag, an emoji
+ * sequence, or one other character with its marks. Why not a single code
+ * point: a mark around part of a character has no width.
+ */
+const WORD_TOKEN =
+	/\s+|\p{RI}\p{RI}|(?:[\p{L}\p{N}_][\p{M}]*)+|\p{Extended_Pictographic}(?:\p{EMod}|\uFE0F|\u200D\p{Extended_Pictographic})*|\S\p{M}*/gu;
+
+/** Splits a line into word tokens. */
 function tokenizeWords(line: string): string[] {
-	// Why `u`: a character outside the Basic Multilingual Plane, such as an emoji, stays one token.
-	return line.match(/\s+|\w+|[^\w\s]/gu) ?? [];
+	return line.match(WORD_TOKEN) ?? [];
 }
 
 /** Joins neighbor runs with the same mark and gives each run its offset in the line. */
@@ -243,17 +250,17 @@ function diffWords(left: string, right: string): { left: DiffSegment[]; right: D
 /**
  * Pairs each change block line by line, removed on the left and added on the
  * right. The ops compare normalized lines, so each side takes its own text from
- * `leftLines` and `rightLines`. `markWords` is `false` for a diff past the edit
- * limit, whose paired lines are unrelated.
+ * `leftLines` and `rightLines`. `exact` is `false` for a diff past the edit
+ * limit: its removed and added lines are unrelated, so each gets a row of its own.
  */
 function toSplitLines({
+	exact,
 	leftLines,
-	markWords,
 	ops,
 	rightLines,
 }: {
+	exact: boolean;
 	leftLines: readonly string[];
-	markWords: boolean;
 	ops: DiffOp[];
 	rightLines: readonly string[];
 }): SplitDiffLine[] {
@@ -288,15 +295,20 @@ function toSplitLines({
 			}
 			index += 1;
 		}
-		for (let pair = 0; pair < Math.max(removed.length, added.length); pair += 1) {
-			const leftAt = removed[pair];
-			const rightAt = added[pair];
+		const pairs: [number | undefined, number | undefined][] = exact
+			? Array.from({ length: Math.max(removed.length, added.length) }, (_, pair) => [
+					removed[pair],
+					added[pair],
+				])
+			: [
+					...removed.map((at): [number, undefined] => [at, undefined]),
+					...added.map((at): [undefined, number] => [undefined, at]),
+				];
+		for (const [leftAt, rightAt] of pairs) {
 			const leftText = leftAt == null ? undefined : (leftLines[leftAt] ?? "");
 			const rightText = rightAt == null ? undefined : (rightLines[rightAt] ?? "");
 			const words =
-				markWords && leftText != null && rightText != null
-					? diffWords(leftText, rightText)
-					: undefined;
+				leftText != null && rightText != null ? diffWords(leftText, rightText) : undefined;
 			lines.push({
 				kind: "changed",
 				left:
@@ -365,14 +377,15 @@ function getSplitDiff({
 	right: string;
 	normalize?: ((line: string) => string) | undefined;
 }): SplitDiffRow[] {
-	const leftLines = left.split("\n");
-	const rightLines = right.split("\n");
+	// Why no line for empty text: added code has no removed line beside it.
+	const leftLines = left === "" ? [] : left.split("\n");
+	const rightLines = right === "" ? [] : right.split("\n");
 	const { ops, exact } = diffSequences({
 		left: leftLines.map(normalize),
 		right: rightLines.map(normalize),
 		maxEdits: MAX_LINE_EDITS,
 	});
-	return foldContext(toSplitLines({ leftLines, markWords: exact, ops, rightLines }));
+	return foldContext(toSplitLines({ exact, leftLines, ops, rightLines }));
 }
 
 export {

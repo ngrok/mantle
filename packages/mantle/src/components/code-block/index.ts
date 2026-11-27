@@ -45,6 +45,7 @@ import * as CodeBlockParts from "./code-block-parts.js";
  *
  * # Diff
  * CodeBlock.Root
+ * ├── CodeBlock.CopyButton
  * ├── CodeBlock.Header
  * │   ├── CodeBlock.Icon
  * │   └── CodeBlock.Title

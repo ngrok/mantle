@@ -140,3 +140,15 @@ test("sortKeys keeps a boxed primitive as its value", () => {
 	const value = { b: new Number(7), a: new String("ok") };
 	expect(jsonCodeBlockValue(value, { sortKeys: true }).code).toBe('{\n  "a": "ok",\n  "b": 7\n}');
 });
+
+// Why: TypeScript's ES2025 lib has no `JSON.rawJSON`, which each engine mantle supports ships.
+declare global {
+	interface JSON {
+		rawJSON(text: string): object;
+	}
+}
+
+test("sortKeys keeps raw JSON as its text", () => {
+	const value = { id: JSON.rawJSON("9007199254740993") };
+	expect(jsonCodeBlockValue(value, { sortKeys: true }).code).toBe('{\n  "id": 9007199254740993\n}');
+});

@@ -62,7 +62,7 @@ function isStopChar(char: string): boolean {
 /**
  * Parses a JSON string literal beginning at `start` (a `"`), pushing one segment
  * per run: text runs colored as a key (`COLOR_KEY`) or value (`COLOR_STRING`)
- * depending on whether a `:` follows, and each `\`-escape sequence as its own
+ * depending on whether a `:` follows, and each `\\`-escape sequence as its own
  * `COLOR_ESCAPE` run, which mirrors how the TextMate JSON grammar scopes
  * `constant.character.escape`. Returns the index just past the closing quote.
  */
@@ -269,6 +269,18 @@ function jsonToShikiHtml(code: string): string {
 	return lines.map(renderLine).join("\n");
 }
 
+/**
+ * Whether a value is a `JSON.rawJSON()` result: a frozen object with no
+ * prototype and its own `rawJSON` text, which `JSON.stringify` writes as that text.
+ */
+function isRawJson(value: object): boolean {
+	return (
+		Object.getPrototypeOf(value) == null &&
+		Object.isFrozen(value) &&
+		Object.hasOwn(value, "rawJSON")
+	);
+}
+
 /** The tags of `new Number()`, `new String()`, and `new Boolean()`, which `JSON.stringify` writes as their values. */
 const BOXED_PRIMITIVE_TAGS = new Set(["[object Number]", "[object String]", "[object Boolean]"]);
 
@@ -303,11 +315,12 @@ function safeJsonStringify(value: unknown, { sortKeys }: { sortKeys: boolean }):
 						}
 						seen.add(val);
 						// Why code-unit order and not `localeCompare`: the server and the browser can run in different locales, and the hydrated text must match.
-						// Why not a boxed primitive: `JSON.stringify` writes `new Number(7)` as `7`, and its entries would make it an object.
+						// Why not a boxed primitive or raw JSON: `JSON.stringify` writes each as a value, and its entries would make it an object.
 						if (
 							sortKeys &&
 							!Array.isArray(val) &&
-							!BOXED_PRIMITIVE_TAGS.has(Object.prototype.toString.call(val))
+							!BOXED_PRIMITIVE_TAGS.has(Object.prototype.toString.call(val)) &&
+							!isRawJson(val)
 						) {
 							return Object.fromEntries(
 								Object.entries(val).toSorted(([left], [right]) => (left < right ? -1 : 1)),

@@ -137,7 +137,7 @@ function DiffLine({
 			data-line-number={side.lineNumber}
 			data-change={change === "unchanged" ? undefined : change}
 			className={cx(
-				"flex min-w-full pr-4",
+				"flex pr-4",
 				change === "removed" && "bg-danger-500/10",
 				change === "added" && "bg-success-500/10",
 			)}
@@ -162,7 +162,7 @@ function DiffLine({
 			)}
 			<span
 				className={cx(
-					"min-w-0 flex-1",
+					"min-w-0 grow",
 					wrap ? "whitespace-pre-wrap wrap-anywhere" : "whitespace-pre",
 				)}
 				translate="no"
@@ -244,7 +244,8 @@ type CodeBlockDiffProps = Omit<ComponentProps<"div">, "children"> &
  * Pass a function child to show a `CodeBlock.DiffCallout` under a line. The
  * other pane keeps a blank row of the same height, so the lines stay aligned.
  *
- * A `CodeBlock.CopyButton` in the same `CodeBlock.Root` copies the `to` code.
+ * Put a `CodeBlock.CopyButton` directly in the `CodeBlock.Root`: it sits at the
+ * top right, over the header, and copies the `to` code.
  * The diff is `dir="ltr"` unless the call site sets `dir`, so code reads left
  * to right in a right-to-left page.
  *
@@ -269,6 +270,7 @@ type CodeBlockDiffProps = Omit<ComponentProps<"div">, "children"> &
  * @example
  * ```tsx
  * <CodeBlock.Root>
+ *   <CodeBlock.CopyButton />
  *   <CodeBlock.Header>
  *     <CodeBlock.Icon preset="file" />
  *     <CodeBlock.Title>request.json</CodeBlock.Title>
@@ -336,7 +338,6 @@ const Diff = ({
 		left: DiffSide | null;
 		right: DiffSide | null;
 	}) => {
-		const key = `${line.left?.lineNumber ?? "-"}:${line.right?.lineNumber ?? "-"}`;
 		const callouts = (["from", "to"] as const).map((sideName) => {
 			const side = sideName === "from" ? line.left : line.right;
 			if (side == null || children == null) {
@@ -353,7 +354,10 @@ const Diff = ({
 		});
 		for (const [index, sideName] of (["from", "to"] as const).entries()) {
 			const side = sideName === "from" ? line.left : line.right;
+			const other = sideName === "from" ? line.right : line.left;
 			const cells = sideName === "from" ? fromCells : toCells;
+			// Why a key from this pane's own line numbers: a line that the other side adds must not remount this pane's rows or callouts.
+			const key = side == null ? `filler:${other?.lineNumber}` : `line:${side.lineNumber}`;
 			cells.push(
 				side == null ? (
 					<div
@@ -427,16 +431,15 @@ const Diff = ({
 		);
 	}
 
-	const rowCount = fromCells.length;
-	const paneStyle = { gridRow: `span ${rowCount}` };
-	// Why a style write too: a policy that blocks the server's `style` attribute does not block a write from script, and the panes need the span to share rows.
-	const spanRows = (element: HTMLDivElement | null) => {
-		element?.style.setProperty("grid-row", paneStyle.gridRow);
-	};
 	const paneClassName = cx(
 		// Why no container query on the pane: its layout containment turns `subgrid` into `none`, and the panes lose their shared rows.
 		"grid grid-rows-subgrid overflow-x-auto overscroll-x-none scrollbar",
-		wrap ? "whitespace-pre-wrap" : "whitespace-pre",
+		// Why a fixed span and no style attribute: a strict style policy drops the attribute from the server HTML. Empty rows have no height, and the span adds 0.2ms of layout in Chromium.
+		"row-span-100000",
+		// Why at least the pane width: each row spans the longest line, so its tint, sticky gutter, and callout stay in view as the pane scrolls.
+		wrap
+			? "grid-cols-[100%] whitespace-pre-wrap"
+			: "grid-cols-[minmax(max-content,1fr)] whitespace-pre",
 	);
 	return (
 		<div
@@ -452,8 +455,6 @@ const Diff = ({
 				data-slot="code-block-diff-pane"
 				data-side="from"
 				className={paneClassName}
-				style={paneStyle}
-				ref={spanRows}
 			>
 				{fromCells}
 			</div>
@@ -463,8 +464,6 @@ const Diff = ({
 				data-slot="code-block-diff-pane"
 				data-side="to"
 				className={cx(paneClassName, "border-l border-separator")}
-				style={paneStyle}
-				ref={spanRows}
 			>
 				{toCells}
 			</div>
@@ -485,6 +484,7 @@ const Diff = ({
  * @example
  * ```tsx
  * <CodeBlock.Root>
+ *   <CodeBlock.CopyButton />
  *   <CodeBlock.Header>
  *     <CodeBlock.Icon preset="file" />
  *     <CodeBlock.Title>request.json</CodeBlock.Title>

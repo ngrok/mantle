@@ -16,8 +16,9 @@ function decodeKey(raw: string): string {
 /**
  * Reads the path of the value on each line of pretty-printed JSON, such as
  * `["messages", 0, "role"]`. An object member adds its key and an array item
- * adds its index. A line that only closes a container has no path. It expects
- * one member or item on each line, as `JSON.stringify(value, null, 2)` writes.
+ * adds its index. A line that only closes containers has no path. It expects
+ * one member or item on each line, as `JSON.stringify(value, null, 2)` writes,
+ * and also reads openers or closers that share a line, such as `"messages": [{`.
  *
  * @example
  * jsonLinePaths('{\n  "thinking": {\n    "budget_tokens": 10\n  }\n}');
@@ -27,15 +28,16 @@ function jsonLinePaths(code: string): (readonly (string | number)[] | undefined)
 	const stack: Container[] = [];
 	return code.split("\n").map((line) => {
 		const text = line.trim();
-		if (text.startsWith("}") || text.startsWith("]")) {
+		const closers = /^[}\]]*/.exec(text)?.[0].length ?? 0;
+		for (let index = 0; index < closers; index += 1) {
 			stack.pop();
-			return undefined;
 		}
-		if (text === "") {
+		const rest = text.slice(closers).replace(/^,\s*/, "");
+		if (rest === "") {
 			return undefined;
 		}
 		const parent = stack.at(-1);
-		const keyMatch = MEMBER_KEY.exec(text);
+		const keyMatch = MEMBER_KEY.exec(rest);
 		let path: readonly (string | number)[];
 		if (parent == null) {
 			path = [];
@@ -47,8 +49,18 @@ function jsonLinePaths(code: string): (readonly (string | number)[] | undefined)
 		} else {
 			return undefined;
 		}
-		if (text.endsWith("{") || text.endsWith("[")) {
-			stack.push({ path, nextIndex: text.endsWith("[") ? 0 : undefined });
+		// Why each opener after the first: it opens the first item of the array before it, as in `[{`.
+		const openers = /[[{]*$/.exec(rest)?.[0] ?? "";
+		let openerPath = path;
+		for (const [index, opener] of openers.split("").entries()) {
+			if (index > 0) {
+				const array = stack.at(-1);
+				openerPath = [...openerPath, array?.nextIndex ?? 0];
+				if (array?.nextIndex != null) {
+					array.nextIndex += 1;
+				}
+			}
+			stack.push({ path: openerPath, nextIndex: opener === "[" ? 0 : undefined });
 		}
 		return path;
 	});

@@ -3,7 +3,8 @@ import type { MantleCodeBlockValue } from "./mantle-code.js";
 import { colorForTokenClass } from "./token-classes.js";
 
 /** The content of one `.mantle-code-line` that `decorateHighlightedHtml` wrote. */
-const LINE_CONTENT = /<span class="mantle-code-line-content">(.*)<\/span><\/span>$/;
+// Why `s`: a line can hold U+2028 or U+2029, and `.` matches neither without it.
+const LINE_CONTENT = /<span class="mantle-code-line-content">(.*)<\/span><\/span>$/s;
 
 /** One token span, with a token class, an inline style, or both, or a run of bare text. */
 const TOKEN = /<span(?: class="([^"]*)")?(?: style="([^"]*)")?>([^<]*)<\/span>|([^<]+)/gy;
