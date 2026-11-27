@@ -2,7 +2,11 @@ import { act, renderHook } from "@testing-library/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { getOffsetPaginatedSlice } from "./offset-paginated-slice.js";
-import { useOffsetPagination, type UseOffsetPaginationProps } from "./use-offset-pagination.js";
+import {
+	type OffsetPaginationState,
+	useOffsetPagination,
+	type UseOffsetPaginationProps,
+} from "./use-offset-pagination.js";
 
 describe("useOffsetPagination", () => {
 	test("given a list size of zero", () => {
@@ -489,7 +493,7 @@ describe("useOffsetPagination", () => {
 		test("onPageClamp stores the clamp, so a list that grows back stays on the shown page", () => {
 			const onPageChange = vi.fn<(page: number) => void>();
 			const onPageClamp = vi.fn<(page: number) => void>();
-			const { result, rerender } = renderHook(
+			const { result, rerender } = renderHook<OffsetPaginationState, { listSize: number | null }>(
 				({ listSize }) => {
 					const [page, setPage] = useState(10);
 					return useOffsetPagination({
@@ -506,8 +510,8 @@ describe("useOffsetPagination", () => {
 				},
 				{ initialProps: { listSize: 100 } },
 			);
-			// A list that loads has no items yet; a report then would erase page 10.
-			rerender({ listSize: 0 });
+			// A list that loads has no size yet; a report then would erase page 10.
+			rerender({ listSize: null });
 			expect(onPageClamp).not.toHaveBeenCalled();
 			rerender({ listSize: 25 });
 			expect(onPageClamp).toHaveBeenCalledTimes(1);
@@ -518,6 +522,76 @@ describe("useOffsetPagination", () => {
 			// Why a separate callback: the parent writes a correction in place,
 			// and a navigation as a new history entry.
 			expect(onPageChange).not.toHaveBeenCalled();
+		});
+
+		// Regression: 0.98.0 read a `listSize` of 0 as a list that loads and did
+		// not report the clamp, so a list that emptied and refilled came back on
+		// the old page.
+		test("onPageClamp reports page 1 for an empty list, so a list that refills starts on page 1", () => {
+			const onPageClamp = vi.fn<(page: number) => void>();
+			const { result, rerender } = renderHook(
+				({ listSize }) => {
+					const [page, setPage] = useState(3);
+					return useOffsetPagination({
+						listSize,
+						pageSize: 10,
+						page,
+						onPageClamp: (next) => {
+							onPageClamp(next);
+							setPage(next);
+						},
+						resetPageOnListSizeChange: false,
+					});
+				},
+				{ initialProps: { listSize: 30 } },
+			);
+			rerender({ listSize: 0 });
+			expect(onPageClamp).toHaveBeenLastCalledWith(1);
+			rerender({ listSize: 30 });
+			expect(result.current.currentPage).toBe(1);
+		});
+
+		test("a null listSize keeps the stored page through a load", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const onPageClamp = vi.fn<(page: number) => void>();
+			const { result, rerender } = renderHook<OffsetPaginationState, { listSize: number | null }>(
+				({ listSize }) =>
+					useOffsetPagination({ listSize, pageSize: 10, page: 4, onPageChange, onPageClamp }),
+				{ initialProps: { listSize: null } },
+			);
+			expect(result.current.totalPages).toBe(0);
+			rerender({ listSize: 100 });
+			expect(result.current.currentPage).toBe(4);
+			// A refetch that loads again and returns the same size is no change.
+			rerender({ listSize: null });
+			rerender({ listSize: 100 });
+			expect(result.current.currentPage).toBe(4);
+			expect(onPageChange).not.toHaveBeenCalled();
+			expect(onPageClamp).not.toHaveBeenCalled();
+			// A refetch that returns another size still resets.
+			rerender({ listSize: null });
+			expect(onPageChange).not.toHaveBeenCalled();
+			rerender({ listSize: 90 });
+			expect(onPageChange).toHaveBeenCalledTimes(1);
+			expect(onPageChange).toHaveBeenLastCalledWith(1);
+		});
+
+		test("setPageSize while listSize is null keeps the reader's place", () => {
+			const onPageSizeChange = vi.fn<(pageSize: number, page: number) => void>();
+			const { result } = renderHook(() =>
+				useOffsetPagination({ listSize: null, pageSize: 10, page: 4, onPageSizeChange }),
+			);
+			act(() => result.current.setPageSize(20));
+			expect(onPageSizeChange).toHaveBeenLastCalledWith(20, 2);
+		});
+
+		test("goToPage while listSize is null keeps a page past the zero pages", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const { result } = renderHook(() =>
+				useOffsetPagination({ listSize: null, pageSize: 10, page: 4, onPageChange }),
+			);
+			act(() => result.current.goToPage(6));
+			expect(onPageChange).toHaveBeenLastCalledWith(6);
 		});
 
 		test("onPageClamp waits for a page the hook requested", () => {
