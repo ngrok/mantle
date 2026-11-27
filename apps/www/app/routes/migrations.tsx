@@ -24,6 +24,11 @@ export default function MigrationsPage() {
 				Each guide gets a number when it ships, and the list shows the newest guide first. A guide
 				that has not shipped yet shows Unreleased.
 			</p>
+			<p className="mb-4 leading-relaxed text-pretty text-body">
+				Every step in a guide is required. Apply it in the upgrade that ships it, and delete the app
+				code that the new version replaces. People and agents copy the code they find, so code on an
+				old pattern spreads.
+			</p>
 			<MigrationsList />
 		</div>
 	);

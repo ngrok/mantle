@@ -6,6 +6,8 @@ Mantle exists for pages that are expressive and rich in capability, with no cost
 
 The goals have no order. They work together: a change that meets six goals and fails one is not done.
 
+Choose a design by what the consumer and the user get, not by what is easy to build or to migrate. The number of call sites that a change must move is never a reason to keep a worse API.
+
 ## How to use the goals
 
 - **Before you design:** for each goal, ask what the change does to it. Choose the design that meets all seven. The [principles](./principles/README.md) are the methods that get you there.

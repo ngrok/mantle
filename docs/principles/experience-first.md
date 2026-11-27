@@ -12,6 +12,8 @@ Judge a change by what the person on the other side gets: the consumer at the ca
 - A default that is safe for mantle and wrong for the common app.
 - A changeset that describes the diff and not what changes for the consumer.
 - A part that renders wrong for one frame before it hydrates.
+- An API mode, flag, or default that exists only so that existing callers do not have to change.
+- A pattern copied from nearby code only because it is there, such as a workaround or a `// TODO`.
 
 **In this repo:** [COMPONENT_SPEC.md §0](../../COMPONENT_SPEC.md#0-principles) items 7, 8, 11, and 14; [§2.5](../../COMPONENT_SPEC.md#25-changesets).
 
