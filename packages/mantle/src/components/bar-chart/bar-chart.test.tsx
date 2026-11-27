@@ -1047,10 +1047,25 @@ describe("BarChart with a line or an area over the bars", () => {
 		expect(screen.getByRole("application", { name: "Lines by week" })).toBeInTheDocument();
 	});
 
+	test("a rerender that turns horizontal bars vertical and adds a line in one commit renders", () => {
+		const view = render(
+			<BarChart.Root data={weeks} xKey="week" orientation="horizontal" aria-label="Lines by week">
+				<BarChart.Bar dataKey="added" label="Added" color="green" />
+			</BarChart.Root>,
+		);
+		view.rerender(
+			<BarChart.Root data={weeks} xKey="week" aria-label="Lines by week">
+				<BarChart.Bar dataKey="added" label="Added" color="green" />
+				<LineChart.Line dataKey="total" label="Total lines" color="amber" />
+			</BarChart.Root>,
+		);
+		expect(screen.getByRole("application", { name: "Lines by week" })).toBeInTheDocument();
+	});
+
 	test("a line inside horizontal bars throws, and says why", () => {
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() => renderWeeks({ orientation: "horizontal" })).toThrow(
-			/A line cannot be composed inside BarChart\.Root with orientation="horizontal"/,
+			/A line or an area cannot be composed inside BarChart\.Root with orientation="horizontal"/,
 		);
 	});
 });

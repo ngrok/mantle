@@ -7,6 +7,7 @@ import { createScatterView } from "./scatter-engine.js";
 import { createColorResolver } from "./canvas-colors.js";
 import { CHART_CHROME_CSS } from "./colors.js";
 import { decimateColumns } from "./decimate.js";
+import { paintEmptySlots } from "./empty-slot.js";
 import { createSvgBackend } from "./svg-backend.js";
 import type { EngineElements, HoverLayers } from "./engine.js";
 import { ChartEngine } from "./engine.js";
@@ -2289,6 +2290,108 @@ describe("ChartEngine series of more than one mark", () => {
 		expect(areaAlone.length).toBeGreaterThan(0);
 
 		expect(mixed[0]).toBe(areaAlone[0]);
+	});
+
+	test("a bar chart whose only series is a line outlines an empty slot at a finite width", () => {
+		frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: [makeSeries("total", "line", { color: "amber" })],
+			rows: [
+				{ x: "Apr 20", total: 12 },
+				{ x: "Apr 27", total: null },
+			],
+			options: { xScale: "band", yDomain: [0, 30] },
+		});
+		mount.store.registerEmptySlot({ label: "No reading", paint: paintEmptySlots });
+		mount.engine.commitNow();
+		frames.settle();
+		const paths = paintedPaths(mount);
+		// Why: with zero bar slots, the slot width divides by zero.
+		expect(paths.length).toBeGreaterThan(1);
+		expect(paths.join(" ")).not.toMatch(/NaN|Infinity/);
+	});
+
+	test("a pointer on a bar over an area's edge selects the bar", async () => {
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: [
+				makeSeries("under", "area", { color: "amber" }),
+				makeSeries("bar", "bar", { color: "emerald" }),
+			],
+			rows: [
+				{ x: "GET", under: 25, bar: 85 },
+				{ x: "POST", under: 25, bar: 85 },
+			],
+			options: { xScale: "band", yDomain: [0, 100] },
+		});
+		const [dot] = await activateFirstDatum(mount);
+		invariant(dot != null, "expected the area's hover dot");
+		const edge = dotPosition(dot);
+		mount.engine.setCallbacks({ onDatumActivate, onActiveIndexChange: null });
+		// Why: the bar paints over the area, so a click on the bar is the bar's.
+		mount.engine.handleActivate(edge.x - 4, edge.y);
+
+		expect(onDatumActivate).toHaveBeenLastCalledWith(expect.objectContaining({ dataKey: "bar" }));
+	});
+
+	test("a line whose key ends in a boundary name leaves the stacked bar's height alone", () => {
+		frames = installFrameClock();
+		const rows = [
+			{ x: "GET", count: 2, "count:upper": 8 },
+			{ x: "POST", count: 2, "count:upper": 8 },
+		];
+		const bar = makeSeries("count", "bar", { color: "emerald" });
+		const [mixed = [], barAlone = []] = paintAll(
+			mountEngine({
+				kind: "bar",
+				backend: createSvgBackend,
+				series: [bar, makeSeries("count:upper", "line", { color: "amber" })],
+				rows,
+				options: { xScale: "band", yDomain: [0, 10], stacked: true },
+			}),
+			mountEngine({
+				kind: "bar",
+				backend: createSvgBackend,
+				series: [bar],
+				rows,
+				options: { xScale: "band", yDomain: [0, 10], stacked: true },
+			}),
+		);
+
+		expect(mixed[0]).toBe(barAlone[0]);
+	});
+
+	test("a line that enters leaves a stacked bar's glide where it is", () => {
+		frames = installFrameClock();
+		const first = [{ x: "GET", a: 40, b: 50 }];
+		const next = [{ x: "GET", a: -40, b: 50, line: 1 }];
+		const mountGlide = () =>
+			mountEngine({
+				kind: "bar",
+				backend: createSvgBackend,
+				series: [
+					makeSeries("a", "bar", { color: "emerald" }),
+					makeSeries("b", "bar", { color: "pink" }),
+				],
+				rows: first,
+				options: { xScale: "band", yDomain: [-100, 100], stacked: true, animate: true },
+			});
+		const withLine = mountGlide();
+		const without = mountGlide();
+		frames.settle();
+		withLine.store.registerSeries(makeSeries("line", "line", { color: "amber" }));
+		withLine.engine.setRows(next);
+		withLine.engine.flushIngest();
+		without.engine.setRows(next);
+		without.engine.flushIngest();
+		frames.step();
+
+		// Why the first frame: a stack rebuilt from in-flight boundaries jumps there.
+		expect(paintedPaths(withLine).slice(0, 2)).toEqual(paintedPaths(without).slice(0, 2));
 	});
 
 	test("the value axis holds a line that runs far above the stacked bars", async () => {

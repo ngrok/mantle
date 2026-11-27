@@ -179,8 +179,8 @@ const BAND_GAP_STEPS = [
 const EMPTY_SEGMENTS = { lower: null, upper: new Float64Array(0), progress: 1 } as const;
 
 /**
- * How near, in CSS pixels, a pointer comes to a line or an area's value on a
- * bar chart to select that series over the bars under it.
+ * How near, in CSS pixels, a pointer comes to a line's value on a bar chart
+ * to select the line over the bars under it.
  */
 const MARK_HIT_SLOP = 8;
 
@@ -1441,7 +1441,7 @@ class ChartEngine {
 				);
 			} else if (holdsValueTweens && this.#scatter?.kind !== "geo") {
 				retargetBuffer(
-					spec.dataKey,
+					`${spec.dataKey}:value`,
 					this.#columns[seriesIndex] ?? new Float64Array(0),
 					hadPrevious,
 				);
@@ -2397,7 +2397,9 @@ class ChartEngine {
 		boundary: "value" | "lower" | "upper",
 		seriesIndex: number,
 	): Float64Array {
-		const key = boundary === "value" ? series.dataKey : `${series.dataKey}:${boundary}`;
+		// Why a suffix on every key: a key may hold `:`, so a bare `count:upper`
+		// line would read the `count` bar's boundary. One suffix each cannot collide.
+		const key = `${series.dataKey}:${boundary}`;
 		// Never feed tween frames into the decimated path: decimated columns are
 		// cached by (x domain, width), which doesn't change while values tween, so
 		// the first frame's columns would be cached and painted forever.
@@ -2472,7 +2474,12 @@ class ChartEngine {
 		}
 		const lower = specs.map((spec, seriesIndex) => this.#paintedValues(spec, "lower", seriesIndex));
 		const upper = specs.map((spec, seriesIndex) => this.#paintedValues(spec, "upper", seriesIndex));
-		if (progresses.every((progress) => progress >= 1)) {
+		// Why bars alone: a line that enters leaves the piles where they are.
+		if (
+			progresses.every(
+				(progress, seriesIndex) => progress >= 1 || specs[seriesIndex]?.mark !== "bar",
+			)
+		) {
 			return specs.map((_, seriesIndex) => ({
 				lower: lower[seriesIndex] ?? null,
 				upper: upper[seriesIndex] ?? new Float64Array(0),
@@ -2543,8 +2550,11 @@ class ChartEngine {
 			return;
 		}
 		const stacked = this.#stack != null;
-		// A line or an area takes no group slot.
-		const groupCount = stacked ? 1 : specs.filter((spec) => spec.mark === "bar").length;
+		// A line or an area takes no group slot. A chart whose bars all left
+		// keeps one, so a composed empty slot still has a width.
+		const groupCount = stacked
+			? 1
+			: Math.max(1, specs.filter((spec) => spec.mark === "bar").length);
 		const gap = barGap({ bandwidth: layout.bandwidth, groupCount });
 		const slotWidth = (layout.bandwidth - gap * (groupCount - 1)) / groupCount;
 		const barWidth = barThickness({ step: layout.step, slot: slotWidth });
@@ -2839,7 +2849,7 @@ class ChartEngine {
 			return;
 		}
 		const columns = this.#decimatedFor(
-			spec.dataKey,
+			`${spec.dataKey}:value`,
 			this.#paintedValues(spec, "value", seriesIndex),
 			columnCount,
 		);
@@ -2978,9 +2988,12 @@ class ChartEngine {
 			let found: string | null = null;
 			let best = limit;
 			specs.forEach((spec, seriesIndex) => {
-				const values = this.#stacks(spec)
-					? this.#stack?.upper[seriesIndex]
-					: this.#columnOf(spec.dataKey);
+				// Why the painted values: a click lands on the mark a reader sees, mid-tween too.
+				const values = this.#paintedValues(
+					spec,
+					this.#stacks(spec) ? "upper" : "value",
+					seriesIndex,
+				);
 				const distance = Math.abs((values?.[index] ?? Number.NaN) * k + b - pointerAlongValue);
 				if (marks(spec) && distance < best) {
 					best = distance;
@@ -2989,9 +3002,10 @@ class ChartEngine {
 			});
 			return found;
 		};
-		// A line or an area draws over the bars, so it takes a pointer near its
-		// value first. Everywhere else in the band, the bars take it.
-		const overBars = isBar ? nearest((spec) => spec.mark !== "bar", MARK_HIT_SLOP) : null;
+		// A line draws over the bars, so it takes a pointer near its value
+		// first. Everywhere else the bars take it, and an area under them takes
+		// only a pointer nearer its edge than any bar's.
+		const overBars = isBar ? nearest((spec) => spec.mark === "line", MARK_HIT_SLOP) : null;
 		if (overBars != null) {
 			return overBars;
 		}
@@ -3004,14 +3018,22 @@ class ChartEngine {
 			const slot = Math.floor((withinBand / Math.max(1, layout.bandwidth)) * bars.length);
 			return bars[Math.min(bars.length - 1, Math.max(0, slot))]?.dataKey ?? null;
 		}
-		// Stacked bars: a segment is a filled span, not a boundary, so the segment
-		// CONTAINING the pointer names the series. Nearest-boundary would hand the
-		// half of every segment nearer the baseline to the series below it.
+		// Bars: a bar is a filled span, not a boundary, so the bar CONTAINING the
+		// pointer names the series: a stacked segment, or an unstacked bar from
+		// the baseline. Nearest-boundary would hand the half of every segment
+		// nearer the baseline to the series below it, and a bar to the area
+		// under it.
 		const stack = this.#stack;
-		if (this.#kind === "bar" && stack != null) {
+		if (isBar) {
 			for (let seriesIndex = 0; seriesIndex < specs.length; seriesIndex++) {
-				const lower = stack.lower[seriesIndex]?.[index] ?? Number.NaN;
-				const upper = stack.upper[seriesIndex]?.[index] ?? Number.NaN;
+				const spec = specs[seriesIndex];
+				if (spec?.mark !== "bar") {
+					continue;
+				}
+				const lower = stack == null ? 0 : (stack.lower[seriesIndex]?.[index] ?? Number.NaN);
+				const upper =
+					(stack == null ? this.#columnOf(spec.dataKey) : stack.upper[seriesIndex])?.[index] ??
+					Number.NaN;
 				if (Number.isNaN(lower) || Number.isNaN(upper) || lower === upper) {
 					continue;
 				}
@@ -3021,14 +3043,14 @@ class ChartEngine {
 					pointerAlongValue >= Math.min(lowerPixel, upperPixel) &&
 					pointerAlongValue <= Math.max(lowerPixel, upperPixel)
 				) {
-					return specs[seriesIndex]?.dataKey ?? null;
+					return spec.dataKey;
 				}
 			}
 		}
 		// Otherwise the nearest series names it: the mark IS the boundary for a
 		// line or an area, and a pointer clear of a stack still names the
 		// segment it is closest to.
-		return nearest((spec) => !isBar || spec.mark === "bar", Number.POSITIVE_INFINITY);
+		return nearest((spec) => !isBar || spec.mark !== "line", Number.POSITIVE_INFINITY);
 	}
 
 	/**
@@ -3136,7 +3158,9 @@ class ChartEngine {
 			// The total is the pile's: a line or an area over it adds nothing.
 			const piled = meta.filter((series) => this.#stacks(series));
 			if (piled.length > 1) {
-				snapshot.total = piled.reduce(
+				// Why from the far end: the readout lists the pile that way, so the
+				// float sum matches the rows a reader adds.
+				snapshot.total = piled.reduceRight(
 					// Why `||`: a gap reads `NaN`, which adds nothing to the pile.
 					(sum, series) => sum + (this.#columnOf(series.dataKey)?.[index] || 0),
 					0,

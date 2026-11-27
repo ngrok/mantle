@@ -1,5 +1,4 @@
 import type { ComponentProps, ReactNode } from "react";
-import invariant from "tiny-invariant";
 import type {
 	BarOrientation,
 	GridLines,
@@ -182,7 +181,6 @@ class ChartStore {
 		this.#sequenceByKey.set(spec.dataKey, sequence);
 		this.#seriesByKey.set(spec.dataKey, { spec, sequence });
 		this.#specs = null;
-		this.#assertMarksFitOrientation();
 		this.#publishRegistrations("series");
 		return () => {
 			const current = this.#seriesByKey.get(spec.dataKey);
@@ -217,26 +215,7 @@ class ChartStore {
 			return;
 		}
 		this.#orientation = orientation;
-		this.#assertMarksFitOrientation();
 		this.#publishRegistrations();
-	}
-
-	/**
-	 * A line or an area runs along a horizontal x axis, so it has no place on
-	 * horizontal bars, whose categories run down the y axis. Checked from both
-	 * sides: the series registers before the Root publishes its orientation.
-	 */
-	#assertMarksFitOrientation(): void {
-		if (this.#orientation !== "horizontal") {
-			return;
-		}
-		for (const { spec } of this.#seriesByKey.values()) {
-			invariant(
-				spec.mark === "bar",
-				() =>
-					`A ${spec.mark} cannot be composed inside BarChart.Root with orientation="horizontal". Draw it over vertical bars.`,
-			);
-		}
 	}
 
 	registerGrid(lines: GridLines | undefined): () => void {
