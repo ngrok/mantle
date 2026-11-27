@@ -40,3 +40,37 @@ test("a translated trigger name survives the consumer's swap from text to an ele
 
 	expect(trigger.querySelector("strong")).toHaveTextContent("MCP");
 });
+
+test("a row's translated name survives an icon that mounts before it", async () => {
+	const user = userEvent.setup();
+	function Page() {
+		const [icon, setIcon] = useState(false);
+		return (
+			<Sidebar.Root>
+				<Sidebar.Nav aria-label="Main">
+					<Sidebar.List>
+						<Sidebar.Item>
+							<Sidebar.ItemButton>
+								{icon && <svg aria-hidden />}
+								Servers
+							</Sidebar.ItemButton>
+						</Sidebar.Item>
+					</Sidebar.List>
+				</Sidebar.Nav>
+				<button type="button" onClick={() => setIcon(true)}>
+					Show icon
+				</button>
+			</Sidebar.Root>
+		);
+	}
+	render(<Page />);
+	const row = screen.getByRole("button", { name: "Servers" });
+	translateTextNodes(row);
+	expect(findTranslatedFont(row)).not.toBeNull();
+
+	// The name sits in its own span, so React inserts the icon before an
+	// element. Before a bare text node that the engine moved, it throws.
+	await user.click(screen.getByRole("button", { name: "Show icon" }));
+
+	expect(row.querySelector("svg")).not.toBeNull();
+});

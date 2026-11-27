@@ -5398,6 +5398,12 @@
         "description": "Names the part, with any composing ancestor's chain ahead of it."
       },
       {
+        "part": "Sidebar.ItemButton",
+        "name": "data-slot",
+        "value": "`\"sidebar-item-button-label\"`",
+        "description": "On the `<span>` that wraps each run of text in `children`, also under `asChild`. Ends a long name in an ellipsis."
+      },
+      {
         "part": "Sidebar.Disclosure",
         "name": "data-slot",
         "value": "`\"sidebar-disclosure\"`",
@@ -5413,7 +5419,13 @@
         "part": "Sidebar.DisclosureTrigger",
         "name": "data-slot",
         "value": "`\"sidebar-disclosure-trigger-label\"`",
-        "description": "On the `<span>` that wraps `children`. Absent under `asChild`. A flex row that clips a long name before the caret."
+        "description": "On the `<span>` that wraps `children`. Absent under `asChild`. A flex row that keeps the caret beside a long name."
+      },
+      {
+        "part": "Sidebar.DisclosureTrigger",
+        "name": "data-slot",
+        "value": "`\"sidebar-disclosure-trigger-text\"`",
+        "description": "On the `<span>` that wraps each run of text in `children`, also under `asChild`. Ends a long name in an ellipsis."
       },
       {
         "part": "Sidebar.DisclosureTrigger",

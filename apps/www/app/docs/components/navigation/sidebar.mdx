@@ -1962,11 +1962,12 @@ All props from `button` plus:
 
 **Data attributes**
 
-| Data Attribute  | Value                   | Description                                                                                                                                                         |
-| --------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`     | `"sidebar-item-button"` | Names the part, with any composing ancestor's chain ahead of it.                                                                                                    |
-| `aria-current`  | `"page"` when `current` | Styles the current row with `aria-[current=page]:`, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop.           |
-| `aria-expanded` | `"true"` \| `"false"`   | **Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
+| Data Attribute  | Value                         | Description                                                                                                                                                         |
+| --------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`     | `"sidebar-item-button"`       | Names the part, with any composing ancestor's chain ahead of it.                                                                                                    |
+| `data-slot`     | `"sidebar-item-button-label"` | On the `<span>` that wraps each run of text in `children`, also under `asChild`. Ends a long name in an ellipsis.                                                   |
+| `aria-current`  | `"page"` when `current`       | Styles the current row with `aria-[current=page]:`, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop.           |
+| `aria-expanded` | `"true"` \| `"false"`         | **Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
 
 ### Sidebar.Disclosure
 
@@ -2005,7 +2006,8 @@ All props from `button` plus:
 | Data Attribute  | Value                                | Description                                                                                                                    |
 | --------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
 | `data-slot`     | `"sidebar-disclosure-trigger"`       | Names the part, with any composing ancestor's chain ahead of it.                                                               |
-| `data-slot`     | `"sidebar-disclosure-trigger-label"` | On the `<span>` that wraps `children`. Absent under `asChild`. A flex row that clips a long name before the caret.             |
+| `data-slot`     | `"sidebar-disclosure-trigger-label"` | On the `<span>` that wraps `children`. Absent under `asChild`. A flex row that keeps the caret beside a long name.             |
+| `data-slot`     | `"sidebar-disclosure-trigger-text"`  | On the `<span>` that wraps each run of text in `children`, also under `asChild`. Ends a long name in an ellipsis.              |
 | `data-slot`     | `"sidebar-disclosure-trigger-caret"` | On the caret icon. Absent under `asChild`.                                                                                     |
 | `aria-expanded` | `"true"` \| `"false"`                | Whether the list shows: in place in the expanded sidebar, as the flyout in the collapsed sidebar. Style with `aria-expanded:`. |
 

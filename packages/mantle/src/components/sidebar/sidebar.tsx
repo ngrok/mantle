@@ -11,6 +11,7 @@ import type {
 	RefObject,
 } from "react";
 import {
+	Children,
 	createContext,
 	useCallback,
 	useContext,
@@ -55,6 +56,7 @@ import { IconButton } from "../button/icon-button.js";
 import { Separator } from "../separator/separator.js";
 import { contentSurfaceClassName } from "../sheet/presentation.js";
 import { Slot } from "../slot/index.js";
+import { slotContent } from "../slot/slot.js";
 import * as Tooltip from "../tooltip/tooltip-parts.js";
 import { SidebarWidthRequestContext } from "./width-request-context.js";
 
@@ -1524,6 +1526,8 @@ type SidebarDisclosureContextValue = {
 	pinFlyout: () => void;
 	/** The element of the trigger, which the flyout sits next to. */
 	triggerRef: RefObject<HTMLElement | null>;
+	/** Opens the flyout and keeps it open, as a click does. */
+	showFlyout: () => void;
 	/** True when another group's flyout closed this one. Focus then stays where it is. */
 	yieldedRef: RefObject<boolean>;
 	/** Sets the trigger's element, and places an open flyout again when it changes. */
@@ -1933,6 +1937,55 @@ const Item = ({
 const rowShapeClassName =
 	"focus-visible:focus-ring flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-normal text-body hover:text-strong hover:bg-neutral-500/10";
 
+/** In the collapsed sidebar a row's name clips with no ellipsis, so a collapse shows no shimmer of dots. */
+const railClipClassName = "group-not-data-expanded/sidebar-nav:text-clip";
+
+/**
+ * Wraps each run of text in `children` in a `<span>` that ends a long name in
+ * an ellipsis. Elements, such as the leading icon, stay children of the row.
+ *
+ * Why a box: a row is a flex container, and `text-overflow` does not apply to
+ * its bare text, so the row alone can only cut a name mid-word. Why not
+ * `contents`: the span must be a box to clip. Why only text: an element beside
+ * the span is safe on a translated page, as an element beside bare text is not.
+ */
+function truncateText(children: ReactNode, slot: string, className?: string): ReactNode {
+	// Why: a router link can take a render function as its children.
+	if (typeof children === "function") {
+		return children;
+	}
+	const content: ReactNode[] = [];
+	let text = "";
+	let runs = 0;
+	const flush = () => {
+		// Why whitespace stays bare: a flex row drops it, and a span would add a gap.
+		if (text.trim() === "") {
+			content.push(text);
+		} else {
+			content.push(
+				<span key={`text-${runs++}`} data-slot={slot} className={cx("min-w-0 truncate", className)}>
+					{text}
+				</span>,
+			);
+		}
+		text = "";
+	};
+	for (const child of Children.toArray(children)) {
+		if (typeof child === "string" || typeof child === "number") {
+			text += child;
+		} else {
+			flush();
+			content.push(child);
+		}
+	}
+	flush();
+	return content;
+}
+
+/** The name of a group's trigger, which clips in the collapsed sidebar as the other rows do. */
+const triggerText = (inner: ReactNode) =>
+	truncateText(inner, "sidebar-disclosure-trigger-text", railClipClassName);
+
 /**
  * A row composed as a menu or dialog trigger stays highlighted while the
  * surface it opens is open, matching Sidebar.SwitcherTrigger.
@@ -1957,9 +2010,7 @@ const rowChipClassName = [
 	"group-not-data-expanded/sidebar-nav:ml-1",
 	"group-not-data-expanded/sidebar-nav:w-7",
 	"group-not-data-expanded/sidebar-nav:p-1",
-	// Why text-clip: the label clips with no ellipsis, so a collapse shows no
-	// shimmer of dots as the row narrows.
-	"group-not-data-expanded/sidebar-nav:text-clip",
+	railClipClassName,
 	// Why these three properties: the chip and the row trade width, padding,
 	// and margin, and the sidebar's width runs on the same clock, so the row grows
 	// with the sidebar instead of taking the row shape on the first frame. Colors
@@ -2017,6 +2068,7 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
+ * | `data-slot` | `"sidebar-item-button-label"` | On the `<span>` that wraps each run of text in `children`, also under `asChild`. Ends a long name in an ellipsis. |
  * | `aria-current` | `"page"` when `current` | Styles the current row with `aria-[current=page]:`, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop. |
  * | `aria-expanded` | `"true"` \| `"false"` | **Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
  *
@@ -2083,6 +2135,13 @@ const ItemButton = ({
 }: SidebarItemButtonProps) => {
 	const Comp = asChild ? Slot : "button";
 	const disclosure = useContext(SidebarDisclosureContext);
+	// Why no rail clip in a group: its rows show in the flyout, with room for an ellipsis.
+	const itemLabel = (content: ReactNode) =>
+		truncateText(
+			content,
+			"sidebar-item-button-label",
+			disclosure == null ? railClipClassName : undefined,
+		);
 
 	return (
 		<Comp
@@ -2103,7 +2162,7 @@ const ItemButton = ({
 			)}
 			{...props}
 		>
-			{children}
+			{asChild ? slotContent(children, itemLabel) : itemLabel(children)}
 		</Comp>
 	);
 };
@@ -2210,6 +2269,7 @@ const Disclosure = ({
 		yieldedRef.current = true;
 		setFlyout(null);
 	}, []);
+	const showFlyout = useCallback(() => setFlyout("click"), []);
 	const pinFlyout = useCallback(() => {
 		clearTimeout(closeTimer.current);
 		setFlyout((mode) => (mode == null ? null : "click"));
@@ -2303,6 +2363,7 @@ const Disclosure = ({
 			flyoutOpen,
 			hideFlyout,
 			pinFlyout,
+			showFlyout,
 			triggerRef,
 			yieldedRef,
 			setTrigger,
@@ -2319,6 +2380,7 @@ const Disclosure = ({
 			flyoutOpen,
 			hideFlyout,
 			pinFlyout,
+			showFlyout,
 			triggerRef,
 			yieldedRef,
 			setTrigger,
@@ -2372,7 +2434,8 @@ type SidebarDisclosureTriggerProps = ComponentProps<"button"> & WithAsChild & Wi
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"sidebar-disclosure-trigger"` | On the button. |
- * | `data-slot` | `"sidebar-disclosure-trigger-label"` | On the `<span>` that wraps `children`. Absent under `asChild`. A flex row that clips a long name before the caret. |
+ * | `data-slot` | `"sidebar-disclosure-trigger-label"` | On the `<span>` that wraps `children`. Absent under `asChild`. A flex row that keeps the caret beside a long name. |
+ * | `data-slot` | `"sidebar-disclosure-trigger-text"` | On the `<span>` that wraps each run of text in `children`, also under `asChild`. Ends a long name in an ellipsis. |
  * | `data-slot` | `"sidebar-disclosure-trigger-caret"` | On the caret icon. Absent under `asChild`. |
  * | `aria-expanded` | `"true"` \| `"false"` | Whether the list shows: in place in the expanded sidebar, as the flyout in the collapsed sidebar. Style with `aria-expanded:`. |
  *
@@ -2449,7 +2512,7 @@ const DisclosureTrigger = ({
 	// name is not a lone child, and a consumer's own swap throws on a
 	// translated page. decisions/2026-08-04-translation-safe-label-wrappers.md
 	const content = asChild ? (
-		children
+		slotContent(children, triggerText)
 	) : (
 		<>
 			<span
@@ -2457,7 +2520,7 @@ const DisclosureTrigger = ({
 				// Why a clipping flex box: a long name clips before the caret, so the caret stays.
 				className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap"
 			>
-				{children}
+				{triggerText(children)}
 			</span>
 			<CaretRightIcon
 				aria-hidden
@@ -2538,9 +2601,28 @@ function supportsBeforeMatch(): boolean {
 
 /** The open popups of the list's rows, such as a row's menu, which renders outside the list. */
 function popupsOf(list: Element): (HTMLElement | null)[] {
-	return Array.from(list.querySelectorAll("[aria-expanded='true'][aria-controls]"), (control) =>
-		list.ownerDocument.getElementById(control.getAttribute("aria-controls") ?? ""),
-	);
+	const document = list.ownerDocument;
+	return [
+		...Array.from(list.querySelectorAll("[aria-expanded='true'][aria-controls]"), (control) =>
+			document.getElementById(control.getAttribute("aria-controls") ?? ""),
+		),
+		// Why: a native `popovertarget` button opens its popover with no ARIA state.
+		...Array.from(list.querySelectorAll("[popovertarget]"), (control) =>
+			document.getElementById(control.getAttribute("popovertarget") ?? ""),
+		).filter((popover) => popover?.matches("[popover]:popover-open") === true),
+	];
+}
+
+/** A row that opens a popup, such as a menu, a dialog, or a native popover, and does not navigate. */
+const opensPopupSelector =
+	"[aria-haspopup]:not([aria-haspopup='false']), [aria-controls], [popovertarget], [commandfor]";
+
+/**
+ * Whether a row's dialog is open inside the list, as a `forceMount` dialog
+ * renders in place. The list must stay shown, or the dialog hides with it.
+ */
+function holdsDialog(list: Element): boolean {
+	return list.querySelector("dialog[open]") != null;
 }
 
 /** Whether focus is in the list or in an open popup of one of its rows. */
@@ -2577,7 +2659,9 @@ type SidebarDisclosureListProps = ComponentProps<"ul"> & WithDataSlot;
  * is a `popover` flyout beside the trigger, in the top layer, with the group's
  * name as a muted header. The links are the same elements in both, so they stay
  * inside the `<nav>` landmark and in tab order after the trigger. Escape, a
- * press outside, Tab past the last link, or a press on a link closes it.
+ * press outside, Tab past the last link, or a press on a link closes it. A
+ * row that opens a menu, a dialog, or a popover keeps it open, and a dialog
+ * that covers it hides it until the dialog closes.
  *
  * No `asChild`: the list changes between an inline list and a `popover`
  * flyout, so it owns its element.
@@ -2668,23 +2752,30 @@ const DisclosureList = ({
 			...(listRef.current == null ? [] : popupsOf(listRef.current)),
 		],
 		dismissOnOutside: true,
-		dismissWhenCovered: true,
+		// Why it hides and comes back: a row can open a dialog over the flyout,
+		// and the dialog gives focus back to that row when it closes.
+		dismissWhenCovered: false,
 		side: "right",
 		align: "start",
 		sideOffset: 8,
 		onHide: (floating, focusWasInside) => {
 			const pressed = pressedOutside.current;
 			pressedOutside.current = null;
-			if (!focusWasInside) {
-				return;
-			}
+			// Why: a row's menu that holds focus renders outside the list.
+			const held = focusWasInside || holdsFocus(floating);
 			// Why: a press that did not move focus switched groups, so focus goes to
 			// the trigger of the group that took over, and Tab reaches its links next.
 			if (disclosure.yieldedRef.current) {
-				const next = document.querySelector("[data-flyout][data-open]");
-				document.getElementById(next?.getAttribute("aria-labelledby") ?? "")?.focus({
-					preventScroll: true,
-				});
+				if (held || document.activeElement === triggerRef.current) {
+					const next = document.querySelector("[data-flyout][data-open]");
+					document.getElementById(next?.getAttribute("aria-labelledby") ?? "")?.focus({
+						preventScroll: true,
+					});
+				}
+				return;
+			}
+			// Why: a row's open dialog keeps the list shown in the other mode, and its focus.
+			if (!held || holdsDialog(floating)) {
 				return;
 			}
 			if (pressed?.isConnected === true) {
@@ -2719,8 +2810,14 @@ const DisclosureList = ({
 		}
 		const onRowPress = (event: Event) => {
 			const row = event.target instanceof Element ? event.target.closest("a[href], button") : null;
-			// Why not a row that opens a popup, such as its menu: the reader is not done.
-			if (row != null && !row.matches("[aria-haspopup]:not([aria-haspopup='false'])")) {
+			// Why not a row that opens a popup, or a control in a row's dialog: the
+			// reader is not done.
+			const dialog = row?.closest("dialog");
+			if (
+				row != null &&
+				!row.matches(opensPopupSelector) &&
+				(dialog == null || !node.contains(dialog))
+			) {
 				hideFlyout();
 			}
 		};
@@ -2803,12 +2900,22 @@ const DisclosureList = ({
 		}
 		const railChanged = wasRail.current !== rail;
 		wasRail.current = rail;
-		// Why: a list that held focus stops showing when the sidebar collapses or
-		// the group closes, so focus moves to the group's trigger.
-		if ((rail ? railChanged : !open) && holdsFocus(node)) {
+		if (railChanged && holdsDialog(node)) {
+			// Why before paint: a row's open dialog hides with the list, so the list
+			// shows in the new mode at once, and focus stays in the dialog.
+			if (rail) {
+				disclosure.showFlyout();
+			} else {
+				reveal();
+			}
+		} else if ((rail ? railChanged : !open) && holdsFocus(node)) {
+			// Why: a list that held focus stops showing when the sidebar collapses or
+			// the group closes, so focus moves to the group's trigger.
 			triggerRef.current?.focus({ preventScroll: true });
 		}
-		if (!rail && railChanged) {
+		// Why only after a flyout: placement wrote the offsets and the side, and a
+		// consumer's own offsets stay.
+		if (!rail && railChanged && node.dataset.side != null) {
 			// Why: the flyout placed the list with inline offsets and a side.
 			node.style.removeProperty("top");
 			node.style.removeProperty("left");

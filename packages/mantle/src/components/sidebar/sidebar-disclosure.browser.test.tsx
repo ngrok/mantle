@@ -1,8 +1,9 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
-import { useState } from "react";
+import { type CSSProperties, type ReactNode, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, describe, expect, onTestFinished, test, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import * as Dialog from "../dialog/dialog-parts.js";
 import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import { TooltipProvider } from "../tooltip/index.js";
 import * as Sidebar from "./sidebar-parts.js";
@@ -114,6 +115,46 @@ const marked = (trigger: Element) =>
 	getComputedStyle(trigger).backgroundColor !== "rgba(0, 0, 0, 0)";
 const listOf = (trigger: HTMLElement) =>
 	document.getElementById(trigger.getAttribute("aria-controls") ?? "") as HTMLElement;
+
+test("a long name ends in an ellipsis, beside an icon and before the caret", () => {
+	const name = "Dedicated Inference Endpoints";
+	render(
+		<TooltipProvider>
+			<Sidebar.Root defaultOpen mobileBreakpoint="sm">
+				<div style={{ display: "flex", height: 400 }}>
+					<Sidebar.Nav aria-label="Main" style={{ "--sidebar-width": "9rem" } as CSSProperties}>
+						<Sidebar.List>
+							<Sidebar.Item>
+								<Sidebar.ItemButton>
+									<svg aria-hidden viewBox="0 0 20 20" />
+									{name}
+								</Sidebar.ItemButton>
+							</Sidebar.Item>
+							<Sidebar.Disclosure>
+								<Sidebar.DisclosureTrigger>
+									<svg aria-hidden viewBox="0 0 20 20" />
+									{name}
+								</Sidebar.DisclosureTrigger>
+								<Sidebar.DisclosureList />
+							</Sidebar.Disclosure>
+						</Sidebar.List>
+					</Sidebar.Nav>
+				</div>
+			</Sidebar.Root>
+		</TooltipProvider>,
+	);
+	// Why the text's own box: a flex row cannot put an ellipsis on its bare text.
+	for (const row of screen.getAllByRole("button", { name })) {
+		const text = row.querySelector(
+			"[data-slot=sidebar-item-button-label], [data-slot=sidebar-disclosure-trigger-text]",
+		);
+		expect(text?.textContent).toBe(name);
+		expect(getComputedStyle(text as Element).textOverflow).toBe("ellipsis");
+		expect((text as Element).scrollWidth).toBeGreaterThan((text as Element).clientWidth);
+	}
+	const caret = document.querySelector("[data-slot=sidebar-disclosure-trigger-caret]");
+	expect(caret?.getBoundingClientRect().width).toBeGreaterThan(0);
+});
 
 describe("Sidebar.Disclosure in the expanded sidebar", () => {
 	test("folds its list in place, and a closed list waits for find in page", async () => {
@@ -391,4 +432,188 @@ test("the server renders the open state, with no popover", () => {
 		expect(list.hasAttribute("data-open")).toBe(false);
 		expect(list.hasAttribute("data-flyout")).toBe(true);
 	}
+});
+
+/** A sidebar with a group of `rows`, and a second group with one link. */
+function PopupNav({ expanded = false, rows }: { expanded?: boolean; rows: ReactNode }) {
+	return (
+		<TooltipProvider>
+			<Sidebar.Root defaultOpen={expanded} mobileBreakpoint="sm">
+				<div style={{ display: "flex", height: 400 }}>
+					<Sidebar.Nav aria-label="Main">
+						<Sidebar.List>
+							<Sidebar.Disclosure defaultOpen>
+								<Sidebar.DisclosureTrigger>Account</Sidebar.DisclosureTrigger>
+								<Sidebar.DisclosureList>{rows}</Sidebar.DisclosureList>
+							</Sidebar.Disclosure>
+							<Sidebar.Disclosure>
+								<Sidebar.DisclosureTrigger>Billing</Sidebar.DisclosureTrigger>
+								<Sidebar.DisclosureList>
+									<Sidebar.Item>
+										<Sidebar.ItemButton>Invoices</Sidebar.ItemButton>
+									</Sidebar.Item>
+								</Sidebar.DisclosureList>
+							</Sidebar.Disclosure>
+						</Sidebar.List>
+					</Sidebar.Nav>
+					<Sidebar.Trigger />
+				</div>
+			</Sidebar.Root>
+		</TooltipProvider>
+	);
+}
+
+/** A row that opens a dialog, which renders in place with `forceMount`. */
+function DialogRow({ forceMount }: { forceMount?: true }) {
+	return (
+		<Sidebar.Item>
+			<Dialog.Root>
+				<Dialog.Trigger asChild>
+					<Sidebar.ItemButton>Preferences</Sidebar.ItemButton>
+				</Dialog.Trigger>
+				<Dialog.Content forceMount={forceMount}>
+					<Dialog.Title>Preferences</Dialog.Title>
+					<button type="button">Toggle</button>
+					<Dialog.Close>Done</Dialog.Close>
+				</Dialog.Content>
+			</Dialog.Root>
+		</Sidebar.Item>
+	);
+}
+
+describe("Sidebar.Disclosure with a row that opens a popup", () => {
+	test("a control in a row's dialog keeps the flyout and the dialog shown", async () => {
+		render(<PopupNav rows={<DialogRow forceMount />} />);
+		const account = screen.getByRole("button", { name: "Account" });
+		await userEvent.click(account);
+		await userEvent.click(screen.getByRole("button", { name: "Preferences" }));
+		await userEvent.click(await screen.findByRole("button", { name: "Toggle" }));
+
+		expect(account.getAttribute("aria-expanded")).toBe("true");
+		expect(screen.getByRole("button", { name: "Done" }).getClientRects().length).toBeGreaterThan(0);
+	});
+
+	test("a row's dialog stays shown and keeps focus when the sidebar changes mode", async () => {
+		render(<PopupNav expanded rows={<DialogRow forceMount />} />);
+		await userEvent.click(screen.getByRole("button", { name: "Preferences" }));
+		const toggle = await screen.findByRole("button", { name: "Toggle" });
+		act(() => toggle.focus());
+		const list = listOf(screen.getByRole("button", { name: "Account" }));
+		/** Waits for the list's fold or float exit, which keeps it shown until it ends. */
+		const settled = () => Promise.all(list.getAnimations().map((animation) => animation.finished));
+
+		await userEvent.keyboard("{Control>}b{/Control}");
+		await waitFor(() =>
+			expect(
+				document.querySelector("[data-slot~=sidebar-nav]")?.hasAttribute("data-expanded"),
+			).toBe(false),
+		);
+		await settled();
+		expect(toggle.getClientRects().length).toBeGreaterThan(0);
+		expect(document.activeElement).toBe(toggle);
+
+		await userEvent.keyboard("{Control>}b{/Control}");
+		await waitFor(() =>
+			expect(
+				document.querySelector("[data-slot~=sidebar-nav]")?.hasAttribute("data-expanded"),
+			).toBe(true),
+		);
+		await settled();
+		expect(toggle.getClientRects().length).toBeGreaterThan(0);
+		expect(document.activeElement).toBe(toggle);
+	});
+
+	test("a row's dialog gives focus back to its row in the flyout when it closes", async () => {
+		render(<PopupNav rows={<DialogRow />} />);
+		const account = screen.getByRole("button", { name: "Account" });
+		await userEvent.click(account);
+		await userEvent.keyboard("{Tab}{Enter}");
+		await screen.findByRole("dialog", { name: "Preferences" });
+
+		await userEvent.keyboard("{Escape}");
+
+		const row = within(listOf(account)).getByRole("button", { name: "Preferences" });
+		await waitFor(() => expect(document.activeElement).toBe(row));
+		expect(account.getAttribute("aria-expanded")).toBe("true");
+	});
+
+	test("a group switch takes focus out of the old row's menu", async () => {
+		render(
+			<PopupNav
+				rows={
+					<Sidebar.Item>
+						<DropdownMenu.Root modal={false}>
+							<DropdownMenu.Trigger asChild>
+								<Sidebar.ItemButton>Profile</Sidebar.ItemButton>
+							</DropdownMenu.Trigger>
+							<DropdownMenu.Content>
+								<DropdownMenu.Item>Sign out</DropdownMenu.Item>
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
+					</Sidebar.Item>
+				}
+			/>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Account" }));
+		await userEvent.keyboard("{Tab}{Enter}");
+		const signOut = await screen.findByRole("menuitem", { name: "Sign out" });
+		await waitFor(() => expect(document.activeElement).toBe(signOut));
+
+		const billing = screen.getByRole("button", { name: "Billing" });
+		// Why `click()`: a press that does not move focus, as on a Safari button.
+		await act(async () => billing.click());
+
+		await waitFor(() => expect(document.activeElement).toBe(billing));
+		await waitFor(() => expect(screen.queryByRole("menuitem", { name: "Sign out" })).toBeNull());
+		expect(billing.getAttribute("aria-expanded")).toBe("true");
+	});
+
+	test("a row that opens a native popover keeps the flyout open", async () => {
+		render(
+			<>
+				<PopupNav
+					rows={
+						<Sidebar.Item>
+							<Sidebar.ItemButton popoverTarget="actions">Actions</Sidebar.ItemButton>
+						</Sidebar.Item>
+					}
+				/>
+				<div id="actions" popover="auto">
+					<button type="button">Rename</button>
+				</div>
+			</>,
+		);
+		const account = screen.getByRole("button", { name: "Account" });
+		await userEvent.click(account);
+		await userEvent.click(screen.getByRole("button", { name: "Actions" }));
+
+		expect(document.getElementById("actions")?.matches(":popover-open")).toBe(true);
+		expect(account.getAttribute("aria-expanded")).toBe("true");
+	});
+});
+
+test("a list keeps its own offsets when the sidebar collapses and expands", async () => {
+	render(
+		<TooltipProvider>
+			<Sidebar.Root defaultOpen mobileBreakpoint="sm">
+				<div style={{ display: "flex", height: 400 }}>
+					<Sidebar.Nav aria-label="Main">
+						<Sidebar.List>
+							<Sidebar.Disclosure defaultOpen>
+								<Sidebar.DisclosureTrigger>Account</Sidebar.DisclosureTrigger>
+								<Sidebar.DisclosureList style={{ position: "relative", top: 5, left: 20 }} />
+							</Sidebar.Disclosure>
+						</Sidebar.List>
+					</Sidebar.Nav>
+					<Sidebar.Trigger />
+				</div>
+			</Sidebar.Root>
+		</TooltipProvider>,
+	);
+	const list = listOf(screen.getByRole("button", { name: "Account" }));
+	const toggle = screen.getByRole("button", { name: /sidebar/i, hidden: true });
+	await act(async () => toggle.click());
+	await act(async () => toggle.click());
+
+	expect([list.style.top, list.style.left]).toEqual(["5px", "20px"]);
 });
