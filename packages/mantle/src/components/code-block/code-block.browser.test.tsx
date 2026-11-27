@@ -969,7 +969,8 @@ describe("CodeBlock (browser)", () => {
 			}
 			const serverHeight = pre.getBoundingClientRect().height;
 			// 13.6rem at the 16px root font size.
-			expect(getComputedStyle(pre).maxHeight).toBe("217.6px");
+			// Why close to: WebKit computes 217.600006px.
+			expect(Number.parseFloat(getComputedStyle(pre).maxHeight)).toBeCloseTo(217.6, 2);
 			expect(fullHeight).toBeGreaterThan(serverHeight);
 
 			const root = await act(() => hydrateRoot(container, block()));
@@ -992,7 +993,8 @@ describe("CodeBlock (browser)", () => {
 					),
 				}),
 			);
-			expect(getComputedStyle(pre).maxHeight).toBe("217.6px");
+			// Why close to: WebKit computes 217.600006px.
+			expect(Number.parseFloat(getComputedStyle(pre).maxHeight)).toBeCloseTo(217.6, 2);
 		});
 
 		test("a max-h class on CodeBlock.Code wins over the collapsed height", () => {
