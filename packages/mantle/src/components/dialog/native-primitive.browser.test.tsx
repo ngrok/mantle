@@ -354,6 +354,24 @@ describe("Dialog", () => {
 		expect(dialogElement().open).toBe(true);
 	});
 
+	test("a backdrop click reads the closedby that is current at the click", () => {
+		const sheet = (closedby: "any" | "closerequest") => (
+			<Sheet.Root defaultOpen>
+				<Sheet.Content closedby={closedby}>
+					<Sheet.Title>Card</Sheet.Title>
+				</Sheet.Content>
+			</Sheet.Root>
+		);
+		const { rerender } = render(sheet("any"));
+		const dialog = dialogElement();
+
+		fireEvent.pointerDown(dialog);
+		rerender(sheet("closerequest"));
+		fireEvent.click(dialog);
+		expect(dialog.open).toBe(true);
+		expect(dialog).toHaveAttribute("data-open");
+	});
+
 	test("onOpenAutoFocus and onCloseAutoFocus get the panel as event.currentTarget", async () => {
 		const targets: (EventTarget | null)[] = [];
 		render(

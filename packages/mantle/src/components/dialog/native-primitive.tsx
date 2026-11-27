@@ -677,8 +677,8 @@ type ContentProps = ComponentProps<"div"> &
 		 * The requests that close the dialog, as in the HTML `closedby`
 		 * attribute. With `"any"`, a press outside the panel closes it too. With
 		 * `"closerequest"`, a press outside does nothing, and
-		 * `onPointerDownOutside` and `onInteractOutside` do not run: Escape,
-		 * the close parts, and a trigger outside close the dialog. Use it for a form that
+		 * `onPointerDownOutside` and `onInteractOutside` do not run. Escape and
+		 * the close parts still close the dialog. Use it for a form that
 		 * must not lose its input to a stray press, such as a card form in a
 		 * sheet that is not modal.
 		 *
@@ -1260,7 +1260,9 @@ const Content = ({
 			onClick={(event) => {
 				if (event.target === event.currentTarget) {
 					event.stopPropagation();
-					if (pressedOutside.current) {
+					// Why the second check: a blur between the press and the click can
+					// change `closedby`.
+					if (pressedOutside.current && closedby !== "closerequest") {
 						close();
 					}
 				}
