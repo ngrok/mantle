@@ -867,6 +867,63 @@ describe("useOffsetPagination", () => {
 			expect(onPageClamp).toHaveBeenLastCalledWith(1);
 		});
 
+		test("a resize without onPageChange keeps its size over a waiting clamp", () => {
+			const { result } = renderHook(() => {
+				const [page, setPage] = useState(3);
+				const pagination = useOffsetPagination({
+					listSize: 15,
+					pageSize: 10,
+					page,
+					onPageClamp: setPage,
+				});
+				const resized = useRef(false);
+				const { setPageSize } = pagination;
+				useEffect(() => {
+					if (!resized.current) {
+						resized.current = true;
+						setPageSize(5);
+					}
+				}, [setPageSize]);
+				return pagination;
+			});
+			expect(result.current.pageSize).toBe(5);
+		});
+
+		test("a resize to the page a waiting clamp writes does not write it again", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const onPageClamp = vi.fn<(page: number) => void>();
+			const props = { listSize: 8, onPageChange, onPageClamp };
+			const { result, rerender } = renderHook((p) => useOffsetPagination(p), {
+				initialProps: { ...props, pageSize: 25, page: 8 },
+			});
+			expect(onPageClamp).toHaveBeenLastCalledWith(1);
+			act(() => result.current.setPageSize(10));
+			expect(onPageChange).not.toHaveBeenCalled();
+			rerender({ ...props, pageSize: 25, page: 1 });
+			expect(result.current.pageSize).toBe(10);
+		});
+
+		test("a pageSize prop change drops a resize that waits for its page", () => {
+			const { result, rerender } = renderHook(
+				({ listSize, pageSize }) => {
+					const [page, setPage] = useState(8);
+					return useOffsetPagination({
+						listSize,
+						pageSize,
+						page,
+						onPageClamp: setPage,
+						resetPageOnListSizeChange: false,
+					});
+				},
+				{ initialProps: { listSize: 200, pageSize: 10 } },
+			);
+			act(() => result.current.setPageSize(20));
+			rerender({ listSize: 200, pageSize: 25 });
+			rerender({ listSize: 100, pageSize: 25 });
+			expect(result.current.pageSize).toBe(25);
+			expect(result.current.currentPage).toBe(4);
+		});
+
 		// Regression: separate effects for `pageSize` and `listSize` each called
 		// `setPage(1)`, so one render that changed both reported page 1 twice.
 		test("a pageSize and listSize change in one render reports page 1 once", () => {

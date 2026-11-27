@@ -41,7 +41,9 @@ type UseOffsetPaginationProps = {
 	/**
 	 * Called with the next 1-indexed page when the hook changes it: a navigation
 	 * call, `setPageSize` without `onPageSizeChange`, or a `listSize` reset. Not called
-	 * when the next page equals the stored page (`page` or the internal page).
+	 * when the next page equals the stored page (`page` or the internal page),
+	 * except when `setPageSize` keeps the stored page while an earlier write to
+	 * another page waits: the call then replaces that write.
 	 * A move that lands on a normalized `currentPage` still calls it, so a stale
 	 * `page` catches up.
 	 */
@@ -207,6 +209,8 @@ function useOffsetPagination({
 		// commit the echo of `setPageSize` a render late.
 		if (!isPageSizeControlled) {
 			setInternalPage(1);
+			// Why: the parent's size replaces a resize that waits for its page.
+			setPending(null);
 		}
 	} else if (isPageSizeControlled && !Object.is(internalPageSize, pageSize)) {
 		// Why: a local resize before the parent took control must not come back
@@ -396,11 +400,19 @@ function useOffsetPagination({
 		// Why write a page that equals the stored page: a page write to another
 		// page waits, and it would land after this size.
 		const overridesWrite =
-			echo != null && echo.fromPage !== echo.toPage && echo.toPage !== nextPage;
+			onPageChange != null &&
+			echo != null &&
+			echo.fromPage !== echo.toPage &&
+			echo.toPage !== nextPage;
 		if (isPageControlled && (nextPage !== storedPage || overridesWrite)) {
 			// Why wait for the prop: the new size with the old page shows the
 			// wrong rows until the parent commits the page.
 			setPending({ from: storedPage, page: nextPage, size });
+			// Why skip the call: a waiting write already sends this page, and a
+			// second write pushes a duplicate history entry.
+			if (echo?.toPage === nextPage && echo.fromPage === storedPage) {
+				return;
+			}
 			if (onPageChange != null) {
 				awaitedEcho.current = {
 					fromPage: storedPage,
