@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, onTestFinished, test } from "vitest";
 import { userEvent } from "vitest/browser";
 import * as AreaChart from "../area-chart/area-chart-parts.js";
 import * as BarChart from "../bar-chart/bar-chart-parts.js";
@@ -1322,6 +1322,69 @@ describe("tooltip placement", () => {
 		await expectReadoutOnPointer(overlay, tooltip, 0.5);
 		screen.getByTestId("box").style.marginTop = "40px";
 		await expectReadoutOnPointer(overlay, tooltip, 0.5);
+	});
+
+	/** The readout of a chart pinned to its first category, once the engine places it. */
+	const pinnedReadout = async (container: HTMLElement): Promise<HTMLElement> =>
+		waitFor(() => {
+			const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
+			if (!(tooltip instanceof HTMLElement) || tooltip.style.transform === "") {
+				throw new Error("expected the pinned readout to be placed");
+			}
+			return tooltip;
+		});
+
+	const renderPinned = () =>
+		render(
+			<div data-testid="box" style={{ width: 600, height: 300 }}>
+				<CanvasBarChartRoot
+					data={threeEqualSegments}
+					xKey="day"
+					stacked
+					animate={false}
+					activeIndex={0}
+					aria-label="Pinned"
+				>
+					<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
+					<BarChart.Bar dataKey="middle" label="Middle" color="emerald" />
+					<BarChart.Bar dataKey="top" label="Top" color="pink" />
+				</CanvasBarChartRoot>
+			</div>,
+		);
+
+	test("a pinned readout opens again after its chart moves in the DOM", async () => {
+		// A move takes the readout out of the top layer with no call to the engine.
+		const { container } = renderPinned();
+		const tooltip = await pinnedReadout(container);
+		const box = screen.getByTestId("box");
+		const parent = box.parentElement;
+		parent?.append(document.createElement("div"), box);
+		const overlay = overlayOf(container);
+		await waitFor(() => {
+			const plot = overlay.getBoundingClientRect();
+			hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
+			expect(tooltip.matches(":popover-open")).toBe(true);
+		});
+	});
+
+	test("a readout does not open above a modal dialog the chart is not in", async () => {
+		// A modal opened first makes the chart inert. A readout that a script or
+		// a controlled index shows must not paint over the dialog.
+		const { container } = renderThreeSegments();
+		const canvas = await findChartCanvas(container);
+		await waitForPlot(canvas);
+		const dialog = document.createElement("dialog");
+		document.body.append(dialog);
+		onTestFinished(() => dialog.remove());
+		dialog.showModal();
+		const overlay = overlayOf(container);
+		const tooltip = await findTooltip(container, overlay);
+		await waitFor(() => {
+			const plot = overlay.getBoundingClientRect();
+			hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
+			expect(hoverBandOf(container).style.opacity).toBe("1");
+		});
+		expect(tooltip.matches(":popover-open")).toBe(false);
 	});
 
 	test("a readout that fits stays inside the plot box", async () => {
