@@ -453,6 +453,11 @@
 			"types": "./dist/split-button.d.ts",
 			"import": "./dist/split-button.js"
 		},
+		"./status-strip": {
+			"@ngrok/src-live-types": "./src/components/status-strip/index.ts",
+			"types": "./dist/status-strip.d.ts",
+			"import": "./dist/status-strip.js"
+		},
 		"./strata": {
 			"@ngrok/src-live-types": "./src/components/strata/index.ts",
 			"types": "./dist/strata.d.ts",
