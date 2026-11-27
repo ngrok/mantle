@@ -496,6 +496,31 @@ describe("Popover.Trigger openOnHover", () => {
 		await waitFor(() => expect(trigger()).toHaveAttribute("aria-expanded", "true"));
 	});
 
+	test("a press over the trigger that the pointer moved away from does not hold off a hover after Escape", async () => {
+		render(
+			<div>
+				<Popover.Root>
+					<Popover.Trigger openOnHover style={{ width: 200, height: 40 }}>
+						About limits
+					</Popover.Trigger>
+					<Popover.Content side="bottom" sideOffset={-40} style={{ padding: 0 }}>
+						<p style={{ margin: 0, width: 200, height: 40 }}>Limits help</p>
+						<button type="button">Learn more</button>
+					</Popover.Content>
+				</Popover.Root>
+			</div>,
+		);
+		await browserUser.hover(trigger());
+		await screen.findByRole("dialog");
+		await browserUser.click(screen.getByText("Limits help"));
+		await browserUser.hover(screen.getByRole("button", { name: "Learn more" }));
+		await browserUser.keyboard("{Escape}");
+		await waitFor(() => expect(trigger()).toHaveAttribute("aria-expanded", "false"));
+
+		await browserUser.hover(trigger());
+		await waitFor(() => expect(trigger()).toHaveAttribute("aria-expanded", "true"));
+	});
+
 	test("a nested hover open keeps its parent open while the pointer crosses the gap between them", async () => {
 		render(
 			<div data-testid="page" style={{ width: 900, height: 600 }}>
@@ -505,6 +530,8 @@ describe("Popover.Trigger openOnHover", () => {
 						<Popover.Root>
 							<Popover.Trigger openOnHover>Limits</Popover.Trigger>
 							<Popover.Content side="right" sideOffset={40} aria-label="Limits">
+								{/* Why: its focus as the content shows must not pin the parent. */}
+								<input aria-label="Limit" ref={(field) => field?.setAttribute("autofocus", "")} />
 								<button type="button">Raise limits</button>
 							</Popover.Content>
 						</Popover.Root>
