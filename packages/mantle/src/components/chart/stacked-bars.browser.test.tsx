@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -1234,6 +1235,68 @@ describe("tooltip placement", () => {
 			expect(tooltip.getBoundingClientRect().height).toBeGreaterThan(plot.height);
 			expect(await visibleRatio()).toBeGreaterThan(0.99);
 		});
+	});
+
+	/** Render a three-segment stacked chart in a 600 by 300 box, with `style` on the box. */
+	const renderThreeSegments = (style: CSSProperties = {}) =>
+		render(
+			<div data-testid="box" style={{ width: 600, height: 300, ...style }}>
+				<CanvasBarChartRoot
+					data={threeEqualSegments}
+					xKey="day"
+					stacked
+					animate={false}
+					aria-label="Three segments"
+				>
+					<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
+					<BarChart.Bar dataKey="middle" label="Middle" color="emerald" />
+					<BarChart.Bar dataKey="top" label="Top" color="pink" />
+				</CanvasBarChartRoot>
+			</div>,
+		);
+
+	/**
+	 * Hover a point a fraction down the plot until the readout's vertical center
+	 * lands on it, in viewport pixels. The plot box comes from the overlay, so a
+	 * scale or a move of the chart moves the expected point too.
+	 */
+	const expectReadoutOnPointer = async (
+		overlay: HTMLElement,
+		tooltip: HTMLElement,
+		fraction: number,
+	): Promise<void> => {
+		await waitFor(() => {
+			const plot = overlay.getBoundingClientRect();
+			const pointerY = plot.top + plot.height * fraction;
+			hoverAt(overlay, plot.left + plot.width / 2, pointerY);
+			const readout = tooltip.getBoundingClientRect();
+			expect(readout.height).toBeGreaterThan(0);
+			expect(Math.abs(readout.top + readout.height / 2 - pointerY)).toBeLessThanOrEqual(2);
+		});
+	};
+
+	test("a readout follows the pointer in a chart an ancestor scales", async () => {
+		// The top-layer readout has no ancestor transform, so plot-local pixels
+		// must scale with the chart. Unscaled, the center lands twice as far down.
+		const { container } = renderThreeSegments({ transform: "scale(0.5)", transformOrigin: "0 0" });
+		const canvas = await findChartCanvas(container);
+		await waitForPlot(canvas);
+		const overlay = overlayOf(container);
+		const tooltip = await findTooltip(container, overlay);
+		await expectReadoutOnPointer(overlay, tooltip, 0.5);
+	});
+
+	test("a readout follows a chart that moves with no scroll", async () => {
+		// A layout shift above the chart fires no scroll or resize event. A
+		// readout placed from a cached plot offset stays 40px off.
+		const { container } = renderThreeSegments();
+		const canvas = await findChartCanvas(container);
+		await waitForPlot(canvas);
+		const overlay = overlayOf(container);
+		const tooltip = await findTooltip(container, overlay);
+		await expectReadoutOnPointer(overlay, tooltip, 0.5);
+		screen.getByTestId("box").style.marginTop = "40px";
+		await expectReadoutOnPointer(overlay, tooltip, 0.5);
 	});
 
 	test("a readout that fits stays inside the plot box", async () => {
