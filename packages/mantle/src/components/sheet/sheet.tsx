@@ -278,6 +278,10 @@ type SheetContentProps = Omit<
  * - Escape moves focus into the popup and does not close the sheet.
  * - A click in the popup is not an outside click.
  *
+ * A non-modal sheet closes on a press outside. To keep a form such as a card
+ * form open, set `closedby="closerequest"`: then only Escape and `Sheet.Close`
+ * close the sheet.
+ *
  * **Data attributes:**
  *
  * | Data Attribute | Value | Description |

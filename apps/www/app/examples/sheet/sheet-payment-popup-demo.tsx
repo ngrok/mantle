@@ -173,7 +173,10 @@ export function PaymentPopupDemo() {
 					Add payment method
 				</Button>
 			</Sheet.Trigger>
-			<Sheet.Content>
+			<Sheet.Content
+				// Why: a stray press outside must not lose the card number.
+				closedby="closerequest"
+			>
 				<Sheet.Header>
 					<Sheet.TitleGroup>
 						<Sheet.Title>Add payment method</Sheet.Title>

@@ -673,6 +673,18 @@ type ContentProps = ComponentProps<"div"> &
 		onPointerDownOutside?: (event: PointerDownOutsideEvent) => void;
 		/** Runs on the same presses as `onPointerDownOutside`, after it. */
 		onInteractOutside?: (event: PointerDownOutsideEvent) => void;
+		/**
+		 * The requests that close the dialog, as in the HTML `closedby`
+		 * attribute. With `"any"`, a press outside the panel closes it too. With
+		 * `"closerequest"`, a press outside does nothing, and
+		 * `onPointerDownOutside` and `onInteractOutside` do not run: only
+		 * Escape and the close parts close the dialog. Use it for a form that
+		 * must not lose its input to a stray press, such as a card form in a
+		 * sheet that is not modal.
+		 *
+		 * @default "any"
+		 */
+		closedby?: "any" | "closerequest";
 		/** The classes of the `<dialog>`, which positions the panel. */
 		positionerClassName: string;
 		/** The `data-slot` of the `<dialog>`. */
@@ -697,6 +709,7 @@ const Content = ({
 	"aria-label": ariaLabel,
 	"aria-labelledby": ariaLabelledBy,
 	children,
+	closedby = "any",
 	forceMount,
 	inline = false,
 	layer = true,
@@ -770,6 +783,9 @@ const Content = ({
 		event.preventDefault();
 	});
 	const pressOutside = useCallbackRef((originalEvent: PointerEvent): boolean => {
+		if (closedby === "closerequest") {
+			return false;
+		}
 		const outside = createPointerDownOutsideEvent(originalEvent);
 		// Why the check: a dialog composed in a prompt sits in the prompt, and a
 		// press on its own backdrop is still outside it.
@@ -1200,6 +1216,9 @@ const Content = ({
 						"aria-label": ariaLabel,
 						"aria-labelledby": ariaLabelledBy ?? (ariaLabel == null ? root.titleId : undefined),
 					})}
+			// Why not `"any"` on the element: a browser that supports it would
+			// close the dialog itself, with no exit and no outside handlers.
+			closedby={closedby === "closerequest" ? closedby : undefined}
 			className={cx(positionerBaseClassName, positionerClassName)}
 			// Why `data-overlay`: a press on the backdrop targets the `<dialog>`,
 			// and `isDialogOverlayTarget` names that press.

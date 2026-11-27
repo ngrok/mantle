@@ -288,6 +288,52 @@ describe("Dialog", () => {
 		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
 	});
 
+	test.each([false, true])(
+		"a sheet with closedby closerequest (modal %s) stays open on a press outside, and closes on Escape and Sheet.Close",
+		async (modal) => {
+			const onOpenChange = vi.fn<(open: boolean) => void>();
+			const onInteractOutside = vi.fn<(event: Event) => void>();
+			render(
+				<>
+					<button type="button">Page button</button>
+					<Sheet.Root modal={modal} onOpenChange={onOpenChange}>
+						<Sheet.Trigger>Open sheet</Sheet.Trigger>
+						<Sheet.Content closedby="closerequest" onInteractOutside={onInteractOutside}>
+							<Sheet.Title>Card</Sheet.Title>
+							<input aria-label="Card number" />
+							<Sheet.Close>Cancel</Sheet.Close>
+						</Sheet.Content>
+					</Sheet.Root>
+				</>,
+			);
+			const trigger = screen.getByRole("button", { name: "Open sheet" });
+
+			await userEvent.click(trigger);
+			const dialog = dialogElement();
+			expect(dialog).toHaveAttribute("closedby", "closerequest");
+			onOpenChange.mockClear();
+			if (modal) {
+				fireEvent.pointerDown(dialog);
+				fireEvent.click(dialog);
+			} else {
+				await userEvent.click(screen.getByRole("button", { name: "Page button" }));
+			}
+			expect(onOpenChange).not.toHaveBeenCalled();
+			expect(onInteractOutside).not.toHaveBeenCalled();
+			expect(dialog.open).toBe(true);
+			expect(dialog).toHaveAttribute("data-open");
+
+			await userEvent.click(screen.getByRole("textbox", { name: "Card number" }));
+			await userEvent.keyboard("{Escape}");
+			await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
+			expect(onOpenChange).toHaveBeenLastCalledWith(false);
+
+			await userEvent.click(trigger);
+			await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+			await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
+		},
+	);
+
 	test("onOpenAutoFocus and onCloseAutoFocus get the panel as event.currentTarget", async () => {
 		const targets: (EventTarget | null)[] = [];
 		render(

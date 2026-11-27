@@ -103,7 +103,14 @@ A script can show its own popup in a frame on `<body>`. A payment script does th
 <Sheet.Root modal={false}>
 ```
 
-A sheet that is not modal has no backdrop, paints at Tailwind `z-60`, and leaves the page live. Escape and a press outside close it. While a frame is on top at the center of the viewport, the sheet yields to the popup:
+A sheet that is not modal has no backdrop, paints at Tailwind `z-60`, and leaves the page live. Escape and a press outside close it. A card form must not lose what the user typed to a stray click or a press on a password manager's menu. Set `closedby="closerequest"` on its `Sheet.Content`: a press outside then does nothing, and Escape and `Sheet.Close` still close the sheet.
+
+```tsx
+<Sheet.Root modal={false}>
+	<Sheet.Content closedby="closerequest">
+```
+
+While a frame is on top at the center of the viewport, the sheet yields to the popup:
 
 - Escape does not close the sheet. It moves focus into the popup, and the popup then takes the keyboard.
 - A press in the popup is not a press outside.
@@ -281,7 +288,10 @@ function Example() {
 					Add payment method
 				</Button>
 			</Sheet.Trigger>
-			<Sheet.Content>
+			<Sheet.Content
+				// Why: a stray press outside must not lose the card number.
+				closedby="closerequest"
+			>
 				<Sheet.Header>
 					<Sheet.TitleGroup>
 						<Sheet.Title>Add payment method</Sheet.Title>
@@ -654,11 +664,12 @@ The panel of a `Sheet`. Should be rendered as a child of the `Sheet` component. 
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) and the same event props as [`Dialog.Content`](/components/overlays/dialog#dialogcontent) (`onOpenAutoFocus`, `onCloseAutoFocus`, `onEscapeKeyDown`, `onPointerDownOutside`, `onInteractOutside`), plus:
 
-| Prop              | Type                       | Default          | Description                                                                                                                                                                                                                                                                   |
-| ----------------- | -------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `preferredWidth?` | `` `sm:max-w-${string}` `` | `"sm:max-w-120"` | The preferred width of the `Sheet.Content` as a tailwind `max-w-` class. By default, a `Sheet`'s content width is responsive with a default _preferred width_: the maximum width of the `Sheet.Content` when the window viewport is larger than the mobile breakpoint (`sm`). |
-| `side?`           | `"left" \| "right"`        | `"right"`        | The side of the screen the sheet slides in from.                                                                                                                                                                                                                              |
-| `forceMount?`     | `true`                     |                  | Keeps the content mounted while the sheet is closed, so the server renders it and a tap opens it with no React render. See [Keep the sheet mounted](#keep-the-sheet-mounted).                                                                                                 |
+| Prop              | Type                       | Default          | Description                                                                                                                                                                                                                                                                                                                                                                                       |
+| ----------------- | -------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `preferredWidth?` | `` `sm:max-w-${string}` `` | `"sm:max-w-120"` | The preferred width of the `Sheet.Content` as a tailwind `max-w-` class. By default, a `Sheet`'s content width is responsive with a default _preferred width_: the maximum width of the `Sheet.Content` when the window viewport is larger than the mobile breakpoint (`sm`).                                                                                                                     |
+| `side?`           | `"left" \| "right"`        | `"right"`        | The side of the screen the sheet slides in from.                                                                                                                                                                                                                                                                                                                                                  |
+| `forceMount?`     | `true`                     |                  | Keeps the content mounted while the sheet is closed, so the server renders it and a tap opens it with no React render. See [Keep the sheet mounted](#keep-the-sheet-mounted).                                                                                                                                                                                                                     |
+| `closedby?`       | `"any" \| "closerequest"`  | `"any"`          | The requests that close the sheet, as in the HTML [`closedby`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog#closedby) attribute. With `"closerequest"`, a press outside does nothing and the outside handlers do not run. Escape and `Sheet.Close` still close it. The `<dialog>` positioner carries the attribute. See [Third-party popups](#third-party-popups). |
 
 | Data Attribute              | Value                         | Description                                                                              |
 | --------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------- |
