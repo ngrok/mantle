@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
-import { afterAll, beforeAll, describe, expect, onTestFinished, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, onTestFinished, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import * as AreaChart from "../area-chart/area-chart-parts.js";
 import * as BarChart from "../bar-chart/bar-chart-parts.js";
@@ -1385,6 +1385,77 @@ describe("tooltip placement", () => {
 			expect(hoverBandOf(container).style.opacity).toBe("1");
 		});
 		expect(tooltip.matches(":popover-open")).toBe(false);
+	});
+
+	test("a browser with no popover API places the readout in the plot", async () => {
+		// Such a browser does not know `:popover-open`, and `matches` throws on it.
+		const toggle = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "togglePopover");
+		Reflect.deleteProperty(HTMLElement.prototype, "togglePopover");
+		vi.spyOn(Element.prototype, "matches").mockImplementation(function (
+			this: Element,
+			selector: string,
+		) {
+			if (selector.includes(":popover-open")) {
+				throw new SyntaxError(`'${selector}' is not a valid selector.`);
+			}
+			// Why `closest`: it matches the same as `matches` without calling the spy.
+			return this.closest(selector) === this;
+		});
+		onTestFinished(() => {
+			vi.restoreAllMocks();
+			if (toggle != null) {
+				Object.defineProperty(HTMLElement.prototype, "togglePopover", toggle);
+			}
+		});
+		const { container } = renderPinned();
+		const tooltip = await pinnedReadout(container);
+		expect(tooltip.hasAttribute("popover")).toBe(false);
+	});
+
+	test("only the chart in the front modal opens its readout", async () => {
+		// The rear modal and its chart are inert under the front modal's backdrop.
+		const chartIn = (dialog: HTMLDialogElement) => {
+			const host = document.createElement("div");
+			dialog.append(host);
+			return render(
+				<div style={{ width: 400, height: 200 }}>
+					<CanvasBarChartRoot
+						data={threeEqualSegments}
+						xKey="day"
+						stacked
+						animate={false}
+						activeIndex={0}
+						aria-label="In a dialog"
+					>
+						<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
+					</CanvasBarChartRoot>
+				</div>,
+				{ container: host },
+			).container;
+		};
+		const [rear, front] = [0, 1].map(() => {
+			const dialog = document.createElement("dialog");
+			document.body.append(dialog);
+			onTestFinished(() => dialog.remove());
+			return dialog;
+		});
+		if (rear == null || front == null) {
+			throw new Error("expected two dialogs");
+		}
+		rear.showModal();
+		front.showModal();
+		const rearReadout = chartIn(rear);
+		const frontReadout = chartIn(front);
+		const frontTooltip = await pinnedReadout(frontReadout);
+		const rearTooltip = await waitFor(() => {
+			const tooltip = rearReadout.querySelector('[data-slot="bar-chart-tooltip"]');
+			if (!(tooltip instanceof HTMLElement)) {
+				throw new Error("expected the rear readout surface");
+			}
+			return tooltip;
+		});
+		await waitFor(() => expect(frontTooltip.matches(":popover-open")).toBe(true));
+		expect(rearTooltip.matches(":popover-open")).toBe(false);
 	});
 
 	test("a readout that fits stays inside the plot box", async () => {

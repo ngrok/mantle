@@ -3116,7 +3116,9 @@ class ChartEngine {
 		// with no scroll, such as a layout shift or a dialog's open animation. The
 		// opacity writes above do not dirty layout, so this read forces none.
 		this.#tooltipOrigin =
-			tooltip?.matches(":popover-open") === true ? this.#readTooltipOrigin(tooltip) : null;
+			tooltip?.hasAttribute("popover") === true && tooltip.matches(":popover-open")
+				? this.#readTooltipOrigin(tooltip)
+				: null;
 		if (!visible) {
 			return;
 		}
@@ -3291,10 +3293,15 @@ class ChartEngine {
 						width: (this.#tooltipSize.width * origin.zoom) / origin.scaleX,
 						height: (this.#tooltipSize.height * origin.zoom) / origin.scaleY,
 					};
-		if (origin != null && tooltip.style.maxWidth !== `${this.#cssWidth}px`) {
+		const maxWidth = origin == null ? "" : `${(this.#cssWidth * origin.scaleX) / origin.zoom}px`;
+		if (
+			origin != null &&
+			tooltip.style.getPropertyValue("--chart-readout-max-width") !== maxWidth
+		) {
 			// Why: in the top layer the readout sizes against the viewport, so a
-			// long footer would take the page width instead of wrapping in the chart.
-			tooltip.style.maxWidth = `${this.#cssWidth}px`;
+			// long footer would take the page width instead of wrapping in the
+			// chart. A variable, so a consumer's own `maxWidth` still wins.
+			tooltip.style.setProperty("--chart-readout-max-width", maxWidth);
 		}
 		let tooltipLeft = anchorX + gapX;
 		if (
@@ -3374,10 +3381,20 @@ class ChartEngine {
 		if (tooltip.matches(":popover-open")) {
 			return;
 		}
-		// Why only at open: a modal makes the page under it inert, so a hover
-		// there cannot open the readout above it.
-		const modal = plot.ownerDocument.querySelector(":modal");
-		if (modal != null && !modal.contains(plot)) {
+		// Why a hit test at the pointer, or at the plot center for a pinned
+		// readout: what covers the chart there, such as a modal's backdrop or a
+		// menu, stays above its readout. It runs before the open dirties layout.
+		const rect = plot.getBoundingClientRect();
+		const scale = plot.offsetWidth > 0 ? rect.width / plot.offsetWidth : 1;
+		const root = plot.getRootNode();
+		const hit =
+			root instanceof Document || root instanceof ShadowRoot
+				? root.elementFromPoint(
+						rect.left + (this.#pointerX ?? this.#plot.left + this.#plot.width / 2) * scale,
+						rect.top + (this.#pointerY ?? this.#plot.top + this.#plot.height / 2) * scale,
+					)
+				: null;
+		if (hit != null && !plot.contains(hit)) {
 			return;
 		}
 		tooltip.showPopover();
@@ -3396,7 +3413,7 @@ class ChartEngine {
 			view?.removeEventListener("scroll", moved, { capture: true });
 			view?.removeEventListener("resize", moved);
 			stopMove();
-			tooltip.style.maxWidth = "";
+			tooltip.style.removeProperty("--chart-readout-max-width");
 			if (tooltip.matches(":popover-open")) {
 				tooltip.hidePopover();
 			}

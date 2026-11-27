@@ -151,7 +151,7 @@ const ChartTooltipSurface = ({
 			popover={"togglePopover" in HTMLElement.prototype ? "manual" : undefined}
 			className={cx(
 				// Why `open:fixed`, `m-0`, `right-auto`, `bottom-auto`, and `overflow-visible`: they undo the browser's centered `[popover]` box.
-				"bg-popover border-popover text-strong pointer-events-none absolute open:fixed left-0 top-0 right-auto bottom-auto m-0 overflow-visible z-10 min-w-32 rounded-md border px-2.5 py-1.5 text-xs shadow-md",
+				"bg-popover border-popover text-strong pointer-events-none absolute open:fixed open:max-w-(--chart-readout-max-width) left-0 top-0 right-auto bottom-auto m-0 overflow-visible z-10 min-w-32 rounded-md border px-2.5 py-1.5 text-xs shadow-md",
 				className,
 			)}
 			style={{ opacity: 0, ...style } satisfies CSSProperties}
