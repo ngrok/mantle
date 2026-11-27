@@ -85,6 +85,26 @@ describe("CodeBlock.Diff", () => {
 		});
 	});
 
+	test("shows a callout under a removed line in the left pane, with its path and array index", () => {
+		const seen: CodeBlockDiffLine[] = [];
+		renderDiff({
+			from: jsonCodeBlockValue({ messages: [{ cache: true, role: "user" }] }),
+			to: jsonCodeBlockValue({ messages: [{ role: "user" }] }),
+			children: (line) => {
+				seen.push(line);
+				return (
+					line.change === "removed" && (
+						<CodeBlock.DiffCallout>Removed by the provider.</CodeBlock.DiffCallout>
+					)
+				);
+			},
+		});
+		expect(within(pane("Before")).getByText("Removed by the provider.")).toBeInTheDocument();
+		expect(pane("After").querySelector("[data-slot='code-block-diff-spacer']")).not.toBeNull();
+		// Why the exact shape: consumers match a parameter by its keys and drop the numbers.
+		expect(seen.find((line) => line.change === "removed")?.path).toEqual(["messages", 0, "cache"]);
+	});
+
 	test("does not count a trailing comma as a change in JSON", () => {
 		renderDiff({
 			from: jsonCodeBlockValue({ a: 1, b: 2 }),
