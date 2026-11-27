@@ -36,6 +36,26 @@ type DefToken = { type: "def"; raw: string; tag: string; href: string; title: st
 type DelToken = { type: "del"; raw: string; text: string; tokens: MarkdownToken[] };
 type EmToken = { type: "em"; raw: string; text: string; tokens: MarkdownToken[] };
 type EscapeToken = { type: "escape"; raw: string; text: string };
+/** A GFM footnote definition, `[^label]: text`. It renders in the footnote list at the end, not in place. */
+type FootnoteToken = {
+	type: "footnote";
+	raw: string;
+	/** The normalized label, such as `"1"` or `"NOTE"`. */
+	label: string;
+	/** The blocks of the note. */
+	tokens: MarkdownToken[];
+};
+/** A reference to a footnote, `[^label]`. */
+type FootnoteRefToken = {
+	type: "footnoteRef";
+	raw: string;
+	/** The normalized label. */
+	label: string;
+	/** The footnote's number: the order of its first reference in the answer, from 1. */
+	number: number;
+	/** Which reference to this footnote it is, from 1. */
+	occurrence: number;
+};
 type HeadingToken = {
 	type: "heading";
 	raw: string;
@@ -120,6 +140,8 @@ type MarkdownToken =
 	| DelToken
 	| EmToken
 	| EscapeToken
+	| FootnoteToken
+	| FootnoteRefToken
 	| HeadingToken
 	| HrToken
 	| HtmlToken
@@ -137,6 +159,14 @@ type MarkdownToken =
 /** The reference definitions of an answer, by normalized label. */
 type MarkdownLinks = Record<string, { href: string; title: string | null }>;
 
+/** The footnotes of an answer, by normalized label. */
+type MarkdownFootnotes = {
+	/** The definition of each label. The first definition of a label wins. */
+	definitions: Record<string, FootnoteToken>;
+	/** For each label with a reference: its number, and how many references it has. */
+	references: Record<string, { number: number; count: number }>;
+};
+
 export type {
 	//,
 	BlockquoteToken,
@@ -148,6 +178,8 @@ export type {
 	DelToken,
 	EmToken,
 	EscapeToken,
+	FootnoteRefToken,
+	FootnoteToken,
 	HeadingToken,
 	HrToken,
 	HtmlToken,
@@ -157,6 +189,7 @@ export type {
 	ListToken,
 	MarkdownAlign,
 	MarkdownExtensionToken,
+	MarkdownFootnotes,
 	MarkdownLinks,
 	MarkdownToken,
 	ParagraphToken,

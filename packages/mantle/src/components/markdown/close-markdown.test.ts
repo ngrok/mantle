@@ -38,6 +38,13 @@ describe("closeMarkdown", () => {
 		["a <spa", "a "],
 		["Visit <https://ngr", "Visit "],
 		["AT&T and &am", "AT&T and "],
+		// A footnote reference shows nothing until its `]`, and a bare `[^label]` line can still become a note.
+		["See claim[^", "See claim"],
+		["See claim[^1", "See claim"],
+		["See claim[^1]", "See claim[^1]"],
+		["Text\n\n[^1]", "Text\n\n"],
+		["Text\n\n[^1]:", "Text\n\n"],
+		["x [^a b", "x ^a b"],
 		// Tables: the header waits for its delimiter row, which completes.
 		["| a | b |", ""],
 		["| a | b |\n", ""],
@@ -140,16 +147,24 @@ describe("closeMarkdown", () => {
 			"---",
 			"",
 			"![diagram](https://ngrok.com/diagram.png)",
+			"",
+			"Limits reset hourly[^reset], per the docs[^2].",
+			"",
+			"[^reset]: At the top of each **hour**.",
+			"[^2]: See [pricing](https://ngrok.com/pricing).",
 		].join("\n");
-		// Why the finished render: it is the HTML that a reader sees once the prefix is closed.
-		const render = (text: string) => renderToStaticMarkup(createElement(Markdown, null, text));
+		// Why `streaming` for a prefix: it is the HTML that a reader sees while the answer streams. A footnote
+		// reference before its definition is a reference only then.
+		const render = (text: string, streaming = true) =>
+			// oxlint-disable-next-line react/no-children-prop -- Why: `MarkdownProps` requires `children`, and `createElement` checks the props object.
+			renderToStaticMarkup(createElement(Markdown, { streaming, children: text }));
 		const visible = (html: string) =>
 			html
 				.replace(/<pre[\s\S]*?<\/pre>|<code[^>]*>[\s\S]*?<\/code>|<[^>]+>/g, "")
 				.replaceAll("&lt;", "<")
 				.replaceAll("&amp;", "&");
 		const count = (text: string, part: string) => text.split(part).length - 1;
-		const finalHtml = render(answer);
+		const finalHtml = render(answer, false);
 		const finalText = visible(finalHtml);
 		const markers = ["**", "__", "~~", "`", "[", "|", "<", "&"];
 		const tags = [
@@ -163,6 +178,8 @@ describe("closeMarkdown", () => {
 			"<strong>",
 			"<del>",
 			"<img",
+			"<sup",
+			"<section",
 		];
 
 		const shown: string[] = [];

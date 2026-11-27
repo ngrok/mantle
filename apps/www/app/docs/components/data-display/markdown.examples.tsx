@@ -1,5 +1,10 @@
 import { PreviewCanvas } from "~/components/preview-canvas";
-import { MathDemo, StaticAnswerDemo, StreamingAnswerDemo } from "~/features/markdown-demos";
+import {
+	FootnotesDemo,
+	MathDemo,
+	StaticAnswerDemo,
+	StreamingAnswerDemo,
+} from "~/features/markdown-demos";
 
 /** The first example on the Markdown docs page. */
 export function OverviewExample() {
@@ -24,6 +29,15 @@ export function MathExample() {
 	return (
 		<PreviewCanvas>
 			<MathDemo />
+		</PreviewCanvas>
+	);
+}
+
+/** The "Footnotes" example on the Markdown docs page. */
+export function FootnotesExample() {
+	return (
+		<PreviewCanvas className="items-start">
+			<FootnotesDemo />
 		</PreviewCanvas>
 	);
 }

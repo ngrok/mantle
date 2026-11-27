@@ -3,7 +3,13 @@
  * marked's, so a component that read marked's tokens reads them with no change.
  */
 import { decodeEntities } from "./decode-entities.js";
-import type { MarkdownExtensionToken, MarkdownLinks, MarkdownToken } from "./markdown-tokens.js";
+import type {
+	FootnoteToken,
+	MarkdownExtensionToken,
+	MarkdownFootnotes,
+	MarkdownLinks,
+	MarkdownToken,
+} from "./markdown-tokens.js";
 
 type Links = MarkdownLinks;
 /**
@@ -28,6 +34,11 @@ type Context = {
 	depth: number;
 	/** Whether a definition is known. Why: a check of `links` for each paragraph reads each key. */
 	defined: boolean;
+	/** The footnotes so far. Why copy on write: most answers have none, and a copy for each lex costs each update. */
+	notes: MarkdownFootnotes;
+	ownsNotes: boolean;
+	/** Whether a footnote reference with no definition yet is a reference. Why: a streamed answer defines its notes last. */
+	awaitNotes: boolean;
 };
 // oxlint-disable-next-line typescript/no-explicit-any -- Why: the lexer builds each token kind field by field.
 type Tok = MarkdownToken & Record<string, any>;
@@ -90,6 +101,10 @@ const PLAIN_START = /* @__PURE__ */ Uint8Array.from({ length: 128 }, (_, code) =
 const BLOCK_START = /^ {0,3}[#*+\-_>`~<\d]/;
 const NOT_SPACE = /\S/;
 /** The label of a link reference definition at the start of a line. */
+/** A footnote definition, `[^label]:`. GFM labels hold no space. */
+const FOOTNOTE = /^ {0,3}\[\^([^\s[\]]{1,999})\]:[ \t]?/;
+/** A footnote reference, `[^label]`. */
+const FOOTNOTE_REF = /^\[\^([^\s[\]]{1,999})\]/;
 const DEFINITION_START = /^ {0,3}\[(?:[^\\\]]|\\.)+\]:/;
 const LITERAL = /\\([!-/:-@[-`{-~])|&(?:#\d{1,7}|#[xX][\da-fA-F]{1,6}|[a-zA-Z\d]+);/g;
 /** The indent and markers of a line, up to its last tab. */
@@ -413,6 +428,18 @@ function cells(row: string): string[] {
 	return out;
 }
 
+/** The footnotes of `context`, copied from the seed before the first write. */
+function writableNotes(context: Context): MarkdownFootnotes {
+	if (!context.ownsNotes) {
+		context.notes = {
+			definitions: Object.assign(Object.create(null), context.notes.definitions),
+			references: Object.assign(Object.create(null), context.notes.references),
+		};
+		context.ownsNotes = true;
+	}
+	return context.notes;
+}
+
 /** Adds the inline tokens of a block's `text` once every definition is known. */
 function withInline<T extends { text: string }>(token: T, context: Context): T & { tokens: Tok[] } {
 	const out: T & { tokens: Tok[] } = Object.assign(token, { tokens: [] as Tok[] });
@@ -498,6 +525,7 @@ function lexBlocks(
 	// Why the tokenizer after `start`: a line such as `$$x$$ more` starts like math but stays in the paragraph.
 	const interruptsParagraph = (line: string, at: number) =>
 		interrupts(line) ||
+		(context.depth === 0 && FOOTNOTE.test(line)) ||
 		(context.block.some((extension) => extension.start?.(line) === 0) && extensionAt(at) != null);
 	const rawLines = (from: number, to: number) => {
 		const out: string[] = [];
@@ -688,6 +716,53 @@ function lexBlocks(
 					index,
 					tokens,
 				);
+				continue;
+			}
+
+			// Why before a link definition: `[^1]: text` is one too, and a footnote is only read at the top level.
+			const note = context.depth === 0 ? FOOTNOTE.exec(line) : null;
+			if (note != null) {
+				const parts = [line.slice(note[0].length)];
+				let afterBlank = false;
+				let end = index + 1;
+				while (end < lines.length) {
+					const next = lineAt(end);
+					if (isBlank(next)) {
+						// Why: a blank line ends the note unless an indented line comes after it.
+						let after = end + 1;
+						while (after < lines.length && isBlank(lineAt(after))) {
+							after += 1;
+						}
+						if (after === lines.length || indentOf(lineAt(after)) < 4) {
+							break;
+						}
+						for (; end < after; end += 1) {
+							parts.push("");
+						}
+						afterBlank = true;
+					} else if (indentOf(next) >= 4) {
+						parts.push(next.slice(4));
+						end += 1;
+					} else if (!afterBlank && !interruptsParagraph(next, end)) {
+						// A lazy line continues the note's paragraph.
+						parts.push(next);
+						end += 1;
+					} else {
+						break;
+					}
+				}
+				const label = normalizeLabel(note[1] ?? "");
+				const token: FootnoteToken = {
+					type: "footnote",
+					raw: raw(index, end),
+					label,
+					tokens: lexNested(parts.join("\n"), context, { top: true, column: 0, lazy: undefined }),
+				};
+				if (!(label in context.notes.definitions)) {
+					writableNotes(context).definitions[label] = token;
+				}
+				tokens.push(token);
+				index = end;
 				continue;
 			}
 
@@ -1527,6 +1602,20 @@ function lexInline(source: string, context: Context): Tok[] {
 				continue;
 			}
 		} else if (char === "[" || (char === "!" && source[index + 1] === "[")) {
+			const note =
+				source[index + 1] === "^" ? FOOTNOTE_REF.exec(source.slice(index, index + 1003)) : null;
+			const label = note == null ? "" : normalizeLabel(note[1] ?? "");
+			if (note != null && (context.awaitNotes || label in context.notes.definitions)) {
+				const { references } = writableNotes(context);
+				const known = references[label];
+				const number = known?.number ?? Object.keys(references).length + 1;
+				const occurrence = (known?.count ?? 0) + 1;
+				// Why a new object: the seed's objects belong to the parser's finished blocks.
+				references[label] = { number, count: occurrence };
+				push({ type: "footnoteRef", raw: note[0], label, number, occurrence } as Tok);
+				index += note[0].length;
+				continue;
+			}
 			const image = char === "!";
 			const raw = image ? "![" : "[";
 			push(textToken(raw));
@@ -1880,13 +1969,26 @@ function finish(nodes: readonly Node[]): Tok[] {
 }
 
 /**
- * Lexes Markdown into tokens. `links` seeds the reference
- * definitions, and the result's `links` holds each one it read.
+ * Lexes Markdown into tokens. `links` and `notes` seed the reference
+ * definitions and the footnotes, and the result's `links` and `notes` hold
+ * each one it read. The result's `notes` is the seed itself when the
+ * Markdown adds no footnote. With `awaitNotes`, a footnote reference with no
+ * definition is a reference, as while the answer streams.
  */
 function lexMarkdown(
 	source: string,
-	{ links, extensions = [] }: { links?: Links; extensions?: readonly MarkdownTokenizer[] } = {},
-): MarkdownToken[] & { links: MarkdownLinks } {
+	{
+		links,
+		notes,
+		awaitNotes = false,
+		extensions = [],
+	}: {
+		links?: Links;
+		notes?: MarkdownFootnotes;
+		awaitNotes?: boolean;
+		extensions?: readonly MarkdownTokenizer[];
+	} = {},
+): MarkdownToken[] & { links: MarkdownLinks; notes: MarkdownFootnotes } {
 	const context: Context = {
 		// Why no prototype: a label such as `__proto__` must stay a plain key.
 		links: Object.assign(Object.create(null), links),
@@ -1895,13 +1997,16 @@ function lexMarkdown(
 		jobs: [],
 		depth: 0,
 		defined: links != null && hasKeys(links),
+		notes: notes ?? { definitions: Object.create(null), references: Object.create(null) },
+		ownsNotes: notes == null,
+		awaitNotes,
 	};
 	const normalized = source.includes("\r") ? source.replace(/\r\n?/g, "\n") : source;
 	const tokens = lexBlocks(normalized, context, { top: true });
 	for (const job of context.jobs) {
 		job();
 	}
-	return Object.assign(tokens, { links: context.links });
+	return Object.assign(tokens, { links: context.links, notes: context.notes });
 }
 
 export {

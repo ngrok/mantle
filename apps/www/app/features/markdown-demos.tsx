@@ -120,8 +120,40 @@ function MathDemo() {
 	);
 }
 
+/** An answer that cites its sources with GitHub footnotes. */
+const footnoteAnswer = `Rate limits reset at the top of each hour[^reset], and a request over the limit gets a 429[^429].
+
+Limits apply per account, not per endpoint[^reset].
+
+[^reset]: In UTC, for every plan.
+[^429]: With a \`Retry-After\` header that says when to try again.`;
+
+/** Footnotes that stream in: each reference links to its note, and each note links back. */
+function FootnotesDemo() {
+	const { text, isStreaming, restart } = useSimulatedStream(footnoteAnswer);
+	return (
+		<div className="flex w-full max-w-2xl flex-col gap-4">
+			<Button
+				type="button"
+				appearance="outlined"
+				intent="neutral"
+				className="self-start"
+				onClick={restart}
+			>
+				Stream again
+			</Button>
+			<Card.Root className="min-h-64">
+				<Card.Body>
+					<Markdown streaming={isStreaming}>{text}</Markdown>
+				</Card.Body>
+			</Card.Root>
+		</div>
+	);
+}
+
 export {
 	//,
+	FootnotesDemo,
 	MathDemo,
 	StaticAnswerDemo,
 	StreamingAnswerDemo,

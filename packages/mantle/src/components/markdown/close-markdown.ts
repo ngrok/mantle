@@ -6,8 +6,9 @@
  * Only the end changes, so each finished block keeps its source text:
  * - closes open emphasis, strikethrough, and code spans: `**bo` → `**bo**`
  * - shows an incomplete link as its text: `[the gu` and `[guide](https://n` → `the gu`, `guide`
- * - drops an incomplete image, HTML tag, autolink, or entity: `![al`, `<spa`, `&am`
+ * - drops an incomplete image, footnote reference, HTML tag, autolink, or entity: `![al`, `[^1`, `<spa`, `&am`
  * - drops a marker that has no content yet: `Some **`, a lone `-`, `#`, `1.`, `- [ ]`, or `[label]:` line
+ * - drops a line of only `[^label]`, which can still become a footnote
  * - drops a setext underline that has no line break yet, which can still be a list item
  * - hides a table header until its delimiter row starts, and completes a partial delimiter row
  * - closes an open `$$` block when `math` is set
@@ -413,7 +414,7 @@ function closeLastLines(
 	}
 	const isMarkerOnly =
 		/^(?:(?:[-*+]|\d{1,9}[.)])(?: +\[(?:[ xX]\]?)?)?|#{1,6}|\d{1,9}) *$/.test(content) ||
-		/^\[[^\]]+\]: *$/.test(content);
+		/^\[(?:[^\]]+\]: *|\^[^\s\]]*\]?)$/.test(content);
 	const isUnderline = /^(?:-+|=+) *$/.test(content) && previous.trim() !== "";
 	if (isMarkerOnly || isUnderline) {
 		const start = Math.min(regionStart, lastLineStart);
@@ -603,7 +604,13 @@ function closeInline(region: string, { math }: { math: boolean }): string {
 				const labelEnd = region.indexOf("]", index + 1);
 				close = labelEnd === -1 ? -1 : labelEnd + 1;
 			}
-			if (close === index && index === region.length && !isTaskMarker(region, bracket.index)) {
+			if (
+				close === index &&
+				index === region.length &&
+				!isTaskMarker(region, bracket.index) &&
+				// Why: a `[^label]` is a whole footnote reference.
+				region[bracket.index + 1] !== "^"
+			) {
 				// A label at the very end: its `(` can still arrive, so show the text only.
 				close = -1;
 			}
@@ -685,14 +692,18 @@ function closeInline(region: string, { math }: { math: boolean }): string {
 		index += 1;
 	}
 
-	// An unclosed `[` shows its text, and an unclosed `![` shows nothing. Why: it is a link until a `]` proves it is not.
+	// An unclosed `[` shows its text, and an unclosed `![` or `[^label` shows nothing. Why: it is a link or a
+	// footnote reference until a `]` or a space proves it is not.
 	const unclosed = brackets.filter((bracket) => bracket.index < end);
 	if (unclosed.length > 0) {
 		let stripped = "";
 		let from = 0;
 		for (const bracket of unclosed) {
 			stripped += region.slice(from, bracket.index);
-			if (bracket.image) {
+			if (
+				bracket.image ||
+				(region[bracket.index + 1] === "^" && !/\s/.test(region.slice(bracket.index + 2)))
+			) {
 				return closeInline(stripped, { math });
 			}
 			from = bracket.index + 1;

@@ -264,6 +264,36 @@ describe("Markdown", () => {
 		expect(screen.getByRole("link", { name: "docs" })).toHaveAttribute("href", "https://ngrok.com");
 	});
 
+	test("renders footnotes as superscript links and a list with back links", () => {
+		const { container } = render(
+			<Markdown>
+				{"One[^x], two[^y], one again[^x].\n\n[^y]: Note **why**\n[^x]: Note x\n[^z]: Unused"}
+			</Markdown>,
+		);
+		const refs = screen.getAllByRole("link", { name: /^\d$/ });
+		expect(refs.map((ref) => ref.textContent)).toEqual(["1", "2", "1"]);
+		const list = screen.getByRole("region", { name: "Footnotes" });
+		const items = list.querySelectorAll("li");
+		expect([...items].map((item) => item.textContent)).toEqual(["Note x↩︎↩︎2", "Note why↩︎"]);
+		const back = screen.getByRole("link", { name: "Back to reference 1-2" });
+		const target = container.querySelector(back.getAttribute("href")?.replace("#", "#") ?? "");
+		expect(document.getElementById(back.getAttribute("href")?.slice(1) ?? "")).toBe(refs[2]);
+		expect(target).toBe(refs[2]);
+		expect(document.getElementById(refs[1]?.getAttribute("href")?.slice(1) ?? "")).toBe(items[1]);
+		expect(refs[0]).toHaveAccessibleDescription("Footnotes");
+	});
+
+	test("gives the footnotes of two answers different ids", () => {
+		render(
+			<>
+				<Markdown>{"A[^1]\n\n[^1]: a"}</Markdown>
+				<Markdown>{"B[^1]\n\n[^1]: b"}</Markdown>
+			</>,
+		);
+		const [first, second] = screen.getAllByRole("link", { name: "1" });
+		expect(first?.getAttribute("href")).not.toBe(second?.getAttribute("href"));
+	});
+
 	test("joins the `data-slot` of an `asChild` parent", () => {
 		const { container } = render(<Markdown data-slot="card-body">{"Text"}</Markdown>);
 		expect(container.firstElementChild).toHaveAttribute("data-slot", "card-body markdown");

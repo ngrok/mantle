@@ -38,6 +38,8 @@ import type {
 	CodespanToken,
 	DelToken,
 	EmToken,
+	FootnoteRefToken,
+	FootnoteToken,
 	HeadingToken,
 	HrToken,
 	HtmlToken,
@@ -46,6 +48,7 @@ import type {
 	ListItemToken,
 	ListToken,
 	MarkdownExtensionToken,
+	MarkdownFootnotes,
 	ParagraphToken,
 	StrongToken,
 	TableToken,
@@ -103,10 +106,10 @@ const BREAK_TAG = /^<br\s*\/?>$/i;
 const CODE_TAGS = new Set(["kbd", "samp", "tt", "var"]);
 
 /** Narrows a token to one kind. Why a guard: the token union holds an extension token whose `type` is any string, so a `switch` cannot narrow it. */
-function isTokenOf<Name extends keyof MarkdownTokens | "table" | "list">(
+function isTokenOf<Name extends keyof MarkdownTokens | "footnoteRef">(
 	token: Token,
 	type: Name,
-): token is (MarkdownTokens & { table: TableToken; list: ListToken })[Name] {
+): token is (MarkdownTokens & { footnoteRef: FootnoteRefToken })[Name] {
 	return token.type === type;
 }
 
@@ -403,10 +406,130 @@ function renderTable(token: TableToken, components: MarkdownComponents) {
 	);
 }
 
+/** The id prefix of the footnotes of one answer. Why a context: two answers on one page must not share ids. */
+const FootnoteIdContext = /* @__PURE__ */ createContext("");
+
+/** The classes of a footnote link: the look of mantle's `Anchor`. */
+const footnoteLinkClassName =
+	"rounded text-accent-600 hover:underline focus-visible:ring-3 focus-visible:focus-ring";
+
+/** A footnote reference: a superscript link to its note. */
+function FootnoteRef({ token }: { token: FootnoteRefToken }) {
+	const id = use(FootnoteIdContext);
+	return (
+		<sup data-footnote-ref="">
+			<a
+				href={`#${id}fn-${token.number}`}
+				id={`${id}fnref-${token.number}-${token.occurrence}`}
+				aria-describedby={`${id}fn-label`}
+				className={footnoteLinkClassName}
+			>
+				{token.number}
+			</a>
+		</sup>
+	);
+}
+
+/**
+ * The footnote list at the end of an answer: each note that has a reference,
+ * in the order of its first reference, with a link back to each reference.
+ */
+const MarkdownFootnoteList = /* @__PURE__ */ memo(function MarkdownFootnoteList({
+	notes,
+	components,
+}: {
+	notes: MarkdownFootnotes;
+	components: MarkdownComponents;
+}) {
+	const id = use(FootnoteIdContext);
+	const items = Object.entries(notes.references)
+		.flatMap(([label, reference]) => {
+			const note = notes.definitions[label];
+			return note == null ? [] : [{ note, ...reference }];
+		})
+		.toSorted((a, b) => a.number - b.number);
+	if (items.length === 0) {
+		return null;
+	}
+	return (
+		<section data-footnotes="" aria-labelledby={`${id}fn-label`}>
+			<h2 id={`${id}fn-label`} className="sr-only">
+				Footnotes
+			</h2>
+			<ol>
+				{items.map(({ note, number, count }, index) => (
+					<li
+						key={number}
+						id={`${id}fn-${number}`}
+						// Why: while the answer streams, a reference to a note that has not arrived holds its number.
+						value={number === index + 1 ? undefined : number}
+					>
+						{renderNote(
+							note,
+							Array.from({ length: count }, (_, at) => (
+								<a
+									key={`backref-${at}`}
+									href={`#${id}fnref-${number}-${at + 1}`}
+									aria-label={`Back to reference ${number}${count > 1 ? `-${at + 1}` : ""}`}
+									data-footnote-backref=""
+									// Why: an arrow and a digit need no translation, and the engine must not split the arrow from its `sup`.
+									translate="no"
+									className={footnoteLinkClassName}
+								>
+									{/* Why U+FE0E: it shows the arrow as text, not as an emoji. */}
+									{"\u21a9\ufe0e"}
+									{at > 0 && <sup>{at + 1}</sup>}
+								</a>
+							)),
+							components,
+						)}
+					</li>
+				))}
+			</ol>
+		</section>
+	);
+});
+
+/** Renders the blocks of a note, with its back links at the end of its last paragraph, as GFM does. */
+function renderNote(
+	note: FootnoteToken,
+	backrefs: ReactNode[],
+	components: MarkdownComponents,
+): ReactNode {
+	const last = note.tokens.at(-1);
+	if (last == null || !isTokenOf(last, "paragraph")) {
+		return (
+			<>
+				{renderBlocks(note.tokens, components)}
+				{backrefs}
+			</>
+		);
+	}
+	return (
+		<>
+			{renderBlocks(note.tokens.slice(0, -1), components)}
+			{renderComponent(components.paragraph ?? defaultComponents.paragraph, {
+				key: note.tokens.length,
+				token: last,
+				children: translationSafeRun([renderInline(last.tokens, components), ...backrefs]),
+			})}
+		</>
+	);
+}
+
 /** Renders one token with its component, and its content as children. */
 function renderToken(token: Token, key: number, components: MarkdownComponents): ReactNode {
-	if (token.type === "space" || token.type === "def" || token.type === "checkbox") {
+	if (
+		token.type === "space" ||
+		token.type === "def" ||
+		token.type === "checkbox" ||
+		// Why: a note renders in the footnote list at the end.
+		token.type === "footnote"
+	) {
 		return null;
+	}
+	if (isTokenOf(token, "footnoteRef")) {
+		return <FootnoteRef key={key} token={token} />;
 	}
 	if (token.type === "text" || token.type === "escape") {
 		if (hasTokens(token)) {
@@ -664,6 +787,12 @@ type MarkdownProps = Omit<ComponentProps<"div">, "children"> &
  * text, so `javascript:` URLs never reach the DOM. An absolute link opens in a
  * new tab.
  *
+ * A GFM footnote reference, `[^1]`, renders as a superscript link to its
+ * note. The notes render at the end, in a `section` with a hidden
+ * "Footnotes" heading, in the order of their first reference, and each note
+ * links back to each of its references. Footnote ids take a prefix from
+ * `useId`, so two answers on one page never share one.
+ *
  * While `streaming`, the root is `aria-busy`. The answer is not a live region:
  * a screen reader does not read it as it streams. Announce the start and the
  * end of an answer from one status region that the chat owns.
@@ -674,6 +803,9 @@ type MarkdownProps = Omit<ComponentProps<"div">, "children"> &
  * | `data-streaming` | `""` | Present while `streaming`. Shows the caret. |
  * | `data-streamed` | `""` | Present once the answer has streamed on this page. A new block fades in. |
  * | `data-task` | `""` | On a task-list item, which holds a checkbox. |
+ * | `data-footnote-ref` | `""` | On the `<sup>` of a footnote reference, `[^1]`. |
+ * | `data-footnotes` | `""` | On the `<section>` of the footnote list at the end. |
+ * | `data-footnote-backref` | `""` | On a note's link back to its reference. |
  *
  * @useWhen Render Markdown that arrives at runtime, such as a model's answer, as it streams or after.
  *
@@ -713,6 +845,7 @@ function Markdown({
 		[parser, source, streaming, closedEnd],
 	);
 
+	const footnoteId = useId();
 	const isHydrated = useIsHydrated();
 	const [hasStreamed, setHasStreamed] = useState(streaming);
 	if (streaming && !hasStreamed) {
@@ -756,18 +889,21 @@ function Markdown({
 			{...props}
 		>
 			<StreamingContext value={streaming}>
-				<LinksContext value={snapshot.links}>
-					{Array.from({ length: Math.ceil(snapshot.blocks.length / GROUP_SIZE) }, (_, group) => (
-						<MarkdownGroup
-							// oxlint-disable-next-line react/no-array-index-key -- Why: a group holds the same blocks for the life of the answer.
-							key={group}
-							blocks={snapshot.blocks.slice(group * GROUP_SIZE, (group + 1) * GROUP_SIZE)}
-							start={group * GROUP_SIZE}
-							components={components ?? noComponents}
-							links={snapshot.links}
-						/>
-					))}
-				</LinksContext>
+				<FootnoteIdContext value={footnoteId}>
+					<LinksContext value={snapshot.links}>
+						{Array.from({ length: Math.ceil(snapshot.blocks.length / GROUP_SIZE) }, (_, group) => (
+							<MarkdownGroup
+								// oxlint-disable-next-line react/no-array-index-key -- Why: a group holds the same blocks for the life of the answer.
+								key={group}
+								blocks={snapshot.blocks.slice(group * GROUP_SIZE, (group + 1) * GROUP_SIZE)}
+								start={group * GROUP_SIZE}
+								components={components ?? noComponents}
+								links={snapshot.links}
+							/>
+						))}
+					</LinksContext>
+					<MarkdownFootnoteList notes={snapshot.notes} components={components ?? noComponents} />
+				</FootnoteIdContext>
 			</StreamingContext>
 		</div>
 	);

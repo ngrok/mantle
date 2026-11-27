@@ -3311,6 +3311,24 @@
         "name": "data-task",
         "value": "`\"\"`",
         "description": "On a task-list item, which holds a checkbox."
+      },
+      {
+        "part": "Markdown",
+        "name": "data-footnote-ref",
+        "value": "`\"\"`",
+        "description": "On the `<sup>` of a footnote reference, `[^1]`."
+      },
+      {
+        "part": "Markdown",
+        "name": "data-footnotes",
+        "value": "`\"\"`",
+        "description": "On the `<section>` of the footnote list at the end."
+      },
+      {
+        "part": "Markdown",
+        "name": "data-footnote-backref",
+        "value": "`\"\"`",
+        "description": "On a note's link back to its reference."
       }
     ]
   },

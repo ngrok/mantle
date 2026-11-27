@@ -2535,6 +2535,22 @@ pre[data-slot~="code-block-code"][data-foldable]
 		}
 	}
 
+	/* Why `line-height: 0`: a superscript must not make its line taller. */
+	:where([data-slot~="markdown"]) sup[data-footnote-ref] {
+		line-height: 0;
+	}
+
+	:where([data-slot~="markdown"]) section[data-footnotes] {
+		border-block-start: 1px solid var(--border-color-base);
+		padding-block-start: 1em;
+		color: var(--text-color-muted);
+		font-size: 0.875em;
+	}
+
+	:where([data-slot~="markdown"]) [data-footnote-backref] {
+		margin-inline-start: 0.25em;
+	}
+
 	:where([data-slot~="markdown"]) img {
 		max-width: 100%;
 		height: auto;
@@ -2558,6 +2574,11 @@ pre[data-slot~="code-block-code"][data-foldable]
 		> p:where(:last-child)::after,
 	:where([data-slot~="markdown"][data-streaming])
 		> blockquote:where(:last-child)
+		> p:where(:last-child)::after,
+	:where([data-slot~="markdown"][data-streaming])
+		> section[data-footnotes]:where(:last-child)
+		> ol
+		> li:where(:last-child)
 		> p:where(:last-child)::after {
 		content: "";
 		display: inline-block;
