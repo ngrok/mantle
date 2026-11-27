@@ -137,7 +137,7 @@ function Root({
 		...props,
 		...semantics,
 		"data-slot": joinDataSlot(dataSlot, "status-strip"),
-		className: cx("grid h-6 auto-cols-fr grid-flow-col gap-px", className),
+		className: cx("grid h-6 w-full auto-cols-fr grid-flow-col gap-px", className),
 	};
 
 	if (asChild) {
@@ -259,7 +259,10 @@ function Segment({
 			)}
 			style={$cssProperties({ "--_status-strip-value": value ?? 0, ...style })}
 		>
-			{children}
+			{asChild && isValidElement<Record<string, unknown>>(children)
+				? // Why clone: `Slot` lets the child's props win, and `data-share` must match `value`.
+					cloneElement(children, { "data-share": share })
+				: children}
 		</Component>
 	);
 }

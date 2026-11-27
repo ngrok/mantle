@@ -122,7 +122,7 @@ export function NoDataExample() {
 export function DecorativeExample() {
 	return (
 		<PreviewCanvas className="flex-col items-start">
-			<p className="text-body text-sm">In stock 72% of hours, last 30 days</p>
+			<p className="text-body text-sm">In stock 72% of reported hours, last 30 days</p>
 			<StatusStrip.Root aria-hidden className="mt-1.5 h-4 auto-cols-1.5 gap-0.5">
 				{days.map((share, day) => (
 					<StatusStrip.Segment

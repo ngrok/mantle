@@ -179,6 +179,17 @@ describe("StatusStrip.Segment", () => {
 		expect(screen.getByTestId("segment")).toHaveAttribute("data-share", "no-data");
 	});
 
+	test("asChild keeps the share of its value over the child's own data-share", () => {
+		render(
+			<StatusStrip.Root aria-hidden>
+				<StatusStrip.Segment value={null} asChild>
+					<i data-share="none" data-testid="segment" />
+				</StatusStrip.Segment>
+			</StatusStrip.Root>,
+		);
+		expect(screen.getByTestId("segment")).toHaveAttribute("data-share", "no-data");
+	});
+
 	test("keeps its own title", () => {
 		render(
 			<StatusStrip.Root aria-hidden>

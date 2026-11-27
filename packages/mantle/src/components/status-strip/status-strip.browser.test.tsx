@@ -86,6 +86,19 @@ describe("StatusStrip paint", () => {
 		expect(noData.clientWidth).toBeGreaterThan(0);
 	});
 
+	test("fills the width of a flex row, so its segments do not collapse", () => {
+		render(
+			<div style={{ display: "flex", width: 320 }}>
+				<StatusStrip.Root aria-hidden>
+					<StatusStrip.Segment value={1} data-testid="first" />
+					<StatusStrip.Segment value={0} />
+				</StatusStrip.Root>
+			</div>,
+		);
+		// 320px minus one 1px gap, in two segments.
+		expect(screen.getByTestId("first").getBoundingClientRect().width).toBeCloseTo(159.5, 1);
+	});
+
 	test("forced colors keep each share's paint", async () => {
 		await commands.emulateMedia({ forcedColors: "active" });
 		try {

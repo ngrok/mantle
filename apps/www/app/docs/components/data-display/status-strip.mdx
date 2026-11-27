@@ -121,7 +121,7 @@ const days = [
 ];
 
 <>
-	<p className="text-body text-sm">In stock 72% of hours, last 30 days</p>
+	<p className="text-body text-sm">In stock 72% of reported hours, last 30 days</p>
 	<StatusStrip.Root aria-hidden className="mt-1.5 h-4 auto-cols-1.5 gap-0.5">
 		{days.map((share, day) => (
 			<StatusStrip.Segment key={day} value={share} />
@@ -180,14 +180,14 @@ Keep each segment non-interactive. A screen reader reads `role="img"` as one ima
 
 - `StatusStrip.Root` is `role="img"`, so a screen reader reads its name as one summary and skips the segments. The type requires `aria-label` or `aria-labelledby`, or `aria-hidden`. An empty or blank name throws. Under `asChild`, the root's role and name replace the child's own.
 - With `aria-hidden`, the root has no role, and the strip is hidden from assistive technology. Use it only when nearby text says the same thing.
-- A segment's `title` shows on hover. It is a hint for a pointer, so put what a reader must know in the root's name.
+- A segment's `title` shows on hover. It is a hint for a pointer, so put what a reader must know in the root's name. When the times matter, such as when stock ran out, list them in text near the strip.
 - The states differ in strength and in shape (a fill or two lines), not only in hue.
 
 ## API Reference
 
 ### StatusStrip.Root
 
-The strip: a `<span>` grid of equal columns, `1.5rem` tall, with a `1px` gap. Set the height with `h-*`, the gap with `gap-*`, and a fixed segment width with `auto-cols-*`. It accepts every `span` prop except `role`.
+The strip: a full-width `<span>` grid of equal columns, `1.5rem` tall, with a `1px` gap. Set the height with `h-*`, the gap with `gap-*`, and a fixed segment width with `auto-cols-*`. It accepts every `span` prop except `role`.
 
 | Prop              | Type      | Default | Description                                                                                        |
 | ----------------- | --------- | ------- | -------------------------------------------------------------------------------------------------- |
