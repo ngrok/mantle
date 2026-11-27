@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
+import { useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { getOffsetPaginatedSlice } from "./offset-paginated-slice.js";
 import { useOffsetPagination, type UseOffsetPaginationProps } from "./use-offset-pagination.js";
@@ -262,6 +263,30 @@ describe("useOffsetPagination", () => {
 		expect(result.current.offset).toBe(100);
 	});
 
+	// Regression: the render that applied the new size still clamped the page
+	// with the old size, and a parent that copies `currentPage` back during
+	// render then stored that page.
+	test("a parent that copies currentPage back keeps the page that setPageSize picked", () => {
+		const { result } = renderHook(() => {
+			const [page, setPage] = useState(2);
+			const pagination = useOffsetPagination({
+				listSize: 15,
+				pageSize: 10,
+				page,
+				onPageChange: setPage,
+			});
+			if (page !== pagination.currentPage) {
+				setPage(pagination.currentPage);
+			}
+			return pagination;
+		});
+		act(() => result.current.setPageSize(5));
+		// Item 11 starts page 2 at 10 a page, and page 3 at 5 a page.
+		expect(result.current.currentPage).toBe(3);
+		expect(result.current.pageSize).toBe(5);
+		expect(result.current.offset).toBe(10);
+	});
+
 	test("gaining then dropping onPageSizeChange shows the prop size", () => {
 		const onPageSizeChange = vi.fn<(pageSize: number, page: number) => void>();
 		const initialProps: UseOffsetPaginationProps = { listSize: 500, pageSize: 20 };
@@ -446,6 +471,36 @@ describe("useOffsetPagination", () => {
 			expect(result.current.currentPage).toBe(3);
 			expect(result.current.offset).toBe(40);
 			expect(onPageChange).not.toHaveBeenCalled();
+		});
+
+		test("reportClampedPage stores the clamp, so a list that grows back stays on the shown page", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const { result, rerender } = renderHook(
+				({ listSize }) => {
+					const [page, setPage] = useState(10);
+					return useOffsetPagination({
+						listSize,
+						pageSize: 10,
+						page,
+						onPageChange: (next) => {
+							onPageChange(next);
+							setPage(next);
+						},
+						reportClampedPage: true,
+						resetPageOnListSizeChange: false,
+					});
+				},
+				{ initialProps: { listSize: 100 } },
+			);
+			// A list that loads has no items yet; a report then would erase page 10.
+			rerender({ listSize: 0 });
+			expect(onPageChange).not.toHaveBeenCalled();
+			rerender({ listSize: 25 });
+			expect(onPageChange).toHaveBeenCalledTimes(1);
+			expect(onPageChange).toHaveBeenLastCalledWith(3);
+			rerender({ listSize: 100 });
+			expect(result.current.currentPage).toBe(3);
+			expect(onPageChange).toHaveBeenCalledTimes(1);
 		});
 
 		// Regression: separate effects for `pageSize` and `listSize` each called

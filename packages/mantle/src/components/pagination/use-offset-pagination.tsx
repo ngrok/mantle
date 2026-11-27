@@ -54,6 +54,16 @@ type UseOffsetPaginationProps = {
 	 * @default true
 	 */
 	resetPageOnListSizeChange?: boolean;
+	/**
+	 * Whether to call `onPageChange` with `currentPage` when it differs from the
+	 * controlled `page`, such as after a shorter list clamps it. Set `true` so
+	 * the stored page follows the clamp, and a list that grows back stays on
+	 * the shown page. The hook reports each stored value once, and never for an
+	 * empty list, because `listSize` is 0 while a list loads.
+	 *
+	 * @default false
+	 */
+	reportClampedPage?: boolean;
 };
 
 type OffsetPaginationState = {
@@ -171,6 +181,7 @@ function useOffsetPagination({
 	onPageSizeChange,
 	page: pageProp,
 	pageSize,
+	reportClampedPage = false,
 	resetPageOnListSizeChange = true,
 }: UseOffsetPaginationProps): OffsetPaginationState {
 	const isPageControlled = pageProp != null;
@@ -202,20 +213,23 @@ function useOffsetPagination({
 		// when the parent drops `onPageSizeChange`.
 		setInternalPageSize(pageSize);
 	}
-	if (
+	const settlesPending =
 		pending != null &&
-		(isPageSizeControlled ? Object.is(pageSize, pending.size) : pageProp === pending.page)
-	) {
+		(isPageSizeControlled ? Object.is(pageSize, pending.size) : pageProp === pending.page);
+	if (settlesPending) {
 		setPending(null);
 		setInternalPage(pending.page);
 		setInternalPageSize(pending.size);
 	}
-	const currentPageSize = isPageSizeControlled ? pageSize : internalPageSize;
+	// Why read `pending` here: the state updates above land in the next render,
+	// and a parent that reads `currentPage` in this render must get the page at its size.
+	const internal = settlesPending ? pending : { page: internalPage, size: internalPageSize };
+	const currentPageSize = isPageSizeControlled ? pageSize : internal.size;
 
 	const totalPages = Math.ceil(listSize / currentPageSize);
 	// Why the clamp: `page` and `defaultPage` come from outside, and a shorter
 	// list can leave the stored page past the end.
-	const storedPage = isPageControlled ? pageProp : internalPage;
+	const storedPage = isPageControlled ? pageProp : internal.page;
 	const currentPage = clampPage(storedPage, totalPages);
 	const offset = (currentPage - 1) * currentPageSize;
 
@@ -241,15 +255,45 @@ function useOffsetPagination({
 	// Why the ref: an effect also runs on mount, and a mount must keep
 	// `defaultPage` and `page`. Only a real change resets.
 	const previousListSize = useRef(listSize);
-	// Why an effect: the reset calls `onPageChange`, an external callback that
-	// must not run during render.
+	// The stored page that the last reset or clamp report moved away from. Why:
+	// a router can commit the new `page` a render late, and a second report in
+	// that render must not repeat the write or undo the reset.
+	const reportedFromPage = useRef<number | null>(null);
+	// Why an effect: the reset and the clamp report call `onPageChange`, an
+	// external callback that must not run during render.
 	useEffect(() => {
 		const listSizeChanged = previousListSize.current !== listSize;
 		previousListSize.current = listSize;
-		if (listSizeChanged && resetPageOnListSizeChange) {
-			setPage(1);
+		if (!Object.is(reportedFromPage.current, storedPage)) {
+			reportedFromPage.current = null;
 		}
-	}, [listSize, resetPageOnListSizeChange, setPage]);
+		if (listSizeChanged && resetPageOnListSizeChange) {
+			reportedFromPage.current = storedPage;
+			setPage(1);
+			return;
+		}
+		// Why skip an empty list: `listSize` is 0 while a list loads, and a
+		// report then erases the page that the URL restores.
+		if (
+			!reportClampedPage ||
+			!isPageControlled ||
+			listSize === 0 ||
+			storedPage === currentPage ||
+			reportedFromPage.current != null
+		) {
+			return;
+		}
+		reportedFromPage.current = storedPage;
+		setPage(currentPage);
+	}, [
+		currentPage,
+		isPageControlled,
+		listSize,
+		reportClampedPage,
+		resetPageOnListSizeChange,
+		setPage,
+		storedPage,
+	]);
 
 	function goToPage(page: number) {
 		setPage(clampPage(page, totalPages));
