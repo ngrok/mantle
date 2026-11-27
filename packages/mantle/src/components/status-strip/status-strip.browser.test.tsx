@@ -31,27 +31,35 @@ function renderStrip() {
 				"--status-strip-track": "rgb(255, 0, 0)",
 			})}
 		>
-			<StatusStrip.Cell value={1} data-testid="all" />
-			<StatusStrip.Cell value={0.5} data-testid="some" />
-			<StatusStrip.Cell value={0} data-testid="none" />
-			<StatusStrip.Cell value={null} data-testid="no-data" />
+			<StatusStrip.Segment value={1} data-testid="all" />
+			<StatusStrip.Segment value={0.5} data-testid="some" />
+			<StatusStrip.Segment value={0} data-testid="none" />
+			<StatusStrip.Segment value={null} data-testid="no-data" />
 		</StatusStrip.Root>,
 	);
 	return (id: string) => getComputedStyle(screen.getByTestId(id));
 }
 
+/** The color Chromium computes for `color-mix` of the blue fill at `percent` over transparent. */
+function mixedFill(percent: number) {
+	const reference = document.createElement("span");
+	reference.style.forcedColorAdjust = "none";
+	reference.style.backgroundColor = `color-mix(in oklab, rgb(0, 0, 255) ${percent}%, transparent)`;
+	document.body.append(reference);
+	const color = getComputedStyle(reference).backgroundColor;
+	reference.remove();
+	return color;
+}
+
 describe("StatusStrip paint", () => {
-	test("a full cell paints the fill, and a half cell paints it fainter", () => {
+	test("a full segment paints the fill, and a half segment paints it fainter", () => {
 		const style = renderStrip();
-		expect(style("all").backgroundColor).toMatch(
-			/^(rgb\(0, 0, 255\)|color\(srgb 0 0 1\)|oklab\(.*\))$/,
-		);
-		expect(style("all").backgroundColor).not.toMatch(/\/ 0\.\d/);
+		expect(style("all").backgroundColor).toBe(mixedFill(100));
 		// 35% + 65% * 0.5 = 67.5% of the fill over transparent.
-		expect(style("some").backgroundColor).toMatch(/\/ 0\.675\)$/);
+		expect(style("some").backgroundColor).toBe(mixedFill(67.5));
 	});
 
-	test("a cell at 0 fills with the track, and a cell with no data is only an outline in it", () => {
+	test("a segment at 0 fills with the track, and a segment with no data is empty between two lines in it", () => {
 		const style = renderStrip();
 		expect(style("none").backgroundColor).toBe("rgb(255, 0, 0)");
 		expect(style("none").borderTopWidth).toBe("0px");
@@ -60,12 +68,41 @@ describe("StatusStrip paint", () => {
 		expect(style("no-data").borderTopColor).toBe("rgb(255, 0, 0)");
 	});
 
-	test("cells share the root's width equally", () => {
+	test("a segment with no data stays empty when it is 2px wide, so it does not read as 0", () => {
+		render(
+			<StatusStrip.Root aria-hidden style={{ width: 359 }}>
+				{Array.from({ length: 120 }, (_, index) => (
+					<StatusStrip.Segment
+						// oxlint-disable-next-line react/no-array-index-key -- Why: each segment is a fixed position in the strip.
+						key={index}
+						value={index % 2 === 0 ? 0 : null}
+						data-testid={`segment-${index}`}
+					/>
+				))}
+			</StatusStrip.Root>,
+		);
+		const noData = screen.getByTestId("segment-1");
+		expect(noData.getBoundingClientRect().width).toBeLessThan(3);
+		expect(noData.clientWidth).toBeGreaterThan(0);
+	});
+
+	test("forced colors keep each share's paint", async () => {
+		await commands.emulateMedia({ forcedColors: "active" });
+		try {
+			const style = renderStrip();
+			expect(style("all").backgroundColor).toBe(mixedFill(100));
+			expect(style("none").backgroundColor).toBe("rgb(255, 0, 0)");
+		} finally {
+			await commands.emulateMedia({ forcedColors: "none" });
+		}
+	});
+
+	test("segments share the root's width equally", () => {
 		renderStrip();
 		const widths = ["all", "some", "none", "no-data"].map(
 			(id) => screen.getByTestId(id).getBoundingClientRect().width,
 		);
-		// 400px minus three 1px gaps, in four cells.
+		// 400px minus three 1px gaps, in four segments.
 		for (const width of widths) {
 			expect(width).toBeCloseTo(99.25, 1);
 		}

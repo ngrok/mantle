@@ -64,7 +64,7 @@ const days: readonly (number | null)[] = [
 	1,
 ];
 
-function hourTitle(hour: number, inStock: 0 | 1 | null) {
+function hourTitle(hour: number, inStock: number | null) {
 	const time = `${String(hour).padStart(2, "0")}:00 UTC`;
 	if (inStock == null) {
 		return `${time}: no reading`;
@@ -78,7 +78,7 @@ export function OverviewExample() {
 		<PreviewCanvas className="flex-col items-stretch">
 			<StatusStrip.Root aria-label="In stock 18 of the 22 hours with a reading on Nov 26">
 				{hours.map((inStock, hour) => (
-					<StatusStrip.Cell
+					<StatusStrip.Segment
 						// oxlint-disable-next-line react/no-array-index-key -- Why: each hour is a fixed position in the day, so its index is its identity.
 						key={hour}
 						value={inStock}
@@ -95,10 +95,10 @@ export function SharesExample() {
 	return (
 		<PreviewCanvas className="flex-col items-stretch">
 			<StatusStrip.Root aria-label="At the low price 13 of the last 24 hours">
-				<StatusStrip.Cell value={1} title="00:00 to 05:00 UTC: at the low 6 of 6 hours" />
-				<StatusStrip.Cell value={0.5} title="06:00 to 11:00 UTC: at the low 3 of 6 hours" />
-				<StatusStrip.Cell value={1 / 6} title="12:00 to 17:00 UTC: at the low 1 of 6 hours" />
-				<StatusStrip.Cell value={0.5} title="18:00 to 23:00 UTC: at the low 3 of 6 hours" />
+				<StatusStrip.Segment value={1} title="00:00 to 05:00 UTC: at the low 6 of 6 hours" />
+				<StatusStrip.Segment value={0.5} title="06:00 to 11:00 UTC: at the low 3 of 6 hours" />
+				<StatusStrip.Segment value={1 / 6} title="12:00 to 17:00 UTC: at the low 1 of 6 hours" />
+				<StatusStrip.Segment value={0.5} title="18:00 to 23:00 UTC: at the low 3 of 6 hours" />
 			</StatusStrip.Root>
 		</PreviewCanvas>
 	);
@@ -109,10 +109,10 @@ export function NoDataExample() {
 	return (
 		<PreviewCanvas className="flex-col items-stretch">
 			<StatusStrip.Root aria-label="Up 2 of the 3 hours with a reading">
-				<StatusStrip.Cell value={1} title="09:00 UTC: up" />
-				<StatusStrip.Cell value={0} title="10:00 UTC: down" />
-				<StatusStrip.Cell value={null} title="11:00 UTC: no reading" />
-				<StatusStrip.Cell value={1} title="12:00 UTC: up" />
+				<StatusStrip.Segment value={1} title="09:00 UTC: up" />
+				<StatusStrip.Segment value={0} title="10:00 UTC: down" />
+				<StatusStrip.Segment value={null} title="11:00 UTC: no reading" />
+				<StatusStrip.Segment value={1} title="12:00 UTC: up" />
 			</StatusStrip.Root>
 		</PreviewCanvas>
 	);
@@ -125,7 +125,7 @@ export function DecorativeExample() {
 			<p className="text-body text-sm">In stock 72% of hours, last 30 days</p>
 			<StatusStrip.Root aria-hidden className="mt-1.5 h-4 auto-cols-1.5 gap-0.5">
 				{days.map((share, day) => (
-					<StatusStrip.Cell
+					<StatusStrip.Segment
 						// oxlint-disable-next-line react/no-array-index-key -- Why: each day is a fixed position in the window, so its index is its identity.
 						key={day}
 						value={share}
@@ -145,7 +145,7 @@ export function ColorsExample() {
 				className="[--status-strip-fill:var(--color-success-600)]"
 			>
 				{hours.map((inStock, hour) => (
-					<StatusStrip.Cell
+					<StatusStrip.Segment
 						// oxlint-disable-next-line react/no-array-index-key -- Why: each hour is a fixed position in the day, so its index is its identity.
 						key={hour}
 						value={inStock}

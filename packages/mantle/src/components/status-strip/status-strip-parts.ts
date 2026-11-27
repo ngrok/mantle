@@ -6,5 +6,5 @@
 export {
 	//,
 	Root,
-	Cell,
+	Segment,
 } from "./status-strip.js";

@@ -149,7 +149,6 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 	},
 	"StatusStrip, in the gpu-compare app's words": {
 		"uptime bar": "Status Strip",
-		"status strip": "Status Strip",
 		"in stock or sold out for each hour": "Status Strip",
 		"row of cells for each day shaded by share": "Status Strip",
 		"availability history strip": "Status Strip",

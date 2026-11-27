@@ -1,6 +1,6 @@
 ---
 title: Status Strip
-description: A row of equal cells over time, such as one cell for each hour or day, each shaded by its share of the time in one state.
+description: A row of equal segments over time, such as one segment for each hour or day, each shaded by its share of the time in one state.
 aliases: [uptime bar, availability strip, status history, heartbeat bar]
 ---
 
@@ -8,7 +8,7 @@ import { Example } from "~/components/example";
 
 # Status Strip
 
-A row of equal cells over time, such as one cell for each hour or day, each shaded by its share of the time in one state. A cell with no data is an outline, so it does not read as 0.
+A row of equal segments over time, such as one segment for each hour or day, each shaded by its share of the time in one state. A segment with no data is empty between two lines, so it does not read as 0.
 
 <Example name="components/data-display/status-strip/overview" title="Status Strip example">
 
@@ -17,7 +17,7 @@ import { StatusStrip } from "@ngrok/mantle/status-strip";
 
 const hours = [1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, null, null, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1];
 
-function hourTitle(hour: number, inStock: 0 | 1 | null) {
+function hourTitle(hour: number, inStock: number | null) {
 	const time = `${String(hour).padStart(2, "0")}:00 UTC`;
 	if (inStock == null) {
 		return `${time}: no reading`;
@@ -27,7 +27,7 @@ function hourTitle(hour: number, inStock: 0 | 1 | null) {
 
 <StatusStrip.Root aria-label="In stock 18 of the 22 hours with a reading on Nov 26">
 	{hours.map((inStock, hour) => (
-		<StatusStrip.Cell key={hour} value={inStock} title={hourTitle(hour, inStock)} />
+		<StatusStrip.Segment key={hour} value={inStock} title={hourTitle(hour, inStock)} />
 	))}
 </StatusStrip.Root>;
 ```
@@ -36,13 +36,13 @@ function hourTitle(hour: number, inStock: 0 | 1 | null) {
 
 ## When to use
 
-- Show when something was in one state over time, such as in stock or up, as a row of equal cells for each hour or day.
+- Show when something was in one state over time, such as in stock or up, as a row of equal segments for each hour or day.
 - Prefer [`ProgressBar`](/components/feedback/progress-bar) to show one value, such as how much of a task is complete.
 - Prefer [`BarChart`](/components/charts/bar-chart) when a reader must read exact values over time from axes and a tooltip.
 
 ## Shares between 0 and 1
 
-A cell can cover more than one reading, such as six hours of a 30-day range. Pass the share of those readings in the state as `value`. The fill starts at 35% strength above 0, so one hour in six still shows, and grows to full strength at 1.
+A segment can cover more than one reading, such as six hours of a 30-day range. Pass the share of those readings in the state as `value`. The fill starts at 35% strength above 0, so one hour in six still shows, and grows to full strength at 1.
 
 <Example name="components/data-display/status-strip/shares" title="Status Strip shares example">
 
@@ -50,10 +50,10 @@ A cell can cover more than one reading, such as six hours of a 30-day range. Pas
 import { StatusStrip } from "@ngrok/mantle/status-strip";
 
 <StatusStrip.Root aria-label="At the low price 13 of the last 24 hours">
-	<StatusStrip.Cell value={1} title="00:00 to 05:00 UTC: at the low 6 of 6 hours" />
-	<StatusStrip.Cell value={0.5} title="06:00 to 11:00 UTC: at the low 3 of 6 hours" />
-	<StatusStrip.Cell value={1 / 6} title="12:00 to 17:00 UTC: at the low 1 of 6 hours" />
-	<StatusStrip.Cell value={0.5} title="18:00 to 23:00 UTC: at the low 3 of 6 hours" />
+	<StatusStrip.Segment value={1} title="00:00 to 05:00 UTC: at the low 6 of 6 hours" />
+	<StatusStrip.Segment value={0.5} title="06:00 to 11:00 UTC: at the low 3 of 6 hours" />
+	<StatusStrip.Segment value={1 / 6} title="12:00 to 17:00 UTC: at the low 1 of 6 hours" />
+	<StatusStrip.Segment value={0.5} title="18:00 to 23:00 UTC: at the low 3 of 6 hours" />
 </StatusStrip.Root>;
 ```
 
@@ -61,7 +61,7 @@ import { StatusStrip } from "@ngrok/mantle/status-strip";
 
 ## No data
 
-Pass `value={null}` for a cell with no reading. It draws as an outline, and a cell at 0 fills with the track color. Never pass 0 for a cell with no data: a reader then sees a sold-out or down hour that nobody measured.
+Pass `value={null}` for a segment with no reading. It is empty between two lines, at its top and bottom, and a segment at 0 fills with the track color. Never pass 0 for a segment with no data: a reader then sees a sold-out or down hour that nobody measured.
 
 <Example name="components/data-display/status-strip/no-data" title="Status Strip no data example">
 
@@ -69,10 +69,10 @@ Pass `value={null}` for a cell with no reading. It draws as an outline, and a ce
 import { StatusStrip } from "@ngrok/mantle/status-strip";
 
 <StatusStrip.Root aria-label="Up 2 of the 3 hours with a reading">
-	<StatusStrip.Cell value={1} title="09:00 UTC: up" />
-	<StatusStrip.Cell value={0} title="10:00 UTC: down" />
-	<StatusStrip.Cell value={null} title="11:00 UTC: no reading" />
-	<StatusStrip.Cell value={1} title="12:00 UTC: up" />
+	<StatusStrip.Segment value={1} title="09:00 UTC: up" />
+	<StatusStrip.Segment value={0} title="10:00 UTC: down" />
+	<StatusStrip.Segment value={null} title="11:00 UTC: no reading" />
+	<StatusStrip.Segment value={1} title="12:00 UTC: up" />
 </StatusStrip.Root>;
 ```
 
@@ -80,7 +80,7 @@ import { StatusStrip } from "@ngrok/mantle/status-strip";
 
 ## Beside text that says the same thing
 
-When text beside the strip already gives its summary, pass `aria-hidden` in place of a name, so a screen reader does not read the same thing twice. Set the cell width with an `auto-cols-*` class, so the strip keeps its size when the number of cells changes.
+When text beside the strip already gives its summary, pass `aria-hidden` in place of a name, so a screen reader does not read the same thing twice. Set the segment width with an `auto-cols-*` class, so each segment keeps its width when the number of segments changes.
 
 <Example name="components/data-display/status-strip/decorative" title="Status Strip beside text example">
 
@@ -124,7 +124,7 @@ const days = [
 	<p className="text-body text-sm">In stock 72% of hours, last 30 days</p>
 	<StatusStrip.Root aria-hidden className="mt-1.5 h-4 auto-cols-1.5 gap-0.5">
 		{days.map((share, day) => (
-			<StatusStrip.Cell key={day} value={share} />
+			<StatusStrip.Segment key={day} value={share} />
 		))}
 	</StatusStrip.Root>
 </>;
@@ -134,7 +134,7 @@ const days = [
 
 ## Colors
 
-The fill is `--color-accent-600`, and the track is `--color-gray-300`. Set `--status-strip-fill` or `--status-strip-track` on `StatusStrip.Root` to change them for every cell.
+The fill is `--color-accent-600`, and the track is `--color-gray-300`. Set `--status-strip-fill` or `--status-strip-track` on `StatusStrip.Root` to change them for every segment.
 
 <Example name="components/data-display/status-strip/colors" title="Status Strip colors example">
 
@@ -143,7 +143,7 @@ import { StatusStrip } from "@ngrok/mantle/status-strip";
 
 const hours = [1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, null, null, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1];
 
-function hourTitle(hour: number, inStock: 0 | 1 | null) {
+function hourTitle(hour: number, inStock: number | null) {
 	const time = `${String(hour).padStart(2, "0")}:00 UTC`;
 	if (inStock == null) {
 		return `${time}: no reading`;
@@ -156,7 +156,7 @@ function hourTitle(hour: number, inStock: 0 | 1 | null) {
 	className="[--status-strip-fill:var(--color-success-600)]"
 >
 	{hours.map((inStock, hour) => (
-		<StatusStrip.Cell key={hour} value={inStock} title={hourTitle(hour, inStock)} />
+		<StatusStrip.Segment key={hour} value={inStock} title={hourTitle(hour, inStock)} />
 	))}
 </StatusStrip.Root>;
 ```
@@ -167,25 +167,27 @@ function hourTitle(hour: number, inStock: 0 | 1 | null) {
 
 ```text showLineNumbers=false
 StatusStrip.Root
-└── StatusStrip.Cell
+└── StatusStrip.Segment
 ```
 
 ## Polymorphism
 
-`StatusStrip.Root` and `StatusStrip.Cell` take `asChild`. Use it on `StatusStrip.Cell` to make a cell a link to that day's detail, and on `StatusStrip.Root` to render the strip as a `<div>` in flow content.
+`StatusStrip.Root` and `StatusStrip.Segment` take `asChild`. Use it on `StatusStrip.Root` to render the strip as a `<div>` in flow content, and on `StatusStrip.Segment` to render your own element.
+
+Keep each segment non-interactive. A screen reader reads `role="img"` as one image, so it cannot reach a link or a button inside the strip. Under `aria-hidden`, such a control still takes keyboard focus, with no name. Put a link to a day's detail outside the strip.
 
 ## Accessibility
 
-- `StatusStrip.Root` is `role="img"`, so a screen reader reads its name as one summary and skips the cells. The type requires `aria-label` or `aria-labelledby`, or `aria-hidden`. An empty name throws.
+- `StatusStrip.Root` is `role="img"`, so a screen reader reads its name as one summary and skips the segments. The type requires `aria-label` or `aria-labelledby`, or `aria-hidden`. An empty or blank name throws. Under `asChild`, the root's role and name replace the child's own.
 - With `aria-hidden`, the root has no role, and the strip is hidden from assistive technology. Use it only when nearby text says the same thing.
-- A cell's `title` shows on hover. It is a hint for a pointer, so put what a reader must know in the root's name.
-- The states differ in strength and in shape (a fill or an outline), not only in hue.
+- A segment's `title` shows on hover. It is a hint for a pointer, so put what a reader must know in the root's name.
+- The states differ in strength and in shape (a fill or two lines), not only in hue.
 
 ## API Reference
 
 ### StatusStrip.Root
 
-The strip: a `<span>` grid of equal columns, `1.5rem` tall, with a `1px` gap. Set the height with `h-*`, the gap with `gap-*`, and a fixed cell width with `auto-cols-*`. It accepts every `span` prop except `role`.
+The strip: a `<span>` grid of equal columns, `1.5rem` tall, with a `1px` gap. Set the height with `h-*`, the gap with `gap-*`, and a fixed segment width with `auto-cols-*`. It accepts every `span` prop except `role`.
 
 | Prop              | Type      | Default | Description                                                                                        |
 | ----------------- | --------- | ------- | -------------------------------------------------------------------------------------------------- |
@@ -194,31 +196,31 @@ The strip: a `<span>` grid of equal columns, `1.5rem` tall, with a `1px` gap. Se
 | `aria-hidden`     | `true`    | none    | Hides the strip from assistive technology. Set it only when nearby text says what the strip shows. |
 | `asChild`         | `boolean` | `false` | Render your own element in place of the `<span>`, and merge the props onto it.                     |
 
-| CSS Variable           | Default                   | Description                                                                                  |
-| ---------------------- | ------------------------- | -------------------------------------------------------------------------------------------- |
-| `--status-strip-fill`  | `var(--color-accent-600)` | The color of a cell with a share above 0. Read by `StatusStrip.Cell`.                        |
-| `--status-strip-track` | `var(--color-gray-300)`   | The fill of a cell at 0, and the outline of a cell with no data. Read by `StatusStrip.Cell`. |
+| CSS Variable           | Default                   | Description                                                                                         |
+| ---------------------- | ------------------------- | --------------------------------------------------------------------------------------------------- |
+| `--status-strip-fill`  | `var(--color-accent-600)` | The color of a segment with a share above 0. Read by `StatusStrip.Segment`.                         |
+| `--status-strip-track` | `var(--color-gray-300)`   | The fill of a segment at 0, and the lines of a segment with no data. Read by `StatusStrip.Segment`. |
 
 | Data Attribute | Value            | Description       |
 | -------------- | ---------------- | ----------------- |
 | `data-slot`    | `"status-strip"` | The root element. |
 
-### StatusStrip.Cell
+### StatusStrip.Segment
 
-One cell, such as one hour or one day. It accepts every `span` prop except `children`.
+One segment, such as one hour or one day. It accepts every `span` prop except `children`.
 
-| Prop      | Type             | Default | Description                                                                                                      |
-| --------- | ---------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
-| `value`   | `number \| null` | none    | The share of the cell's time in the state, from 0 to 1, or `null` for no data. Required; any other value throws. |
-| `title`   | `string`         | none    | A hint that shows on hover, such as the time span and its share.                                                 |
-| `asChild` | `boolean`        | `false` | Render your own element, such as a link, in place of the `<span>`, and merge the props onto it.                  |
+| Prop      | Type             | Default | Description                                                                                                         |
+| --------- | ---------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| `value`   | `number \| null` | none    | The share of the segment's time in the state, from 0 to 1, or `null` for no data. Required; any other value throws. |
+| `title`   | `string`         | none    | A hint that shows on hover, such as the time span and its share.                                                    |
+| `asChild` | `boolean`        | `false` | Render your own non-interactive element in place of the `<span>`, and merge the props onto it.                      |
 
-| CSS Variable           | Default                   | Description                                                                                 |
-| ---------------------- | ------------------------- | ------------------------------------------------------------------------------------------- |
-| `--status-strip-fill`  | `var(--color-accent-600)` | Read, not owned: set it on `StatusStrip.Root`. The fill above 0.                            |
-| `--status-strip-track` | `var(--color-gray-300)`   | Read, not owned: set it on `StatusStrip.Root`. The fill at 0, and the outline with no data. |
+| CSS Variable           | Default                   | Description                                                                               |
+| ---------------------- | ------------------------- | ----------------------------------------------------------------------------------------- |
+| `--status-strip-fill`  | `var(--color-accent-600)` | Read, not owned: set it on `StatusStrip.Root`. The fill above 0.                          |
+| `--status-strip-track` | `var(--color-gray-300)`   | Read, not owned: set it on `StatusStrip.Root`. The fill at 0, and the lines with no data. |
 
 | Data Attribute | Value                                    | Description                                                                 |
 | -------------- | ---------------------------------------- | --------------------------------------------------------------------------- |
-| `data-slot`    | `"status-strip-cell"`                    | The cell element.                                                           |
+| `data-slot`    | `"status-strip-segment"`                 | The segment element.                                                        |
 | `data-share`   | `"no-data"`, `"none"`, `"some"`, `"all"` | `null`, 0, between 0 and 1, and 1. Style a state with `data-[share=none]:`. |

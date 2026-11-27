@@ -3,13 +3,14 @@ import { createRef } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import * as StatusStrip from "./status-strip-parts.js";
+import type { StatusStripSegmentProps } from "./status-strip.js";
 
 describe("StatusStrip.Root", () => {
 	test("is an image named by its aria-label", () => {
 		render(
 			<StatusStrip.Root aria-label="In stock 50% of the last 2 hours">
-				<StatusStrip.Cell value={1} />
-				<StatusStrip.Cell value={0} />
+				<StatusStrip.Segment value={1} />
+				<StatusStrip.Segment value={0} />
 			</StatusStrip.Root>,
 		);
 		const strip = screen.getByRole("img", { name: "In stock 50% of the last 2 hours" });
@@ -21,7 +22,7 @@ describe("StatusStrip.Root", () => {
 			<>
 				<p id="summary">Up 99% of the last day</p>
 				<StatusStrip.Root aria-labelledby="summary">
-					<StatusStrip.Cell value={1} />
+					<StatusStrip.Segment value={1} />
 				</StatusStrip.Root>
 			</>,
 		);
@@ -31,7 +32,7 @@ describe("StatusStrip.Root", () => {
 	test("aria-hidden drops the image role and hides the strip", () => {
 		render(
 			<StatusStrip.Root aria-hidden data-testid="strip">
-				<StatusStrip.Cell value={1} />
+				<StatusStrip.Segment value={1} />
 			</StatusStrip.Root>,
 		);
 		const strip = screen.getByTestId("strip");
@@ -40,8 +41,12 @@ describe("StatusStrip.Root", () => {
 		expect(screen.queryByRole("img")).toBeNull();
 	});
 
-	test("throws when its label is empty and it is not hidden", () => {
-		expect(() => render(<StatusStrip.Root aria-label="" />)).toThrow(
+	test.each([
+		["an empty label", { "aria-label": "" }],
+		["a blank label", { "aria-label": "  " }],
+		["a blank labelledby", { "aria-labelledby": " " }],
+	] as const)("throws for %s when it is not hidden", (_case, props) => {
+		expect(() => render(<StatusStrip.Root {...props} />)).toThrow(
 			/needs aria-label or aria-labelledby/,
 		);
 	});
@@ -77,9 +82,42 @@ describe("StatusStrip.Root", () => {
 		expect(strip).toHaveAttribute("data-slot", "status-strip");
 		expect(strip).toHaveClass("h-4", "mt-2");
 	});
+
+	test("asChild keeps the root's role and name over the child's own", () => {
+		render(
+			<StatusStrip.Root aria-label="Strip" asChild>
+				<div role="list" aria-label="Child" data-testid="child" />
+			</StatusStrip.Root>,
+		);
+		expect(screen.getByRole("img", { name: "Strip" })).toBe(screen.getByTestId("child"));
+	});
+
+	test("asChild throws for a fragment, which renders no element to carry the role", () => {
+		expect(() =>
+			render(
+				<StatusStrip.Root aria-label="Strip" asChild>
+					<>
+						<StatusStrip.Segment value={1} />
+						<StatusStrip.Segment value={0} />
+					</>
+				</StatusStrip.Root>,
+			),
+		).toThrow(/needs one element child, not a fragment/);
+	});
+
+	test("asChild with aria-hidden drops the child's role", () => {
+		render(
+			<StatusStrip.Root aria-hidden asChild>
+				<div role="img" aria-label="Child" data-testid="child" />
+			</StatusStrip.Root>,
+		);
+		const strip = screen.getByTestId("child");
+		expect(strip).toHaveAttribute("aria-hidden", "true");
+		expect(strip).not.toHaveAttribute("role");
+	});
 });
 
-describe("StatusStrip.Cell", () => {
+describe("StatusStrip.Segment", () => {
 	test.each([
 		[null, "no-data"],
 		[0, "none"],
@@ -89,17 +127,17 @@ describe("StatusStrip.Cell", () => {
 	] as const)("value %s stamps data-share=%s", (value, share) => {
 		render(
 			<StatusStrip.Root aria-hidden>
-				<StatusStrip.Cell value={value} data-testid="cell" />
+				<StatusStrip.Segment value={value} data-testid="segment" />
 			</StatusStrip.Root>,
 		);
-		expect(screen.getByTestId("cell")).toHaveAttribute("data-share", share);
+		expect(screen.getByTestId("segment")).toHaveAttribute("data-share", share);
 	});
 
 	test("writes its share to --_status-strip-value, and no data writes 0", () => {
 		render(
 			<StatusStrip.Root aria-hidden>
-				<StatusStrip.Cell value={0.25} data-testid="some" style={{ opacity: 0.5 }} />
-				<StatusStrip.Cell value={null} data-testid="no-data" />
+				<StatusStrip.Segment value={0.25} data-testid="some" style={{ opacity: 0.5 }} />
+				<StatusStrip.Segment value={null} data-testid="no-data" />
 			</StatusStrip.Root>,
 		);
 		const some = screen.getByTestId("some");
@@ -112,44 +150,65 @@ describe("StatusStrip.Cell", () => {
 		expect(() =>
 			render(
 				<StatusStrip.Root aria-hidden>
-					<StatusStrip.Cell value={value} />
+					<StatusStrip.Segment value={value} />
 				</StatusStrip.Root>,
 			),
 		).toThrow(/from 0 to 1, or null for no data/);
 	});
 
+	test.each([undefined, "0.5"])("throws for a JavaScript caller's value %j", (value) => {
+		// Why the cast: the type rejects these values; the check guards JavaScript and untyped data.
+		const props = { value } as unknown as StatusStripSegmentProps;
+		expect(() =>
+			render(
+				<StatusStrip.Root aria-hidden>
+					<StatusStrip.Segment {...props} />
+				</StatusStrip.Root>,
+			),
+		).toThrow(/from 0 to 1, or null for no data/);
+	});
+
+	test("keeps the share of its value over a forwarded data-share", () => {
+		// Why a record: an ancestor can forward `data-share` through a spread.
+		const forwarded: Record<string, string> = { "data-share": "none" };
+		render(
+			<StatusStrip.Root aria-hidden>
+				<StatusStrip.Segment value={null} data-testid="segment" {...forwarded} />
+			</StatusStrip.Root>,
+		);
+		expect(screen.getByTestId("segment")).toHaveAttribute("data-share", "no-data");
+	});
+
 	test("keeps its own title", () => {
 		render(
 			<StatusStrip.Root aria-hidden>
-				<StatusStrip.Cell value={0} title="11:00 UTC: sold out" data-testid="cell" />
+				<StatusStrip.Segment value={0} title="11:00 UTC: sold out" data-testid="segment" />
 			</StatusStrip.Root>,
 		);
-		expect(screen.getByTestId("cell")).toHaveAttribute("title", "11:00 UTC: sold out");
+		expect(screen.getByTestId("segment")).toHaveAttribute("title", "11:00 UTC: sold out");
 	});
 
 	test("asChild renders the child with the share, the slot, the classes, and the ref", () => {
-		const ref = createRef<HTMLAnchorElement>();
+		const ref = createRef<HTMLElement>();
 		render(
 			<StatusStrip.Root aria-hidden>
-				<StatusStrip.Cell value={0.5} asChild className="w-2" ref={ref}>
-					<a href="#day-3" className="block" data-testid="cell">
-						Day 3
-					</a>
-				</StatusStrip.Cell>
+				<StatusStrip.Segment value={0.5} asChild className="w-2" ref={ref}>
+					<i className="block" data-day="3" data-testid="segment" />
+				</StatusStrip.Segment>
 			</StatusStrip.Root>,
 		);
-		const cell = screen.getByTestId("cell");
-		expect(ref.current).toBe(cell);
-		expect(cell).toHaveAttribute("href", "#day-3");
-		expect(cell).toHaveAttribute("data-share", "some");
-		expect(cell).toHaveAttribute("data-slot", "status-strip-cell");
-		expect(cell).toHaveClass("w-2", "block");
+		const segment = screen.getByTestId("segment");
+		expect(ref.current).toBe(segment);
+		expect(segment).toHaveAttribute("data-day", "3");
+		expect(segment).toHaveAttribute("data-share", "some");
+		expect(segment).toHaveAttribute("data-slot", "status-strip-segment");
+		expect(segment).toHaveClass("w-2", "block");
 	});
 
 	test("renders its final share on the server", () => {
 		const html = renderToString(
 			<StatusStrip.Root aria-label="Strip">
-				<StatusStrip.Cell value={0.5} />
+				<StatusStrip.Segment value={0.5} />
 			</StatusStrip.Root>,
 		);
 		expect(html).toContain('role="img"');
