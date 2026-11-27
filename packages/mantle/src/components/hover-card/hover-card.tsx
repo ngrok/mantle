@@ -9,6 +9,7 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { findTabbableDescendants } from "../alert/tabbable-neighbors.js";
 import { FloatArrow } from "../../utils/float/parts.js";
 import type { Align, Side } from "../../utils/float/position.js";
 import {
@@ -21,15 +22,16 @@ import {
 import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
 
+/** What holds a hover card open: a pointer on the trigger or the card, or a focus on the trigger. */
+type HoldSource = "pointer" | "focus";
+
 type HoverCardState = {
 	open: boolean;
 	setOpen: (open: boolean) => void;
-	/** Opens after `openDelay`. */
-	openSoon: () => void;
-	/** Closes after `closeDelay`. */
-	closeSoon: () => void;
-	/** Stops a pending open or close. */
-	cancelPending: () => void;
+	/** A pointer or a focus starts to hold the card: open after `openDelay`, or stay open. */
+	hold: (source: HoldSource) => void;
+	/** A pointer or a focus stops holding the card: close after `closeDelay` once neither holds it. */
+	release: (source: HoldSource) => void;
 	contentId: string;
 	triggerRef: RefObject<HTMLElement | null>;
 	/** The trigger's ref callback. It tells the open content about a new trigger element. */
@@ -59,7 +61,7 @@ type HoverCardRootProps = {
 	onOpenChange?: (open: boolean) => void;
 	/**
 	 * How long the pointer or focus rests on the trigger before the card opens, in milliseconds.
-	 * @default 100
+	 * @default 700
 	 */
 	openDelay?: number;
 	/**
@@ -76,6 +78,10 @@ type HoverCardRootProps = {
  *
  * Use it for sighted pointer users only: a touch never opens it, and a screen
  * reader does not announce it. Keep everything it shows reachable from the link.
+ *
+ * It opens `openDelay` after a pointer rests on the link or the link takes
+ * focus, and stays open while a pointer rests on the link or the card, or the
+ * link has focus (WCAG 1.4.13). It closes `closeDelay` after neither holds it.
  *
  * `HoverCard.Content` is a native `popover="hint"` in the browser's top layer,
  * so it paints above the page and every overlay, and no `overflow` or `z-index`
@@ -101,13 +107,14 @@ function Root({
 	defaultOpen = false,
 	onOpenChange,
 	open: openProp,
-	openDelay = 100,
+	openDelay = 700,
 }: HoverCardRootProps) {
 	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
 	const open = openProp ?? uncontrolledOpen;
 	const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 	const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
 	const contentRef = useRef<HTMLElement | null>(null);
+	const held = useRef<Record<HoldSource, boolean>>({ pointer: false, focus: false });
 	useEffect(() => () => clearTimeout(timer.current), []);
 
 	const contentId = useId();
@@ -125,11 +132,21 @@ function Root({
 		return {
 			open,
 			setOpen,
-			openSoon: () => {
+			hold: (source) => {
+				held.current[source] = true;
 				clearTimeout(timer.current);
-				timer.current = setTimeout(() => setOpen(true), openDelay);
+				if (!open) {
+					timer.current = setTimeout(() => setOpen(true), openDelay);
+				}
 			},
-			closeSoon: () => {
+			// Why only once neither holds it: the card stays while its hover or its
+			// focus stays (WCAG 1.4.13), so a pointer that leaves a focused link
+			// does not close it.
+			release: (source) => {
+				held.current[source] = false;
+				if (held.current.pointer || held.current.focus) {
+					return;
+				}
 				clearTimeout(timer.current);
 				timer.current = setTimeout(() => {
 					// Why: closing would clear text the user selected in the card. An
@@ -147,7 +164,6 @@ function Root({
 					setOpen(false);
 				}, closeDelay);
 			},
-			cancelPending: () => clearTimeout(timer.current),
 			contentId,
 			triggerRef,
 			setTrigger,
@@ -211,7 +227,7 @@ const Trigger = ({
 					return;
 				}
 				if (event.pointerType !== "touch") {
-					state.openSoon();
+					state.hold("pointer");
 				}
 			}}
 			onPointerLeave={(event: PointerEvent<HTMLAnchorElement>) => {
@@ -220,7 +236,7 @@ const Trigger = ({
 					return;
 				}
 				if (event.pointerType !== "touch") {
-					state.closeSoon();
+					state.release("pointer");
 				}
 			}}
 			// Why: a tap focuses the link, and the card is for pointers. React adds
@@ -247,13 +263,13 @@ const Trigger = ({
 			onFocus={(event: FocusEvent<HTMLAnchorElement>) => {
 				onFocus?.(event);
 				if (!event.defaultPrevented && !touchPressed.current) {
-					state.openSoon();
+					state.hold("focus");
 				}
 			}}
 			onBlur={(event: FocusEvent<HTMLAnchorElement>) => {
 				onBlur?.(event);
 				if (!event.defaultPrevented) {
-					state.closeSoon();
+					state.release("focus");
 				}
 			}}
 		/>
@@ -286,7 +302,8 @@ type HoverCardContentProps = ComponentProps<"div"> &
  * The card. It mounts while the hover card is open, as a `popover="hint"`
  * element in the top layer next to `HoverCard.Trigger`. A pointer that moves
  * from the trigger onto the card keeps it open. It closes on Escape and on a
- * press outside it. It portals into the overlay or float that holds it, else
+ * press outside it. The keyboard never enters it: its links and buttons leave
+ * the Tab order. It portals into the overlay or float that holds it, else
  * into `document.body`.
  *
  * **Data attributes:**
@@ -336,6 +353,16 @@ const Content = ({
 		align,
 		sideOffset,
 		onEscapeKeyDown,
+		// Why: a focus move closes the card through the trigger's blur, after
+		// `closeDelay` and only once no pointer holds it.
+		onFocusOutside: (event) => event.preventDefault(),
+		// Why: the keyboard never enters the card, so its links and buttons leave
+		// the Tab order. Everything in it is reachable from the trigger's link.
+		onShow: (floating) => {
+			for (const tabbable of findTabbableDescendants(floating)) {
+				tabbable.tabIndex = -1;
+			}
+		},
 	});
 	useReconcileOnTriggerChange(state.onTriggerChangeRef, reconcile);
 	const composedRef = useComposedRefs(ref, floatingRef, state.contentRef);
@@ -364,8 +391,8 @@ const Content = ({
 				}}
 				onPointerEnter={(event) => {
 					onPointerEnter?.(event);
-					if (!event.defaultPrevented) {
-						state.cancelPending();
+					if (!event.defaultPrevented && event.pointerType !== "touch") {
+						state.hold("pointer");
 					}
 				}}
 				onPointerLeave={(event) => {
@@ -374,7 +401,7 @@ const Content = ({
 						return;
 					}
 					if (event.pointerType !== "touch") {
-						state.closeSoon();
+						state.release("pointer");
 					}
 				}}
 			/>,

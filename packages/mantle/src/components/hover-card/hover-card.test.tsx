@@ -16,6 +16,93 @@ function renderHoverCard(arrow = <HoverCard.Arrow />) {
 }
 
 describe("HoverCard", () => {
+	describe("timing and hold", () => {
+		const isOpen = () =>
+			document.querySelector("[data-slot='hover-card-content'][data-open]") != null;
+
+		function setUp() {
+			vi.useFakeTimers();
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+			renderHoverCard();
+			return screen.getByRole("link", { name: "@ngrok/mantle" });
+		}
+
+		test("opens 700ms after a hover", () => {
+			const link = setUp();
+			fireEvent.pointerEnter(link, { pointerType: "mouse" });
+			act(() => {
+				vi.advanceTimersByTime(699);
+			});
+			expect(isOpen()).toBe(false);
+			act(() => {
+				vi.advanceTimersByTime(1);
+			});
+			expect(isOpen()).toBe(true);
+		});
+
+		test("a pointer that leaves a focused link does not close the card, and the blur does", () => {
+			const link = setUp();
+			act(() => {
+				link.focus();
+				vi.advanceTimersByTime(700);
+			});
+			fireEvent.pointerEnter(link, { pointerType: "mouse" });
+			fireEvent.pointerLeave(link, { pointerType: "mouse" });
+			act(() => {
+				vi.advanceTimersByTime(1000);
+			});
+			expect(isOpen()).toBe(true);
+
+			act(() => {
+				link.blur();
+				vi.advanceTimersByTime(300);
+			});
+			expect(isOpen()).toBe(false);
+		});
+
+		test("a blur does not close the card while a pointer rests on it", () => {
+			const link = setUp();
+			act(() => {
+				link.focus();
+				vi.advanceTimersByTime(700);
+			});
+			const card = document.querySelector("[data-slot='hover-card-content']");
+			if (card == null) {
+				throw new Error("expected the open card");
+			}
+			fireEvent.pointerEnter(card, { pointerType: "mouse" });
+			act(() => {
+				link.blur();
+				vi.advanceTimersByTime(1000);
+			});
+			expect(isOpen()).toBe(true);
+		});
+
+		test("the keyboard never enters the card: its links leave the Tab order", () => {
+			vi.useFakeTimers();
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+			render(
+				<HoverCard.Root>
+					<HoverCard.Trigger href="https://ngrok.com">@ngrok/mantle</HoverCard.Trigger>
+					<HoverCard.Content>
+						<a href="https://ngrok.com/docs">Docs</a>
+					</HoverCard.Content>
+				</HoverCard.Root>,
+			);
+			fireEvent.pointerEnter(screen.getByRole("link", { name: "@ngrok/mantle" }), {
+				pointerType: "mouse",
+			});
+			act(() => {
+				vi.advanceTimersByTime(700);
+			});
+			expect(screen.getByRole("link", { name: "Docs" })).toHaveAttribute("tabindex", "-1");
+		});
+	});
+
 	test("a tap's focus does not open the card, and the next keyboard focus does", () => {
 		vi.useFakeTimers();
 		onTestFinished(() => {
