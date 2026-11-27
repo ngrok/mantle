@@ -214,7 +214,8 @@ const Trigger = ({
 }: ComponentProps<"a"> & WithAsChild & WithDataSlot) => {
 	const state = useHoverCardState("Trigger");
 	const composedRef = useComposedRefs(ref, state.setTrigger);
-	const touchPressed = useRef(false);
+	/** The touch pointers pressed on the trigger now. */
+	const touches = useRef(new Set<number>());
 	const Component = asChild ? Slot : "a";
 	return (
 		<Component
@@ -247,22 +248,37 @@ const Trigger = ({
 				if (event.defaultPrevented || event.pointerType !== "touch") {
 					return;
 				}
-				touchPressed.current = true;
-				// Why `click`: a tap focuses the link after `pointerup`.
+				// Why a set: one touch that cancels must not clear another that is
+				// still down.
+				const pressed = touches.current;
+				const first = pressed.size === 0;
+				pressed.add(event.pointerId);
+				if (!first) {
+					return;
+				}
+				// Why `click`: a tap focuses the link after `pointerup`, and the click
+				// ends the tap.
 				// Why `pointercancel` too: a touch scroll ends with it.
-				// Why the capture phase: a handler under the document can stop the click.
-				const document = event.currentTarget.ownerDocument;
-				const release = () => {
-					touchPressed.current = false;
-					document.removeEventListener("click", release, true);
-					document.removeEventListener("pointercancel", release, true);
+				// Why the window's capture phase: mantle stops an outside click there,
+				// such as the one that closes a menu.
+				const view = event.currentTarget.ownerDocument.defaultView ?? window;
+				const stop = () => {
+					pressed.clear();
+					view.removeEventListener("click", stop, true);
+					view.removeEventListener("pointercancel", onCancel, true);
 				};
-				document.addEventListener("click", release, true);
-				document.addEventListener("pointercancel", release, true);
+				const onCancel = (cancel: globalThis.PointerEvent) => {
+					pressed.delete(cancel.pointerId);
+					if (pressed.size === 0) {
+						stop();
+					}
+				};
+				view.addEventListener("click", stop, true);
+				view.addEventListener("pointercancel", onCancel, true);
 			}}
 			onFocus={(event: FocusEvent<HTMLAnchorElement>) => {
 				onFocus?.(event);
-				if (!event.defaultPrevented && !touchPressed.current) {
+				if (!event.defaultPrevented && touches.current.size === 0) {
 					state.hold("focus");
 				}
 			}}

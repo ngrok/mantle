@@ -103,6 +103,47 @@ describe("HoverCard", () => {
 		});
 	});
 
+	test("a touch that cancels does not let another touch's focus open the card", () => {
+		vi.useFakeTimers();
+		onTestFinished(() => {
+			vi.useRealTimers();
+		});
+		renderHoverCard();
+		const link = screen.getByRole("link", { name: "@ngrok/mantle" });
+
+		fireEvent.pointerDown(link, { pointerType: "touch", pointerId: 1 });
+		fireEvent.pointerDown(link, { pointerType: "touch", pointerId: 2 });
+		fireEvent.pointerCancel(link, { pointerType: "touch", pointerId: 1 });
+		act(() => {
+			link.focus();
+			vi.runAllTimers();
+		});
+		expect(screen.queryByText("The Design System")).toBeNull();
+	});
+
+	test("a tap whose click mantle swallows at the window leaves the next keyboard focus free", () => {
+		vi.useFakeTimers();
+		onTestFinished(() => {
+			vi.useRealTimers();
+		});
+		const swallow = (event: MouseEvent) => event.stopPropagation();
+		window.addEventListener("click", swallow, true);
+		onTestFinished(() => {
+			window.removeEventListener("click", swallow, true);
+		});
+		renderHoverCard();
+		const link = screen.getByRole("link", { name: "@ngrok/mantle" });
+
+		fireEvent.pointerDown(link, { pointerType: "touch", pointerId: 1 });
+		fireEvent.pointerUp(link, { pointerType: "touch", pointerId: 1 });
+		fireEvent.click(link);
+		act(() => {
+			link.focus();
+			vi.runAllTimers();
+		});
+		expect(screen.getByText("The Design System")).toBeInTheDocument();
+	});
+
 	test("a tap's focus does not open the card, and the next keyboard focus does", () => {
 		vi.useFakeTimers();
 		onTestFinished(() => {
