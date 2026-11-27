@@ -242,6 +242,8 @@ class ChartEngine {
 	#stopResize: (() => void) | null = null;
 	#stopRatio: (() => void) | null = null;
 	#stopTooltipResize: (() => void) | null = null;
+	/** Removes the scroll and resize listeners of an open top-layer readout. */
+	#closeTooltipLayer: (() => void) | null = null;
 	#fontsCleanup: (() => void) | null = null;
 	/** The owning window, or `null` in a detached document. */
 	#view: Window | null = null;
@@ -410,6 +412,12 @@ class ChartEngine {
 	#pointerX: number | null = null;
 	#pointerY: number | null = null;
 	#tooltipSize: { width: number; height: number } = { width: 0, height: 0 };
+	/**
+	 * The plot's viewport offset, for a readout in the top layer. It is read one
+	 * time for each open, and again after a scroll or a resize. `null` until the
+	 * next placement reads it.
+	 */
+	#tooltipOrigin: { left: number; top: number } | null = null;
 
 	#scheduled = false;
 	#needsPaint = false;
@@ -592,6 +600,7 @@ class ChartEngine {
 		this.#stopResize?.();
 		this.#stopRatio?.();
 		this.#stopTooltipResize?.();
+		this.#closeTooltipLayer?.();
 		this.#backend.destroy();
 		this.#backend.element.remove();
 		this.#fontsCleanup?.();
@@ -723,6 +732,7 @@ class ChartEngine {
 		}
 		this.#stopTooltipResize?.();
 		this.#stopTooltipResize = null;
+		this.#closeTooltipLayer?.();
 		this.#tooltipSize = { width: 0, height: 0 };
 		this.#elements.tooltip = element;
 		if (element != null && this.#inView) {
@@ -3092,6 +3102,7 @@ class ChartEngine {
 		markers.style.opacity = visible && !isBar ? "1" : "0";
 		if (tooltip != null) {
 			tooltip.style.opacity = visible ? "1" : "0";
+			this.#setTooltipLayerOpen(tooltip, visible);
 		}
 		if (!visible) {
 			return;
@@ -3107,6 +3118,7 @@ class ChartEngine {
 				markers.style.opacity = "0";
 				if (tooltip != null) {
 					tooltip.style.opacity = "0";
+					this.#setTooltipLayerOpen(tooltip, false);
 				}
 				return;
 			}
@@ -3255,6 +3267,11 @@ class ChartEngine {
 			this.#tooltipSize = { width: tooltip.offsetWidth, height: tooltip.offsetHeight };
 		}
 		const size = this.#tooltipSize;
+		// Why the top layer: a readout taller than the plot spills past it, and a
+		// card that clips (`overflow: clip` or `hidden`) would cut off its rows.
+		// There the readout is `fixed`, so the plot-local math below takes the
+		// plot's viewport offset. It is read one time for each open, not per frame.
+		const origin = this.#closeTooltipLayer == null ? null : this.#readTooltipOrigin();
 		let tooltipLeft = anchorX + gapX;
 		if (
 			tooltipLeft + size.width > plot.left + plot.width &&
@@ -3268,7 +3285,51 @@ class ChartEngine {
 			0,
 			Math.min(anchorY - size.height / 2, plot.top + plot.height - size.height),
 		);
-		tooltip.style.transform = `translate(${tooltipLeft}px, ${tooltipTop}px)`;
+		tooltip.style.transform = `translate(${(origin?.left ?? 0) + tooltipLeft}px, ${(origin?.top ?? 0) + tooltipTop}px)`;
+	}
+
+	/** The plot's viewport offset, read one time until a scroll or a resize. */
+	#readTooltipOrigin(): { left: number; top: number } {
+		if (this.#tooltipOrigin == null) {
+			const { left, top } = this.#elements.plot.getBoundingClientRect();
+			this.#tooltipOrigin = { left, top };
+		}
+		return this.#tooltipOrigin;
+	}
+
+	/**
+	 * Show or hide a readout that the Root rendered as a `popover="manual"`.
+	 * A readout with no `popover` attribute (a browser with no popover API)
+	 * stays in the plot. While it is open, a scroll or a resize drops the cached
+	 * origin and places the readout again.
+	 */
+	#setTooltipLayerOpen(tooltip: HTMLElement, open: boolean): void {
+		if (!tooltip.hasAttribute("popover") || open === (this.#closeTooltipLayer != null)) {
+			return;
+		}
+		if (!open) {
+			this.#closeTooltipLayer?.();
+			return;
+		}
+		if (!tooltip.matches(":popover-open")) {
+			tooltip.showPopover();
+		}
+		const view = this.#view;
+		const moved = () => {
+			this.#tooltipOrigin = null;
+			this.#scheduleOverlay();
+		};
+		view?.addEventListener("scroll", moved, { capture: true, passive: true });
+		view?.addEventListener("resize", moved, { passive: true });
+		this.#closeTooltipLayer = () => {
+			this.#closeTooltipLayer = null;
+			this.#tooltipOrigin = null;
+			view?.removeEventListener("scroll", moved, { capture: true });
+			view?.removeEventListener("resize", moved);
+			if (tooltip.matches(":popover-open")) {
+				tooltip.hidePopover();
+			}
+		};
 	}
 }
 

@@ -76,8 +76,16 @@ const STYLE = `
 	position: absolute;
 	left: 0;
 	top: 0;
+	/* Mirrors right-auto bottom-auto m-0 overflow-visible open:fixed, which undo the [popover] box. */
+	right: auto;
+	bottom: auto;
+	margin: 0;
+	overflow: visible;
 	/* Why: the product class is \`pointer-events-none\`. The real mouse of an earlier file can rest here; see docs/testing.md. */
 	pointer-events: none;
+}
+[data-slot="bar-chart-tooltip"]:popover-open {
+	position: fixed;
 }
 `;
 
@@ -1175,6 +1183,56 @@ describe("tooltip placement", () => {
 			const readout = tooltip.getBoundingClientRect();
 			expect(readout.height).toBeGreaterThan(plot.height);
 			expect(readout.top).toBeCloseTo(plot.top, 1);
+		});
+	});
+
+	test("a readout taller than the plot is not clipped by an overflow-clip card", async () => {
+		// A short chart with many series inside a card that clips, as mantle's
+		// `Panel` (`overflow-clip`) and `Table` (`overflow-hidden`) do. The readout
+		// spills past the plot (the test above), so the card must not cut it off.
+		const series = Array.from({ length: 12 }, (_, index) => `key${index}`);
+		const row: Record<string, string | number> = { day: "Mon" };
+		for (const key of series) {
+			row[key] = 5;
+		}
+		const { container } = render(
+			<div style={{ width: 600, height: 160, overflow: "clip" }}>
+				<CanvasBarChartRoot
+					data={[row]}
+					xKey="day"
+					stacked
+					animate={false}
+					aria-label="Many series in a card"
+				>
+					{series.map((key) => (
+						<BarChart.Bar key={key} dataKey={key} label={key} color="blue" />
+					))}
+				</CanvasBarChartRoot>
+			</div>,
+		);
+		const canvas = await findChartCanvas(container);
+		await waitForPlot(canvas);
+		const overlay = overlayOf(container);
+		const tooltip = await findTooltip(container, overlay);
+
+		// Why an intersection ratio: a box keeps its full rect when an ancestor
+		// clips it, but the ratio counts only the part the clip leaves visible.
+		// Under the card's clip, about 160 of 266 pixels show. Why inside the
+		// poll: the readout hides when the hover ends, so each try hovers again.
+		const visibleRatio = (): Promise<number> =>
+			new Promise((resolve) => {
+				const observer = new IntersectionObserver(([entry]) => {
+					observer.disconnect();
+					resolve(entry?.intersectionRatio ?? 0);
+				});
+				observer.observe(tooltip);
+			});
+		await waitFor(async () => {
+			const plot = overlay.getBoundingClientRect();
+			hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
+			expect(tooltip.style.transform).not.toBe("");
+			expect(tooltip.getBoundingClientRect().height).toBeGreaterThan(plot.height);
+			expect(await visibleRatio()).toBeGreaterThan(0.99);
 		});
 	});
 
