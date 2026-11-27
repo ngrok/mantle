@@ -1,5 +1,23 @@
 # @ngrok/mantle
 
+## 0.97.1
+
+### Patch Changes
+
+- [#1972](https://github.com/ngrok/mantle/pull/1972) [`2478296`](https://github.com/ngrok/mantle/commit/2478296314e62f5d228ac64b7646ae6366912752) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add GitHub footnotes to `Markdown`. A reference, `[^1]`, renders as a superscript link to its note, and the notes render in a footnote list at the end, in the order of their first reference, with links back to each reference. A half-typed reference shows nothing while the answer streams. No opt-in is needed.
+
+- [#1971](https://github.com/ngrok/mantle/pull/1971) [`b48baaf`](https://github.com/ngrok/mantle/commit/b48baafb2ef545ea9d4e17c5f974d77450d10b26) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `speaker` to `Message.Root`. It sets the speaker label that `Message.Content` renders for a screen reader and that names the `<article>`, such as `speaker="Error"` or `speaker="Tool result"`. The label and the article's name always agree. `from` still sets the layout. When you omit `speaker`, the label stays "You said:" or "The assistant said:". See https://mantle.ngrok.com/components/ai/message#name-the-speaker.
+
+- [#1970](https://github.com/ngrok/mantle/pull/1970) [`4e0c786`](https://github.com/ngrok/mantle/commit/4e0c786e79b48e55b5568ec0c8ec40fd17d4ea15) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix how `useOffsetPagination` handles a page size change:
+
+  - A change to the `pageSize` prop no longer calls `onPageChange`. A parent that keeps `page` and `pageSize` in the URL now keeps the page that a back or forward move restores. Without `onPageSizeChange`, a `pageSize` change still moves the hook's own page to 1.
+  - Add `onPageSizeChange(pageSize, page)`. Pass it with `pageSize` to own the page size, as `page` with `onPageChange` owns the page. `setPageSize` then reports the size and the page in this one callback and does not call `onPageChange`, so a parent writes both URL params in one navigation.
+  - Behavior change: `setPageSize` no longer resets to page 1. It moves to the page that holds the first item of the current page, clamped to the last page. A size that is not a positive whole number does nothing. For example, page 6 at 20 a page (items 101 to 120) becomes page 3 at 50 a page (items 101 to 150).
+
+- [#1969](https://github.com/ngrok/mantle/pull/1969) [`3bb7a3d`](https://github.com/ngrok/mantle/commit/3bb7a3d5310bd7f1e4fd4cdd64922cf21f1d966b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `ToolCall.Root` takes a new `status`, `"requested"`, for a call that the view shows but whose result it will never get. For example, a captured request whose response ended with `finish_reason: "tool_calls"` holds the call but not the result. The row shows a neutral dashed-circle icon and the word "Requested", and `data-status="requested"` styles it. Use `running` while the view still waits for a live result. See [Tool Call states](https://mantle.ngrok.com/components/ai/tool-call#states).
+
+  Existing `status` values do not change. If your code maps every `ToolCallStatus` value, such as with `satisfies Record<ToolCallStatus, …>` or an exhaustive `switch`, add a `requested` case.
+
 ## 0.97.0
 
 ### Minor Changes
