@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { renderToString } from "react-dom/server";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { expect, test } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
@@ -127,4 +127,40 @@ test("a row's translated name in a fragment survives an icon that mounts before 
 	await user.click(screen.getByRole("button", { name: "Show icon" }));
 
 	expect(row.querySelector("svg")).not.toBeNull();
+});
+
+test("a row's keyed sibling keeps its state when the name comes and goes", async () => {
+	const user = userEvent.setup();
+	let mounts = 0;
+	function Count() {
+		useEffect(() => {
+			mounts += 1;
+		}, []);
+		return <svg aria-hidden />;
+	}
+	function Page() {
+		const [label, setLabel] = useState(true);
+		return (
+			<Sidebar.Root>
+				<Sidebar.Nav aria-label="Main">
+					<Sidebar.List>
+						<Sidebar.Item>
+							<Sidebar.ItemButton aria-label="Inbox">
+								<Count key="count" />
+								{label && "Inbox"}
+							</Sidebar.ItemButton>
+						</Sidebar.Item>
+					</Sidebar.List>
+				</Sidebar.Nav>
+				<button type="button" onClick={() => setLabel(false)}>
+					Hide name
+				</button>
+			</Sidebar.Root>
+		);
+	}
+	render(<Page />);
+
+	await user.click(screen.getByRole("button", { name: "Hide name" }));
+
+	expect(mounts).toBe(1);
 });

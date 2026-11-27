@@ -365,3 +365,57 @@ describe("Popover.Content Tab order", () => {
 		expect(prevented).toBe(false);
 	});
 });
+
+describe("Escape in Popover.Content", () => {
+	test("closes the popover from a plain open <dialog> inside it", async () => {
+		const user = userEvent.setup();
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<dialog open>
+						<button type="button">Edit</button>
+					</dialog>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Open" }));
+		await user.click(await screen.findByRole("button", { name: "Edit" }));
+
+		await user.keyboard("{Escape}");
+
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Edit" })).toBeNull());
+	});
+
+	test("lets a modal <dialog> inside it take Escape first", async () => {
+		const user = userEvent.setup();
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<button
+						type="button"
+						onClick={(event) =>
+							event.currentTarget.nextElementSibling instanceof HTMLDialogElement &&
+							event.currentTarget.nextElementSibling.showModal()
+						}
+					>
+						Edit
+					</button>
+					<dialog aria-label="Edit">
+						<button type="button">Save</button>
+					</dialog>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Open" }));
+		await user.click(await screen.findByRole("button", { name: "Edit" }));
+		const dialog = await screen.findByRole("dialog", { name: "Edit" });
+
+		// Why the browser's own key: only a real Escape makes a close request.
+		await browserUser.keyboard("{Escape}");
+
+		await waitFor(() => expect((dialog as HTMLDialogElement).open).toBe(false));
+		expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+	});
+});

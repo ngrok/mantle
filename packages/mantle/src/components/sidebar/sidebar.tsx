@@ -658,7 +658,10 @@ const Root = ({
 			}
 			// Why: a modal makes the page under it inert, so the chord does not
 			// change the sidebar there. The sidebar's own sheet is the exception.
-			const modal = document.querySelector("dialog:modal");
+			// Why the focused modal first: modals stack, and DOM order is not their order.
+			const modal =
+				(event.target instanceof Element ? event.target.closest("dialog:modal") : null) ??
+				document.querySelector("dialog:modal");
 			if (modal != null && modal.querySelector("[data-slot~=sidebar-nav]") == null) {
 				return;
 			}
@@ -1985,8 +1988,10 @@ function truncateText(children: ReactNode, slot: string, className?: string): Re
 	collect(children, "");
 	// Why unchanged with no text: a slotted child, such as a menu trigger with
 	// `asChild`, needs its one element, and a void element needs no children.
+	// Why the flat list for several children: the keys then match the list with
+	// text, so a keyed sibling does not remount when a name comes and goes.
 	if (!items.some(isText)) {
-		return children;
+		return Array.isArray(children) ? items : children;
 	}
 	const content: ReactNode[] = [];
 	let text = "";
@@ -2667,9 +2672,17 @@ function nativePopupsOf(list: Element): HTMLElement[] {
 		list.ownerDocument.getElementById(
 			control.getAttribute("popovertarget") ?? control.getAttribute("commandfor") ?? "",
 		),
-	).filter(
-		(popup): popup is HTMLElement =>
-			popup?.matches("[popover]:popover-open, dialog[open]") === true && !list.contains(popup),
+	).filter((popup): popup is HTMLElement => popup != null && popup !== list && isOpenPopup(popup));
+}
+
+/**
+ * Whether a popover or a dialog is open. Why `:popover-open` alone: a browser
+ * without the popover API throws on it.
+ */
+function isOpenPopup(element: Element): boolean {
+	return (
+		element.matches("dialog[open]") ||
+		(hasPopoverApi && element.hasAttribute("popover") && element.matches(":popover-open"))
 	);
 }
 
@@ -2683,6 +2696,15 @@ const opensPopupSelector =
  */
 function holdsDialog(list: Element): boolean {
 	return list.querySelector("dialog[open]") != null;
+}
+
+/**
+ * Whether focus is in a dialog that the list is not in, such as a row's
+ * portaled dialog. It does not hang off a row, so it keeps focus when the row hides.
+ */
+function focusInOtherDialog(list: Element): boolean {
+	const dialog = list.ownerDocument.activeElement?.closest("dialog");
+	return dialog != null && !dialog.contains(list);
 }
 
 /** Whether focus is in the list or in an open popup of one of its rows. */
@@ -2818,15 +2840,20 @@ const DisclosureList = ({
 		side: "right",
 		align: "start",
 		sideOffset: 8,
-		// Why: a row's native popover has no place in the Escape order of the
-		// floats, so Escape closes it first, and the flyout stays.
+		// Why: a row's native popover or dialog has no place in the Escape order
+		// of the floats, so Escape closes it first, and the flyout stays.
 		onEscapeKeyDown: (event) => {
-			const popover = (listRef.current == null ? [] : nativePopupsOf(listRef.current))
-				.filter((popup) => popup.matches("[popover]"))
-				.at(-1);
-			if (popover != null) {
-				event.preventDefault();
-				popover.hidePopover();
+			const popups = listRef.current == null ? [] : nativePopupsOf(listRef.current);
+			const target = event.target instanceof Node ? event.target : null;
+			const popup = popups.find((each) => each.contains(target)) ?? popups.at(-1);
+			if (popup == null) {
+				return;
+			}
+			event.preventDefault();
+			if (popup instanceof HTMLDialogElement) {
+				popup.close();
+			} else {
+				popup.hidePopover();
 			}
 		},
 		onHide: (floating, focusWasInside) => {
@@ -2965,8 +2992,8 @@ const DisclosureList = ({
 	// Why a layout effect: a closed list is hidden before the browser paints.
 	const fold = useRef(0);
 	const wasRail = useRef(rail);
-	/** The list's own offsets, which the flyout's placement writes over. */
-	const ownOffsets = useRef({ top: "", left: "" });
+	/** The list's own insets, which the flyout's placement writes over. */
+	const ownInsets = useRef<Record<"top" | "right" | "bottom" | "left", string> | null>(null);
 	useIsomorphicLayoutEffect(() => {
 		const node = listRef.current;
 		if (node == null) {
@@ -2974,8 +3001,10 @@ const DisclosureList = ({
 		}
 		const railChanged = wasRail.current !== rail;
 		wasRail.current = rail;
-		if (rail && railChanged) {
-			ownOffsets.current = { top: node.style.top, left: node.style.left };
+		// Why also on the first run: a sidebar can mount collapsed.
+		if (rail && (railChanged || ownInsets.current == null)) {
+			const { top, right, bottom, left } = node.style;
+			ownInsets.current = { top, right, bottom, left };
 		}
 		if (railChanged && holdsDialog(node)) {
 			// Why before paint: a row's open dialog hides with the list, so the list
@@ -2985,7 +3014,7 @@ const DisclosureList = ({
 			} else {
 				reveal();
 			}
-		} else if ((rail ? railChanged : !open) && holdsFocus(node)) {
+		} else if ((rail ? railChanged : !open) && holdsFocus(node) && !focusInOtherDialog(node)) {
 			// Why: a list that held focus stops showing when the sidebar collapses or
 			// the group closes, so focus moves to the group's trigger.
 			triggerRef.current?.focus({ preventScroll: true });
@@ -2993,8 +3022,7 @@ const DisclosureList = ({
 		// Why only after a flyout: placement wrote the offsets and the side, and
 		// the list takes back its own.
 		if (!rail && railChanged && node.dataset.side != null) {
-			node.style.top = ownOffsets.current.top;
-			node.style.left = ownOffsets.current.left;
+			Object.assign(node.style, ownInsets.current);
 			delete node.dataset.side;
 		}
 		// Why: find in page set these to show the list at once. The classes own
