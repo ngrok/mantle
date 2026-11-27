@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect } from "react";
+import { useCallback, useContext } from "react";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { ScrollBody } from "../dialog/scroll-body.js";
 import { Content, DrawerContext, Root, scope as DrawerScope } from "../drawer/drawer.js";
@@ -38,26 +38,37 @@ const PopoverDrawer = ({
 	...props
 }: PopoverContentProps & { state: PopoverState }) => {
 	const { "aria-label": label, "aria-labelledby": labelledBy } = props;
-	const panelId = id ?? contentId;
 	// Why: as in the popover, the drawer parts in the content bind to an
 	// enclosing `Drawer.Root`, not to this private one.
 	const outerRoot = useContext(DrawerScope);
 	const outerState = useContext(DrawerContext);
 	// Why the trigger names the drawer: as in the popover, the trigger says
-	// what opens. Why its rendered `id`, after the commit: a consumer can set
-	// one, and the trigger can render after the content.
-	useEffect(() => {
-		const triggerId = triggerRef.current?.id;
-		const dialog = document.getElementById(panelId)?.closest("dialog");
-		if (open && dialog != null && triggerId && label == null && labelledBy == null) {
-			dialog.setAttribute("aria-labelledby", triggerId);
-		}
-	}, [panelId, label, labelledBy, open, triggerRef]);
+	// what opens. Why a ref that changes with `open`: it runs on each open, and
+	// on a new `<dialog>` that an enclosing dialog renders while open. Why its
+	// text, after the commit, and not its `id`: the modal makes the trigger
+	// inert, and Chromium drops an `aria-labelledby` that points at it.
+	const name = useCallback(
+		(body: HTMLDivElement | null) => {
+			if (!open || body == null || label != null || labelledBy != null) {
+				return;
+			}
+			queueMicrotask(() => {
+				const trigger = triggerRef.current;
+				const text = trigger?.getAttribute("aria-label") || trigger?.textContent?.trim();
+				const dialog = body.closest("dialog");
+				if (text && dialog) {
+					dialog.removeAttribute("aria-labelledby");
+					dialog.setAttribute("aria-label", text);
+				}
+			});
+		},
+		[label, labelledBy, open, triggerRef],
+	);
 
 	return (
 		<Root open={open} onOpenChange={setOpen}>
 			<Content
-				id={panelId}
+				id={id ?? contentId}
 				data-slot={joinDataSlot(dataSlot, "popover-content")}
 				data-presentation="drawer"
 				// Why: the trigger names the popover in `aria-controls`, not the
@@ -82,7 +93,10 @@ const PopoverDrawer = ({
 				<DrawerScope value={outerRoot}>
 					<DrawerContext value={outerState}>
 						{/* Why `>` for the arrow: an arrow of a float inside is not this one. */}
-						<ScrollBody className="min-h-0 flex-1 touch-pan-y touch-pinch-zoom overflow-y-auto overscroll-contain px-4 pb-4 focus-visible:focus-ring focus-visible:ring-inset [&>[data-float-arrow]]:hidden">
+						<ScrollBody
+							ref={name}
+							className="min-h-0 flex-1 touch-pan-y touch-pinch-zoom overflow-y-auto overscroll-contain px-4 pb-4 focus-visible:focus-ring focus-visible:ring-inset [&>[data-float-arrow]]:hidden"
+						>
 							{children}
 						</ScrollBody>
 					</DrawerContext>

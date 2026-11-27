@@ -2,18 +2,26 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import { useState } from "react";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands } from "vitest/browser";
+import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import * as Drawer from "./drawer-parts.js";
 
 let styleElement: HTMLStyleElement;
 
 beforeAll(async () => {
 	styleElement = document.createElement("style");
-	styleElement.textContent = [
-		await commands.tailwindCss("./drawer.tsx"),
-		await commands.tailwindCss("../dialog/native-primitive.tsx"),
-	].join("\n");
+	// Why all of mantle.css: the exit and enter of the panel read its animations.
+	styleElement.textContent = await commands.tailwindCss(
+		[
+			"./drawer.tsx",
+			"./drawer.browser.test.tsx",
+			"../dialog/native-primitive.tsx",
+			"../dropdown-menu/dropdown-menu.tsx",
+		],
+		{ mantleCss: true },
+	);
 	document.head.append(styleElement);
 });
 
@@ -131,9 +139,176 @@ describe("Drawer", () => {
 		const dialog = await screen.findByRole("dialog", { name: "Edit" });
 		const panel = panelOf(dialog);
 		dragDown(panel, panel.offsetHeight * 0.8)();
-		await waitFor(() => expect(panel.style.translate).toBe(""));
-		expect(dialog.style.getPropertyValue("--drawer-swipe")).toBe("0");
+		await waitFor(() => expect(dialog.style.getPropertyValue("--drawer-swipe")).toBe("0"));
+		expect(panel.style.translate).toBe("");
 		expect(dialog.matches(":modal")).toBe(true);
+	});
+
+	test("gives a press on a menu trigger in the header to the menu, not to a drag", async () => {
+		const onSelect = vi.fn<() => void>();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<Drawer.Root open onOpenChange={onOpenChange}>
+				<Drawer.Content aria-label="Edit">
+					<Drawer.Header>
+						<DropdownMenu.Root>
+							<DropdownMenu.Trigger>Sort</DropdownMenu.Trigger>
+							<DropdownMenu.Content>
+								<DropdownMenu.Item>Name</DropdownMenu.Item>
+								<DropdownMenu.Item onSelect={onSelect}>Date</DropdownMenu.Item>
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
+					</Drawer.Header>
+					<Drawer.Body style={{ minHeight: 300 }} />
+				</Drawer.Content>
+			</Drawer.Root>,
+		);
+		const dialog = await screen.findByRole("dialog", { name: "Edit" });
+		await waitFor(() => expect(panelOf(dialog).getAnimations()).toHaveLength(0));
+		const trigger = screen.getByRole("button", { name: "Sort" });
+		const { left, top } = trigger.getBoundingClientRect();
+		const base = { pointerId: 1, isPrimary: true, button: 0, bubbles: true, clientX: left + 4 };
+		trigger.dispatchEvent(new PointerEvent("pointerdown", { ...base, clientY: top + 4 }));
+		const item = await screen.findByRole("menuitem", { name: "Date" });
+		const itemTop = item.getBoundingClientRect().top;
+		for (let step = 1; step <= 10; step++) {
+			document.dispatchEvent(
+				new PointerEvent("pointermove", { ...base, clientY: top + ((itemTop - top) * step) / 10 }),
+			);
+		}
+		item.dispatchEvent(new PointerEvent("pointerup", { ...base, clientY: itemTop + 4 }));
+
+		expect(onSelect).toHaveBeenCalledTimes(1);
+		expect(onOpenChange).not.toHaveBeenCalled();
+		expect(panelOf(dialog).style.translate).toBe("");
+	});
+
+	test("lets a drag on a control with no popup move the panel", async () => {
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<Drawer.Root open onOpenChange={onOpenChange}>
+				<Drawer.Content aria-label="Edit">
+					<Drawer.Header>
+						<button type="button" aria-haspopup={false}>
+							Mark
+						</button>
+					</Drawer.Header>
+					<Drawer.Body style={{ minHeight: 200 }} />
+				</Drawer.Content>
+			</Drawer.Root>,
+		);
+		const panel = panelOf(await screen.findByRole("dialog", { name: "Edit" }));
+		await waitFor(() => expect(panel.getAnimations()).toHaveLength(0));
+		const mark = screen.getByRole("button", { name: "Mark" });
+		const { left, top } = mark.getBoundingClientRect();
+		const base = { pointerId: 1, isPrimary: true, button: 0, bubbles: true, clientX: left + 4 };
+		mark.dispatchEvent(new PointerEvent("pointerdown", { ...base, clientY: top + 4 }));
+		for (let step = 1; step <= 10; step++) {
+			document.dispatchEvent(
+				new PointerEvent("pointermove", {
+					...base,
+					clientY: top + 4 + panel.offsetHeight * 0.06 * step,
+				}),
+			);
+		}
+		document.dispatchEvent(
+			new PointerEvent("pointerup", { ...base, clientY: top + 4 + panel.offsetHeight * 0.6 }),
+		);
+
+		expect(onOpenChange.mock.calls).toEqual([[false]]);
+	});
+
+	test("puts the scrim back on a reopen during the exit with no panel transition", async () => {
+		function Controlled() {
+			const [open, setOpen] = useState(true);
+			return (
+				<>
+					<button type="button" onClick={() => setOpen(true)}>
+						Reopen
+					</button>
+					<Drawer.Root open={open} onOpenChange={setOpen}>
+						<Drawer.Content aria-label="Edit" className="transition-none">
+							<Drawer.Body style={{ minHeight: 300 }}>Name</Drawer.Body>
+						</Drawer.Content>
+					</Drawer.Root>
+				</>
+			);
+		}
+		render(<Controlled />);
+		const dialog = await screen.findByRole("dialog", { name: "Edit" });
+		const panel = panelOf(dialog);
+		await waitFor(() => expect(dialog.getAnimations({ subtree: true })).toHaveLength(0));
+		dragDown(panel, panel.offsetHeight * 0.5)();
+		await waitFor(() => expect(dialog).toHaveAttribute("data-closing"));
+		// Why two frames: the reopen comes after the release's own cleanup frame.
+		await new Promise(requestAnimationFrame);
+		await new Promise(requestAnimationFrame);
+		expect(dialog).toHaveAttribute("data-closing");
+		screen.getByRole("button", { name: "Reopen" }).click();
+
+		await waitFor(() => expect(dialog.style.getPropertyValue("--drawer-swipe")).toBe("0"));
+		expect(panel.style.userSelect).toBe("");
+	});
+
+	test("reverses from where it is when a controlled owner reopens it during the exit", async () => {
+		function Controlled() {
+			const [open, setOpen] = useState(true);
+			return (
+				<>
+					<button type="button" onClick={() => setOpen((value) => !value)}>
+						Toggle
+					</button>
+					<Drawer.Root open={open} onOpenChange={setOpen}>
+						<Drawer.Content aria-label="Edit">
+							<Drawer.Body style={{ minHeight: 300 }}>Name</Drawer.Body>
+						</Drawer.Content>
+					</Drawer.Root>
+				</>
+			);
+		}
+		render(<Controlled />);
+		const dialog = await screen.findByRole("dialog", { name: "Edit" });
+		const panel = panelOf(dialog);
+		const toggle = screen.getByRole("button", { name: "Toggle" });
+		// Why wait: the enter must end, so the exit starts from rest.
+		await waitFor(() => expect(panel.getAnimations()).toHaveLength(0));
+		const rest = panel.getBoundingClientRect().top;
+
+		toggle.click();
+		await expect.poll(() => panel.getBoundingClientRect().top).toBeGreaterThan(rest);
+		toggle.click();
+		const tops: number[] = [];
+		for (let frame = 0; frame < 4; frame++) {
+			await new Promise(requestAnimationFrame);
+			tops.push(panel.getBoundingClientRect().top);
+		}
+
+		// Why: an enter that starts over jumps to the closed pose, a full height down.
+		expect(Math.max(...tops)).toBeLessThan(rest + panel.offsetHeight - 1);
+		expect(tops.at(-1)).toBeLessThan(Math.max(...tops));
+		await waitFor(() => expect(panel.getBoundingClientRect().top).toBe(rest));
+	});
+
+	test("stays on the bottom edge while a drag pulls it up", async () => {
+		render(
+			<Drawer.Root open>
+				<Drawer.Content aria-label="Edit" style={{ backgroundColor: "rgb(10, 32, 64)" }}>
+					<Drawer.Body>Name</Drawer.Body>
+				</Drawer.Content>
+			</Drawer.Root>,
+		);
+		const dialog = await screen.findByRole("dialog", { name: "Edit" });
+		const panel = panelOf(dialog);
+		await waitFor(() => expect(panel.getAnimations()).toHaveLength(0));
+		const release = dragDown(panel, -120);
+		expect(panel.getBoundingClientRect().bottom).toBeLessThan(innerHeight);
+
+		// Why the hit test: a gap under the panel would show the page.
+		const { left, width } = panel.getBoundingClientRect();
+		expect(panel.contains(document.elementFromPoint(left + width / 2, innerHeight - 2))).toBe(true);
+		// Why: the stretch shows the panel's own color, not a default.
+		expect(getComputedStyle(panel, "::after").backgroundColor).toBe("rgb(10, 32, 64)");
+		release();
 	});
 
 	test("keeps the consumer's own inline styles through a drag", async () => {
