@@ -1,5 +1,31 @@
 # @ngrok/mantle
 
+## 0.98.0
+
+### Minor Changes
+
+- [#1979](https://github.com/ngrok/mantle/pull/1979) [`971ec80`](https://github.com/ngrok/mantle/commit/971ec806071d2fc6ccaab74a0f0f81fdaaca1bb9) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `StatusStrip` (`@ngrok/mantle/status-strip`): a row of equal segments over time, such as one segment for each hour or day, each shaded by its share of the time in one state. It renders on the server with no client JavaScript.
+
+  - `StatusStrip.Root` renders a `<span>` grid of equal columns (`data-slot="status-strip"`). It is `role="img"`, and its type requires `aria-label` or `aria-labelledby`. When nearby text already says the same thing, pass `aria-hidden` in place of a name: the root then has no role. An empty name throws.
+  - `StatusStrip.Segment` takes a required `value`: a share from 0 to 1, or `null` for no data. A share above 0 fills with `--status-strip-fill` (default `var(--color-accent-600)`), from 35% strength up to full at 1. A segment at 0 fills with `--status-strip-track` (default `var(--color-gray-300)`), and a segment with no data is empty between two lines in the track color, at its top and bottom, so it does not read as 0. A value outside 0 to 1, such as `NaN`, throws. Each segment takes its own `title`. It stamps `data-slot="status-strip-segment"` and `data-share` (`"no-data"`, `"none"`, `"some"`, or `"all"`).
+  - Both parts take `asChild`.
+
+  Docs: https://mantle.ngrok.com/components/data-display/status-strip
+
+### Patch Changes
+
+- [#1975](https://github.com/ngrok/mantle/pull/1975) [`cc0168b`](https://github.com/ngrok/mantle/commit/cc0168bba5d5ee61127b952c482ad2064d7b56d2) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix `Message.Root`'s `speaker` so it names the `<article>` when the message has no `Message.Content`, such as a message that holds only images. Before, the article had no name. You no longer need an `aria-label` for this case. When you omit `speaker`, nothing changes.
+
+- [#1974](https://github.com/ngrok/mantle/pull/1974) [`36f1e08`](https://github.com/ngrok/mantle/commit/36f1e0885e4bf871a95cee54ba2e4b6ae7fe1995) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix two `useOffsetPagination` gaps with a controlled `page` or page size:
+
+  - Fix: the render that applies a `setPageSize` change now returns `currentPage`, `pageSize`, `offset`, and `totalPages` for the new size, when the parent owns either the page or the size. Before, that render mixed the new page with the old size. A parent that copies `currentPage` back to its own state then stored the wrong page: for 15 items, page 2 at 10 a page with `setPageSize(5)` landed on page 2 (items 6 to 10) instead of page 3 (items 11 to 15).
+  - Fix: a navigation call to another page, or a parent move to another page such as a back move, now cancels a `setPageSize` change that waits for the controlled `page`. Before, a later move to the page that the resize asked for applied its size.
+  - Add `onPageClamp(page)`, an opt-in callback. When a shorter list clamps the controlled `page`, the hook calls it with `currentPage`, so the stored page follows the clamp and a list that grows back stays on the page the reader saw. Write the page in place of the current history entry, such as with `setSearchParams(params, { replace: true })`: a new entry traps the back button. The hook does not call it while `listSize` is 0. Pair it with `resetPageOnListSizeChange: false` so a list that loads keeps the page in the URL. The hook also waits until the parent commits a page that the hook requested, and a list reset does not repeat a clamp to page 1. Without `onPageClamp`, the hook reports no clamp, and a parent that already writes the clamped page back keeps working.
+
+- [#1976](https://github.com/ngrok/mantle/pull/1976) [`37f2f01`](https://github.com/ngrok/mantle/commit/37f2f01751e1a234226b7d82d6497d377768e22f) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `PaginationRange` takes `total={null}` while the count is not known, such as while the rows load, and a new `loadingLabel` prop with the text to show then, such as "Loading domains…". The same live region shows the label, then the count when the total is known (or no text for an empty list), so a loading table needs no second `role="status"` element. A screen reader announces a change after mount, such as the first count or a refetch. A label present at mount is not announced. `offset` and `pageSize` are still checked while `total` is `null`. See https://mantle.ngrok.com/components/navigation/pagination#loading.
+
+- [#1977](https://github.com/ngrok/mantle/pull/1977) [`8f25c51`](https://github.com/ngrok/mantle/commit/8f25c51dddbc707182665b4feed763934557ff11) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `closedby` to `Sheet.Content` and `Dialog.Content`, after the HTML `closedby` attribute of `<dialog>`. With `closedby="closerequest"`, a press outside the panel does not close the sheet or dialog, and `onPointerDownOutside` and `onInteractOutside` do not run. Escape and the close parts still close it. Use it on a sheet with `modal={false}` that holds a card form, so a stray click or a press on a password manager's menu does not lose the input. The [native dialog migration guide](https://mantle.ngrok.com/migrations/0027-native-dialog-migration) now covers it. The default, `"any"`, keeps the current behavior.
+
 ## 0.97.1
 
 ### Patch Changes
