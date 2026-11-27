@@ -56,6 +56,12 @@ export function StatusExample() {
 				</ToolCall.Trigger>
 				<ToolCall.Content>The answer stopped before the result arrived.</ToolCall.Content>
 			</ToolCall.Root>
+			<ToolCall.Root status="requested" className="w-full max-w-2xl">
+				<ToolCall.Trigger>
+					<ToolCall.Name>get_endpoint</ToolCall.Name>
+				</ToolCall.Trigger>
+				<ToolCall.Content>This capture shows the call but not its result.</ToolCall.Content>
+			</ToolCall.Root>
 		</PreviewCanvas>
 	);
 }

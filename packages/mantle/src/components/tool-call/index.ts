@@ -8,8 +8,8 @@ import * as ToolCallParts from "./tool-call-parts.js";
 
 /**
  * One tool call of a chat answer, folded under a row with the tool's name and
- * its state: running, done, failed, or interrupted. Open it to read what the
- * model sent the tool and what came back.
+ * its state: running, done, failed, interrupted, or requested. Open it to
+ * read what the model sent the tool and what came back.
  *
  * @useWhen Show a tool that a model called while it answered, with its state, and its arguments and
  * result behind a disclosure.

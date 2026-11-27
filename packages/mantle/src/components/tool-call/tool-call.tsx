@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { CircleDashedIcon } from "@phosphor-icons/react/CircleDashed";
 import { MinusCircleIcon } from "@phosphor-icons/react/MinusCircle";
 import { WrenchIcon } from "@phosphor-icons/react/Wrench";
 import { XCircleIcon } from "@phosphor-icons/react/XCircle";
@@ -18,15 +19,18 @@ import { Slot } from "../slot/index.js";
 /**
  * The state of a tool call. `running` until the result arrives, then `done`,
  * or `failed` when the tool returned an error. `interrupted` when the answer
- * ended, by a stop or a failure, before the result arrived.
+ * ended, by a stop or a failure, before the result arrived. `requested` when
+ * the view shows the call but will never get its result, such as a captured
+ * request whose response ended with `finish_reason: "tool_calls"`.
  */
-type ToolCallStatus = "running" | "done" | "failed" | "interrupted";
+type ToolCallStatus = "running" | "done" | "failed" | "interrupted" | "requested";
 
 const statusLabels = {
 	running: "Running",
 	done: "Done",
 	failed: "Failed",
 	interrupted: "Interrupted",
+	requested: "Requested",
 } as const satisfies Record<ToolCallStatus, string>;
 
 const statusIcons = {
@@ -42,6 +46,9 @@ const statusIcons = {
 	failed: <Icon svg={<XCircleIcon weight="fill" />} className="text-danger-600 size-4 shrink-0" />,
 	interrupted: (
 		<Icon svg={<MinusCircleIcon weight="fill" />} className="text-muted size-4 shrink-0" />
+	),
+	requested: (
+		<Icon svg={<CircleDashedIcon weight="regular" />} className="text-muted size-4 shrink-0" />
 	),
 } as const satisfies Record<ToolCallStatus, ReactElement>;
 
@@ -66,9 +73,9 @@ type ToolCallRootProps = Omit<ComponentProps<"div">, "defaultValue"> &
  * One tool call of an answer, folded under a row that names the tool and its
  * state. It starts closed.
  *
- * | Data Attribute | Value                                              | Description                                       |
- * | -------------- | -------------------------------------------------- | ------------------------------------------------- |
- * | `data-status`  | `"running"`, `"done"`, `"failed"`, `"interrupted"` | The state of the call. Style with `data-[status=failed]:`. |
+ * | Data Attribute | Value                                                             | Description                                                |
+ * | -------------- | ----------------------------------------------------------------- | ---------------------------------------------------------- |
+ * | `data-status`  | `"running"`, `"done"`, `"failed"`, `"interrupted"`, `"requested"` | The state of the call. Style with `data-[status=failed]:`. |
  *
  * @see https://mantle.ngrok.com/components/ai/tool-call#toolcallroot
  *

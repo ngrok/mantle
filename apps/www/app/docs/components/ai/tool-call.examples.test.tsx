@@ -8,7 +8,7 @@ test("each tool-call state opens its own details", async () => {
 	const user = userEvent.setup();
 	render(<StatusExample />);
 	const triggers = screen.getAllByRole("button");
-	expect(triggers).toHaveLength(4);
+	expect(triggers).toHaveLength(5);
 	for (const trigger of triggers) {
 		const target = document.getElementById(trigger.getAttribute("aria-controls") ?? "");
 		expect(target).not.toBeNull();

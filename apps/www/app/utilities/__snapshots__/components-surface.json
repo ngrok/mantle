@@ -6276,7 +6276,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/tool-call",
     "summary": "One tool call of a chat answer, folded under a row with the tool's name and its state.",
-    "jsdoc": "One tool call of a chat answer, folded under a row with the tool's name and its state: running, done, failed, or interrupted.",
+    "jsdoc": "One tool call of a chat answer, folded under a row with the tool's name and its state: running, done, failed, interrupted, or requested.",
     "examples": [
       "Composition:\n```\nToolCall.Root\n├── ToolCall.Trigger\n│   └── ToolCall.Name\n└── ToolCall.Content\n```",
       "```tsx\n<ToolCall.Root status=\"done\">\n  <ToolCall.Trigger>\n    <ToolCall.Name>list_endpoints</ToolCall.Name>\n  </ToolCall.Trigger>\n  <ToolCall.Content>\n    <CodeBlock.Root>\n      <CodeBlock.Body>\n        <CodeBlock.Code value={jsonCodeBlockValue({ limit: 5 })} />\n      </CodeBlock.Body>\n    </CodeBlock.Root>\n  </ToolCall.Content>\n</ToolCall.Root>\n```"
@@ -6307,7 +6307,7 @@
       {
         "part": "ToolCall.Root",
         "name": "data-status",
-        "value": "`\"running\"`, `\"done\"`, `\"failed\"`, `\"interrupted\"`",
+        "value": "`\"running\"`, `\"done\"`, `\"failed\"`, `\"interrupted\"`, `\"requested\"`",
         "description": "The state of the call. Style with `data-[status=failed]:`."
       },
       {

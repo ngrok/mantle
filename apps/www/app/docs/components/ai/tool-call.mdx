@@ -54,7 +54,7 @@ function ListEndpointsCall() {
 
 ## States
 
-`status` takes four values, and the row shows an icon and a word for each. A call is `running` until its result arrives, then `done`, or `failed` when the tool returned an error. Set `interrupted` when the answer ended, by a stop or a failure, before the result arrived.
+`status` takes five values, and the row shows an icon and a word for each. The word is part of the trigger's accessible name, so a screen reader reads the state with the tool's name. A call is `running` until its result arrives, then `done`, or `failed` when the tool returned an error. Set `interrupted` when the answer ended, by a stop or a failure, before the result arrived. Set `requested` when the view shows the call but will never get its result: for example, a captured request whose response ended with `finish_reason: "tool_calls"`. Use `running` while the view still waits for a live result. The `requested` icon and word are neutral, because the view cannot say how the call ended.
 
 <Example name="components/ai/tool-call/status" title="Tool Call status example">
 
@@ -88,6 +88,12 @@ function ToolCallStates() {
 				</ToolCall.Trigger>
 				<ToolCall.Content>The answer stopped before the result arrived.</ToolCall.Content>
 			</ToolCall.Root>
+			<ToolCall.Root status="requested" className="w-full max-w-2xl">
+				<ToolCall.Trigger>
+					<ToolCall.Name>get_endpoint</ToolCall.Name>
+				</ToolCall.Trigger>
+				<ToolCall.Content>This capture shows the call but not its result.</ToolCall.Content>
+			</ToolCall.Root>
 		</div>
 	);
 }
@@ -120,13 +126,13 @@ The tool call disclosure. It starts closed.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop     | Type                                               | Default | Description                      |
-| -------- | -------------------------------------------------- | ------- | -------------------------------- |
-| `status` | `"running" \| "done" \| "failed" \| "interrupted"` |         | The state of the call. Required. |
+| Prop     | Type                                                              | Default | Description                      |
+| -------- | ----------------------------------------------------------------- | ------- | -------------------------------- |
+| `status` | `"running" \| "done" \| "failed" \| "interrupted" \| "requested"` |         | The state of the call. Required. |
 
-| Data Attribute | Value                                              | Description                                                |
-| -------------- | -------------------------------------------------- | ---------------------------------------------------------- |
-| `data-status`  | `"running"`, `"done"`, `"failed"`, `"interrupted"` | The state of the call. Style with `data-[status=failed]:`. |
+| Data Attribute | Value                                                             | Description                                                |
+| -------------- | ----------------------------------------------------------------- | ---------------------------------------------------------- |
+| `data-status`  | `"running"`, `"done"`, `"failed"`, `"interrupted"`, `"requested"` | The state of the call. Style with `data-[status=failed]:`. |
 
 ### ToolCall.Trigger
 
