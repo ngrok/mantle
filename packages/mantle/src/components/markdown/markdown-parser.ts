@@ -1,6 +1,11 @@
 import { lexMarkdown, type MarkdownTokenizer } from "./markdown-lexer.js";
 import { closeMarkdown } from "./close-markdown.js";
-import type { MarkdownLinks, MarkdownToken as Token } from "./markdown-tokens.js";
+import type {
+	FootnoteToken,
+	MarkdownFootnotes,
+	MarkdownLinks,
+	MarkdownToken as Token,
+} from "./markdown-tokens.js";
 
 /**
  * The blocks of an answer at one point in its stream. A block is one
@@ -13,6 +18,8 @@ type MarkdownSnapshot = {
 	completeCount: number;
 	/** The reference definitions that the snapshot read. */
 	links: MarkdownLinks;
+	/** The footnotes that the snapshot read. */
+	notes: MarkdownFootnotes;
 };
 
 /** Parses one answer as it streams. Create one for each answer. */
@@ -62,6 +69,70 @@ function addDefinitions(links: MarkdownLinks, tokens: readonly Token[]) {
 	}
 }
 
+const noNotes = (): MarkdownFootnotes => ({
+	definitions: Object.create(null),
+	references: Object.create(null),
+});
+
+/** Narrows a token to a footnote. Why a guard: an extension token's `type` is any string, so `===` cannot narrow it. */
+function isFootnote(token: Token): token is FootnoteToken {
+	return token.type === "footnote";
+}
+
+/** Adds the footnotes and footnote references in `tokens` and in their children to `notes`, in order. */
+function addNotes(notes: MarkdownFootnotes, tokens: readonly Token[]) {
+	for (const token of tokens) {
+		if (token.type === "footnoteRef") {
+			notes.references[token.label] = { number: token.number, count: token.occurrence };
+		} else if (isFootnote(token)) {
+			notes.definitions[token.label] ??= token;
+		}
+		if (token.type === "list") {
+			addNotes(notes, token.items);
+		} else if (token.type === "table") {
+			addNotes(
+				notes,
+				[...token.header, ...token.rows.flat()].flatMap((cell) => cell.tokens),
+			);
+		} else if ("tokens" in token && token.tokens != null) {
+			addNotes(notes, token.tokens);
+		}
+	}
+}
+
+/**
+ * Whether two sets of footnotes hold the same numbers, counts, and defined
+ * labels: all that a reference in the answer renders from.
+ */
+function isSameCitations(previous: MarkdownFootnotes, next: MarkdownFootnotes): boolean {
+	if (previous === next) {
+		return true;
+	}
+	const labels = Object.keys(next.references);
+	const defined = Object.keys(next.definitions);
+	return (
+		labels.length === Object.keys(previous.references).length &&
+		defined.length === Object.keys(previous.definitions).length &&
+		labels.every(
+			(label) =>
+				previous.references[label]?.number === next.references[label]?.number &&
+				previous.references[label]?.count === next.references[label]?.count,
+		) &&
+		defined.every((label) => label in previous.definitions)
+	);
+}
+
+/** Whether two sets of footnotes hold the same citations, and each note the same source. */
+function isSameNotes(previous: MarkdownFootnotes, next: MarkdownFootnotes): boolean {
+	return (
+		previous === next ||
+		(isSameCitations(previous, next) &&
+			Object.keys(next.definitions).every(
+				(label) => previous.definitions[label]?.raw === next.definitions[label]?.raw,
+			))
+	);
+}
+
 /** Whether two sets of reference definitions hold the same labels and targets. */
 function isSameLinks(previous: MarkdownLinks, next: MarkdownLinks): boolean {
 	const labels = Object.keys(next);
@@ -99,8 +170,10 @@ function createMarkdownParser({
 	extensions = [],
 }: { extensions?: readonly MarkdownExtension[] } = {}): MarkdownParser {
 	const tokenizers = extensions.flatMap((extension) => extension.extensions);
-	const lex = (source: string, known: MarkdownLinks) =>
-		lexMarkdown(source, { links: known, extensions: tokenizers });
+	const lex = (
+		source: string,
+		seed: { links: MarkdownLinks; notes: MarkdownFootnotes; awaitNotes: boolean },
+	) => lexMarkdown(source, { ...seed, extensions: tokenizers });
 	const closeMath = extensions.some((extension) => extension[closesMath] === true);
 
 	let frozen: Token[] = [];
@@ -112,10 +185,23 @@ function createMarkdownParser({
 	// Whether a finished block was lexed with definitions. Why: a definition that later changes or goes away
 	// leaves a stale link in it, so the final parse must lex the whole answer again.
 	let frozenReadLinks = false;
+	// The footnotes in the finished blocks, and in the whole answer so far.
+	let frozenNotes = noNotes();
+	// Why the same object: the lexer returns its seed when it reads no footnote, so the check of `setNotes` is one compare.
+	let notes = frozenNotes;
+	// Whether the finished blocks were lexed while the answer streamed. Why: a static parse reads a reference with
+	// no note as text, and a stream that resumes must read it again as a reference.
+	let frozenAwaits = true;
 	/** Keeps the `links` object while its definitions stay the same, so a memoized block does not render again. */
 	const setLinks = (next: MarkdownLinks) => {
 		if (!isSameLinks(links, next)) {
 			links = next;
+		}
+	};
+	/** Keeps the `notes` object while its footnotes stay the same, so the footnote list does not render again. */
+	const setNotes = (next: MarkdownFootnotes) => {
+		if (!isSameNotes(notes, next)) {
+			notes = next;
 		}
 	};
 
@@ -124,7 +210,7 @@ function createMarkdownParser({
 	 * block can come before its definition, and only a whole lex resolves it.
 	 */
 	const parseWhole = (source: string): MarkdownSnapshot => {
-		const all = lex(source, Object.create(null));
+		const all = lex(source, { links: Object.create(null), notes: noNotes(), awaitNotes: false });
 		const blocks = contentTokens(all);
 		frozen = blocks.slice(0, -1);
 		frozenSource = all
@@ -134,35 +220,71 @@ function createMarkdownParser({
 		frozenLinks = Object.create(null);
 		addDefinitions(frozenLinks, frozen);
 		frozenReadLinks = Object.keys(all.links).length > 0;
+		frozenNotes = noNotes();
+		addNotes(frozenNotes, frozen);
+		frozenAwaits = false;
 		// Why a new object: the blocks are new tokens, and each must read the definitions again.
 		links = all.links;
-		return { blocks, completeCount: blocks.length, links };
+		notes = all.notes;
+		return { blocks, completeCount: blocks.length, links, notes };
 	};
 
 	return {
 		parse(rawSource, { streaming, truncated = false }) {
 			const source = rawSource.includes("\r") ? rawSource.replace(/\r\n?/g, "\n") : rawSource;
-			if (!source.startsWith(frozenSource)) {
+			const closes = streaming || truncated;
+			// Why set once: with no `[^` in the finished blocks, a resumed stream reads them as a static parse did.
+			if (closes && !frozenAwaits && !frozenSource.includes("[^")) {
+				frozenAwaits = true;
+			}
+			const reset = !source.startsWith(frozenSource) || (closes && !frozenAwaits);
+			if (reset) {
 				// Why a reset: the text before the last finished block changed, such as for a new answer.
+				frozenAwaits = true;
 				frozen = [];
 				frozenSource = "";
 				frozenLinks = Object.create(null);
 				frozenReadLinks = false;
+				frozenNotes = noNotes();
 			}
 
 			const tail = source.slice(frozenSource.length);
-			const closes = streaming || truncated;
 			const text = closes ? closeMarkdown(tail, { math: closeMath }) : tail;
-			const tokens = lex(text, frozenLinks);
+			// Why `closes`: a stopped answer keeps each reference that showed while it streamed.
+			const tokens = lex(text, { links: frozenLinks, notes: frozenNotes, awaitNotes: closes });
+			const previousLinks = links;
 			setLinks(tokens.links);
+			if (links === previousLinks && !reset) {
+				setNotes(tokens.notes);
+			} else {
+				// Why: a note's link can resolve to a new target, or a reference take a new occurrence, with no change to
+				// the source of its block.
+				notes = tokens.notes;
+			}
+			// Why: a finished block can hold a reference to a footnote that the answer never defined, and GFM shows it
+			// as text. A stopped answer keeps it, as it showed while it streamed.
+			const undefinedNote =
+				!closes && Object.keys(notes.references).some((label) => !(label in notes.definitions));
 
-			if (!streaming && frozen.length > 0 && (frozenReadLinks || Object.keys(links).length > 0)) {
+			if (
+				!streaming &&
+				frozen.length > 0 &&
+				(frozenReadLinks ||
+					Object.keys(links).length > 0 ||
+					// Why: a reference in a finished block that came before its note was read as text.
+					Object.keys(notes.definitions).length > 0 ||
+					undefinedNote)
+			) {
 				if (truncated) {
 					// Why the closed tail, and no frozen state: it is the text the last frame showed, and a closer can
 					// split a block that more text would join again.
-					const all = lex(frozenSource + text, Object.create(null));
+					const all = lex(frozenSource + text, {
+						links: Object.create(null),
+						notes: noNotes(),
+						awaitNotes: true,
+					});
 					const blocks = contentTokens(all);
-					return { blocks, completeCount: blocks.length, links: all.links };
+					return { blocks, completeCount: blocks.length, links: all.links, notes: all.notes };
 				}
 				return parseWhole(source);
 			}
@@ -187,13 +309,27 @@ function createMarkdownParser({
 				frozenSource += finishedRaw;
 				frozenReadLinks ||= Object.keys(tokens.links).length > 0;
 				addDefinitions(frozenLinks, finished);
+				// Why the check: most blocks hold no footnote, and the walk reads each of their tokens.
+				if (finishedRaw.includes("[^")) {
+					// Why a copy: the lexer returns its seed when it adds no footnote, so `notes` can be this object.
+					const next = {
+						definitions: Object.assign(Object.create(null), frozenNotes.definitions),
+						references: Object.assign(Object.create(null), frozenNotes.references),
+					};
+					addNotes(next, finished);
+					// Why the check: `[^` in code adds no footnote, and a new object costs the identity check of `setNotes`.
+					if (!isSameNotes(frozenNotes, next)) {
+						frozenNotes = next;
+					}
+				}
+				frozenAwaits &&= closes;
 			}
 			const blocks = [
 				...frozen,
 				...contentTokens(freezes ? tokens.slice(finished.length) : tokens),
 			];
 			// Why not the last block when done: a stream that resumes later can still add to it.
-			return { blocks, completeCount: streaming ? frozen.length : blocks.length, links };
+			return { blocks, completeCount: streaming ? frozen.length : blocks.length, links, notes };
 		},
 	};
 }

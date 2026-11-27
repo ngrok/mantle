@@ -6,8 +6,9 @@
  * Only the end changes, so each finished block keeps its source text:
  * - closes open emphasis, strikethrough, and code spans: `**bo` → `**bo**`
  * - shows an incomplete link as its text: `[the gu` and `[guide](https://n` → `the gu`, `guide`
- * - drops an incomplete image, HTML tag, autolink, or entity: `![al`, `<spa`, `&am`
+ * - drops an incomplete image, footnote reference, HTML tag, autolink, or entity: `![al`, `[^1`, `<spa`, `&am`
  * - drops a marker that has no content yet: `Some **`, a lone `-`, `#`, `1.`, `- [ ]`, or `[label]:` line
+ * - drops a line of only `[^label]`, which can still become a footnote
  * - drops a setext underline that has no line break yet, which can still be a list item
  * - hides a table header until its delimiter row starts, and completes a partial delimiter row
  * - closes an open `$$` block when `math` is set
@@ -413,7 +414,7 @@ function closeLastLines(
 	}
 	const isMarkerOnly =
 		/^(?:(?:[-*+]|\d{1,9}[.)])(?: +\[(?:[ xX]\]?)?)?|#{1,6}|\d{1,9}) *$/.test(content) ||
-		/^\[[^\]]+\]: *$/.test(content);
+		/^\[(?:[^\]]+\]: *|\^[^\s\]]*\]?)$/.test(content);
 	const isUnderline = /^(?:-+|=+) *$/.test(content) && previous.trim() !== "";
 	if (isMarkerOnly || isUnderline) {
 		const start = Math.min(regionStart, lastLineStart);
@@ -423,6 +424,8 @@ function closeLastLines(
 }
 
 type Opener = { char: number; count: number; index: number };
+/** A whole footnote reference, as the lexer reads it. */
+const FOOTNOTE_REF = /^\[\^[^\s[\]]{1,999}\]/;
 type Bracket = { image: boolean; index: number };
 
 const BACKTICK = 96;
@@ -583,7 +586,23 @@ function closeInline(region: string, { math }: { math: boolean }): string {
 			index += 1;
 			continue;
 		}
-		if (char === "[" || (char === "!" && region[index + 1] === "[")) {
+		// Why whole: a `[^label]` is a footnote reference, so its label holds no markup, and a `(` after it is text.
+		const note =
+			char === "[" && region[index + 1] === "^"
+				? FOOTNOTE_REF.exec(region.slice(index, index + 1003))
+				: null;
+		if (note != null) {
+			index += note[0].length;
+			continue;
+		}
+		// Why not before `[^`: `![^1]` is a `!` and a footnote reference.
+		if (
+			char === "[" ||
+			(char === "!" &&
+				region[index + 1] === "[" &&
+				// Why to the end too: a half-typed `[^1` can still become a reference. A `(` after it opens an image.
+				!/^\[\^[^\s[\]]*(?:\](?!\()|$)/.test(region.slice(index + 1, index + 1004)))
+		) {
 			const image = char === "!";
 			brackets.push({ image, index });
 			index += image ? 2 : 1;
@@ -614,7 +633,8 @@ function closeInline(region: string, { math }: { math: boolean }): string {
 			// An incomplete destination or label: show the text only, or nothing for an image.
 			const label = region.slice(bracket.index + (bracket.image ? 2 : 1), index - 1);
 			end = bracket.index;
-			suffix = bracket.image ? "" : label;
+			// Why the escape: a reference in a link's label stays text, as the finished link shows it.
+			suffix = bracket.image ? "" : label.replaceAll("[^", "\\[^");
 			brackets.length = 0;
 			break;
 		}
@@ -685,14 +705,18 @@ function closeInline(region: string, { math }: { math: boolean }): string {
 		index += 1;
 	}
 
-	// An unclosed `[` shows its text, and an unclosed `![` shows nothing. Why: it is a link until a `]` proves it is not.
+	// An unclosed `[` shows its text, and an unclosed `![` or `[^label` shows nothing. Why: it is a link or a
+	// footnote reference until a `]` or a space proves it is not.
 	const unclosed = brackets.filter((bracket) => bracket.index < end);
 	if (unclosed.length > 0) {
 		let stripped = "";
 		let from = 0;
 		for (const bracket of unclosed) {
 			stripped += region.slice(from, bracket.index);
-			if (bracket.image) {
+			if (
+				bracket.image ||
+				(region[bracket.index + 1] === "^" && !/\s/.test(region.slice(bracket.index + 2)))
+			) {
 				return closeInline(stripped, { math });
 			}
 			from = bracket.index + 1;

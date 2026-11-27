@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { markdownMath } from "./markdown-math.js";
-import { createMarkdownParser } from "./markdown-parser.js";
+import { createMarkdownParser, type MarkdownSnapshot } from "./markdown-parser.js";
 
 const answer = [
 	"# Endpoints",
@@ -165,6 +165,97 @@ describe("createMarkdownParser", () => {
 			streaming: false,
 		});
 		expect(blocks.map((block) => block.type)).toEqual(["paragraph"]);
+	});
+
+	test("numbers footnotes by first reference, and streams to the same notes as one parse", () => {
+		const source = "A[^b] and B[^a], again[^b].\n\n[^a]: Note a\n[^b]: Note b\n    more b\n";
+		const { parser } = stream(source, 3);
+		const streamed = parser.parse(source, { streaming: false });
+		const whole = createMarkdownParser().parse(source, { streaming: false });
+		expect(streamed.notes.references).toEqual({
+			B: { number: 1, count: 2 },
+			A: { number: 2, count: 1 },
+		});
+		expect(whole.notes.references).toEqual(streamed.notes.references);
+		expect(streamed.blocks.map((token) => token.type)).toEqual([
+			"paragraph",
+			"footnote",
+			"footnote",
+		]);
+	});
+
+	test("shows a reference with no definition as text once the stream ends, and keeps it in a stopped answer", () => {
+		const source = "Claim[^1].\n\nNext paragraph.";
+		const { parser, snapshots } = stream(source, 4);
+		const inline = (snapshot: MarkdownSnapshot | undefined) => {
+			const block = snapshot?.blocks[0];
+			return block?.type === "paragraph" ? (block.tokens ?? []).map((token) => token.type) : [];
+		};
+		expect(inline(snapshots.at(-1))).toEqual(["text", "footnoteRef", "text"]);
+		const stopped = createMarkdownParser().parse(source, { streaming: false, truncated: true });
+		expect(inline(stopped)).toEqual(["text", "footnoteRef", "text"]);
+		expect(inline(parser.parse(source, { streaming: false }))).toEqual(["text"]);
+	});
+
+	test.each([
+		["a definition right after its paragraph", "Claim[^1].\n[^1]: Note", "1"],
+		["a `!` before a reference", "Yes![^1]\n\n[^1]: Note", "1"],
+		["a definition with padding", "See[^1].\n\n[^1]:     prose", "1"],
+	])("reads %s", (_, source, label) => {
+		const { notes, blocks } = createMarkdownParser().parse(source, { streaming: false });
+		expect(notes.references[label]).toEqual({ number: 1, count: 1 });
+		expect(notes.definitions[label]?.tokens[0]?.type).toBe("paragraph");
+		expect(blocks.map((token) => token.type)).toEqual(["paragraph", "footnote"]);
+	});
+
+	test.each([
+		["a list", "- A[^n]\n[^n]: Note", "list"],
+		["a quote", "> A[^n]\n[^n]: Note", "blockquote"],
+	])("ends %s at a footnote definition", (_, source, type) => {
+		const { notes, blocks } = createMarkdownParser().parse(source, { streaming: false });
+		expect(blocks.map((token) => token.type)).toEqual([type, "footnote"]);
+		expect(notes.references).toEqual({ N: { number: 1, count: 1 } });
+	});
+
+	test("keeps prose after a note's heading out of the note, and bounds nested notes", () => {
+		const { blocks } = createMarkdownParser().parse("[^n]: # Heading\nOutside.", {
+			streaming: false,
+		});
+		expect(blocks.map((token) => token.type)).toEqual(["footnote", "paragraph"]);
+		const deep = Array.from({ length: 40 }, (_, at) => `[^n${at}]: `).join("") + "end";
+		let token = createMarkdownParser().parse(deep, { streaming: false }).blocks[0];
+		let depth = 0;
+		while (token?.type === "footnote") {
+			depth += 1;
+			token = token.tokens?.[0];
+		}
+		expect(depth).toBeLessThanOrEqual(33);
+	});
+
+	test("reads a reference again when a static answer resumes streaming", () => {
+		const parser = createMarkdownParser();
+		parser.parse("A[^x].\n\nTail.", { streaming: false });
+		const { notes } = parser.parse("A[^x].\n\nTail.\n\n[^x]: Note", { streaming: true });
+		expect(notes.references).toEqual({ X: { number: 1, count: 1 } });
+	});
+
+	test("numbers a table's header before its body, and ends an empty note at an unindented line", () => {
+		const source = "| H[^x] |\n| --- |\n| B[^y] |\n\n[^x]:\nOutside\n\n[^y]: Y";
+		const { notes, blocks } = createMarkdownParser().parse(source, { streaming: false });
+		expect(notes.references).toEqual({ X: { number: 1, count: 1 }, Y: { number: 2, count: 1 } });
+		expect(blocks.map((token) => token.type)).toEqual([
+			"table",
+			"footnote",
+			"paragraph",
+			"footnote",
+		]);
+	});
+
+	test("resolves a reference whose note arrives after a completed parse", () => {
+		const parser = createMarkdownParser();
+		parser.parse("A[^x].\n\nTail.", { streaming: false });
+		const { notes } = parser.parse("A[^x].\n\nTail.\n\n[^x]: Note", { streaming: false });
+		expect(notes.references).toEqual({ X: { number: 1, count: 1 } });
 	});
 
 	test("keeps a single tilde as text", () => {

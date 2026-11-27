@@ -146,6 +146,29 @@ const components: MarkdownComponents = {
 
 </Example>
 
+## Footnotes
+
+`Markdown` reads GitHub footnotes with no setup. A reference, `[^1]`, renders as a superscript link to its note. The notes render at the end of the answer in the order of their first reference, and each note links back to each of its references. A note with more paragraphs indents them by 4 spaces. A reference to a note that the answer never defines stays text, as on GitHub. A reference inside a note or inside a link's label also stays text.
+
+While the answer streams, a half-typed reference such as `[^1` shows nothing. A reference shows its number before its note arrives, and links to the note once it does.
+
+<Example name="components/data-display/markdown/footnotes" title="Markdown footnotes example">
+
+```tsx
+import { Markdown } from "@ngrok/mantle/markdown";
+
+const answer = `Rate limits reset at the top of each hour[^reset], and a request over the limit gets a 429[^429].
+
+Limits apply per account, not per endpoint[^reset].
+
+[^reset]: In UTC, for every plan.
+[^429]: With a \`Retry-After\` header that says when to try again.`;
+
+<Markdown streaming={isStreaming}>{answer}</Markdown>;
+```
+
+</Example>
+
 ## Components
 
 Set a component in `components` to replace the built-in one for a kind of token, such as `code`, `link`, `table`, or `math`. Each component gets the `token` and its content as `children`. `extension` renders each token of an extension that has no component of its own. Mantle exports the token types: `MarkdownTokens["code"]` is the token of a fence, and `MarkdownToken` is any token.
@@ -156,7 +179,7 @@ Set a component in `components` to replace the built-in one for a kind of token,
 - A finished block never renders again, and a block keeps its element from when it starts to stream to when it finishes.
 - Unfinished syntax, such as `**bol`, an open fence, or a link with no URL yet, renders closed.
 - A fence highlights in a module worker, one changed line at a time. A finished line never renders again.
-- When `streaming` turns off, the whole answer parses once more, so a reference link that comes before its definition resolves.
+- When `streaming` turns off, the whole answer parses once more when it must: a reference link that comes before its definition resolves, and a footnote reference with no note turns to text.
 - Set `truncated` for an answer that ended before it finished, such as one the reader stopped or one whose stream failed. Its unfinished end stays closed, as it rendered while streaming, so `**bol` stays bold. Set it from the answer's stored status, so the answer renders the same after a reload.
 
 ## Security
@@ -180,7 +203,7 @@ const [status, setStatus] = useState("");
 </Markdown>
 ```
 
-A task-list checkbox takes its item's text as its name. The caret and the fade-in show only when the reader allows motion.
+A task-list checkbox takes its item's text as its name. The footnote list is a `section` named by a visually hidden "Footnotes" heading, each reference has that heading as its description, and each back link has a name such as "Back to reference 1". The caret and the fade-in show only when the reader allows motion.
 
 ## API Reference
 
@@ -198,12 +221,15 @@ A task-list checkbox takes its item's text as its name. The caret and the fade-i
 
 Other props go to the root `<div>`.
 
-| Data Attribute   | Value        | Description                                                              |
-| ---------------- | ------------ | ------------------------------------------------------------------------ |
-| `data-slot`      | `"markdown"` | The root. The prose styles in `mantle.css` match it.                     |
-| `data-streaming` | `""`         | Present while `streaming`. Shows the caret.                              |
-| `data-streamed`  | `""`         | Present once the answer has streamed on this page. A new block fades in. |
-| `data-task`      | `""`         | On a task-list item, which holds a checkbox.                             |
+| Data Attribute          | Value        | Description                                                              |
+| ----------------------- | ------------ | ------------------------------------------------------------------------ |
+| `data-slot`             | `"markdown"` | The root. The prose styles in `mantle.css` match it.                     |
+| `data-streaming`        | `""`         | Present while `streaming`. Shows the caret.                              |
+| `data-streamed`         | `""`         | Present once the answer has streamed on this page. A new block fades in. |
+| `data-task`             | `""`         | On a task-list item, which holds a checkbox.                             |
+| `data-footnote-ref`     | `""`         | On the `<sup>` of a footnote reference, `[^1]`.                          |
+| `data-footnotes`        | `""`         | On the `<section>` of the footnote list at the end.                      |
+| `data-footnote-backref` | `""`         | On a note's link back to its reference.                                  |
 
 ### useMarkdownStream
 

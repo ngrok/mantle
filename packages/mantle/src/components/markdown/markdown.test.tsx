@@ -264,6 +264,95 @@ describe("Markdown", () => {
 		expect(screen.getByRole("link", { name: "docs" })).toHaveAttribute("href", "https://ngrok.com");
 	});
 
+	test("renders footnotes as superscript links and a list with back links", () => {
+		const { container } = render(
+			<Markdown>
+				{"One[^x], two[^y], one again[^x].\n\n[^y]: Note **why**\n[^x]: Note x\n[^z]: Unused"}
+			</Markdown>,
+		);
+		const refs = screen.getAllByRole("link", { name: /^\d$/ });
+		expect(refs.map((ref) => ref.textContent)).toEqual(["1", "2", "1"]);
+		const list = screen.getByRole("region", { name: "Footnotes" });
+		const items = list.querySelectorAll("li");
+		expect([...items].map((item) => item.textContent)).toEqual(["Note x↩︎↩︎2", "Note why↩︎"]);
+		const back = screen.getByRole("link", { name: "Back to reference 1-2" });
+		const target = container.querySelector(back.getAttribute("href")?.replace("#", "#") ?? "");
+		expect(document.getElementById(back.getAttribute("href")?.slice(1) ?? "")).toBe(refs[2]);
+		expect(target).toBe(refs[2]);
+		expect(document.getElementById(refs[1]?.getAttribute("href")?.slice(1) ?? "")).toBe(items[1]);
+		expect(refs[0]).toHaveAccessibleDescription("Footnotes");
+	});
+
+	test("renders a reference with no note as text once a one-paragraph answer ends", () => {
+		const { container, rerender } = render(<Markdown streaming>{"Claim[^1]."}</Markdown>);
+		// Why no link: the note has not arrived, so there is nothing to go to yet.
+		expect(container.querySelector("sup[data-footnote-ref]")).toHaveTextContent("1");
+		expect(screen.queryByRole("link")).toBeNull();
+		rerender(<Markdown>{"Claim[^1]."}</Markdown>);
+		expect(container.querySelector("sup")).toBeNull();
+		expect(screen.getByText("Claim[^1].")).toBeInTheDocument();
+	});
+
+	test("numbers only the notes that the answer cites, and keeps a reference in a label as text", () => {
+		const { container } = render(
+			<Markdown>
+				{
+					"[^unused]: Hidden[^b]\n\nBody[^a] and [the docs[^a]](/docs).\n\n> Quote[^q]\n>\n> [^q]: Quoted\n\n[^a]: Note a\n[^b]: Note b"
+				}
+			</Markdown>,
+		);
+		const list = screen.getByRole("region", { name: "Footnotes" });
+		expect([...list.querySelectorAll("li")].map((item) => item.id.split("fn-")[1])).toEqual([
+			"1",
+			"2",
+		]);
+		expect(list).toHaveTextContent("Note a");
+		expect(list).toHaveTextContent("Quoted");
+		expect(list).not.toHaveTextContent("Note b");
+		expect(screen.getByRole("link", { name: "the docs[^a]" })).toHaveAttribute("href", "/docs");
+		expect(container.querySelector("a a")).toBeNull();
+	});
+
+	test("keeps each back link's target when a citation moves to another paragraph", () => {
+		const { container, rerender } = render(
+			<Markdown>{"One[^a].\n\nMiddle[^a].\n\nThree.\n\n[^a]: Note"}</Markdown>,
+		);
+		rerender(<Markdown>{"One.\n\nMiddle[^a].\n\nThree[^a].\n\n[^a]: Note"}</Markdown>);
+		const targets = [...container.querySelectorAll("[data-footnote-backref]")].map(
+			(link) => container.querySelectorAll(`[id="${link.getAttribute("href")?.slice(1)}"]`).length,
+		);
+		expect(targets).toEqual([1, 1]);
+	});
+
+	test.each(["^ caret", "^n"])("renders an image whose alt text is %j", (alt) => {
+		render(<Markdown>{`![${alt}](/image.png)`}</Markdown>);
+		expect(screen.getByRole("img")).toHaveAccessibleName(alt);
+	});
+
+	test("resolves a reference link in a note's list item when the stream ends", () => {
+		const answer =
+			"Text[^1]\n\n[^1]: Steps:\n    - [docs][ref]\n\nMore.\n\n[ref]: https://ngrok.com/docs";
+		const { rerender } = render(
+			<Markdown streaming>{answer.slice(0, answer.indexOf("[ref]:"))}</Markdown>,
+		);
+		rerender(<Markdown>{answer}</Markdown>);
+		expect(screen.getByRole("link", { name: "docs" })).toHaveAttribute(
+			"href",
+			"https://ngrok.com/docs",
+		);
+	});
+
+	test("gives the footnotes of two answers different ids", () => {
+		render(
+			<>
+				<Markdown>{"A[^1]\n\n[^1]: a"}</Markdown>
+				<Markdown>{"B[^1]\n\n[^1]: b"}</Markdown>
+			</>,
+		);
+		const [first, second] = screen.getAllByRole("link", { name: "1" });
+		expect(first?.getAttribute("href")).not.toBe(second?.getAttribute("href"));
+	});
+
 	test("joins the `data-slot` of an `asChild` parent", () => {
 		const { container } = render(<Markdown data-slot="card-body">{"Text"}</Markdown>);
 		expect(container.firstElementChild).toHaveAttribute("data-slot", "card-body markdown");
