@@ -494,6 +494,12 @@ class ChartEngine {
 			// Why re-aim: a bar chart's domain depends on whether an axis or a grid
 			// draws ticks. Aiming at an unchanged target does nothing.
 			this.#aimYDomain();
+			// Why publish: the snapshot of an active empty row carries the EmptySlot
+			// label, and an EmptySlot registration does not move the index. A
+			// pending ingest publishes after it reads the new series instead.
+			if (!this.#pendingIngest) {
+				this.#publishSnapshot();
+			}
 			this.#schedule();
 		};
 
@@ -2506,6 +2512,11 @@ class ChartEngine {
 
 		const rects = this.#barRects;
 		const segments = this.#barSegments(specs);
+		this.#paintEmptySlots(ctx, specs, segments, {
+			across: (groupCount - 1) * (slotWidth + gap) + barWidth,
+			baseline: toPixel(0),
+			horizontal: false,
+		});
 		specs.forEach((spec, seriesIndex) => {
 			const { lower, upper, progress } = segments[seriesIndex] ?? EMPTY_SEGMENTS;
 			let count = 0;
@@ -2574,6 +2585,11 @@ class ChartEngine {
 
 		const rects = this.#horizontalBarRects;
 		const segments = this.#barSegments(specs);
+		this.#paintEmptySlots(ctx, specs, segments, {
+			across: (groupCount - 1) * (slotHeight + gap) + barHeight,
+			baseline: toPixel(0),
+			horizontal: true,
+		});
 		specs.forEach((spec, seriesIndex) => {
 			const { lower, upper, progress } = segments[seriesIndex] ?? EMPTY_SEGMENTS;
 			let count = 0;
@@ -2612,6 +2628,37 @@ class ChartEngine {
 				rects,
 				count,
 			});
+		});
+	}
+
+	/**
+	 * Paint the slots of a composed `BarChart.EmptySlot` through the paint it
+	 * registered, so a chart without the part ships none of that code.
+	 */
+	#paintEmptySlots(
+		ctx: PaintContext,
+		specs: readonly SeriesSpec[],
+		segments: ReadonlyArray<{ upper: Float64Array }>,
+		slots: { across: number; baseline: number; horizontal: boolean },
+	): void {
+		const layout = this.#bandLayout;
+		const colors = this.#colors;
+		const emptySlot = this.#store.getSnapshot().emptySlot;
+		if (emptySlot == null || layout == null || colors == null) {
+			return;
+		}
+		emptySlot.paint(ctx, {
+			...slots,
+			segments,
+			layout,
+			plot: this.#plot,
+			rowCount: this.#rowCount,
+			// Why the reference color: the outline is the one mark that tells no
+			// reading from 0, so it needs 3:1 on the card, as a reference line
+			// does. A decorative chart is no reading, so it paints its one fill.
+			color: this.#store.decorative
+				? (colors.series.get(specs[0]?.dataKey ?? "") ?? colors.chrome.reference)
+				: colors.chrome.reference,
 		});
 	}
 
@@ -2948,19 +2995,23 @@ class ChartEngine {
 	#lastPublishedIndex: number | null = null;
 	#lastPublishedViaKeyboard = false;
 	#lastPublishedSeriesKey: string | null = null;
+	#lastPublishedEmptySlotLabel: string | null = null;
 
 	#publishSnapshot(options: { force: boolean } = { force: false }): void {
 		const index = this.#effectiveIndex();
+		const emptySlotLabel = this.#store.getSnapshot().emptySlot?.label ?? null;
 		if (
 			!options.force &&
 			index === this.#lastPublishedIndex &&
 			this.#viaKeyboard === this.#lastPublishedViaKeyboard &&
 			// A scatter row can carry several series' points at one index; moving
 			// between same-row dots changes the hit series without changing index.
-			this.#activeSeriesKey === this.#lastPublishedSeriesKey
+			this.#activeSeriesKey === this.#lastPublishedSeriesKey &&
+			emptySlotLabel === this.#lastPublishedEmptySlotLabel
 		) {
 			return;
 		}
+		this.#lastPublishedEmptySlotLabel = emptySlotLabel;
 		this.#lastPublishedIndex = index;
 		this.#lastPublishedViaKeyboard = this.#viaKeyboard;
 		this.#lastPublishedSeriesKey = this.#activeSeriesKey;
@@ -3006,7 +3057,13 @@ class ChartEngine {
 			points,
 			viaKeyboard: this.#viaKeyboard,
 		};
-		if (this.#options.stacked && points.length > 1) {
+		if (
+			emptySlotLabel != null &&
+			points.length > 0 &&
+			points.every((point) => point.value == null)
+		) {
+			snapshot.emptySlotLabel = emptySlotLabel;
+		} else if (this.#options.stacked && points.length > 1) {
 			snapshot.total = points.reduce((sum, point) => sum + (point.value ?? 0), 0);
 		}
 		if (this.#is3d()) {

@@ -11,7 +11,18 @@ import type {
 	XValue,
 	YAxisSpec,
 } from "./types.js";
+import type { EmptySlotPaintInput } from "./empty-slot.js";
+import type { PaintContext } from "./paint-backend.js";
 import { CHART_DECORATIVE_COLOR, cssSeriesColor } from "./colors.js";
+
+/**
+ * A composed `BarChart.EmptySlot`: its label, and the paint it brings, so a
+ * chart without the part ships no empty-slot paint code.
+ */
+type EmptySlotSpec = {
+	label: string;
+	paint: (ctx: PaintContext, input: EmptySlotPaintInput) => void;
+};
 
 /**
  * Tooltip customization registered by a composed Tooltip part. Root renders
@@ -66,6 +77,8 @@ type StoreSnapshot = {
 	yAxis: YAxisSpec | null;
 	/** Reference lines in registration order. */
 	referenceLines: ReferenceLineSpec[];
+	/** The composed EmptySlot part's label and paint, `null` when none is composed. */
+	emptySlot: EmptySlotSpec | null;
 	/** Tooltip customization, `null` when no Tooltip part is composed. */
 	tooltip: TooltipConfig | null;
 	/** The bar direction the Root registered (DOM consumers: legend texture keys). */
@@ -94,6 +107,7 @@ class ChartStore {
 		xAxis: null,
 		yAxis: null,
 		referenceLines: [],
+		emptySlot: null,
 		tooltip: null,
 		orientation: "vertical",
 	};
@@ -111,9 +125,15 @@ class ChartStore {
 	#yAxis: YAxisSpec | null = null;
 	#referenceLines = new Map<string, { spec: ReferenceLineSpec; sequence: number }>();
 	#referenceLineSequenceById = new Map<string, number>();
+	#emptySlot: EmptySlotSpec | null = null;
 	#tooltip: TooltipConfig | null = null;
 	#hover: HoverSnapshot | null = null;
 	#hoverEver = false;
+
+	/** Whether the Root is decorative, so every mark paints the one neutral fill. */
+	get decorative(): boolean {
+		return this.#decorative;
+	}
 
 	/**
 	 * Whether a hover was ever published. The Root mounts the tooltip surface
@@ -251,6 +271,18 @@ class ChartStore {
 		};
 	}
 
+	registerEmptySlot(spec: EmptySlotSpec): () => void {
+		// Singleton part: last registration wins.
+		this.#emptySlot = spec;
+		this.#publishRegistrations();
+		return () => {
+			if (this.#emptySlot === spec) {
+				this.#emptySlot = null;
+				this.#publishRegistrations();
+			}
+		};
+	}
+
 	registerTooltip(config: TooltipConfig): () => void {
 		// Singleton part: last registration wins.
 		this.#tooltip = config;
@@ -310,6 +342,7 @@ class ChartStore {
 			referenceLines: [...this.#referenceLines.values()]
 				.toSorted((a, b) => a.sequence - b.sequence)
 				.map((entry) => entry.spec),
+			emptySlot: this.#emptySlot,
 			tooltip: this.#tooltip,
 			orientation: this.#orientation,
 		};

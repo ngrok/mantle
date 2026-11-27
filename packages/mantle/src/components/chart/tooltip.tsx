@@ -198,6 +198,9 @@ const ChartTooltipReadout = ({
 					: config.labelFormat(hover.xValue)}
 			</div>
 			<div className="mt-1 grid gap-1">
+				{hover.emptySlotLabel != null && (
+					<span className="text-strong">{hover.emptySlotLabel}</span>
+				)}
 				{hover.total !== undefined && (
 					<div className="flex items-center gap-1.5">
 						{/* Why a hidden indicator: it keeps the label in line with the series labels. */}
@@ -212,23 +215,25 @@ const ChartTooltipReadout = ({
 						</span>
 					</div>
 				)}
-				{hover.points.map((point) => (
-					<div key={point.dataKey} className="flex items-center gap-1.5">
-						{config?.indicator !== "none" && (
-							<span
-								aria-hidden
-								// Why `forced-color-adjust-none`: the indicator is a color key, and
-								// forced colors mode replaces its background with the page background.
-								className="forced-color-adjust-none h-2.5 w-0.5 shrink-0 rounded-full"
-								style={{ backgroundColor: point.color }}
-							/>
-						)}
-						<span className="text-muted">{point.label}</span>
-						<span className="text-strong ml-auto pl-3 font-medium tabular-nums">
-							{formatTooltipValue(point.value, point.dataKey, config?.valueFormat)}
-						</span>
-					</div>
-				))}
+				{/* Why no rows for an empty slot: a column of em dashes repeats what its label says. */}
+				{hover.emptySlotLabel == null &&
+					hover.points.map((point) => (
+						<div key={point.dataKey} className="flex items-center gap-1.5">
+							{config?.indicator !== "none" && (
+								<span
+									aria-hidden
+									// Why `forced-color-adjust-none`: the indicator is a color key, and
+									// forced colors mode replaces its background with the page background.
+									className="forced-color-adjust-none h-2.5 w-0.5 shrink-0 rounded-full"
+									style={{ backgroundColor: point.color }}
+								/>
+							)}
+							<span className="text-muted">{point.label}</span>
+							<span className="text-strong ml-auto pl-3 font-medium tabular-nums">
+								{formatTooltipValue(point.value, point.dataKey, config?.valueFormat)}
+							</span>
+						</div>
+					))}
 			</div>
 			{hover.zValue !== undefined && (
 				<div className="mt-1 flex items-center gap-1.5">

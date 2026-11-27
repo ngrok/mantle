@@ -851,7 +851,7 @@
     "summary": "A bar chart for comparing values across categories, with grouped and stacked variants.",
     "jsdoc": "A bar chart for comparing values across categories, with grouped and stacked variants.",
     "examples": [
-      "Composition:\n```\nBarChart.Root\n├── BarChart.Grid\n├── BarChart.XAxis\n├── BarChart.YAxis\n├── BarChart.Bar (one per series)\n├── BarChart.ReferenceLine\n├── BarChart.Tooltip\n├── BarChart.Legend\n└── BarChart.CopyButton\n```\n\nA List groups Roots:\n```\nBarChart.List\n└── BarChart.Root (one per chart)\n```",
+      "Composition:\n```\nBarChart.Root\n├── BarChart.Grid\n├── BarChart.XAxis\n├── BarChart.YAxis\n├── BarChart.Bar (one per series)\n├── BarChart.ReferenceLine\n├── BarChart.EmptySlot\n├── BarChart.Tooltip\n├── BarChart.Legend\n└── BarChart.CopyButton\n```\n\nA List groups Roots:\n```\nBarChart.List\n└── BarChart.Root (one per chart)\n```",
       "```tsx\nconst data = [\n  { month: \"January\", desktop: 186, mobile: 80 },\n  { month: \"February\", desktop: 305, mobile: 200 },\n  { month: \"March\", desktop: 237, mobile: 120 },\n];\n\n<BarChart.Root data={data} xKey=\"month\" aria-label=\"Visitors by month\">\n  <BarChart.Grid />\n  <BarChart.XAxis />\n  <BarChart.YAxis />\n  <BarChart.Bar dataKey=\"desktop\" label=\"Desktop\" color=\"blue\" />\n  <BarChart.Bar dataKey=\"mobile\" label=\"Mobile\" color=\"emerald\" />\n  <BarChart.Tooltip />\n  <BarChart.Legend />\n</BarChart.Root>\n```"
     ],
     "aliases": [

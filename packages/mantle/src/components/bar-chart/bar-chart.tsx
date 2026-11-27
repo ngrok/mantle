@@ -8,6 +8,7 @@ import type { LegendPrimitiveProps } from "../chart/legend.js";
 import { ChartListPrimitive } from "../chart/list.js";
 import type { ChartListPrimitiveProps } from "../chart/list.js";
 import {
+	useEmptySlotPrimitive,
 	useGridPrimitive,
 	useReferenceLinePrimitive,
 	useSeriesPrimitive,
@@ -15,6 +16,7 @@ import {
 	useYAxisPrimitive,
 } from "../chart/registration.js";
 import type {
+	EmptySlotPrimitiveProps,
 	GridPrimitiveProps,
 	ReferenceLinePrimitiveProps,
 	XAxisPrimitiveProps,
@@ -75,7 +77,8 @@ type BarChartBarProps = {
 	/**
 	 * The row key this series reads its numeric values from.
 	 * If no row has the key, the chart throws, so put the key in every row, with
-	 * `null` for no value. A row with no value renders a gap.
+	 * `null` for no value. A row where no series has a value renders a gap, or
+	 * an outlined slot when the chart composes `BarChart.EmptySlot`.
 	 */
 	dataKey: string;
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
@@ -139,6 +142,11 @@ type BarChartYAxisProps = YAxisPrimitiveProps;
  * Props for {@link BarChart.ReferenceLine}.
  */
 type BarChartReferenceLineProps = ReferenceLinePrimitiveProps;
+
+/**
+ * Props for {@link BarChart.EmptySlot}.
+ */
+type BarChartEmptySlotProps = EmptySlotPrimitiveProps;
 
 /**
  * Props for {@link BarChart.Tooltip}.
@@ -332,6 +340,38 @@ const ReferenceLine = (props: BarChartReferenceLineProps) =>
 	useReferenceLinePrimitive("BarChart.ReferenceLine", props);
 
 /**
+ * Marks each row with no reading as an empty slot (renderless; the chart
+ * paints it). A row where no `BarChart.Bar` has a value (`null` or a missing
+ * key) paints a 1px outline as wide as the row's bars, 30% of the plot from
+ * the baseline, toward the side with room on a chart of negative values. The
+ * tooltip, the keyboard announcement, and the data table say `label` there
+ * instead of a value for each series.
+ *
+ * A `0` is a reading, not an empty slot: a row of zeros paints no outline and
+ * reads `0`. The outline marks a slot, not a value, so it never moves the
+ * value axis. Omit the part and a row with no reading stays a gap.
+ *
+ * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartemptyslot
+ *
+ * @example
+ * ```tsx
+ * const hours = [
+ *   { hour: "13:00", bytesOut: 60, bytesIn: 40 },
+ *   { hour: "14:00", bytesOut: null, bytesIn: null },
+ *   { hour: "15:00", bytesOut: 0, bytesIn: 0 },
+ * ];
+ *
+ * <BarChart.Root data={hours} xKey="hour" stacked aria-label="Traffic by hour">
+ *   <BarChart.Bar dataKey="bytesOut" label="Bytes out" color="neutral" />
+ *   <BarChart.Bar dataKey="bytesIn" label="Bytes in" color="neutral" texture="hatch" />
+ *   <BarChart.EmptySlot label="No traffic reported" />
+ * </BarChart.Root>
+ * ```
+ */
+const EmptySlot = (props: BarChartEmptySlotProps) =>
+	useEmptySlotPrimitive("BarChart.EmptySlot", props);
+
+/**
  * Customizes the hover/keyboard tooltip readout. The tooltip itself is part
  * of `BarChart.Root`'s interaction contract and renders even when this part is
  * absent. Compose it to format the label or values, append a footer, or
@@ -462,6 +502,7 @@ export type {
 	//,
 	BarChartBarProps,
 	BarChartCopyButtonProps,
+	BarChartEmptySlotProps,
 	BarChartGridProps,
 	BarChartLegendProps,
 	BarChartListProps,
@@ -481,6 +522,7 @@ export {
 	XAxis,
 	YAxis,
 	ReferenceLine,
+	EmptySlot,
 	Tooltip,
 	Legend,
 	CopyButton,

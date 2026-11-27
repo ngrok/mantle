@@ -261,6 +261,12 @@ type HoverSnapshot = {
 	 * chart with two or more series, where the tooltip leads with it.
 	 */
 	total?: number;
+	/**
+	 * Why the active row is empty: the `label` of a composed
+	 * `BarChart.EmptySlot`. Set only when no series has a value at the active
+	 * index. Such a snapshot has no `total`.
+	 */
+	emptySlotLabel?: string;
 	/** The depth value at the active index (3D scatter plots only). */
 	zValue?: number | null;
 	/** Whether the snapshot came from keyboard stepping (vs pointer hover). */

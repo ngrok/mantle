@@ -769,6 +769,7 @@ export {
 	AXIS_FONT_SIZE,
 	BAR_CORNER_RADIUS,
 	BAR_GAP,
+	cornerRadius,
 	drawAreaPath,
 	drawAxisLabels,
 	drawBars,
