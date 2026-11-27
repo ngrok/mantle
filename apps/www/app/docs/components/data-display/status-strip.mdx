@@ -163,6 +163,113 @@ function hourTitle(hour: number, inStock: number | null) {
 
 </Example>
 
+## Threshold colors
+
+To color one segment by a threshold, such as a weak day, set `--status-strip-fill` on that segment. A class on a segment also wins over its own paint.
+
+<Example name="components/data-display/status-strip/threshold-colors" title="Status Strip threshold colors example">
+
+```tsx
+import { StatusStrip } from "@ngrok/mantle/status-strip";
+
+const days = [1, 1, 0.9, 0.4, 0.2, 0, 1, 1, null, 1, 0.45, 1, 1, 1];
+
+/** A day in stock less than half of its hours shows in the warning color. */
+function fillClass(share: number | null) {
+	return share != null && share < 0.5
+		? "[--status-strip-fill:var(--color-warning-600)]"
+		: undefined;
+}
+
+<StatusStrip.Root aria-label="In stock 77% of the 13 days with a reading; 4 days under half">
+	{days.map((share, day) => (
+		<StatusStrip.Segment key={day} value={share} className={fillClass(share)} />
+	))}
+</StatusStrip.Root>;
+```
+
+</Example>
+
+## In a list
+
+A strip has no state and no effects, so it renders on the server and runs no JavaScript in the browser. It reads no layout, and a list of strips needs no wrapper part. Give each row its own text, and pass `aria-hidden` when that text says what the strip shows.
+
+<Example name="components/data-display/status-strip/in-a-list" title="Status Strip in a list example">
+
+```tsx
+import { StatusStrip } from "@ngrok/mantle/status-strip";
+
+/** In stock for 4 days, partly for 3, and sold out for 2, over and over. */
+function cycleShare(day: number) {
+	const phase = day % 9;
+	if (phase < 4) {
+		return 1;
+	}
+	return phase < 7 ? 0.3 : 0;
+}
+
+const gpus = [
+	{ name: "H100", summary: "always in stock", days: Array.from({ length: 30 }, () => 1) },
+	{
+		name: "H200",
+		summary: "in stock 59% of hours",
+		days: Array.from({ length: 30 }, (_, day) => cycleShare(day)),
+	},
+	{
+		name: "B200",
+		summary: "in stock 3% of hours",
+		days: Array.from({ length: 30 }, (_, day) => (day > 3 && day < 8 ? 0.2 : 0)),
+	},
+];
+
+<ul className="divide-separator w-full divide-y">
+	{gpus.map((gpu) => (
+		<li key={gpu.name} className="flex items-center gap-4 py-3">
+			<span className="text-strong w-16 font-medium">{gpu.name}</span>
+			<span className="flex-1">
+				<span className="text-body block text-sm">{gpu.summary}</span>
+				<StatusStrip.Root aria-hidden className="mt-1 h-4 auto-cols-1.5 gap-0.5">
+					{gpu.days.map((share, day) => (
+						<StatusStrip.Segment key={day} value={share} />
+					))}
+				</StatusStrip.Root>
+			</span>
+		</li>
+	))}
+</ul>;
+```
+
+</Example>
+
+## Many segments
+
+A strip fills its width by default, so it can hold a segment for each hour of a week. Keep the default 1px gap at that density: 168 segments then fit on a 320px screen.
+
+<Example name="components/data-display/status-strip/many-segments" title="Status Strip many segments example">
+
+```tsx
+import { StatusStrip } from "@ngrok/mantle/status-strip";
+
+/** In stock or sold out, for each of the 168 hours in the last 7 days. */
+const hours = Array.from({ length: 168 }, (_, hour) => (hour % 23 < 15 || hour % 7 === 0 ? 1 : 0));
+
+<>
+	<p className="text-body text-sm" id="hours-in-stock">
+		$1.35 at Hyperstack was in stock 71% of the last 7 days
+	</p>
+	<StatusStrip.Root
+		aria-labelledby="hours-in-stock"
+		className="mt-2 h-8 [--status-strip-fill:var(--color-success-600)]"
+	>
+		{hours.map((inStock, hour) => (
+			<StatusStrip.Segment key={hour} value={inStock} />
+		))}
+	</StatusStrip.Root>
+</>;
+```
+
+</Example>
+
 ## Composition
 
 ```text showLineNumbers=false
@@ -215,10 +322,10 @@ One segment, such as one hour or one day. It accepts every `span` prop except `c
 | `title`   | `string`         | none    | A hint that shows on hover, such as the time span and its share.                                                    |
 | `asChild` | `boolean`        | `false` | Render your own non-interactive element in place of the `<span>`, and merge the props onto it.                      |
 
-| CSS Variable           | Default                   | Description                                                                               |
-| ---------------------- | ------------------------- | ----------------------------------------------------------------------------------------- |
-| `--status-strip-fill`  | `var(--color-accent-600)` | Read, not owned: set it on `StatusStrip.Root`. The fill above 0.                          |
-| `--status-strip-track` | `var(--color-gray-300)`   | Read, not owned: set it on `StatusStrip.Root`. The fill at 0, and the lines with no data. |
+| CSS Variable           | Default                   | Description                                                                                                     |
+| ---------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `--status-strip-fill`  | `var(--color-accent-600)` | The fill above 0. Set it on `StatusStrip.Root`, or on one segment for its own color, such as a threshold color. |
+| `--status-strip-track` | `var(--color-gray-300)`   | The fill at 0, and the lines with no data. Set it on `StatusStrip.Root`, or on one segment.                     |
 
 | Data Attribute | Value                                    | Description                                                                 |
 | -------------- | ---------------------------------------- | --------------------------------------------------------------------------- |

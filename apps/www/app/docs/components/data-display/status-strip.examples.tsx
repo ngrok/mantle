@@ -156,3 +156,125 @@ export function ColorsExample() {
 		</PreviewCanvas>
 	);
 }
+
+/** The share of each day's hours in stock, for the threshold colors example. */
+const thresholdDays: readonly (number | null)[] = [
+	1,
+	1,
+	0.9,
+	0.4,
+	0.2,
+	0,
+	1,
+	1,
+	null,
+	1,
+	0.45,
+	1,
+	1,
+	1,
+];
+
+/** A day in stock less than half of its hours shows in the warning color. */
+function fillClass(share: number | null) {
+	return share != null && share < 0.5
+		? "[--status-strip-fill:var(--color-warning-600)]"
+		: undefined;
+}
+
+/** The "Threshold colors" example on the Status Strip docs page. */
+export function ThresholdColorsExample() {
+	return (
+		<PreviewCanvas className="flex-col items-stretch">
+			<StatusStrip.Root aria-label="In stock 77% of the 13 days with a reading; 4 days under half">
+				{thresholdDays.map((share, day) => (
+					<StatusStrip.Segment
+						// oxlint-disable-next-line react/no-array-index-key -- Why: each day is a fixed position in the window, so its index is its identity.
+						key={day}
+						value={share}
+						className={fillClass(share)}
+					/>
+				))}
+			</StatusStrip.Root>
+		</PreviewCanvas>
+	);
+}
+
+/** In stock for 4 days, partly for 3, and sold out for 2, over and over. */
+function cycleShare(day: number) {
+	const phase = day % 9;
+	if (phase < 4) {
+		return 1;
+	}
+	return phase < 7 ? 0.3 : 0;
+}
+
+/** One row of the list example: a GPU, its summary, and its share in stock for each of 30 days. */
+const gpus = [
+	{ name: "H100", summary: "always in stock", days: Array.from({ length: 30 }, () => 1) },
+	{
+		name: "H200",
+		summary: "in stock 59% of hours",
+		days: Array.from({ length: 30 }, (_, day) => cycleShare(day)),
+	},
+	{
+		name: "B200",
+		summary: "in stock 3% of hours",
+		days: Array.from({ length: 30 }, (_, day) => (day > 3 && day < 8 ? 0.2 : 0)),
+	},
+];
+
+/** The "In a list" example on the Status Strip docs page. */
+export function InAListExample() {
+	return (
+		<PreviewCanvas className="flex-col items-stretch">
+			<ul className="divide-separator w-full divide-y">
+				{gpus.map((gpu) => (
+					<li key={gpu.name} className="flex items-center gap-4 py-3">
+						<span className="text-strong w-16 font-medium">{gpu.name}</span>
+						<span className="flex-1">
+							<span className="text-body block text-sm">{gpu.summary}</span>
+							<StatusStrip.Root aria-hidden className="mt-1 h-4 auto-cols-1.5 gap-0.5">
+								{gpu.days.map((share, day) => (
+									<StatusStrip.Segment
+										// oxlint-disable-next-line react/no-array-index-key -- Why: each day is a fixed position in the window, so its index is its identity.
+										key={day}
+										value={share}
+									/>
+								))}
+							</StatusStrip.Root>
+						</span>
+					</li>
+				))}
+			</ul>
+		</PreviewCanvas>
+	);
+}
+
+/** In stock or sold out, for each of the 168 hours in the last 7 days. */
+const weekHours = Array.from({ length: 168 }, (_, hour) =>
+	hour % 23 < 15 || hour % 7 === 0 ? 1 : 0,
+);
+
+/** The "Many segments" example on the Status Strip docs page. */
+export function ManySegmentsExample() {
+	return (
+		<PreviewCanvas className="flex-col items-stretch">
+			<p className="text-body text-sm" id="hours-in-stock">
+				$1.35 at Hyperstack was in stock 71% of the last 7 days
+			</p>
+			<StatusStrip.Root
+				aria-labelledby="hours-in-stock"
+				className="mt-2 h-8 [--status-strip-fill:var(--color-success-600)]"
+			>
+				{weekHours.map((inStock, hour) => (
+					<StatusStrip.Segment
+						// oxlint-disable-next-line react/no-array-index-key -- Why: each hour is a fixed position in the week, so its index is its identity.
+						key={hour}
+						value={inStock}
+					/>
+				))}
+			</StatusStrip.Root>
+		</PreviewCanvas>
+	);
+}

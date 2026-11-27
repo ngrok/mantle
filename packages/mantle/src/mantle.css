@@ -1647,6 +1647,38 @@ MARK: UTILITIES
 	}
 }
 
+/*
+ * The paint of `StatusStrip.Segment`, by its `data-share`. Why a utility: a strip
+ * holds a segment for each hour or day, and a page holds many strips, so the
+ * class on each segment must be short.
+ * - Above 0, the fill grows from 35% at a small share to 100% at 1.
+ * - At 0, the segment fills with the track color.
+ * - With no data, it is empty between a top line and a bottom line. Side lines
+ *   fill a segment 2px wide, and it then reads as 0.
+ * Why `forced-color-adjust: none`: forced colors paint each background as the canvas, so each share looks the same.
+ */
+@utility status-strip-segment {
+	/* Why `:where()`: it holds no specificity, so a consumer class on a segment, such as `bg-*` or `rounded-*`, wins. */
+	:where(&) {
+		border-radius: 1px;
+		forced-color-adjust: none;
+		background-color: color-mix(
+			in oklab,
+			var(--status-strip-fill, var(--color-accent-600)) calc(35% + 65% * var(--_status-strip-value)),
+			transparent
+		);
+	}
+
+	:where(&[data-share="none"]) {
+		background-color: var(--status-strip-track, var(--color-gray-300));
+	}
+
+	:where(&[data-share="no-data"]) {
+		border-block: 1px solid var(--status-strip-track, var(--color-gray-300));
+		background-color: transparent;
+	}
+}
+
 @utility scroll-shadow {
 	/* Shadow Cover TOP */
 	background:

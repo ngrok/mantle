@@ -209,8 +209,8 @@ type StatusStripSegmentProps = Omit<ComponentProps<"span">, "children"> &
  *
  * | CSS Variable           | Default                   | Description                                                  |
  * | ---------------------- | ------------------------- | ------------------------------------------------------------ |
- * | `--status-strip-fill`  | `var(--color-accent-600)` | Read, not owned: set it on `StatusStrip.Root`. The fill above 0. |
- * | `--status-strip-track` | `var(--color-gray-300)`   | Read, not owned: set it on `StatusStrip.Root`. The fill at 0, and the lines with no data. |
+ * | `--status-strip-fill`  | `var(--color-accent-600)` | The fill above 0. Set it on `StatusStrip.Root`, or on one segment for its own color, such as a threshold color. |
+ * | `--status-strip-track` | `var(--color-gray-300)`   | The fill at 0, and the lines with no data. Set it on `StatusStrip.Root`, or on one segment. |
  *
  * | Data Attribute | Value                                     | Description                                                            |
  * | -------------- | ----------------------------------------- | ---------------------------------------------------------------------- |
@@ -248,15 +248,8 @@ function Segment({
 			// Why after the spread: `data-share` drives the paint, so a forwarded value must not replace the reading.
 			data-share={share}
 			data-slot={joinDataSlot(dataSlot, "status-strip-segment")}
-			className={cx(
-				// Why `forced-color-adjust-none`: forced colors paint every background as the canvas, so each share looks the same.
-				"rounded-[1px] forced-color-adjust-none",
-				"bg-[color-mix(in_oklab,var(--status-strip-fill,var(--color-accent-600))_calc(35%_+_65%_*_var(--_status-strip-value)),transparent)]",
-				"data-[share=none]:bg-(--status-strip-track,var(--color-gray-300))",
-				// Why top and bottom only: side borders fill a segment 2px wide, and it then reads as 0.
-				"data-[share=no-data]:border-y data-[share=no-data]:border-(--status-strip-track,var(--color-gray-300)) data-[share=no-data]:bg-transparent",
-				className,
-			)}
+			// Why one utility: a page holds many strips of many segments, so the paint is in `status-strip-segment` in mantle.css.
+			className={cx("status-strip-segment", className)}
 			style={$cssProperties({ "--_status-strip-value": value ?? 0, ...style })}
 		>
 			{asChild && isValidElement<Record<string, unknown>>(children)

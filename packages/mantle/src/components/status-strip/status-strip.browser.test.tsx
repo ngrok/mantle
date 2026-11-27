@@ -12,7 +12,10 @@ beforeAll(async () => {
 	styleElement = document.createElement("style");
 	styleElement.textContent = [
 		"*, ::before, ::after { box-sizing: border-box; margin: 0; border: 0 solid; }",
-		await commands.tailwindCss("./status-strip.tsx", { theme: true }),
+		// Why this file too: a test passes its own classes to a segment.
+		await commands.tailwindCss(["./status-strip.tsx", "./status-strip.browser.test.tsx"], {
+			theme: true,
+		}),
 	].join("\n");
 	document.head.appendChild(styleElement);
 });
@@ -40,11 +43,11 @@ function renderStrip() {
 	return (id: string) => getComputedStyle(screen.getByTestId(id));
 }
 
-/** The color Chromium computes for `color-mix` of the blue fill at `percent` over transparent. */
-function mixedFill(percent: number) {
+/** The color Chromium computes for `color-mix` of `fill` (blue by default) at `percent` over transparent. */
+function mixedFill(percent: number, fill = "rgb(0, 0, 255)") {
 	const reference = document.createElement("span");
 	reference.style.forcedColorAdjust = "none";
-	reference.style.backgroundColor = `color-mix(in oklab, rgb(0, 0, 255) ${percent}%, transparent)`;
+	reference.style.backgroundColor = `color-mix(in oklab, ${fill} ${percent}%, transparent)`;
 	document.body.append(reference);
 	const color = getComputedStyle(reference).backgroundColor;
 	reference.remove();
@@ -97,6 +100,28 @@ describe("StatusStrip paint", () => {
 		);
 		// 320px minus one 1px gap, in two segments.
 		expect(screen.getByTestId("first").getBoundingClientRect().width).toBeCloseTo(159.5, 1);
+	});
+
+	test("a segment's own fill or class replaces the root's paint, so each segment can take a threshold color", () => {
+		render(
+			<StatusStrip.Root
+				aria-hidden
+				style={$cssProperties({ "--status-strip-fill": "rgb(0, 0, 255)" })}
+			>
+				<StatusStrip.Segment value={1} data-testid="default" />
+				<StatusStrip.Segment
+					value={1}
+					data-testid="low"
+					style={$cssProperties({ "--status-strip-fill": "rgb(255, 0, 0)" })}
+				/>
+				<StatusStrip.Segment value={1} data-testid="class" className="bg-[rgb(0,128,0)]" />
+			</StatusStrip.Root>,
+		);
+		expect(getComputedStyle(screen.getByTestId("default")).backgroundColor).toBe(mixedFill(100));
+		expect(getComputedStyle(screen.getByTestId("low")).backgroundColor).toBe(
+			mixedFill(100, "rgb(255, 0, 0)"),
+		);
+		expect(getComputedStyle(screen.getByTestId("class")).backgroundColor).toBe("rgb(0, 128, 0)");
 	});
 
 	test("forced colors keep each share's paint", async () => {
