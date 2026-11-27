@@ -13,7 +13,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { findTabbableDescendants } from "../alert/tabbable-neighbors.js";
 import { FloatArrow, focusFirst } from "../../utils/float/parts.js";
 import type { Align, Side } from "../../utils/float/position.js";
-import { isInsideBoth } from "../../utils/float/position.js";
+import { boxAround, isInBox, isInsideBoth } from "../../utils/float/position.js";
 import {
 	floatClassName,
 	hasPopoverApi,
@@ -346,34 +346,36 @@ function Root({
 			// Why the leave point first: a pointer that jumps out in one move
 			// sends no later `pointermove` inside the page to close on.
 			// Why also while not yet open: a slow controlled parent must hear the close.
-			if (!open || trigger == null || content == null || !isInsideBoth(point, trigger, content)) {
+			if (!open || trigger == null || content == null) {
 				setOpen(false, { byHover: true });
 				return;
 			}
 			// Why a box and not a deadline: a slow pointer on its way from the
 			// trigger to the content keeps the popover open (WCAG 1.4.13).
-			// Why one check a frame: each check reads layout, and a pointer can
-			// move more than once a frame.
+			// Why measure once: a pointer can move more than once a frame, and a
+			// move then reads no layout. A scroll or a resize moves the box.
+			let box = boxAround(trigger, content);
+			if (!isInBox(point, box)) {
+				setOpen(false, { byHover: true });
+				return;
+			}
 			const document = trigger.ownerDocument;
 			const view = document.defaultView ?? window;
-			let latest = point;
-			let frame = 0;
-			const check = () => {
-				frame = 0;
-				if (!isInsideBoth(latest, trigger, content)) {
+			const measure = () => {
+				box = boxAround(trigger, content);
+			};
+			const onMove = (event: globalThis.PointerEvent) => {
+				if (!isInBox(event, box)) {
 					setOpen(false, { byHover: true });
 				}
 			};
-			const onMove = (event: globalThis.PointerEvent) => {
-				latest = event;
-				if (frame === 0) {
-					frame = view.requestAnimationFrame(check);
-				}
-			};
 			document.addEventListener("pointermove", onMove);
+			view.addEventListener("scroll", measure, { capture: true, passive: true });
+			view.addEventListener("resize", measure);
 			stopGrace.current = () => {
-				view.cancelAnimationFrame(frame);
 				document.removeEventListener("pointermove", onMove);
+				view.removeEventListener("scroll", measure, { capture: true });
+				view.removeEventListener("resize", measure);
 				stopGrace.current = undefined;
 			};
 		};
