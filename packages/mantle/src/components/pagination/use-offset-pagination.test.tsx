@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import { getOffsetPaginatedSlice } from "./offset-paginated-slice.js";
-import { useOffsetPagination } from "./use-offset-pagination.js";
+import { useOffsetPagination, type UseOffsetPaginationProps } from "./use-offset-pagination.js";
 
 describe("useOffsetPagination", () => {
 	test("given a list size of zero", () => {
@@ -118,10 +118,10 @@ describe("useOffsetPagination", () => {
 		{ from: "page 6 at 20", page: 6, size: 20, next: 50, expectedPage: 3 },
 		{ from: "page 2 at 50", page: 2, size: 50, next: 20, expectedPage: 3 },
 	])(
-		"setPageSize($next) from $from reports page $expectedPage and the size together",
+		"setPageSize($next) from $from reports page $expectedPage and the size in one call",
 		({ page, size, next, expectedPage }) => {
 			const onPageChange = vi.fn<(page: number) => void>();
-			const onPageSizeChange = vi.fn<(pageSize: number) => void>();
+			const onPageSizeChange = vi.fn<(pageSize: number, page: number) => void>();
 			const { result } = renderHook(() =>
 				useOffsetPagination({
 					listSize: 500,
@@ -133,19 +133,46 @@ describe("useOffsetPagination", () => {
 			);
 			act(() => result.current.setPageSize(next));
 			expect(onPageSizeChange).toHaveBeenCalledTimes(1);
-			expect(onPageSizeChange).toHaveBeenLastCalledWith(next);
-			expect(onPageChange).toHaveBeenCalledTimes(1);
-			expect(onPageChange).toHaveBeenLastCalledWith(expectedPage);
+			expect(onPageSizeChange).toHaveBeenLastCalledWith(next, expectedPage);
+			// Why: a second router write in the same tick would drop the size.
+			expect(onPageChange).not.toHaveBeenCalled();
 		},
 	);
 
+	test("setPageSize ignores a size that is not positive or is the current size", () => {
+		const onPageSizeChange = vi.fn<(pageSize: number, page: number) => void>();
+		const { result } = renderHook(() =>
+			useOffsetPagination({ listSize: 500, pageSize: 20, page: 4, onPageSizeChange }),
+		);
+		act(() => result.current.setPageSize(0));
+		act(() => result.current.setPageSize(Number.NaN));
+		act(() => result.current.setPageSize(20));
+		expect(onPageSizeChange).not.toHaveBeenCalled();
+	});
+
+	test("two resizes in one batch keep the reader's place", () => {
+		const { result } = renderHook(() =>
+			useOffsetPagination({ listSize: 500, pageSize: 20, defaultPage: 6 }),
+		);
+		act(() => {
+			result.current.setPageSize(50);
+			result.current.setPageSize(20);
+		});
+		expect(result.current.pageSize).toBe(20);
+		expect(result.current.currentPage).toBe(6);
+		expect(result.current.offset).toBe(100);
+	});
+
 	test("a controlled pageSize reads the size back from the prop", () => {
-		const onPageSizeChange = vi.fn<(pageSize: number) => void>();
+		const onPageSizeChange = vi.fn<(pageSize: number, page: number) => void>();
 		const { result, rerender } = renderHook((props) => useOffsetPagination(props), {
 			initialProps: { listSize: 500, pageSize: 20, defaultPage: 6, onPageSizeChange },
 		});
 		act(() => result.current.setPageSize(50));
+		// Until the parent commits the size, the page and its rows stay put.
 		expect(result.current.pageSize).toBe(20);
+		expect(result.current.currentPage).toBe(6);
+		expect(result.current.offset).toBe(100);
 
 		// A router can commit the echo a render late; the page must survive it.
 		rerender({ listSize: 500, pageSize: 20, defaultPage: 6, onPageSizeChange });
@@ -191,6 +218,33 @@ describe("useOffsetPagination", () => {
 
 		rerender({ listSize: 200, pageSize: 100 });
 		expect(result.current.currentPage).toBe(1);
+	});
+
+	// Regression: `NaN !== NaN` kept the render-time size check true, and
+	// React threw "Too many re-renders".
+	test("a NaN pageSize renders", () => {
+		const { result, rerender } = renderHook((props) => useOffsetPagination(props), {
+			initialProps: { listSize: 100, pageSize: 10 },
+		});
+		rerender({ listSize: 100, pageSize: Number.NaN });
+		expect(result.current.pageSize).toBeNaN();
+	});
+
+	test("dropping onPageSizeChange keeps the size and the page", () => {
+		const onPageSizeChange = vi.fn<(pageSize: number, page: number) => void>();
+		const initialProps: UseOffsetPaginationProps = {
+			listSize: 500,
+			pageSize: 20,
+			defaultPage: 4,
+			onPageSizeChange,
+		};
+		const { result, rerender } = renderHook((props) => useOffsetPagination(props), {
+			initialProps,
+		});
+		rerender({ listSize: 500, pageSize: 50, defaultPage: 4, onPageSizeChange });
+		rerender({ listSize: 500, pageSize: 50, defaultPage: 4, onPageSizeChange: undefined });
+		expect(result.current.pageSize).toBe(50);
+		expect(result.current.currentPage).toBe(4);
 	});
 
 	describe("defaultPage", () => {
@@ -325,7 +379,7 @@ describe("useOffsetPagination", () => {
 		// URL at once, and the hook then reported page 1 over the given page.
 		test("page and pageSize that change together keep the given page", () => {
 			const onPageChange = vi.fn<(page: number) => void>();
-			const onPageSizeChange = vi.fn<(pageSize: number) => void>();
+			const onPageSizeChange = vi.fn<(pageSize: number, page: number) => void>();
 			const { result, rerender } = renderHook((props) => useOffsetPagination(props), {
 				initialProps: { listSize: 500, pageSize: 50, page: 1, onPageChange, onPageSizeChange },
 			});
@@ -339,7 +393,7 @@ describe("useOffsetPagination", () => {
 
 		test("a list that shrinks under a controlled page and pageSize clamps the page", () => {
 			const onPageChange = vi.fn<(page: number) => void>();
-			const onPageSizeChange = vi.fn<(pageSize: number) => void>();
+			const onPageSizeChange = vi.fn<(pageSize: number, page: number) => void>();
 			const props = { pageSize: 20, page: 10, onPageChange, onPageSizeChange };
 			const { result, rerender } = renderHook((p) => useOffsetPagination(p), {
 				initialProps: { ...props, listSize: 500, resetPageOnListSizeChange: false },

@@ -17,12 +17,13 @@ type UseOffsetPaginationProps = {
 	 */
 	pageSize: number;
 	/**
-	 * Called with the next page size when `setPageSize` changes it. Pass it to
-	 * control the page size: the hook then reads the size back from `pageSize`.
-	 * `setPageSize` calls `onPageChange` with the page that keeps the reader's
-	 * place in the same call.
+	 * Called with the next page size and the page that keeps the reader's place
+	 * when `setPageSize` changes the size. Pass it to control the page size:
+	 * the hook then reads the size back from `pageSize`. With it, `setPageSize`
+	 * does not call `onPageChange`, so a parent that keeps both values in the
+	 * URL writes them in one navigation.
 	 */
-	onPageSizeChange?: (pageSize: number) => void;
+	onPageSizeChange?: (pageSize: number, page: number) => void;
 	/**
 	 * The 1-indexed page to start on when uncontrolled. The hook owns the page
 	 * after mount.
@@ -39,7 +40,7 @@ type UseOffsetPaginationProps = {
 	page?: number;
 	/**
 	 * Called with the next 1-indexed page when the hook changes it: a navigation
-	 * call, `setPageSize`, or a `listSize` reset. Not called
+	 * call, `setPageSize` without `onPageSizeChange`, or a `listSize` reset. Not called
 	 * when the next page equals the stored page (`page` or the internal page).
 	 * A move that lands on a normalized `currentPage` still calls it, so a stale
 	 * `page` catches up.
@@ -99,7 +100,8 @@ type OffsetPaginationState = {
 	/**
 	 * Set the number of items per page. The page moves to the one that holds the
 	 * first item of the current page, clamped to the last page, so the reader
-	 * keeps their place.
+	 * keeps their place. A size that is not positive does nothing, and neither
+	 * does a controlled size equal to the current one.
 	 */
 	setPageSize: (size: number) => void;
 	/**
@@ -176,23 +178,33 @@ function useOffsetPagination({
 	const [internalPage, setInternalPage] = useState(defaultPage);
 	const [internalPageSize, setInternalPageSize] = useState(pageSize);
 	const [previousPageSize, setPreviousPageSize] = useState(pageSize);
+	// The internal page that `setPageSize` picked for a controlled size. It
+	// applies once `pageSize` reports that size, so the page and the size
+	// change in the same render.
+	const [pendingPage, setPendingPage] = useState<{ page: number; size: number } | null>(null);
 	// Why adjust during render and not in an effect: the change touches only
 	// this hook's state, so the first render after it is already correct. Why
 	// no `onPageChange`: a parent that changes `pageSize` sets the page in the
-	// same update, as a URL does on a back or forward move. Why skip it for a
-	// controlled size: the prop is the size, and a router can commit the echo
-	// of `setPageSize` a render late, which would read as an outside change.
-	if (!isPageSizeControlled && previousPageSize !== pageSize) {
+	// same update, as a URL does on a back or forward move. Why `Object.is`:
+	// `NaN !== NaN`, so a `NaN` size would update state on each render.
+	if (!Object.is(previousPageSize, pageSize)) {
 		setPreviousPageSize(pageSize);
+		// Why in both modes: a parent that drops `onPageSizeChange` must not
+		// fall back to a stale size.
 		setInternalPageSize(pageSize);
-		setInternalPage(1);
+		// Why not for a controlled size: the prop is the size, and a router can
+		// commit the echo of `setPageSize` a render late.
+		if (!isPageSizeControlled) {
+			setInternalPage(1);
+		}
 	}
 	const currentPageSize = isPageSizeControlled ? pageSize : internalPageSize;
 
 	const totalPages = Math.ceil(listSize / currentPageSize);
 	// Why the clamp: `page` and `defaultPage` come from outside, and a shorter
 	// list can leave the stored page past the end.
-	const storedPage = isPageControlled ? pageProp : internalPage;
+	const ownPage = pendingPage?.size === currentPageSize ? pendingPage.page : internalPage;
+	const storedPage = isPageControlled ? pageProp : ownPage;
 	const currentPage = clampPage(storedPage, totalPages);
 	const offset = (currentPage - 1) * currentPageSize;
 
@@ -208,6 +220,7 @@ function useOffsetPagination({
 			}
 			if (!isPageControlled) {
 				setInternalPage(next);
+				setPendingPage(null);
 			}
 			onPageChange?.(next);
 		},
@@ -244,14 +257,36 @@ function useOffsetPagination({
 	}
 
 	function setPageSize(size: number) {
+		// Why: a size of 0 or `NaN` has no pages. A repeat of a controlled size
+		// would write a duplicate URL entry. An internal size skips this check:
+		// a second call in one batch sees the size of this render.
+		if (!(size > 0) || (isPageSizeControlled && size === currentPageSize)) {
+			return;
+		}
 		// Why keep the first item in view: a reset to page 1 loses the reader's
 		// place in a long list.
 		const nextPage = clampPage(Math.floor(offset / size) + 1, Math.ceil(listSize / size));
-		if (!isPageSizeControlled) {
-			setInternalPageSize(size);
+		if (isPageSizeControlled) {
+			if (!isPageControlled) {
+				// Why wait for the prop: the old size with the new page shows the
+				// wrong rows until the parent commits the size.
+				setPendingPage({ page: nextPage, size });
+			}
+			// Why one callback: two router writes in one tick do not compose, so
+			// separate size and page callbacks lose one of the values.
+			onPageSizeChange(size, nextPage);
+			return;
 		}
-		onPageSizeChange?.(size);
-		setPage(nextPage);
+		setInternalPageSize(size);
+		if (!isPageControlled) {
+			// Why not `setPage`: it compares against the page of this render, and
+			// a second resize in the same batch must still win.
+			setInternalPage(nextPage);
+			setPendingPage(null);
+		}
+		if (nextPage !== storedPage) {
+			onPageChange?.(nextPage);
+		}
 	}
 
 	function goToLastPage() {
