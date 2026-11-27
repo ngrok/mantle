@@ -250,8 +250,9 @@ function useOffsetPagination({
 	const awaitedEcho = useRef<{
 		fromPage: number;
 		toPage: number;
+		// The size when a resize started, which the parent must move off, or
 		// `null` for a page-only write, which any size completes.
-		toSize: number | null;
+		fromSize: number | null;
 		fromClamp: boolean;
 	} | null>(null);
 
@@ -276,7 +277,7 @@ function useOffsetPagination({
 				awaitedEcho.current = {
 					fromPage: storedPage,
 					toPage: next,
-					toSize: null,
+					fromSize: null,
 					fromClamp: false,
 				};
 			}
@@ -300,7 +301,7 @@ function useOffsetPagination({
 			echo != null &&
 			(!isPageControlled ||
 				(storedPage === echo.toPage
-					? echo.toSize == null || Object.is(currentPageSize, echo.toSize)
+					? echo.fromSize == null || !Object.is(currentPageSize, echo.fromSize)
 					: !Object.is(storedPage, echo.fromPage)))
 		) {
 			awaitedEcho.current = null;
@@ -329,7 +330,7 @@ function useOffsetPagination({
 		awaitedEcho.current = {
 			fromPage: storedPage,
 			toPage: currentPage,
-			toSize: null,
+			fromSize: null,
 			fromClamp: true,
 		};
 		onPageClamp(currentPage);
@@ -384,7 +385,7 @@ function useOffsetPagination({
 				awaitedEcho.current = {
 					fromPage: storedPage,
 					toPage: nextPage,
-					toSize: size,
+					fromSize: currentPageSize,
 					fromClamp: false,
 				};
 			}
@@ -399,7 +400,7 @@ function useOffsetPagination({
 				awaitedEcho.current = {
 					fromPage: storedPage,
 					toPage: nextPage,
-					toSize: size,
+					fromSize: currentPageSize,
 					fromClamp: false,
 				};
 			}
@@ -409,6 +410,16 @@ function useOffsetPagination({
 		setInternalPageSize(size);
 		// Why: this size replaces a resize that still waits for its page.
 		setPending(null);
+		if (isPageControlled && size !== currentPageSize) {
+			// Why: an effect of this render can still run with the old size, and its
+			// clamp must not move a page that the new size keeps in range.
+			awaitedEcho.current = {
+				fromPage: storedPage,
+				toPage: storedPage,
+				fromSize: currentPageSize,
+				fromClamp: false,
+			};
+		}
 		if (!isPageControlled) {
 			// Why not `setPage`: it compares against the page of this render, and
 			// a second resize in the same batch must still win.

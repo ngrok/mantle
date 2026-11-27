@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { getOffsetPaginatedSlice } from "./offset-paginated-slice.js";
 import { useOffsetPagination, type UseOffsetPaginationProps } from "./use-offset-pagination.js";
@@ -747,6 +747,72 @@ describe("useOffsetPagination", () => {
 			rerender({ listSize: 80, pageSize: 10, onPageChange });
 			rerender({ listSize: 80, pageSize: 10, page: 4, onPageChange });
 			expect(result.current.pageSize).toBe(10);
+		});
+
+		test("a resize in a layout effect is not undone by the clamp for the old size", () => {
+			const { result } = renderHook(() => {
+				const [page, setPage] = useState(3);
+				const pagination = useOffsetPagination({
+					listSize: 15,
+					pageSize: 10,
+					page,
+					onPageChange: setPage,
+					onPageClamp: setPage,
+				});
+				const resized = useRef(false);
+				const { setPageSize } = pagination;
+				useLayoutEffect(() => {
+					if (!resized.current) {
+						resized.current = true;
+						setPageSize(5);
+					}
+				}, [setPageSize]);
+				return pagination;
+			});
+			expect(result.current.currentPage).toBe(3);
+			expect(result.current.offset).toBe(10);
+		});
+
+		test("a parent that commits another size than the one requested still gets the clamp", () => {
+			const onPageClamp = vi.fn<(page: number) => void>();
+			const { result } = renderHook(() => {
+				const [state, setState] = useState({ page: 2, pageSize: 20 });
+				return useOffsetPagination({
+					listSize: 35,
+					...state,
+					onPageSizeChange: (size, page) => setState({ page, pageSize: Math.max(10, size) }),
+					onPageClamp,
+				});
+			});
+			act(() => result.current.setPageSize(5));
+			expect(onPageClamp).toHaveBeenLastCalledWith(4);
+		});
+
+		test("two resizes in one batch do not hold back the next clamp", () => {
+			const onPageClamp = vi.fn<(page: number) => void>();
+			const { result, rerender } = renderHook(
+				({ listSize }) => {
+					const [page, setPage] = useState(3);
+					return useOffsetPagination({
+						listSize,
+						pageSize: 25,
+						page,
+						onPageChange: setPage,
+						onPageClamp: (next) => {
+							onPageClamp(next);
+							setPage(next);
+						},
+						resetPageOnListSizeChange: false,
+					});
+				},
+				{ initialProps: { listSize: 100 } },
+			);
+			act(() => {
+				result.current.setPageSize(50);
+				result.current.setPageSize(20);
+			});
+			rerender({ listSize: 15 });
+			expect(onPageClamp).toHaveBeenLastCalledWith(1);
 		});
 
 		// Regression: separate effects for `pageSize` and `listSize` each called
