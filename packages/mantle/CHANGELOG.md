@@ -1,5 +1,37 @@
 # @ngrok/mantle
 
+## 0.97.0
+
+### Minor Changes
+
+- [#1956](https://github.com/ngrok/mantle/pull/1956) [`bcf162b`](https://github.com/ngrok/mantle/commit/bcf162b0c49f1ce6a48aa8139c7a2e1db63346ed) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `Drawer`, a panel that slides up from the bottom edge of the screen. It follows a swipe down to close, springs back from a short drag, fades its light scrim with the drag, and rises above the on-screen keyboard. `useSwipeToDismiss` takes an `onMove` option, and `active` receives the pointer event.
+
+- [#1968](https://github.com/ngrok/mantle/pull/1968) [`b765172`](https://github.com/ngrok/mantle/commit/b7651723e513f0270256a2a19c0ad2cb7421bd0e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `FocusShortcut`, and remove `keyboardShortcut` from `Query.Input`. This is a breaking change. Read the [Query Input Focus Shortcut migration guide](https://mantle.ngrok.com/migrations/query-input-focus-shortcut-migration), and run its codemod: `pnpm -w run migrate query-input-focus-shortcut <path>` from a mantle checkout, or `npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/query-input-focus-shortcut.yml --update-all <path>` in your project.
+
+  `FocusShortcut` (`@ngrok/mantle/focus-shortcut`) makes the slash key (`/`) move focus into one field from anywhere on the page. It wraps any focusable field: `Input`, `InputCapture`, `TextArea`, `Combobox.Input`, or `Query.Input`. The key still types a slash in any text control, and it does nothing with Meta, Ctrl, or Alt held, while an IME composes, on a key repeat, or while the field is disabled, not displayed, or behind a modal. When two fields have the shortcut, `/` goes to the field that mounted first and can take focus.
+
+  - `FocusShortcut.Root` connects a field to its hint. It renders no element.
+  - `FocusShortcut.Field` merges `aria-keyshortcuts="/"` onto its child, and keeps the child's own shortcuts in the list. It joins `focus-shortcut-field` onto the child's `data-slot`.
+  - `FocusShortcut.Hint` renders the `/` key as a `Kbd` (`data-slot="focus-shortcut-hint kbd"`) where you place it. It shows only while the field is empty, enabled, and not focused, on a device that can hover. Otherwise it carries the native `hidden` attribute. It takes `asChild`.
+
+  Docs: https://mantle.ngrok.com/components/forms/focus-shortcut
+
+### Patch Changes
+
+- [#1967](https://github.com/ngrok/mantle/pull/1967) [`da33aab`](https://github.com/ngrok/mantle/commit/da33aab685b62b4098b771e40f9ff6dbe62cbab7) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix `Drawer` and `Popover` drawer gestures, focus, and names:
+
+  - A drag up stretches the `Drawer` panel, which stays on the bottom edge, and no longer lifts it off the edge.
+  - A press on a menu trigger in a `Drawer` header opens the menu and lets the drag pick an item. It no longer moves or closes the drawer.
+  - `useSwipeToDismiss` ends a drag when a control in the handle stops its `pointerup`, so a later mouse move no longer drags the target. A control that stops its own `pointermove` still keeps the drag.
+  - A `Drawer` that a controlled owner reopens during its exit slides back from where it is. It no longer jumps to the bottom edge to start again.
+  - A `Popover` drawer takes its name from the text of its trigger, also inside a `Dialog`. Chromium no longer gives it an empty name.
+  - A `Popover` with `presentation="auto"` that opens, or mounts open, under another open modal overlay opens as a popover, which stays hidden until that overlay closes. It no longer opens a second modal that takes focus.
+  - A `Sandbar` also slides away under a drawer that opens from a popover in the bar. Its controls leave the Tab order there, also a child with `visibility: visible`. A dialog that opens from that drawer still shows.
+
+- [#1965](https://github.com/ngrok/mantle/pull/1965) [`c3511ca`](https://github.com/ngrok/mantle/commit/c3511ca79f3e1352d504fc1dfb8c343115bdef57) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix two bugs of `Popover` with `presentation="auto"` on a phone. A `Drawer.Close` in `Popover.Content` now closes the enclosing `Drawer`, as it does when the popover floats. A press on the drawer's backdrop no longer reaches a clickable parent of the trigger, such as a table row. The same fix applies to the backdrop of a `Dialog`, `AlertDialog`, `Sheet`, and `Drawer`. To see every backdrop click, a native click listener now needs the capture phase.
+
+- [#1956](https://github.com/ngrok/mantle/pull/1956) [`bcf162b`](https://github.com/ngrok/mantle/commit/bcf162b0c49f1ce6a48aa8139c7a2e1db63346ed) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `presentation` to `Popover.Root`. With `"auto"`, a popover opens in a `Drawer` on a phone (a viewport below `sm` with a touch pointer) and as a popover elsewhere. It decides at each open. The drawer code loads after the popover mounts, and only on a phone. `Popover.Content` stamps `data-presentation`. A `Sandbar` slides away while a drawer is open.
+
 ## 0.96.1
 
 ### Patch Changes
