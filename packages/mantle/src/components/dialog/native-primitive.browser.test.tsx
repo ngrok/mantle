@@ -292,13 +292,17 @@ describe("Dialog", () => {
 		"a sheet with closedby closerequest (modal %s) stays open on a press outside, and closes on Escape and Sheet.Close",
 		async (modal) => {
 			const onOpenChange = vi.fn<(open: boolean) => void>();
-			const onInteractOutside = vi.fn<(event: Event) => void>();
+			const onOutside = vi.fn<(event: Event) => void>();
 			render(
 				<>
 					<button type="button">Page button</button>
 					<Sheet.Root modal={modal} onOpenChange={onOpenChange}>
 						<Sheet.Trigger>Open sheet</Sheet.Trigger>
-						<Sheet.Content closedby="closerequest" onInteractOutside={onInteractOutside}>
+						<Sheet.Content
+							closedby="closerequest"
+							onPointerDownOutside={onOutside}
+							onInteractOutside={onOutside}
+						>
 							<Sheet.Title>Card</Sheet.Title>
 							<input aria-label="Card number" />
 							<Sheet.Close>Cancel</Sheet.Close>
@@ -319,7 +323,7 @@ describe("Dialog", () => {
 				await userEvent.click(screen.getByRole("button", { name: "Page button" }));
 			}
 			expect(onOpenChange).not.toHaveBeenCalled();
-			expect(onInteractOutside).not.toHaveBeenCalled();
+			expect(onOutside).not.toHaveBeenCalled();
 			expect(dialog.open).toBe(true);
 			expect(dialog).toHaveAttribute("data-open");
 
