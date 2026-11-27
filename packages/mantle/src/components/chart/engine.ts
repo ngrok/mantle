@@ -417,7 +417,7 @@ class ChartEngine {
 	 * Each overlay frame reads it before its writes. `null` while the readout
 	 * stays in the plot.
 	 */
-	#tooltipOrigin: { left: number; top: number; scaleX: number; scaleY: number } | null = null;
+	#tooltipOrigin: TooltipOrigin | null = null;
 
 	#scheduled = false;
 	#needsPaint = false;
@@ -3107,7 +3107,8 @@ class ChartEngine {
 		// Why each frame, before the geometry writes: the plot can move or scale
 		// with no scroll, such as a layout shift or a dialog's open animation. The
 		// opacity writes above do not dirty layout, so this read forces none.
-		this.#tooltipOrigin = this.#closeTooltipLayer == null ? null : this.#readTooltipOrigin();
+		this.#tooltipOrigin =
+			tooltip == null || this.#closeTooltipLayer == null ? null : this.#readTooltipOrigin(tooltip);
 		if (!visible) {
 			return;
 		}
@@ -3279,8 +3280,8 @@ class ChartEngine {
 			origin == null
 				? this.#tooltipSize
 				: {
-						width: this.#tooltipSize.width / origin.scaleX,
-						height: this.#tooltipSize.height / origin.scaleY,
+						width: (this.#tooltipSize.width * origin.zoom) / origin.scaleX,
+						height: (this.#tooltipSize.height * origin.zoom) / origin.scaleY,
 					};
 		let tooltipLeft = anchorX + gapX;
 		if (
@@ -3300,19 +3301,28 @@ class ChartEngine {
 			return;
 		}
 		// Why the scale: the plot-local pixels shrink with an ancestor's
-		// transform, and the top layer has none.
-		tooltip.style.transform = `translate(${origin.left + tooltipLeft * origin.scaleX}px, ${origin.top + tooltipTop * origin.scaleY}px)`;
+		// transform, and the top layer has none. Why the zoom: the readout keeps
+		// an ancestor's `zoom`, which scales its own `translate` again.
+		const left = (origin.left + tooltipLeft * origin.scaleX) / origin.zoom;
+		const top = (origin.top + tooltipTop * origin.scaleY) / origin.zoom;
+		tooltip.style.transform = `translate(${left}px, ${top}px)`;
 	}
 
-	/** The plot's viewport box, and its scale against its layout size. */
-	#readTooltipOrigin(): { left: number; top: number; scaleX: number; scaleY: number } {
+	/**
+	 * The plot's viewport box, its scale against its layout size, and the
+	 * readout's own zoom. The plot read forces the frame's layout, so the
+	 * readout read after it forces none.
+	 */
+	#readTooltipOrigin(tooltip: HTMLElement): TooltipOrigin {
 		const plot = this.#elements.plot;
 		const rect = plot.getBoundingClientRect();
+		const readout = tooltip.getBoundingClientRect();
 		return {
 			left: rect.left,
 			top: rect.top,
 			scaleX: plot.offsetWidth > 0 ? rect.width / plot.offsetWidth : 1,
 			scaleY: plot.offsetHeight > 0 ? rect.height / plot.offsetHeight : 1,
+			zoom: tooltip.offsetWidth > 0 ? readout.width / tooltip.offsetWidth : 1,
 		};
 	}
 
@@ -3346,6 +3356,9 @@ class ChartEngine {
 		};
 	}
 }
+
+/** Where a top-layer readout maps plot-local pixels: the plot's viewport box, its scale, and the readout's zoom. */
+type TooltipOrigin = { left: number; top: number; scaleX: number; scaleY: number; zoom: number };
 
 /**
  * Whether two category values name the same category. A `Date` compares by

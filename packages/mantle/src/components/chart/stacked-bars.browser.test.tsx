@@ -1286,6 +1286,31 @@ describe("tooltip placement", () => {
 		await expectReadoutOnPointer(overlay, tooltip, 0.5);
 	});
 
+	test("a readout keeps its gap from the hover band in a chart an ancestor zooms", async () => {
+		// The top-layer readout keeps the ancestor's `zoom`, which scales its own
+		// `translate` too. The band stays in the plot, so it shows where the chart
+		// puts the category: the readout sits 12 plot pixels (6 at half zoom) to
+		// one side of the band's center.
+		const { container } = renderThreeSegments({ zoom: 0.5 });
+		const canvas = await findChartCanvas(container);
+		await waitForPlot(canvas);
+		const overlay = overlayOf(container);
+		const tooltip = await findTooltip(container, overlay);
+		await waitFor(() => {
+			const plot = overlay.getBoundingClientRect();
+			hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
+			const band = hoverBandOf(container).getBoundingClientRect();
+			const readout = tooltip.getBoundingClientRect();
+			expect(readout.width).toBeGreaterThan(0);
+			const center = band.left + band.width / 2;
+			const gap = Math.min(
+				Math.abs(readout.left - (center + 6)),
+				Math.abs(readout.right - (center - 6)),
+			);
+			expect(gap).toBeLessThanOrEqual(1);
+		});
+	});
+
 	test("a readout follows a chart that moves with no scroll", async () => {
 		// A layout shift above the chart fires no scroll or resize event. A
 		// readout placed from a cached plot offset stays 40px off.
