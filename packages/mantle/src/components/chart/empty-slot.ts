@@ -46,7 +46,10 @@ const paintEmptySlots = (ctx: PaintContext, input: EmptySlotPaintInput): void =>
 	// far edge of the plot. A slot grows toward the positive side when it fits
 	// there, else toward the side with more room, and never leaves the plot.
 	const positiveRoom = horizontal ? plot.left + plot.width - baseline : baseline - plot.top;
-	const positive = positiveRoom >= EMPTY_SLOT_SHARE * span || positiveRoom >= span - positiveRoom;
+	// Why the half pixel: float error must not flip a slot across zero when the
+	// positive side holds exactly its length.
+	const positive =
+		positiveRoom + 0.5 >= EMPTY_SLOT_SHARE * span || positiveRoom >= span - positiveRoom;
 	const length = Math.min(EMPTY_SLOT_SHARE * span, positive ? positiveRoom : span - positiveRoom);
 	// Every slot of a paint has one size, so the corner radius and its radii
 	// list come once for each paint, not once for each row. Why the 1px trim: a
@@ -80,15 +83,19 @@ const paintEmptySlots = (ctx: PaintContext, input: EmptySlotPaintInput): void =>
 			painted = true;
 		}
 		const bandEdge = bandStart(layout, index) + (layout.bandwidth - across) / 2;
-		// Why the `min`: `hairline` rounds to the pixel grid, and on a band
-		// under a pixel wide, rounding up moves the stroke into the next band.
+		// Why the `min`s: `hairline` rounds to the pixel grid, and on a narrow
+		// band, rounding moves an edge of the stroke into the next band.
 		const x = horizontal ? valueStart : bandEdge;
 		const y = horizontal ? bandEdge : valueStart;
+		const xEnd = x + (horizontal ? length : across) - 0.5;
+		const yEnd = y + (horizontal ? across : length) - 0.5;
+		const left = Math.min(hairline(x), xEnd);
+		const top = Math.min(hairline(y), yEnd);
 		ctx.roundRect(
-			Math.min(hairline(x), x + (horizontal ? length : across) - 0.5),
-			Math.min(hairline(y), y + (horizontal ? across : length) - 0.5),
-			width,
-			height,
+			left,
+			top,
+			Math.max(0, Math.min(width, xEnd - left)),
+			Math.max(0, Math.min(height, yEnd - top)),
 			radii,
 		);
 	}

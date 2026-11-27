@@ -130,6 +130,11 @@ class ChartStore {
 	#hover: HoverSnapshot | null = null;
 	#hoverEver = false;
 
+	/** Whether the Root is decorative, so every mark paints the one neutral fill. */
+	get decorative(): boolean {
+		return this.#decorative;
+	}
+
 	/**
 	 * Whether a hover was ever published. The Root mounts the tooltip surface
 	 * on the first one and keeps it, so a chart nobody points at holds none.
