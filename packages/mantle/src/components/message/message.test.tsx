@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as Message from "./message-parts.js";
@@ -20,6 +21,7 @@ describe("Message", () => {
 		const question = screen.getByRole("article", { name: "You said:" });
 		const answer = screen.getByRole("article", { name: "The assistant said:" });
 		expect(question).toHaveAttribute("data-from", "user");
+		expect(question).not.toHaveAttribute("aria-label");
 		expect(question).toHaveTextContent("You said: What's live?");
 		expect(answer).toHaveAttribute("data-from", "assistant");
 		expect(answer).toHaveTextContent("The assistant said: Three endpoints.");
@@ -44,6 +46,42 @@ describe("Message", () => {
 		const caller = screen.getByRole("article", { name: "The caller said:" });
 		expect(caller).toHaveAttribute("data-from", "user");
 		expect(caller).not.toHaveTextContent("You said:");
+	});
+
+	test("speaker names a message that has no Content, and aria-label still wins", () => {
+		render(
+			<div role="feed" aria-label="Messages">
+				<Message.Root from="user" speaker="The caller said:">
+					<img src="chart.png" alt="Traffic chart" width={320} height={180} />
+				</Message.Root>
+				<Message.Root from="assistant" speaker="Tool result" aria-label="Endpoint list">
+					<img src="list.png" alt="Endpoints" width={320} height={180} />
+				</Message.Root>
+			</div>,
+		);
+
+		// Why: with no `Message.Content`, no hidden label exists for the article to point at.
+		expect(screen.getByRole("article", { name: "The caller said:" })).toHaveAttribute(
+			"data-from",
+			"user",
+		);
+		expect(screen.getByRole("article", { name: "Endpoint list" })).toHaveAttribute(
+			"data-from",
+			"assistant",
+		);
+	});
+
+	test("without speaker, Root renders no aria-label, so a message with no Content needs speaker", () => {
+		render(
+			<div role="feed" aria-label="Messages">
+				<Message.Root from="user">
+					<img src="chart.png" alt="Traffic chart" width={320} height={180} />
+				</Message.Root>
+			</div>,
+		);
+
+		expect(screen.getByRole("article")).not.toHaveAttribute("aria-label");
+		expect(screen.getByRole("article")).toHaveAccessibleName("");
 	});
 
 	test("each part forwards className, ref, and data attributes, and joins data-slot", () => {
@@ -84,6 +122,23 @@ describe("Message", () => {
 		expect(item).toHaveAttribute("data-slot", "message");
 		expect(item).toHaveAttribute("data-from", "user");
 		expect(ref).toHaveBeenLastCalledWith(item);
+	});
+
+	test("Root with asChild and no speaker keeps a component child's own aria-label", () => {
+		const Photo = (props: ComponentProps<"article">) => (
+			<article aria-label="Attached photo" {...props} />
+		);
+		render(
+			<div role="feed">
+				<Message.Root asChild from="user">
+					<Photo>
+						<img src="map.png" alt="Map" width={320} height={180} />
+					</Photo>
+				</Message.Root>
+			</div>,
+		);
+
+		expect(screen.getByRole("article")).toHaveAccessibleName("Attached photo");
 	});
 
 	test("Content and Pending survive a translated page when their text changes", () => {
