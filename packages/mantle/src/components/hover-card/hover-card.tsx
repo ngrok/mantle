@@ -1,13 +1,6 @@
 "use client";
 
-import type {
-	ComponentProps,
-	FocusEvent,
-	PointerEvent,
-	TouchEvent,
-	ReactNode,
-	RefObject,
-} from "react";
+import type { ComponentProps, FocusEvent, PointerEvent, ReactNode, RefObject } from "react";
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
@@ -16,6 +9,7 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { findTabbableDescendants } from "../alert/tabbable-neighbors.js";
 import { FloatArrow } from "../../utils/float/parts.js";
 import type { Align, Side } from "../../utils/float/position.js";
 import {
@@ -29,15 +23,16 @@ import {
 import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
 
+/** What holds a hover card open: a pointer on the trigger or the card, or a focus on the trigger. */
+type HoldSource = "pointer" | "focus";
+
 type HoverCardState = {
 	open: boolean;
 	setOpen: (open: boolean) => void;
-	/** Opens after `openDelay`. */
-	openSoon: () => void;
-	/** Closes after `closeDelay`. */
-	closeSoon: () => void;
-	/** Stops a pending open or close. */
-	cancelPending: () => void;
+	/** A pointer or a focus starts to hold the card: open after `openDelay`, or stay open. */
+	hold: (source: HoldSource) => void;
+	/** A pointer or a focus stops holding the card: close after `closeDelay` once neither holds it. */
+	release: (source: HoldSource) => void;
 	contentId: string;
 	triggerRef: RefObject<HTMLElement | null>;
 	/** The trigger's ref callback. It tells the open content about a new trigger element. */
@@ -67,7 +62,7 @@ type HoverCardRootProps = {
 	onOpenChange?: (open: boolean) => void;
 	/**
 	 * How long the pointer or focus rests on the trigger before the card opens, in milliseconds.
-	 * @default 100
+	 * @default 700
 	 */
 	openDelay?: number;
 	/**
@@ -84,6 +79,10 @@ type HoverCardRootProps = {
  *
  * Use it for sighted pointer users only: a touch never opens it, and a screen
  * reader does not announce it. Keep everything it shows reachable from the link.
+ *
+ * It opens `openDelay` after a pointer rests on the link or the link takes
+ * focus, and stays open while a pointer rests on the link or the card, or the
+ * link has focus (WCAG 1.4.13). It closes `closeDelay` after neither holds it.
  *
  * `HoverCard.Content` is a native `popover="hint"` in the browser's top layer,
  * so it paints above the page and every overlay, and no `overflow` or `z-index`
@@ -109,19 +108,23 @@ function Root({
 	defaultOpen = false,
 	onOpenChange,
 	open: openProp,
-	openDelay = 100,
+	openDelay = 700,
 }: HoverCardRootProps) {
 	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
 	const open = openProp ?? uncontrolledOpen;
 	const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 	const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
 	const contentRef = useRef<HTMLElement | null>(null);
+	const held = useRef<Record<HoldSource, boolean>>({ pointer: false, focus: false });
+	/** Whether a timer waits to open the card. */
+	const opening = useRef(false);
 	useEffect(() => () => clearTimeout(timer.current), []);
 
 	const contentId = useId();
 	const state = useMemo<HoverCardState>(() => {
 		const setOpen = (next: boolean) => {
 			clearTimeout(timer.current);
+			opening.current = false;
 			if (next === open) {
 				return;
 			}
@@ -133,11 +136,27 @@ function Root({
 		return {
 			open,
 			setOpen,
-			openSoon: () => {
+			hold: (source) => {
+				held.current[source] = true;
+				// Why: a focus that joins a resting pointer keeps the first deadline.
+				if (opening.current) {
+					return;
+				}
 				clearTimeout(timer.current);
-				timer.current = setTimeout(() => setOpen(true), openDelay);
+				if (!open) {
+					opening.current = true;
+					timer.current = setTimeout(() => setOpen(true), openDelay);
+				}
 			},
-			closeSoon: () => {
+			// Why only once neither holds it: the card stays while its hover or its
+			// focus stays (WCAG 1.4.13), so a pointer that leaves a focused link
+			// does not close it.
+			release: (source) => {
+				held.current[source] = false;
+				if (held.current.pointer || held.current.focus) {
+					return;
+				}
+				opening.current = false;
 				clearTimeout(timer.current);
 				timer.current = setTimeout(() => {
 					// Why: closing would clear text the user selected in the card. An
@@ -155,7 +174,6 @@ function Root({
 					setOpen(false);
 				}, closeDelay);
 			},
-			cancelPending: () => clearTimeout(timer.current),
 			contentId,
 			triggerRef,
 			setTrigger,
@@ -198,14 +216,16 @@ const Trigger = ({
 	"data-slot": dataSlot,
 	onBlur,
 	onFocus,
+	onPointerDown,
 	onPointerEnter,
 	onPointerLeave,
-	onTouchStart,
 	ref,
 	...props
 }: ComponentProps<"a"> & WithAsChild & WithDataSlot) => {
 	const state = useHoverCardState("Trigger");
 	const composedRef = useComposedRefs(ref, state.setTrigger);
+	/** The touch pointers pressed on the trigger now. */
+	const touches = useRef(new Set<number>());
 	const Component = asChild ? Slot : "a";
 	return (
 		<Component
@@ -218,7 +238,7 @@ const Trigger = ({
 					return;
 				}
 				if (event.pointerType !== "touch") {
-					state.openSoon();
+					state.hold("pointer");
 				}
 			}}
 			onPointerLeave={(event: PointerEvent<HTMLAnchorElement>) => {
@@ -227,28 +247,60 @@ const Trigger = ({
 					return;
 				}
 				if (event.pointerType !== "touch") {
-					state.closeSoon();
+					state.release("pointer");
 				}
+			}}
+			// Why: a tap focuses the link, and the card is for pointers. React adds
+			// `touchstart` as a passive listener, so a `preventDefault()` there cannot
+			// stop that focus. The focus that a touch press causes opens nothing.
+			onPointerDown={(event: PointerEvent<HTMLAnchorElement>) => {
+				onPointerDown?.(event);
+				if (event.defaultPrevented || event.pointerType !== "touch") {
+					return;
+				}
+				// Why a set: one touch that cancels must not clear another that is
+				// still down.
+				const pressed = touches.current;
+				const first = pressed.size === 0;
+				pressed.add(event.pointerId);
+				if (!first) {
+					return;
+				}
+				// Why `click`: a tap focuses the link after `pointerup`, and the click
+				// ends the tap.
+				// Why `pointercancel` too: a touch scroll ends with it.
+				// Why the window's capture phase: mantle stops an outside click there,
+				// such as the one that closes a menu.
+				const view = event.currentTarget.ownerDocument.defaultView ?? window;
+				const stop = () => {
+					pressed.clear();
+					view.removeEventListener("click", stop, true);
+					view.removeEventListener("keydown", stop, true);
+					view.removeEventListener("pointercancel", onCancel, true);
+				};
+				const onCancel = (cancel: globalThis.PointerEvent) => {
+					pressed.delete(cancel.pointerId);
+					if (pressed.size === 0) {
+						stop();
+					}
+				};
+				// Why `keydown` too: a gesture can end with no click, such as a
+				// two-finger tap, and a keyboard focus always follows a key.
+				view.addEventListener("click", stop, true);
+				view.addEventListener("keydown", stop, true);
+				view.addEventListener("pointercancel", onCancel, true);
 			}}
 			onFocus={(event: FocusEvent<HTMLAnchorElement>) => {
 				onFocus?.(event);
-				if (!event.defaultPrevented) {
-					state.openSoon();
+				if (!event.defaultPrevented && touches.current.size === 0) {
+					state.hold("focus");
 				}
 			}}
 			onBlur={(event: FocusEvent<HTMLAnchorElement>) => {
 				onBlur?.(event);
 				if (!event.defaultPrevented) {
-					state.closeSoon();
+					state.release("focus");
 				}
-			}}
-			// Why: a touch would focus the link and open the card, and the card is for pointers.
-			onTouchStart={(event: TouchEvent<HTMLAnchorElement>) => {
-				onTouchStart?.(event);
-				if (event.defaultPrevented) {
-					return;
-				}
-				event.preventDefault();
 			}}
 		/>
 	);
@@ -280,7 +332,8 @@ type HoverCardContentProps = ComponentProps<"div"> &
  * The card. It mounts while the hover card is open, as a `popover="hint"`
  * element in the top layer next to `HoverCard.Trigger`. A pointer that moves
  * from the trigger onto the card keeps it open. It closes on Escape and on a
- * press outside it. It portals into the overlay or float that holds it, else
+ * press outside it. The keyboard never enters it: its links and buttons leave
+ * the Tab order. It portals into the overlay or float that holds it, else
  * into `document.body`.
  *
  * **Data attributes:**
@@ -325,6 +378,7 @@ const MountedContent = ({
 	...props
 }: HoverCardContentProps) => {
 	const state = useHoverCardState("Content");
+	const tabObserver = useRef<MutationObserver | null>(null);
 	const { portalTarget, floatingRef, reconcile } = useFloat({
 		open: state.open,
 		onDismiss: () => state.setOpen(false),
@@ -336,6 +390,26 @@ const MountedContent = ({
 		align,
 		sideOffset,
 		onEscapeKeyDown,
+		// Why: a focus move closes the card through the trigger's blur, after
+		// `closeDelay` and only once no pointer holds it.
+		onFocusOutside: (event) => event.preventDefault(),
+		// Why: the keyboard never enters the card, so its links and buttons leave
+		// the Tab order. Everything in it is reachable from the trigger's link.
+		// Why an observer: a preview can load its links after the card opens.
+		onShow: (floating) => {
+			const untab = () => {
+				for (const tabbable of findTabbableDescendants(floating)) {
+					tabbable.tabIndex = -1;
+				}
+			};
+			untab();
+			tabObserver.current = new MutationObserver(untab);
+			tabObserver.current.observe(floating, { childList: true, subtree: true });
+		},
+		onHide: () => {
+			tabObserver.current?.disconnect();
+			tabObserver.current = null;
+		},
 	});
 	useReconcileOnTriggerChange(state.onTriggerChangeRef, reconcile);
 	const composedRef = useComposedRefs(ref, floatingRef, state.contentRef);
@@ -364,8 +438,8 @@ const MountedContent = ({
 				}}
 				onPointerEnter={(event) => {
 					onPointerEnter?.(event);
-					if (!event.defaultPrevented) {
-						state.cancelPending();
+					if (!event.defaultPrevented && event.pointerType !== "touch") {
+						state.hold("pointer");
 					}
 				}}
 				onPointerLeave={(event) => {
@@ -374,7 +448,7 @@ const MountedContent = ({
 						return;
 					}
 					if (event.pointerType !== "touch") {
-						state.closeSoon();
+						state.release("pointer");
 					}
 				}}
 			/>,
