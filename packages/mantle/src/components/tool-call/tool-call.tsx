@@ -20,8 +20,8 @@ import { Slot } from "../slot/index.js";
  * The state of a tool call. `running` until the result arrives, then `done`,
  * or `failed` when the tool returned an error. `interrupted` when the answer
  * ended, by a stop or a failure, before the result arrived. `requested` when
- * the model asked for the call and the result is not part of this view, such
- * as a captured request whose response ended with `finish_reason: "tool_calls"`.
+ * the view shows the call but will never get its result, such as a captured
+ * request whose response ended with `finish_reason: "tool_calls"`.
  */
 type ToolCallStatus = "running" | "done" | "failed" | "interrupted" | "requested";
 
@@ -47,7 +47,9 @@ const statusIcons = {
 	interrupted: (
 		<Icon svg={<MinusCircleIcon weight="fill" />} className="text-muted size-4 shrink-0" />
 	),
-	requested: <Icon svg={<CircleDashedIcon />} className="text-muted size-4 shrink-0" />,
+	requested: (
+		<Icon svg={<CircleDashedIcon weight="regular" />} className="text-muted size-4 shrink-0" />
+	),
 } as const satisfies Record<ToolCallStatus, ReactElement>;
 
 const ToolCallContext = createContext<ToolCallStatus | null>(null);

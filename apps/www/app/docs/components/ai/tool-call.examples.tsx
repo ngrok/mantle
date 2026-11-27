@@ -60,7 +60,7 @@ export function StatusExample() {
 				<ToolCall.Trigger>
 					<ToolCall.Name>get_endpoint</ToolCall.Name>
 				</ToolCall.Trigger>
-				<ToolCall.Content>The result is in the next request.</ToolCall.Content>
+				<ToolCall.Content>This capture shows the call but not its result.</ToolCall.Content>
 			</ToolCall.Root>
 		</PreviewCanvas>
 	);
