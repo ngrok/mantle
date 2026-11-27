@@ -568,6 +568,30 @@ describe("useOffsetPagination", () => {
 			expect(result.current.currentPage).toBe(4);
 			expect(onPageChange).not.toHaveBeenCalled();
 			expect(onPageClamp).not.toHaveBeenCalled();
+			// A refetch that returns another size still resets.
+			rerender({ listSize: null });
+			expect(onPageChange).not.toHaveBeenCalled();
+			rerender({ listSize: 90 });
+			expect(onPageChange).toHaveBeenCalledTimes(1);
+			expect(onPageChange).toHaveBeenLastCalledWith(1);
+		});
+
+		test("setPageSize while listSize is null keeps the reader's place", () => {
+			const onPageSizeChange = vi.fn<(pageSize: number, page: number) => void>();
+			const { result } = renderHook(() =>
+				useOffsetPagination({ listSize: null, pageSize: 10, page: 4, onPageSizeChange }),
+			);
+			act(() => result.current.setPageSize(20));
+			expect(onPageSizeChange).toHaveBeenLastCalledWith(20, 2);
+		});
+
+		test("goToPage while listSize is null keeps a page past the zero pages", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const { result } = renderHook(() =>
+				useOffsetPagination({ listSize: null, pageSize: 10, page: 4, onPageChange }),
+			);
+			act(() => result.current.goToPage(6));
+			expect(onPageChange).toHaveBeenLastCalledWith(6);
 		});
 
 		test("onPageClamp waits for a page the hook requested", () => {

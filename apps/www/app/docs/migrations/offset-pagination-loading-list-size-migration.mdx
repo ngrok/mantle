@@ -7,7 +7,7 @@ description: "useOffsetPagination takes listSize as number | null. Pass null whi
 
 `useOffsetPagination` takes `listSize: number | null`. `null` means the size is not known yet, such as while the list loads: the hook keeps the stored page, does not reset it, and does not call `onPageClamp`. A `listSize` of 0 now means an empty list. It clamps like any other size, so `onPageClamp` reports page 1. Before, the hook read 0 as a list that loads and never reported a clamp for it, so a list that emptied and refilled came back on the old page.
 
-**TL;DR:** Where a call passes 0 while its data loads (`data?.length ?? 0`, `[].length`), pass `null` until the data arrives: `listSize: data == null ? null : data.length`. Where 0 means the list is empty, change nothing: the empty list now reports page 1 through `onPageClamp`. Remove app code that wrote page 1 back after a list emptied.
+**TL;DR:** Where a call passes 0 while its data loads (`data?.length ?? 0`, `[].length`), pass `null` until the data arrives: `listSize: data == null ? null : data.length`. Where 0 means the list is empty, change nothing: the empty list now reports page 1 through `onPageClamp`. Where `onPageClamp` stores the page it receives, remove app code that wrote page 1 back after a list emptied.
 
 ## Codemod
 
@@ -23,7 +23,7 @@ Codemod: manual: only the call site knows whether its 0 means a list that loads 
    - `listSize: data?.length ?? 0` becomes `listSize: data?.length ?? null`.
    - A wrapper hook that takes a row count changes its type from `number` to `number | null` and passes `null` through.
    - This matters only where the call passes `onPageClamp`, but pass `null` everywhere: with `null`, a load also no longer resets the page.
-4. Where the value is 0 only when the list is empty, leave it. Remove app code that set the page to 1 after the list emptied, because `onPageClamp` now does it.
+4. Where the value is 0 only when the list is empty, leave it. Where the call passes a controlled `page` and an `onPageClamp` that stores the page it receives, remove app code that set the page to 1 after the list emptied, because `onPageClamp` now does it. Without such an `onPageClamp` and with `resetPageOnListSizeChange: false`, keep that code: nothing else stores page 1.
 5. In tests: a test that renders a loading list with `listSize: 0` and expects the stored page to stay.
    - Before: `rerender({ listSize: 0 }); expect(onPageClamp).not.toHaveBeenCalled();`
    - After: `rerender({ listSize: null }); expect(onPageClamp).not.toHaveBeenCalled();`

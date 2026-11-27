@@ -66,7 +66,8 @@ type UseOffsetPaginationProps = {
 	 * as after a shorter list clamps it. Pass it so the stored page follows the
 	 * clamp, and a list that grows back stays on the shown page. Write the page
 	 * in place of the current history entry: a new entry traps the back button.
-	 * Called with 1 when `listSize` is `0`, because an empty list has only page 1.
+	 * Called with 1 when `listSize` is `0`, because an empty list has only page 1,
+	 * unless the `listSize` reset already sent page 1 to `onPageChange`.
 	 * Not called while `listSize` is `null`, or before the parent commits a page
 	 * that the hook requested.
 	 */
@@ -362,7 +363,9 @@ function useOffsetPagination({
 	]);
 
 	function goToPage(page: number) {
-		setPage(clampPage(page, totalPages));
+		// Why no upper bound while `listSize` is `null`: the list loads, and its
+		// zero pages would move a saved page to 1.
+		setPage(clampPage(page, listSize == null ? Infinity : totalPages));
 	}
 
 	function nextPage() {
@@ -385,8 +388,12 @@ function useOffsetPagination({
 			return;
 		}
 		// Why keep the first item in view: a reset to page 1 loses the reader's
-		// place in a long list.
-		const nextPage = clampPage(Math.floor(offset / size) + 1, Math.ceil((listSize ?? 0) / size));
+		// place in a long list. Why the stored page while `listSize` is `null`:
+		// the list loads, so `offset` reads page 1 and has no end to clamp to.
+		const nextPage =
+			listSize == null
+				? clampPage(Math.floor(((storedPage - 1) * currentPageSize) / size) + 1, Infinity)
+				: clampPage(Math.floor(offset / size) + 1, Math.ceil(listSize / size));
 		if (isPageSizeControlled) {
 			if (!isPageControlled) {
 				// Why wait for the prop: the old size with the new page shows the
