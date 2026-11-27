@@ -235,10 +235,15 @@ function useOffsetPagination({
 	const hasPreviousPage = currentPage > 1;
 	const hasNextPage = currentPage < totalPages;
 
-	// The page and size of the render that last wrote a page to the parent, and
-	// the page it wrote. Why: a router can commit a write a render late, and a
-	// clamp or reset in that window must not cancel or repeat it.
-	const awaitedEcho = useRef<{ page: number; size: number; to: number } | null>(null);
+	// The last page write to a parent that owns the page, until the parent
+	// commits it. Why: a router can commit a write a render late, and a clamp in
+	// that window must not cancel or repeat it.
+	const awaitedEcho = useRef<{
+		fromPage: number;
+		toPage: number;
+		toSize: number;
+		fromClamp: boolean;
+	} | null>(null);
 
 	const setPage = useCallback(
 		(next: number) => {
@@ -249,9 +254,18 @@ function useOffsetPagination({
 			}
 			if (!isPageControlled) {
 				setInternalPage(next);
-				setPending(null);
 			}
-			awaitedEcho.current = { page: storedPage, size: currentPageSize, to: next };
+			// Why in both modes: a navigation replaces a resize that waits for its
+			// page, so a later write of that page must not apply the size.
+			setPending(null);
+			if (isPageControlled && onPageChange != null) {
+				awaitedEcho.current = {
+					fromPage: storedPage,
+					toPage: next,
+					toSize: currentPageSize,
+					fromClamp: false,
+				};
+			}
 			onPageChange?.(next);
 		},
 		[currentPageSize, isPageControlled, onPageChange, storedPage],
@@ -266,14 +280,18 @@ function useOffsetPagination({
 		const listSizeChanged = previousListSize.current !== listSize;
 		previousListSize.current = listSize;
 		const echo = awaitedEcho.current;
+		// Why not on a size change alone: a parent can commit the size first, or
+		// change it on its own, while the page write still waits.
 		if (
 			echo != null &&
-			!(Object.is(echo.page, storedPage) && Object.is(echo.size, currentPageSize))
+			(!Object.is(storedPage, echo.fromPage) ||
+				(storedPage === echo.toPage && Object.is(currentPageSize, echo.toSize)))
 		) {
 			awaitedEcho.current = null;
 		}
 		if (listSizeChanged && resetPageOnListSizeChange) {
-			if (awaitedEcho.current?.to !== 1) {
+			// Why: a clamp to page 1 already asked for the reset's page.
+			if (!(awaitedEcho.current?.fromClamp && awaitedEcho.current.toPage === 1)) {
 				setPage(1);
 			}
 			return;
@@ -289,7 +307,12 @@ function useOffsetPagination({
 		) {
 			return;
 		}
-		awaitedEcho.current = { page: storedPage, size: currentPageSize, to: currentPage };
+		awaitedEcho.current = {
+			fromPage: storedPage,
+			toPage: currentPage,
+			toSize: currentPageSize,
+			fromClamp: true,
+		};
 		onPageClamp(currentPage);
 	}, [
 		currentPage,
@@ -337,7 +360,14 @@ function useOffsetPagination({
 			}
 			// Why one callback: two router writes in one tick do not compose, so
 			// separate size and page callbacks lose one of the values.
-			awaitedEcho.current = { page: storedPage, size: currentPageSize, to: nextPage };
+			if (isPageControlled) {
+				awaitedEcho.current = {
+					fromPage: storedPage,
+					toPage: nextPage,
+					toSize: size,
+					fromClamp: false,
+				};
+			}
 			onPageSizeChange(size, nextPage);
 			return;
 		}
@@ -345,7 +375,14 @@ function useOffsetPagination({
 			// Why wait for the prop: the new size with the old page shows the
 			// wrong rows until the parent commits the page.
 			setPending({ page: nextPage, size });
-			awaitedEcho.current = { page: storedPage, size: currentPageSize, to: nextPage };
+			if (onPageChange != null) {
+				awaitedEcho.current = {
+					fromPage: storedPage,
+					toPage: nextPage,
+					toSize: size,
+					fromClamp: false,
+				};
+			}
 			onPageChange?.(nextPage);
 			return;
 		}
