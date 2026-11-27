@@ -541,7 +541,11 @@ function trackFloat({
 }
 
 /** Whether the pointer is inside the smallest box that holds both elements. */
-function isInsideBoth(event: PointerEvent, a: Element, b: Element): boolean {
+function isInsideBoth(
+	event: Pick<PointerEvent, "clientX" | "clientY">,
+	a: Element,
+	b: Element,
+): boolean {
 	const boxA = a.getBoundingClientRect();
 	const boxB = b.getBoundingClientRect();
 	return (

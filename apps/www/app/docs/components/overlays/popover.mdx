@@ -89,7 +89,7 @@ Set `openOnHover` on `Popover.Trigger` when the trigger exists only to show the 
 - A hover open does not move focus, and a focus on the trigger does not open the popover.
 - The pointer can move from the trigger onto the content. The popover closes when the pointer leaves both, or on `Escape` ([WCAG 1.4.13](https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html)).
 - A press on the trigger while a hover holds it open keeps it open and moves focus into the content, as a press open does. A press or a focus in the content also keeps it open, so a pointer that leaves does not close a field the user is typing in.
-- With `presentation="auto"`, a hover never opens the drawer: only a tap does.
+- With `presentation="auto"`, a hover never opens the drawer. A tap, `Enter`, or `Space` opens it as usual.
 
 Keep the trigger at least 24 by 24 pixels ([WCAG 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)), such as an `IconButton` with `size="xs"` or larger, and give it a `label` that says what the content is about.
 
@@ -236,7 +236,7 @@ Popover.Root
 
 ## Focus and dismissal
 
-A `Popover` is a non-modal dialog. Focus moves to the first focusable element in the content on open. A hover open (`openOnHover`) moves no focus until a press on the trigger keeps it open. `Escape` closes it and returns focus to the trigger. A press or a focus move outside closes it and leaves focus where the user put it. The page (body and any scroll containers) continues to scroll normally. For a task that must block the page, use [`Dialog`](/components/overlays/dialog).
+A `Popover` is a non-modal dialog. Focus moves to the first focusable element in the content on open. A hover open (`openOnHover`) moves no focus until a press on the trigger keeps it open, so `Escape` on a hover open leaves focus where it was. `Escape` closes it and returns focus to the trigger. A press or a focus move outside closes it and leaves focus where the user put it. The page (body and any scroll containers) continues to scroll normally. For a task that must block the page, use [`Dialog`](/components/overlays/dialog).
 
 ## API Reference
 

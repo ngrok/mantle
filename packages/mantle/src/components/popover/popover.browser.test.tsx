@@ -381,12 +381,12 @@ describe("Popover.Trigger openOnHover", () => {
 
 	const trigger = () => screen.getByRole("button", { name: "About limits" });
 
-	function HoverPopover() {
+	function HoverPopover({ id }: { id?: string }) {
 		return (
 			<div>
 				<Popover.Root>
 					<Popover.Trigger openOnHover>About limits</Popover.Trigger>
-					<Popover.Content side="bottom" sideOffset={8}>
+					<Popover.Content id={id} side="bottom" sideOffset={8}>
 						<button type="button">Learn more</button>
 					</Popover.Content>
 				</Popover.Root>
@@ -409,18 +409,21 @@ describe("Popover.Trigger openOnHover", () => {
 		expect(elsewhere).toHaveFocus();
 	});
 
-	test("stays open while the pointer moves onto the content, and closes when it leaves both", async () => {
-		render(<HoverPopover />);
-		await browserUser.hover(trigger());
-		const content = await screen.findByRole("dialog");
+	test.each([undefined, "custom-help"])(
+		"stays open while the pointer moves onto the content (id %s), and closes when it leaves both",
+		async (id) => {
+			render(<HoverPopover id={id} />);
+			await browserUser.hover(trigger());
+			const content = await screen.findByRole("dialog");
 
-		await browserUser.hover(content);
-		await browserUser.hover(screen.getByRole("button", { name: "Learn more" }));
-		expect(trigger()).toHaveAttribute("aria-expanded", "true");
+			await browserUser.hover(content);
+			await browserUser.hover(screen.getByRole("button", { name: "Learn more" }));
+			expect(trigger()).toHaveAttribute("aria-expanded", "true");
 
-		await browserUser.hover(screen.getByRole("button", { name: "Elsewhere" }));
-		await waitFor(() => expect(trigger()).toHaveAttribute("aria-expanded", "false"));
-	});
+			await browserUser.hover(screen.getByRole("button", { name: "Elsewhere" }));
+			await waitFor(() => expect(trigger()).toHaveAttribute("aria-expanded", "false"));
+		},
+	);
 
 	test("Escape closes a hover open while focus is outside it", async () => {
 		render(<HoverPopover />);
