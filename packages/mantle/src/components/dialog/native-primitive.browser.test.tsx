@@ -314,7 +314,6 @@ describe("Dialog", () => {
 
 			await userEvent.click(trigger);
 			const dialog = dialogElement();
-			expect(dialog).toHaveAttribute("closedby", "closerequest");
 			onOpenChange.mockClear();
 			if (modal) {
 				fireEvent.pointerDown(dialog);
@@ -337,6 +336,23 @@ describe("Dialog", () => {
 			await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
 		},
 	);
+
+	test("a non-modal sheet with closedby closerequest ignores an Escape that a field in it stops", async () => {
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<Sheet.Root open modal={false} onOpenChange={onOpenChange}>
+				<Sheet.Content closedby="closerequest">
+					<Sheet.Title>Card</Sheet.Title>
+					<input aria-label="Card number" onKeyDown={(event) => event.stopPropagation()} />
+				</Sheet.Content>
+			</Sheet.Root>,
+		);
+
+		await userEvent.click(screen.getByRole("textbox", { name: "Card number" }));
+		await userEvent.keyboard("{Escape}");
+		expect(onOpenChange).not.toHaveBeenCalled();
+		expect(dialogElement().open).toBe(true);
+	});
 
 	test("onOpenAutoFocus and onCloseAutoFocus get the panel as event.currentTarget", async () => {
 		const targets: (EventTarget | null)[] = [];

@@ -677,8 +677,8 @@ type ContentProps = ComponentProps<"div"> &
 		 * The requests that close the dialog, as in the HTML `closedby`
 		 * attribute. With `"any"`, a press outside the panel closes it too. With
 		 * `"closerequest"`, a press outside does nothing, and
-		 * `onPointerDownOutside` and `onInteractOutside` do not run: only
-		 * Escape and the close parts close the dialog. Use it for a form that
+		 * `onPointerDownOutside` and `onInteractOutside` do not run: Escape,
+		 * the close parts, and a trigger outside close the dialog. Use it for a form that
 		 * must not lose its input to a stray press, such as a card form in a
 		 * sheet that is not modal.
 		 *
@@ -783,6 +783,8 @@ const Content = ({
 		event.preventDefault();
 	});
 	const pressOutside = useCallbackRef((originalEvent: PointerEvent): boolean => {
+		// Why no `closedby` on the `<dialog>`: on a non-modal dialog, the
+		// browser then closes it on Escape past the guards and the owner's state.
 		if (closedby === "closerequest") {
 			return false;
 		}
@@ -1216,9 +1218,6 @@ const Content = ({
 						"aria-label": ariaLabel,
 						"aria-labelledby": ariaLabelledBy ?? (ariaLabel == null ? root.titleId : undefined),
 					})}
-			// Why not `"any"` on the element: a browser that supports it would
-			// close the dialog itself, with no exit and no outside handlers.
-			closedby={closedby === "closerequest" ? closedby : undefined}
 			className={cx(positionerBaseClassName, positionerClassName)}
 			// Why `data-overlay`: a press on the backdrop targets the `<dialog>`,
 			// and `isDialogOverlayTarget` names that press.
