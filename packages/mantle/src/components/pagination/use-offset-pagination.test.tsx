@@ -139,13 +139,15 @@ describe("useOffsetPagination", () => {
 		},
 	);
 
-	test("setPageSize ignores a size that is not positive or is the current size", () => {
+	test("setPageSize ignores a size that is not a positive whole number or is the current size", () => {
 		const onPageSizeChange = vi.fn<(pageSize: number, page: number) => void>();
 		const { result } = renderHook(() =>
 			useOffsetPagination({ listSize: 500, pageSize: 20, page: 4, onPageSizeChange }),
 		);
 		act(() => result.current.setPageSize(0));
 		act(() => result.current.setPageSize(Number.NaN));
+		act(() => result.current.setPageSize(1.5));
+		act(() => result.current.setPageSize(Number.POSITIVE_INFINITY));
 		act(() => result.current.setPageSize(20));
 		expect(onPageSizeChange).not.toHaveBeenCalled();
 	});
@@ -228,6 +230,48 @@ describe("useOffsetPagination", () => {
 		});
 		rerender({ listSize: 100, pageSize: Number.NaN });
 		expect(result.current.pageSize).toBeNaN();
+	});
+
+	test("a second resize before the size echo keeps the reader's place", () => {
+		const onPageSizeChange = vi.fn<(pageSize: number, page: number) => void>();
+		const { result, rerender } = renderHook((props) => useOffsetPagination(props), {
+			initialProps: { listSize: 500, pageSize: 20, defaultPage: 6, onPageSizeChange },
+		});
+		act(() => result.current.setPageSize(50));
+		rerender({ listSize: 500, pageSize: 50, defaultPage: 6, onPageSizeChange });
+		act(() => result.current.setPageSize(100));
+		// Until the echo, the accepted size 50 and its page 3 stay in view.
+		expect(result.current.currentPage).toBe(3);
+		expect(result.current.offset).toBe(100);
+		rerender({ listSize: 500, pageSize: 100, defaultPage: 6, onPageSizeChange });
+		expect(result.current.currentPage).toBe(2);
+		expect(result.current.offset).toBe(100);
+	});
+
+	test("with a controlled page, the new size waits for the page echo", () => {
+		const onPageChange = vi.fn<(page: number) => void>();
+		const { result, rerender } = renderHook((props) => useOffsetPagination(props), {
+			initialProps: { listSize: 500, pageSize: 20, page: 6, onPageChange },
+		});
+		act(() => result.current.setPageSize(50));
+		expect(onPageChange).toHaveBeenLastCalledWith(3);
+		expect(result.current.pageSize).toBe(20);
+		expect(result.current.offset).toBe(100);
+		rerender({ listSize: 500, pageSize: 20, page: 3, onPageChange });
+		expect(result.current.pageSize).toBe(50);
+		expect(result.current.offset).toBe(100);
+	});
+
+	test("gaining then dropping onPageSizeChange shows the prop size", () => {
+		const onPageSizeChange = vi.fn<(pageSize: number, page: number) => void>();
+		const initialProps: UseOffsetPaginationProps = { listSize: 500, pageSize: 20 };
+		const { result, rerender } = renderHook((props) => useOffsetPagination(props), {
+			initialProps,
+		});
+		act(() => result.current.setPageSize(50));
+		rerender({ listSize: 500, pageSize: 20, onPageSizeChange });
+		rerender({ listSize: 500, pageSize: 20 });
+		expect(result.current.pageSize).toBe(20);
 	});
 
 	test("dropping onPageSizeChange keeps the size and the page", () => {

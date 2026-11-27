@@ -100,8 +100,8 @@ type OffsetPaginationState = {
 	/**
 	 * Set the number of items per page. The page moves to the one that holds the
 	 * first item of the current page, clamped to the last page, so the reader
-	 * keeps their place. A size that is not positive does nothing, and neither
-	 * does a controlled size equal to the current one.
+	 * keeps their place. A size that is not a positive whole number does
+	 * nothing, and neither does a controlled size equal to the current one.
 	 */
 	setPageSize: (size: number) => void;
 	/**
@@ -178,10 +178,10 @@ function useOffsetPagination({
 	const [internalPage, setInternalPage] = useState(defaultPage);
 	const [internalPageSize, setInternalPageSize] = useState(pageSize);
 	const [previousPageSize, setPreviousPageSize] = useState(pageSize);
-	// The internal page that `setPageSize` picked for a controlled size. It
-	// applies once `pageSize` reports that size, so the page and the size
-	// change in the same render.
-	const [pendingPage, setPendingPage] = useState<{ page: number; size: number } | null>(null);
+	// The page and size that `setPageSize` picked when the parent owns one of
+	// them. Both apply in the render where the parent's prop reports its value,
+	// so the page and the size never show a mixed range.
+	const [pending, setPending] = useState<{ page: number; size: number } | null>(null);
 	// Why adjust during render and not in an effect: the change touches only
 	// this hook's state, so the first render after it is already correct. Why
 	// no `onPageChange`: a parent that changes `pageSize` sets the page in the
@@ -197,14 +197,25 @@ function useOffsetPagination({
 		if (!isPageSizeControlled) {
 			setInternalPage(1);
 		}
+	} else if (isPageSizeControlled && !Object.is(internalPageSize, pageSize)) {
+		// Why: a local resize before the parent took control must not come back
+		// when the parent drops `onPageSizeChange`.
+		setInternalPageSize(pageSize);
+	}
+	if (
+		pending != null &&
+		(isPageSizeControlled ? Object.is(pageSize, pending.size) : pageProp === pending.page)
+	) {
+		setPending(null);
+		setInternalPage(pending.page);
+		setInternalPageSize(pending.size);
 	}
 	const currentPageSize = isPageSizeControlled ? pageSize : internalPageSize;
 
 	const totalPages = Math.ceil(listSize / currentPageSize);
 	// Why the clamp: `page` and `defaultPage` come from outside, and a shorter
 	// list can leave the stored page past the end.
-	const ownPage = pendingPage?.size === currentPageSize ? pendingPage.page : internalPage;
-	const storedPage = isPageControlled ? pageProp : ownPage;
+	const storedPage = isPageControlled ? pageProp : internalPage;
 	const currentPage = clampPage(storedPage, totalPages);
 	const offset = (currentPage - 1) * currentPageSize;
 
@@ -220,7 +231,7 @@ function useOffsetPagination({
 			}
 			if (!isPageControlled) {
 				setInternalPage(next);
-				setPendingPage(null);
+				setPending(null);
 			}
 			onPageChange?.(next);
 		},
@@ -257,10 +268,10 @@ function useOffsetPagination({
 	}
 
 	function setPageSize(size: number) {
-		// Why: a size of 0 or `NaN` has no pages. A repeat of a controlled size
-		// would write a duplicate URL entry. An internal size skips this check:
-		// a second call in one batch sees the size of this render.
-		if (!(size > 0) || (isPageSizeControlled && size === currentPageSize)) {
+		// Why: only a positive whole number counts rows. A repeat of a
+		// controlled size would write a duplicate URL entry. An internal size
+		// skips that check: a second call in one batch sees this render's size.
+		if (!Number.isInteger(size) || size < 1 || (isPageSizeControlled && size === currentPageSize)) {
 			return;
 		}
 		// Why keep the first item in view: a reset to page 1 loses the reader's
@@ -270,11 +281,18 @@ function useOffsetPagination({
 			if (!isPageControlled) {
 				// Why wait for the prop: the old size with the new page shows the
 				// wrong rows until the parent commits the size.
-				setPendingPage({ page: nextPage, size });
+				setPending({ page: nextPage, size });
 			}
 			// Why one callback: two router writes in one tick do not compose, so
 			// separate size and page callbacks lose one of the values.
 			onPageSizeChange(size, nextPage);
+			return;
+		}
+		if (isPageControlled && nextPage !== storedPage) {
+			// Why wait for the prop: the new size with the old page shows the
+			// wrong rows until the parent commits the page.
+			setPending({ page: nextPage, size });
+			onPageChange?.(nextPage);
 			return;
 		}
 		setInternalPageSize(size);
@@ -282,10 +300,10 @@ function useOffsetPagination({
 			// Why not `setPage`: it compares against the page of this render, and
 			// a second resize in the same batch must still win.
 			setInternalPage(nextPage);
-			setPendingPage(null);
-		}
-		if (nextPage !== storedPage) {
-			onPageChange?.(nextPage);
+			setPending(null);
+			if (nextPage !== storedPage) {
+				onPageChange?.(nextPage);
+			}
 		}
 	}
 
