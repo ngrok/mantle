@@ -335,23 +335,32 @@ describe("BarChart keyboard interaction", () => {
 		expect(rows).toEqual(["Total266", "Desktop186", "Mobile80"]);
 	});
 
-	test("maxRows keeps the largest series and folds the rest into a count", async () => {
-		const user = userEvent.setup();
-		render(
-			<BarChart.Root data={data} xKey="month" stacked aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
-				<BarChart.Tooltip maxRows={1} />
-			</BarChart.Root>,
-		);
-		await user.tab();
-		await user.keyboard("{ArrowRight}");
-		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
-		const rows = [...(tooltip?.querySelectorAll(".grid > div") ?? [])].map(
-			(row) => row.textContent,
-		);
-		expect(rows).toEqual(["Total266", "Desktop186", "+1 more"]);
-	});
+	// Why a fraction, a negative, and NaN: the rows shown and the count must agree for any number.
+	test.each([
+		{ maxRows: 1, rows: ["Total266", "Desktop186", "+1 more"] },
+		{ maxRows: 1.5, rows: ["Total266", "Desktop186", "+1 more"] },
+		{ maxRows: -1, rows: ["Total266", "+2 more"] },
+		{ maxRows: Number.NaN, rows: ["Total266", "+2 more"] },
+	])(
+		"maxRows={$maxRows} keeps the largest series and folds the rest into a count",
+		async ({ maxRows, rows: expected }) => {
+			const user = userEvent.setup();
+			render(
+				<BarChart.Root data={data} xKey="month" stacked aria-label="Visitors by month">
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+					<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
+					<BarChart.Tooltip maxRows={maxRows} />
+				</BarChart.Root>,
+			);
+			await user.tab();
+			await user.keyboard("{ArrowRight}");
+			const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+			const rows = [...(tooltip?.querySelectorAll(".grid > div") ?? [])].map(
+				(row) => row.textContent,
+			);
+			expect(rows).toEqual(expected);
+		},
+	);
 
 	test("an unstacked chart's readout has no total", async () => {
 		const user = userEvent.setup();

@@ -51,8 +51,9 @@ type TooltipPrimitiveProps = Omit<ComponentProps<"div">, "children"> & {
 	/**
 	 * The most series rows the default readout shows, largest value first. The
 	 * rest fold into a "+N more" row. The readout also shows only the rows that
-	 * fit the plot, so the cap can be lower. It does not apply to a `children`
-	 * readout.
+	 * fit the plot, so the cap can be lower. The label, the Total row, and the
+	 * count always show, so a plot shorter than those clips them. A world map
+	 * keeps its drawn order. It does not apply to a `children` readout.
 	 * @default 8
 	 */
 	maxRows?: number;
@@ -139,13 +140,13 @@ const ChartTooltipSurface = ({
 		() => 0,
 	);
 	// Why a measured cap: a readout taller than the plot spills past it, and a
-	// card that clips cuts its last rows off. The rows that fit depend on the
-	// space and the row count, not on the hovered index, so one measure of the
-	// full readout serves every hover until either changes.
+	// card that clips cuts its last rows off.
 	const rowCount = hover == null || hover.emptySlotLabel != null ? 0 : hover.points.length;
-	const fitKey = `${space}:${rowCount}`;
+	// Why a floor and a zero for `NaN`: the rows shown and the count must agree.
+	const cap = Math.max(0, Math.floor(config?.maxRows ?? 8)) || 0;
+	const fitKey = `${space}:${rowCount}:${cap}`;
 	const [fit, setFit] = useState<{ key: string; rows: number } | null>(null);
-	const fitRows = fit?.key === fitKey ? fit.rows : Number.POSITIVE_INFINITY;
+	const shown = Math.min(rowCount, cap, fit?.key === fitKey ? fit.rows : Number.POSITIVE_INFINITY);
 	const { className, ref: consumerRef, style, ...divProps } = config?.divProps ?? {};
 	const surfaceRef = useRef<HTMLDivElement | null>(null);
 	const composedRef = useComposedRefs(tooltipRef, surfaceRef);
@@ -171,27 +172,36 @@ const ChartTooltipSurface = ({
 		};
 	}, [consumerRef]);
 	const rowsRef = useRef<HTMLDivElement | null>(null);
+	// Why a check on each hover: the readout's height changes with the hovered
+	// values, the footer, and the plot width, not only with the key. A fit only
+	// shrinks within one key, so the checks stop, and a new key starts with no
+	// fit.
 	useLayoutEffect(() => {
 		const surface = surfaceRef.current;
 		const rows = rowsRef.current;
-		if (surface == null || rows == null || rowCount === 0 || space === 0 || fit?.key === fitKey) {
+		if (hover == null || surface == null || rows == null || shown === 0) {
 			return;
 		}
-		const overflow = surface.offsetHeight - space;
-		const last = rows.lastElementChild;
-		const previous = last?.previousElementSibling;
-		if (overflow <= 0 || !(last instanceof HTMLElement) || !(previous instanceof HTMLElement)) {
-			setFit({ key: fitKey, rows: Number.POSITIVE_INFINITY });
+		const count = hover.points.length;
+		let overflow = surface.offsetHeight - space;
+		if (overflow <= 0) {
 			return;
 		}
-		// The measure runs on the uncapped rows, which `maxRows` alone limits.
-		const shown = Math.min(rowCount, config?.maxRows ?? 8);
-		const step = last.offsetTop - previous.offsetTop;
-		// Why the extra row without a count yet: the "+N more" row takes a row's height.
-		const extra = shown < rowCount ? 0 : 1;
-		const drop = step > 0 ? Math.ceil(overflow / step) + extra : shown;
-		setFit({ key: fitKey, rows: Math.max(0, shown - drop) });
-	}, [config?.maxRows, fit, fitKey, rowCount, space]);
+		const { rowGap, lineHeight } = getComputedStyle(rows);
+		const gap = Number.parseFloat(rowGap) || 0;
+		// Why a line when no count shows yet: the "+N more" row adds one line of text.
+		if (shown === count) {
+			overflow += (Number.parseFloat(lineHeight) || 0) + gap;
+		}
+		// The series rows end the grid, before the count row when it shows.
+		const end = rows.children.length - (shown < count ? 1 : 0);
+		let drop = 0;
+		while (drop < shown && overflow > 0) {
+			drop += 1;
+			overflow -= (rows.children[end - drop]?.getBoundingClientRect().height ?? 0) + gap;
+		}
+		setFit({ key: fitKey, rows: shown - drop });
+	}, [fitKey, hover, shown, space]);
 	return (
 		<div
 			data-slot={`${slotName}-tooltip`}
@@ -208,7 +218,7 @@ const ChartTooltipSurface = ({
 					slotName={slotName}
 					config={config}
 					hover={hover}
-					fitRows={fitRows}
+					shown={shown}
 					rowsRef={rowsRef}
 					xHasTimeOfDay={xHasTimeOfDay}
 					readout={readout}
@@ -223,7 +233,7 @@ const ChartTooltipReadout = ({
 	slotName,
 	config,
 	hover,
-	fitRows,
+	shown,
 	rowsRef,
 	xHasTimeOfDay,
 	readout,
@@ -231,8 +241,8 @@ const ChartTooltipReadout = ({
 	slotName: string;
 	config: TooltipConfig | null;
 	hover: HoverSnapshot;
-	/** The series rows that fit the plot, `Infinity` before a measure. */
-	fitRows: number;
+	/** How many series rows show: the cap and the plot fit allow these. */
+	shown: number;
 	/** The rows' container, which the surface measures to fit the plot. */
 	rowsRef: Ref<HTMLDivElement>;
 	xHasTimeOfDay: boolean;
@@ -247,7 +257,7 @@ const ChartTooltipReadout = ({
 		);
 	}
 	if (readout != null) {
-		return <readout.Tooltip hover={hover} config={config} />;
+		return <readout.Tooltip hover={hover} config={config} shown={shown} rowsRef={rowsRef} />;
 	}
 	const footer = config?.footer;
 	// Why largest first: a capped readout keeps the leaders, and the order does
@@ -256,7 +266,6 @@ const ChartTooltipReadout = ({
 	const points = hover.points.toSorted(
 		(a, b) => (b.value ?? Number.NEGATIVE_INFINITY) - (a.value ?? Number.NEGATIVE_INFINITY),
 	);
-	const shown = Math.min(points.length, config?.maxRows ?? 8, fitRows);
 	return (
 		<>
 			<div className="text-muted font-medium">

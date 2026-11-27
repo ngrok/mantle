@@ -600,7 +600,7 @@ AreaChart.List
 
 With `stacked` on the Root, series stack from the baseline up in registration order. Areas that mount together register in composition order, so the first `Area` sits on the baseline and each later `Area` stacks on top of it. An `Area` that mounts later stacks on top of every series already registered, whatever its position in the JSX. A `dataKey` that unmounts and returns goes back to its original position.
 
-Reordering the parts of a mounted chart does not restack it. The position stays with the `dataKey`, so a series does not jump when you rename its `label`. The tooltip lists the top of the pile first, to match what a reader scans at the crosshair.
+Reordering the parts of a mounted chart does not restack it. The position stays with the `dataKey`, so a series does not jump when you rename its `label`. The tooltip lists the series by value, largest first.
 
 ## Fill, axes, and density
 

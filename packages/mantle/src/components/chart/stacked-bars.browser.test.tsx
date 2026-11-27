@@ -1142,7 +1142,7 @@ describe("tooltip placement", () => {
 		for (const [index, key] of series.entries()) {
 			row[key] = index + 1;
 		}
-		const { container } = render(
+		const chart = (maxRows: number) => (
 			<div style={{ width: 600, height: 160, overflow: "clip" }}>
 				<CanvasBarChartRoot
 					data={[row]}
@@ -1154,10 +1154,13 @@ describe("tooltip placement", () => {
 					{series.map((key) => (
 						<BarChart.Bar key={key} dataKey={key} label={key} color="blue" />
 					))}
-					<BarChart.Tooltip maxRows={Number.POSITIVE_INFINITY} />
+					<BarChart.Tooltip maxRows={maxRows} />
 				</CanvasBarChartRoot>
-			</div>,
+			</div>
 		);
+		// Why a first cap of one row: that readout fits, so a fit kept from it
+		// would let the uncapped readout spill out of the card.
+		const { container, rerender } = render(chart(1));
 		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		const overlay = overlayOf(container);
@@ -1172,16 +1175,25 @@ describe("tooltip placement", () => {
 				});
 				observer.observe(tooltip);
 			});
-		await waitFor(async () => {
+		const hoverCenter = (): void => {
 			const plot = overlay.getBoundingClientRect();
 			hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
+		};
+		await waitFor(() => {
+			hoverCenter();
+			expect(tooltip.textContent).toContain("+11 more");
+		});
+		rerender(chart(Number.POSITIVE_INFINITY));
+		await waitFor(async () => {
+			hoverCenter();
 			expect(tooltip.textContent).toMatch(/\+\d+ more/);
 			expect(await visibleRatio()).toBeGreaterThan(0.99);
 		});
 		// The largest value reads first, and the smallest folds into the count.
 		const text = tooltip.textContent ?? "";
-		expect(text.indexOf("key11")).toBeGreaterThan(-1);
+		expect(text).toContain("key11");
 		expect(text).not.toContain("key0");
+		expect(text).not.toContain("+11 more");
 	});
 
 	test("a readout that fits stays inside the plot box", async () => {

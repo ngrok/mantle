@@ -663,7 +663,7 @@ const hoverPlace = (hover: HoverSnapshot): GeoPlace => ({
 /** The map's readout: a row reads as a place, by its name, else by its coordinates. */
 const mapReadout = (labelKey: string | undefined, sizeKey: string | undefined): ChartReadout => ({
 	keyNames: MAP_KEY_NAMES,
-	Tooltip: ({ hover, config }) => {
+	Tooltip: ({ hover, config, shown, rowsRef }) => {
 		// Why nothing: a controlled index can name a row with no point, and its coordinates would read "NaN".
 		if (hover.points.length === 0) {
 			return null;
@@ -678,8 +678,8 @@ const mapReadout = (labelKey: string | undefined, sizeKey: string | undefined): 
 				<div className="text-strong font-medium">{name}</div>
 				{name !== coordinates && <div className="text-muted tabular-nums">{coordinates}</div>}
 				{size != null && <div className="text-muted tabular-nums">{size}</div>}
-				<div className="mt-1 grid gap-1">
-					{hover.points.map((point) => (
+				<div ref={rowsRef} className="mt-1 grid gap-1">
+					{hover.points.slice(0, shown).map((point) => (
 						<div key={point.dataKey} className="flex items-center gap-1.5">
 							{config?.indicator !== "none" && (
 								<span
@@ -691,6 +691,9 @@ const mapReadout = (labelKey: string | undefined, sizeKey: string | undefined): 
 							<span className="text-muted">{point.label}</span>
 						</div>
 					))}
+					{shown < hover.points.length && (
+						<div className="text-muted">+{hover.points.length - shown} more</div>
+					)}
 				</div>
 				{footer != null && (
 					<div className="text-muted mt-1">

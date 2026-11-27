@@ -465,7 +465,7 @@ LineChart.Root
 └── LineChart.CopyButton
 ```
 
-The interaction layer ships with `Root`, and there is no part to add for it: a crosshair that snaps to the nearest x with an every-series tooltip, keyboard stepping, polite announcements, and a screen-reader description. The screen-reader data table mounts once the chart takes focus. If you remove a part, keyboard access to the data stays. Hover or focus the chart at the top of this page and use the arrow keys: the tooltip reads every series at the active x.
+The interaction layer ships with `Root`, and there is no part to add for it: a crosshair that snaps to the nearest x with a tooltip of the series values, keyboard stepping, polite announcements, and a screen-reader description. The screen-reader data table mounts once the chart takes focus. If you remove a part, keyboard access to the data stays. Hover or focus the chart at the top of this page and use the arrow keys: the tooltip reads the series at the active x, largest first, up to `maxRows`.
 
 Compose `LineChart.Legend` on every multi-series chart. Series identity must never rely on color alone.
 
