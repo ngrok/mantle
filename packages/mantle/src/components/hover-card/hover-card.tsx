@@ -62,7 +62,7 @@ type HoverCardRootProps = {
 	onOpenChange?: (open: boolean) => void;
 	/**
 	 * How long the pointer or focus rests on the trigger before the card opens, in milliseconds.
-	 * @default 700
+	 * @default 300
 	 */
 	openDelay?: number;
 	/**
@@ -108,7 +108,7 @@ function Root({
 	defaultOpen = false,
 	onOpenChange,
 	open: openProp,
-	openDelay = 700,
+	openDelay = 300,
 }: HoverCardRootProps) {
 	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
 	const open = openProp ?? uncontrolledOpen;

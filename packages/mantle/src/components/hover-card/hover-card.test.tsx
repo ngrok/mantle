@@ -29,11 +29,11 @@ describe("HoverCard", () => {
 			return screen.getByRole("link", { name: "@ngrok/mantle" });
 		}
 
-		test("opens 700ms after a hover", () => {
+		test("opens 300ms after a hover", () => {
 			const link = setUp();
 			fireEvent.pointerEnter(link, { pointerType: "mouse" });
 			act(() => {
-				vi.advanceTimersByTime(699);
+				vi.advanceTimersByTime(299);
 			});
 			expect(isOpen()).toBe(false);
 			act(() => {
@@ -46,7 +46,7 @@ describe("HoverCard", () => {
 			const link = setUp();
 			act(() => {
 				link.focus();
-				vi.advanceTimersByTime(700);
+				vi.advanceTimersByTime(300);
 			});
 			fireEvent.pointerEnter(link, { pointerType: "mouse" });
 			fireEvent.pointerLeave(link, { pointerType: "mouse" });
@@ -66,7 +66,7 @@ describe("HoverCard", () => {
 			const link = setUp();
 			act(() => {
 				link.focus();
-				vi.advanceTimersByTime(700);
+				vi.advanceTimersByTime(300);
 			});
 			const card = document.querySelector("[data-slot='hover-card-content']");
 			if (card == null) {
@@ -84,9 +84,9 @@ describe("HoverCard", () => {
 			const link = setUp();
 			fireEvent.pointerEnter(link, { pointerType: "mouse" });
 			act(() => {
-				vi.advanceTimersByTime(550);
+				vi.advanceTimersByTime(200);
 				link.focus();
-				vi.advanceTimersByTime(150);
+				vi.advanceTimersByTime(100);
 			});
 			expect(isOpen()).toBe(true);
 		});
@@ -98,7 +98,7 @@ describe("HoverCard", () => {
 			fireEvent.keyDown(window, { key: "Tab" });
 			act(() => {
 				link.focus();
-				vi.advanceTimersByTime(700);
+				vi.advanceTimersByTime(300);
 			});
 			expect(isOpen()).toBe(true);
 		});
@@ -121,7 +121,7 @@ describe("HoverCard", () => {
 				pointerType: "mouse",
 			});
 			act(() => {
-				vi.advanceTimersByTime(700);
+				vi.advanceTimersByTime(300);
 			});
 			rerender(tree(true));
 			await act(async () => {
@@ -147,7 +147,7 @@ describe("HoverCard", () => {
 				pointerType: "mouse",
 			});
 			act(() => {
-				vi.advanceTimersByTime(700);
+				vi.advanceTimersByTime(300);
 			});
 			expect(screen.getByRole("link", { name: "Docs" })).toHaveAttribute("tabindex", "-1");
 		});
