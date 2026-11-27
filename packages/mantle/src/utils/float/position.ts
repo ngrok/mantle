@@ -540,9 +540,45 @@ function trackFloat({
 	};
 }
 
+/** The edges of a box in viewport coordinates. */
+type Edges = Pick<DOMRect, "top" | "right" | "bottom" | "left">;
+
+/** A pointer position in viewport coordinates. */
+type Point = Pick<PointerEvent, "clientX" | "clientY">;
+
+/** The smallest box that holds both elements. It reads layout once. */
+function boxAround(a: Element, b: Element): Edges {
+	const boxA = a.getBoundingClientRect();
+	const boxB = b.getBoundingClientRect();
+	return {
+		left: Math.min(boxA.left, boxB.left),
+		top: Math.min(boxA.top, boxB.top),
+		right: Math.max(boxA.right, boxB.right),
+		bottom: Math.max(boxA.bottom, boxB.bottom),
+	};
+}
+
+/** Whether the point is inside the box, edges included. */
+function isInBox(point: Point, box: Edges): boolean {
+	return (
+		point.clientX >= box.left &&
+		point.clientX <= box.right &&
+		point.clientY >= box.top &&
+		point.clientY <= box.bottom
+	);
+}
+
+/** Whether the pointer is inside the smallest box that holds both elements. */
+function isInsideBoth(point: Point, a: Element, b: Element): boolean {
+	return isInBox(point, boxAround(a, b));
+}
+
 export {
 	//,
+	boxAround,
 	computePlacement,
+	isInBox,
+	isInsideBoth,
 	trackFloat,
 };
 

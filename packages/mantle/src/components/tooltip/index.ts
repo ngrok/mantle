@@ -37,7 +37,7 @@ export {
  * of an icon button.
  *
  * @siblings
- * - `Popover`: the content is interactive, such as a form or a settings menu.
+ * - `Popover`: the content is interactive, or the trigger only shows the content, such as an info icon that touch users must reach too (`openOnHover`).
  * - `HoverCard`: the content is a rich preview of a link.
  *
  * @see https://mantle.ngrok.com/components/overlays/tooltip

@@ -1,4 +1,6 @@
-import { Button } from "@ngrok/mantle/button";
+import { Anchor } from "@ngrok/mantle/anchor";
+import { Button, IconButton } from "@ngrok/mantle/button";
+import { InfoIcon } from "@phosphor-icons/react/Info";
 import { Input } from "@ngrok/mantle/input";
 import { Popover } from "@ngrok/mantle/popover";
 
@@ -115,6 +117,38 @@ export function ArrowExample() {
 					<p className="text-sm">Products moved up here.</p>
 				</Popover.Content>
 			</Popover.Root>
+		</PreviewCanvas>
+	);
+}
+
+/** The "Open on hover" example on the Popover docs page. */
+export function OpenOnHoverExample() {
+	return (
+		<PreviewCanvas className="min-h-160 gap-2">
+			<p className="flex items-center gap-1 text-sm">
+				Rate limit: 120 requests per minute
+				<Popover.Root>
+					<Popover.Trigger asChild openOnHover>
+						<IconButton
+							type="button"
+							appearance="ghost"
+							intent="neutral"
+							size="xs"
+							icon={<InfoIcon />}
+							label="About rate limits"
+						/>
+					</Popover.Trigger>
+					<Popover.Content preferredWidth="max-w-64">
+						<Popover.Arrow />
+						<p className="text-sm">
+							A request over the limit gets a 429 response.{" "}
+							<Anchor href="https://ngrok.com/docs" target="_top">
+								Learn more
+							</Anchor>
+						</p>
+					</Popover.Content>
+				</Popover.Root>
+			</p>
 		</PreviewCanvas>
 	);
 }

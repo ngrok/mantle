@@ -1,10 +1,11 @@
 "use client";
 
-import type { ComponentProps, MouseEvent, ReactNode, RefObject } from "react";
+import type { ComponentProps, MouseEvent, PointerEvent, ReactNode, RefObject } from "react";
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
+import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -12,6 +13,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { findTabbableDescendants } from "../alert/tabbable-neighbors.js";
 import { FloatArrow, focusFirst } from "../../utils/float/parts.js";
 import type { Align, Side } from "../../utils/float/position.js";
+import { boxAround, isInBox, isInsideBoth } from "../../utils/float/position.js";
 import {
 	floatClassName,
 	hasPopoverApi,
@@ -28,6 +30,9 @@ import {
 } from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
 import type { PopoverDrawer } from "./drawer.js";
+
+/** How long a pointer rests on an `openOnHover` trigger before the popover opens, in milliseconds. */
+const hoverOpenDelay = 300;
 
 /** How a popover can present: next to its anchor, or chosen at each open. */
 type PopoverPresentation = "popover" | "auto";
@@ -64,6 +69,18 @@ function loadDrawer(): void {
 	);
 }
 
+/** A pointer position, from a pointer event. */
+type PointerPoint = Pick<globalThis.PointerEvent, "clientX" | "clientY">;
+
+/** A popover that a hover holds open, and whether its content holds an element. */
+type HoverOpenEntry = { close: () => void; holds: (element: Element) => boolean };
+
+/** The popover that a hover holds open now. A hover open of another popover closes it. */
+let hoverOpenPopover: HoverOpenEntry | undefined;
+
+/** The shown popover content: its element, and how it moves focus into itself. */
+type ShownContent = { element: HTMLElement; focus: () => void };
+
 type PopoverState = {
 	open: boolean;
 	/**
@@ -71,7 +88,8 @@ type PopoverState = {
 	 * popover. It changes only when the popover opens.
 	 */
 	drawer: typeof PopoverDrawer | null;
-	setOpen: (open: boolean) => void;
+	/** Opens or closes the popover. `byHover` marks an open or a close that a hover asked for. */
+	setOpen: (open: boolean, options?: { byHover?: boolean }) => void;
 	contentId: string;
 	/** The trigger's default `id`. It names the content when the content has no name of its own. */
 	triggerId: string;
@@ -83,6 +101,29 @@ type PopoverState = {
 	/** The anchor's ref callback. It tells the open content about a new anchor element. */
 	setAnchor: (element: HTMLElement | null) => void;
 	onAnchorChangeRef: RefObject<(() => void) | null>;
+	/** The pointer reached an `openOnHover` trigger: open after `hoverOpenDelay`. */
+	onHoverEnter: () => void;
+	/** The pointer left an `openOnHover` trigger at `point`. */
+	onTriggerLeave: (point: PointerPoint) => void;
+	/** The pointer left the content at `point`: close a hover open once it leaves the box that holds both. */
+	onHoverLeave: (point: PointerPoint) => void;
+	/** The pointer reached the content: keep a hover open. */
+	onHoverStay: () => void;
+	/**
+	 * Turns a hover open into a press open, which a pointer that leaves does
+	 * not close. Returns `true` when the open was a hover open.
+	 */
+	pin: () => boolean;
+	/** Whether the open came from a hover and nothing pinned it yet. */
+	isHoverOpen: () => boolean;
+	/** The shown content gives its element and the way it moves focus into itself. */
+	showContent: (shown: ShownContent) => void;
+	/** The content with this element hides. */
+	hideContent: (element: HTMLElement) => void;
+	/** The trigger unmounts or stops opening on hover: drop a pending hover open, and close a hover open. */
+	cancelHover: () => void;
+	/** Moves focus into the shown content, as a press open does. */
+	focusContent: () => void;
 };
 
 const PopoverContext = createContext<PopoverState | null>(null);
@@ -191,48 +232,288 @@ function Root({
 	} = useTriggerRef();
 	const contentId = useId();
 	const triggerId = useId();
-	const state = useMemo<PopoverState>(
-		() => ({
+	const openChange = useCallbackRef((next: boolean) => onOpenChange?.(next));
+	const hoverOpenRef = useRef(false);
+	const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+	const stopGrace = useRef<(() => void) | undefined>(undefined);
+	const shownContentRef = useRef<ShownContent | null>(null);
+	const pointerOnTrigger = useRef(false);
+	/** Whether a pointer that stays on the trigger may not hover-open it again. */
+	const hoverSuppressed = useRef(false);
+	const stopSuppress = useRef<(() => void) | undefined>(undefined);
+	const hoverEntry = useRef<HoverOpenEntry | null>(null);
+	// Why a ref: a hover can ask a slow controlled parent to open, and the close
+	// that follows must still reach it before it renders the open.
+	const requestedOpen = useRef(open);
+	// Why an effect: it follows every way the popover opens and closes,
+	// including a controlled parent that closes it.
+	// Why the hover session ends on any close: a later open by a press or by
+	// the parent must not close on a leave or on a neighbor's hover.
+	// Why not when a newer open waits: a pointer that returned before a slow
+	// parent committed the close asked to open again, by hover.
+	useEffect(() => {
+		const newerOpen = !open && requestedOpen.current;
+		requestedOpen.current = open;
+		if (!open && !newerOpen) {
+			hoverOpenRef.current = false;
+			stopGrace.current?.();
+			if (hoverEntry.current != null && hoverOpenPopover === hoverEntry.current) {
+				hoverOpenPopover = undefined;
+			}
+		}
+	}, [open]);
+	useEffect(
+		() => () => {
+			clearTimeout(hoverTimer.current);
+			stopGrace.current?.();
+			stopSuppress.current?.();
+			if (hoverOpenPopover === hoverEntry.current) {
+				hoverOpenPopover = undefined;
+			}
+		},
+		[],
+	);
+	const state = useMemo<PopoverState>(() => {
+		const stopHover = () => {
+			clearTimeout(hoverTimer.current);
+			stopGrace.current?.();
+		};
+		const releaseHoverOwner = () => {
+			if (hoverEntry.current != null && hoverOpenPopover === hoverEntry.current) {
+				hoverOpenPopover = undefined;
+			}
+		};
+		const endHoverOpen = () => {
+			hoverOpenRef.current = false;
+			releaseHoverOwner();
+		};
+		// Why: a close the user asks for, such as Escape, must hold while the
+		// pointer stays on the trigger. The content that covered the trigger sends
+		// a leave as it hides, so the hold ends only once the pointer is off the
+		// trigger's box.
+		const suppressHover = () => {
+			const trigger = triggerRef.current;
+			if (trigger == null || stopSuppress.current != null) {
+				return;
+			}
+			hoverSuppressed.current = true;
+			const document = trigger.ownerDocument;
+			const onMove = (event: globalThis.PointerEvent) => {
+				if (!isInsideBoth(event, trigger, trigger)) {
+					stopSuppress.current?.();
+				}
+			};
+			document.addEventListener("pointermove", onMove);
+			stopSuppress.current = () => {
+				hoverSuppressed.current = false;
+				document.removeEventListener("pointermove", onMove);
+				stopSuppress.current = undefined;
+			};
+		};
+		// Why the hover mark goes up before `onOpenChange`: a parent that commits
+		// the open in that callback shows the content before this call returns.
+		// Why a hover close keeps the mark: a slow parent can commit the earlier
+		// open after it, and that open must not take focus. The commit of the
+		// close clears it.
+		const setOpen: PopoverState["setOpen"] = (next, { byHover = false } = {}) => {
+			stopHover();
+			if (!next && !byHover && (hoverOpenRef.current || pointerOnTrigger.current)) {
+				suppressHover();
+			}
+			if (next && byHover) {
+				hoverOpenRef.current = true;
+			} else if (byHover) {
+				releaseHoverOwner();
+			} else {
+				endHoverOpen();
+			}
+			if (next === open && next === requestedOpen.current) {
+				return;
+			}
+			requestedOpen.current = next;
+			if (openProp === undefined) {
+				setUncontrolledOpen(next);
+			}
+			openChange(next);
+		};
+		const onHoverLeave = (point: PointerPoint) => {
+			stopHover();
+			if (!hoverOpenRef.current) {
+				return;
+			}
+			const trigger = triggerRef.current;
+			const content = shownContentRef.current?.element;
+			// Why the leave point first: a pointer that jumps out in one move
+			// sends no later `pointermove` inside the page to close on.
+			// Why also while not yet open: a slow controlled parent must hear the close.
+			if (!open || trigger == null || content == null) {
+				setOpen(false, { byHover: true });
+				return;
+			}
+			// Why a box and not a deadline: a slow pointer on its way from the
+			// trigger to the content keeps the popover open (WCAG 1.4.13).
+			// Why measure once: a pointer can move more than once a frame, and a
+			// move then reads no layout. A scroll or a resize moves the box.
+			let box = boxAround(trigger, content);
+			if (!isInBox(point, box)) {
+				setOpen(false, { byHover: true });
+				return;
+			}
+			const document = trigger.ownerDocument;
+			const view = document.defaultView ?? window;
+			const measure = () => {
+				box = boxAround(trigger, content);
+			};
+			const onMove = (event: globalThis.PointerEvent) => {
+				if (!isInBox(event, box)) {
+					setOpen(false, { byHover: true });
+				}
+			};
+			document.addEventListener("pointermove", onMove);
+			view.addEventListener("scroll", measure, { capture: true, passive: true });
+			view.addEventListener("resize", measure);
+			stopGrace.current = () => {
+				document.removeEventListener("pointermove", onMove);
+				view.removeEventListener("scroll", measure, { capture: true });
+				view.removeEventListener("resize", measure);
+				stopGrace.current = undefined;
+			};
+		};
+		return {
 			open,
 			drawer: opened.drawer,
-			setOpen: (next) => {
-				if (next === open) {
+			setOpen,
+			contentId,
+			triggerId,
+			triggerRef,
+			setTrigger,
+			onTriggerChangeRef,
+			anchorRef,
+			setAnchor,
+			onAnchorChangeRef,
+			onHoverEnter: () => {
+				pointerOnTrigger.current = true;
+				stopHover();
+				// Why the requested state: a pointer that returns before a slow
+				// parent commits a hover close asks to open again.
+				// Why not for a drawer: a hover must not open a modal that takes focus.
+				if (requestedOpen.current || hoverSuppressed.current || wantsDrawer(presentation)) {
 					return;
 				}
-				if (openProp === undefined) {
-					setUncontrolledOpen(next);
-				}
-				onOpenChange?.(next);
+				hoverTimer.current = setTimeout(() => {
+					const trigger = triggerRef.current;
+					// Why again: a rotated phone can cross `sm`, the trigger can turn
+					// disabled, and another open can come first during the delay.
+					if (
+						requestedOpen.current ||
+						wantsDrawer(presentation) ||
+						trigger == null ||
+						trigger.matches(":disabled, [aria-disabled='true']")
+					) {
+						return;
+					}
+					// Why: a pointer can reach a neighbor trigger inside this one's
+					// grace box. Why not a popover that holds this trigger: closing it
+					// would remove the trigger.
+					if (!hoverOpenPopover?.holds(trigger)) {
+						hoverOpenPopover?.close();
+					}
+					// Why before `onOpenChange`: the callback can unmount this popover,
+					// and its cleanup must find the entry.
+					const entry: HoverOpenEntry = {
+						close: () => setOpen(false, { byHover: true }),
+						holds: (element) => shownContentRef.current?.element.contains(element) ?? false,
+					};
+					hoverOpenPopover = entry;
+					hoverEntry.current = entry;
+					setOpen(true, { byHover: true });
+				}, hoverOpenDelay);
 			},
-			contentId,
-			triggerId,
-			triggerRef,
-			setTrigger,
-			onTriggerChangeRef,
-			anchorRef,
-			setAnchor,
-			onAnchorChangeRef,
-		}),
-		[
-			anchorRef,
-			contentId,
-			onAnchorChangeRef,
-			onOpenChange,
-			onTriggerChangeRef,
-			open,
-			openProp,
-			opened.drawer,
-			setAnchor,
-			setTrigger,
-			triggerId,
-			triggerRef,
-		],
-	);
+			onTriggerLeave: (point) => {
+				pointerOnTrigger.current = false;
+				const trigger = triggerRef.current;
+				if (trigger == null || !isInsideBoth(point, trigger, trigger)) {
+					stopSuppress.current?.();
+				}
+				onHoverLeave(point);
+			},
+			cancelHover: () => {
+				pointerOnTrigger.current = false;
+				clearTimeout(hoverTimer.current);
+				// Why: the trigger's leave never comes once it unmounts or opts out.
+				if (open && hoverOpenRef.current) {
+					setOpen(false, { byHover: true });
+				}
+			},
+			onHoverLeave,
+			onHoverStay: stopHover,
+			pin: () => {
+				stopHover();
+				// Why `open` too: a controlled parent can refuse a hover open, and
+				// the next press must then ask to open.
+				const wasHoverOpen = open && hoverOpenRef.current;
+				endHoverOpen();
+				// Why: a hover close can wait on a slow parent, and the press keeps it open.
+				if (wasHoverOpen && !requestedOpen.current) {
+					setOpen(true);
+				}
+				return wasHoverOpen;
+			},
+			isHoverOpen: () => hoverOpenRef.current,
+			showContent: (shown) => {
+				shownContentRef.current = shown;
+			},
+			// Why only its own: a keyed replacement shows before the old one hides.
+			hideContent: (element) => {
+				if (shownContentRef.current?.element === element) {
+					shownContentRef.current = null;
+				}
+			},
+			focusContent: () => shownContentRef.current?.focus(),
+		};
+	}, [
+		anchorRef,
+		contentId,
+		onAnchorChangeRef,
+		onTriggerChangeRef,
+		open,
+		openChange,
+		openProp,
+		opened.drawer,
+		setAnchor,
+		setTrigger,
+		presentation,
+		triggerId,
+		triggerRef,
+	]);
 	return <PopoverContext.Provider value={state}>{children}</PopoverContext.Provider>;
 }
 
+/** Props for `Popover.Trigger`. */
+type PopoverTriggerProps = ComponentProps<"button"> &
+	WithAsChild &
+	WithDataSlot & {
+		/**
+		 * Also opens the popover when a mouse or pen rests on the trigger. A hover
+		 * open does not move focus, and it closes when the pointer leaves the
+		 * trigger and the content. A press on the trigger, or a press or focus in
+		 * the content, keeps it open and makes it a normal open. A tap, `Enter`,
+		 * and `Space` open it as they do without this prop. Use it for a trigger
+		 * whose only job is to show the content, such as an info icon.
+		 * @default false
+		 */
+		openOnHover?: boolean;
+	};
+
 /**
- * The button that opens and closes the popover.
+ * The button that opens and closes the popover. With `openOnHover`, a mouse
+ * or pen that rests on it also opens the popover, without a focus move.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value               | Description                                                  |
+ * | -------------- | ------------------- | ------------------------------------------------------------ |
+ * | `data-slot`    | `"popover-trigger"` | On the trigger, with any composing part's chain ahead of it. |
  *
  * @see https://mantle.ngrok.com/components/overlays/popover#popovertrigger
  *
@@ -255,12 +536,25 @@ const Trigger = ({
 	children,
 	"data-slot": dataSlot,
 	onClick,
+	onPointerEnter,
+	onPointerLeave,
+	openOnHover = false,
 	ref,
 	...props
-}: ComponentProps<"button"> & WithAsChild & WithDataSlot) => {
+}: PopoverTriggerProps) => {
 	const state = usePopoverState("Trigger");
 	const composedRef = useComposedRefs(ref, state.setTrigger);
 	const Component = asChild ? Slot : "button";
+	// Why the latest handler: an open or close must not run the cleanup.
+	const cancelHover = useCallbackRef(state.cancelHover);
+	// Why an effect: it follows a trigger that unmounts or stops opening on
+	// hover while a hover open waits for its delay or holds the popover.
+	useEffect(() => {
+		if (openOnHover) {
+			return cancelHover;
+		}
+		return undefined;
+	}, [cancelHover, openOnHover]);
 	return (
 		<Component
 			aria-controls={state.open ? state.contentId : undefined}
@@ -272,9 +566,34 @@ const Trigger = ({
 			// Why also under `asChild`: a slotted `<button>` with no type would submit its form.
 			type="button"
 			{...props}
+			onPointerEnter={(event: PointerEvent<HTMLButtonElement>) => {
+				onPointerEnter?.(event);
+				// Why the disabled check: a disabled button still gets pointer events,
+				// and a keyboard user cannot reach what it would open.
+				if (
+					openOnHover &&
+					!event.defaultPrevented &&
+					event.pointerType !== "touch" &&
+					!event.currentTarget.matches(":disabled, [aria-disabled='true']")
+				) {
+					state.onHoverEnter();
+				}
+			}}
+			onPointerLeave={(event: PointerEvent<HTMLButtonElement>) => {
+				onPointerLeave?.(event);
+				if (openOnHover && !event.defaultPrevented && event.pointerType !== "touch") {
+					state.onTriggerLeave(event);
+				}
+			}}
 			onClick={(event: MouseEvent<HTMLButtonElement>) => {
 				onClick?.(event);
 				if (event.defaultPrevented) {
+					return;
+				}
+				// Why a press on a hover open keeps it open: the user asked for the
+				// content, and a toggle would close what they just reached for.
+				if (state.pin()) {
+					state.focusContent();
 					return;
 				}
 				state.setOpen(!state.open);
@@ -288,6 +607,12 @@ const Trigger = ({
 /**
  * An optional element to position `Popover.Content` against. Without it, the
  * content sits next to `Popover.Trigger`.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value              | Description                                                 |
+ * | -------------- | ------------------ | ----------------------------------------------------------- |
+ * | `data-slot`    | `"popover-anchor"` | On the anchor, with any composing part's chain ahead of it. |
  *
  * @see https://mantle.ngrok.com/components/overlays/popover#popoveranchor
  *
@@ -324,6 +649,12 @@ const Anchor = ({
 
 /**
  * A button that closes an open popover.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value             | Description                                                 |
+ * | -------------- | ----------------- | ----------------------------------------------------------- |
+ * | `data-slot`    | `"popover-close"` | On the button, with any composing part's chain ahead of it. |
  *
  * @see https://mantle.ngrok.com/components/overlays/popover#popoverclose
  *
@@ -419,7 +750,11 @@ const FloatContent = ({
 	onInteractOutside,
 	onKeyDown,
 	onOpenAutoFocus,
+	onFocus,
+	onPointerDown,
 	onPointerDownOutside,
+	onPointerEnter,
+	onPointerLeave,
 	preferredWidth = "max-w-72",
 	ref,
 	side = "bottom",
@@ -428,6 +763,8 @@ const FloatContent = ({
 }: PopoverContentProps) => {
 	const state = usePopoverState("Content");
 	const closedFromOutside = useRef(false);
+	// Why the latest handler: a press can move focus in long after a hover open rendered.
+	const openAutoFocus = useCallbackRef((event: Event) => onOpenAutoFocus?.(event));
 	const { portalTarget, floatingRef, reconcile } = useFloat({
 		open: state.open,
 		onDismiss: (reason) => {
@@ -442,7 +779,14 @@ const FloatContent = ({
 		align,
 		sideOffset,
 		onEscapeKeyDown,
-		onFocusOutside,
+		onFocusOutside: (event) => {
+			onFocusOutside?.(event);
+			// Why: focus was never inside a hover open, so a focus move elsewhere
+			// does not dismiss it while the pointer holds it (WCAG 1.4.13).
+			if (state.isHoverOpen()) {
+				event.preventDefault();
+			}
+		},
 		onInteractOutside,
 		onPointerDownOutside,
 		onShow: (floating) => {
@@ -457,13 +801,21 @@ const FloatContent = ({
 			) {
 				floating.setAttribute("aria-labelledby", triggerId);
 			}
-			const event = new Event("mantle.popover.openAutoFocus", { cancelable: true });
-			onOpenAutoFocus?.(event);
-			if (!event.defaultPrevented) {
-				focusFirst(floating);
+			const focusContent = () => {
+				const event = new Event("mantle.popover.openAutoFocus", { cancelable: true });
+				openAutoFocus(event);
+				if (!event.defaultPrevented) {
+					focusFirst(floating);
+				}
+			};
+			state.showContent({ element: floating, focus: focusContent });
+			// Why: a hover must not move focus. A press that pins the open moves it.
+			if (!state.isHoverOpen()) {
+				focusContent();
 			}
 		},
 		onHide: (floating, focusWasInside) => {
+			state.hideContent(floating);
 			const event = new Event("mantle.popover.closeAutoFocus", { cancelable: true });
 			onCloseAutoFocus?.(event);
 			const activeElement = floating.ownerDocument.activeElement;
@@ -510,6 +862,32 @@ const FloatContent = ({
 					event.stopPropagation();
 					onClick?.(event);
 				}}
+				onPointerEnter={(event) => {
+					onPointerEnter?.(event);
+					if (!event.defaultPrevented) {
+						state.onHoverStay();
+					}
+				}}
+				onPointerLeave={(event) => {
+					onPointerLeave?.(event);
+					if (!event.defaultPrevented && event.pointerType !== "touch") {
+						state.onHoverLeave(event);
+					}
+				}}
+				// Why a press or a focus pins a hover open: a pointer that then leaves
+				// must not close a field the user is typing in.
+				onPointerDown={(event) => {
+					onPointerDown?.(event);
+					if (!event.defaultPrevented) {
+						state.pin();
+					}
+				}}
+				onFocus={(event) => {
+					onFocus?.(event);
+					if (!event.defaultPrevented) {
+						state.pin();
+					}
+				}}
 				onKeyDown={(event) => {
 					onKeyDown?.(event);
 					const content = event.currentTarget;
@@ -549,7 +927,9 @@ const FloatContent = ({
  *
  * It closes on Escape, on a press or a focus move outside it and its trigger,
  * and from `Popover.Close`. It moves focus to its first focusable element when it
- * opens, and back to the trigger when it closes. It portals into the overlay or
+ * opens, and back to the trigger when it closes. A hover open
+ * (`Popover.Trigger` `openOnHover`) moves no focus: a press on the trigger
+ * moves it, and `onOpenAutoFocus` runs then. It portals into the overlay or
  * float that holds it, else into `document.body`, and a float composed inside
  * it portals into it.
  *
@@ -635,6 +1015,7 @@ type PopoverArrowProps = Omit<ComponentProps<"svg">, "children" | "width" | "hei
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-float-arrow` | `""` | On the `<span>` around the arrow's `<svg>`. The float moves it to the edge that faces the anchor. |
+ * | `data-slot` | `"popover-arrow"` | On the `<svg>`, with any composing part's chain ahead of it. |
  *
  * @see https://mantle.ngrok.com/components/overlays/popover#popoverarrow
  *

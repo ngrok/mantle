@@ -2678,7 +2678,7 @@
       },
       {
         "name": "Popover",
-        "boundary": "the user opens interactive content on purpose, with a click or a key."
+        "boundary": "the user opens interactive content on purpose, with a click or a key, or an info icon opens it on hover and on a tap (`openOnHover`)."
       }
     ],
     "useWhen": "Preview the content behind a link on hover, such as a user card or a repository preview.",
@@ -3871,7 +3871,9 @@
     ],
     "aliases": [
       "popup",
-      "flyout"
+      "flyout",
+      "toggletip",
+      "infotip"
     ],
     "siblings": [
       {
@@ -3891,8 +3893,14 @@
         "boundary": "the task needs a modal window that blocks the page."
       }
     ],
-    "useWhen": "Show interactive content, such as a small form, a settings menu, or a color picker, that the user opens from a button.",
+    "useWhen": "Show interactive content, such as a small form, a settings menu, or a color picker, that the user opens from a button. With `openOnHover` on the trigger, show help behind an info icon that opens on hover and on a tap (a toggletip).",
     "dataAttributes": [
+      {
+        "part": "Popover.Trigger",
+        "name": "data-slot",
+        "value": "`\"popover-trigger\"`",
+        "description": "On the trigger, with any composing part's chain ahead of it."
+      },
       {
         "part": "Popover.Content",
         "name": "data-slot",
@@ -3948,10 +3956,28 @@
         "description": "Drawer presentation only. On the `<dialog>` positioner. A press on the backdrop targets it."
       },
       {
+        "part": "Popover.Anchor",
+        "name": "data-slot",
+        "value": "`\"popover-anchor\"`",
+        "description": "On the anchor, with any composing part's chain ahead of it."
+      },
+      {
+        "part": "Popover.Close",
+        "name": "data-slot",
+        "value": "`\"popover-close\"`",
+        "description": "On the button, with any composing part's chain ahead of it."
+      },
+      {
         "part": "Popover.Arrow",
         "name": "data-float-arrow",
         "value": "`\"\"`",
         "description": "On the `<span>` around the arrow's `<svg>`. The float moves it to the edge that faces the anchor."
+      },
+      {
+        "part": "Popover.Arrow",
+        "name": "data-slot",
+        "value": "`\"popover-arrow\"`",
+        "description": "On the `<svg>`, with any composing part's chain ahead of it."
       }
     ]
   },
@@ -6406,7 +6432,7 @@
     "siblings": [
       {
         "name": "Popover",
-        "boundary": "the content is interactive, such as a form or a settings menu."
+        "boundary": "the content is interactive, or the trigger only shows the content, such as an info icon that touch users must reach too (`openOnHover`)."
       },
       {
         "name": "HoverCard",
