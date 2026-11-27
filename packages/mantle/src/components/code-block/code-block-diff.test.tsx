@@ -3,6 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as CodeBlock from "./code-block-parts.js";
 import type { CodeBlockDiffLine } from "./code-block-diff.js";
 import { jsonCodeBlockValue } from "./json-highlight.js";
@@ -103,6 +104,80 @@ describe("CodeBlock.Diff", () => {
 		expect(pane("After").querySelector("[data-slot='code-block-diff-spacer']")).not.toBeNull();
 		// Why the exact shape: consumers match a parameter by its keys and drop the numbers.
 		expect(seen.find((line) => line.change === "removed")?.path).toEqual(["messages", 0, "cache"]);
+	});
+
+	test("keeps an expanded run open when the values get new lines with the same code", async () => {
+		const user = userEvent.setup();
+		const lines = Array.from({ length: 12 }, (_, index) => `line ${index}`);
+		const streamed = (code: string) =>
+			createMantleCodeBlockValue({ code, language: "text", lines: code.split("\n") });
+		const fromCode = lines.join("\n");
+		const toCode = lines.with(11, "end").join("\n");
+		const view = render(
+			<CodeBlock.Root>
+				<CodeBlock.Diff from={streamed(fromCode)} to={streamed(toCode)} />
+			</CodeBlock.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Expand 8 unchanged lines" }));
+		view.rerender(
+			<CodeBlock.Root>
+				<CodeBlock.Diff from={streamed(fromCode)} to={streamed(toCode)} />
+			</CodeBlock.Root>,
+		);
+		expect(within(pane("After")).getByText("line 0")).toBeInTheDocument();
+	});
+
+	test("copies the to code from a CopyButton in the same root", async () => {
+		const user = userEvent.setup();
+		render(
+			<CodeBlock.Root>
+				<CodeBlock.CopyButton />
+				<CodeBlock.Diff from={text("old")} to={text("new")} />
+			</CodeBlock.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Copy code" }));
+		expect(await navigator.clipboard.readText()).toBe("new");
+	});
+
+	test("shows the interpolated values of a mantleCode() value", () => {
+		const interpolated = (url: string) =>
+			createMantleCodeBlockValue({
+				code: "fetch(SHIKI_VAL_0)",
+				language: "typescript",
+				preHtml:
+					'<span class="mantle-code-line" data-line-number="1"><span class="mantle-code-line-content"><span class="tf">fetch</span>(SHIKI_VAL_0)</span></span>',
+				preVals: [url],
+			});
+		renderDiff({ from: interpolated("https://a.test"), to: interpolated("https://b.test") });
+		expect(within(pane("Before")).getByText("a")).toBeInTheDocument();
+		expect(pane("After")).toHaveTextContent("fetch(https://b.test)");
+		expect(screen.queryByText(/SHIKI_VAL/)).toBeNull();
+	});
+
+	test("defaults to left to right in a right-to-left page", () => {
+		render(
+			<div dir="rtl">
+				<CodeBlock.Root>
+					<CodeBlock.Diff from={text("a")} to={text("b")} />
+				</CodeBlock.Root>
+			</div>,
+		);
+		expect(pane("Before").parentElement).toHaveAttribute("dir", "ltr");
+	});
+
+	test("swaps a bare-text callout for an element on a translated page", () => {
+		const diff = (callout: ReactNode) => (
+			<CodeBlock.Root>
+				<CodeBlock.Diff from={text("a")} to={text("b")}>
+					{(line) => line.change === "added" && callout}
+				</CodeBlock.Diff>
+			</CodeBlock.Root>
+		);
+		const view = render(diff("Clamped."));
+		translateTextNodes(view.container);
+		view.rerender(diff(<CodeBlock.DiffCallout>Removed.</CodeBlock.DiffCallout>));
+		expect(within(pane("After")).getByText("Removed.")).toBeInTheDocument();
+		expect(within(pane("After")).getByText("b")).toBeInTheDocument();
 	});
 
 	test("does not count a trailing comma as a change in JSON", () => {

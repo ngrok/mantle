@@ -1416,6 +1416,8 @@ export {
 	//,
 	Root,
 	Body,
+	substitutePreVals,
+	substitutePreValsPlainText,
 	TokenView,
 	useCodeBlockContext,
 	Code,

@@ -1,13 +1,19 @@
 "use client";
 
 import type { ComponentProps, ReactNode } from "react";
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
-import { TokenView, useCodeBlockContext } from "./code-block.js";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
+import {
+	substitutePreVals,
+	substitutePreValsPlainText,
+	TokenView,
+	useCodeBlockContext,
+} from "./code-block.js";
 import { jsonLinePaths } from "./json-line-paths.js";
 import type { CodeLine, CodeToken } from "./line-tokenizer.js";
 import type { MantleCodeBlockValue } from "./mantle-code.js";
@@ -51,12 +57,31 @@ function changeOf(kind: "context" | "changed", side: "from" | "to"): CodeBlockDi
 	return side === "from" ? "removed" : "added";
 }
 
-/** The highlighted lines and the JSON paths of one side. */
-function readSide(value: Pick<MantleCodeBlockValue, "code" | "language" | "~preHtml" | "~lines">) {
-	return {
-		lines: readCodeLines(value),
-		paths: value.language === "json" ? jsonLinePaths(value.code) : undefined,
-	};
+/**
+ * The code, the highlighted lines, and the JSON paths of one side. It fills in
+ * the interpolated values of a `mantleCode()` value, as `CodeBlock.Code` does.
+ * Why the fields and not the value: a caller that builds a value in each render
+ * must not read the lines again.
+ */
+function useSide(value: MantleCodeBlockValue) {
+	const {
+		code: rawCode,
+		language,
+		"~preHtml": rawHtml,
+		"~lines": streamed,
+		"~preVals": vals,
+		"~preValToken": token,
+	} = value;
+	return useMemo(() => {
+		const hasVals = vals != null && vals.length > 0;
+		const code = hasVals ? substitutePreValsPlainText(rawCode, vals, token) : rawCode;
+		const html = hasVals && rawHtml != null ? substitutePreVals(rawHtml, vals, token) : rawHtml;
+		return {
+			code,
+			lines: readCodeLines({ code, "~preHtml": html, "~lines": streamed }),
+			paths: language === "json" ? jsonLinePaths(code) : undefined,
+		};
+	}, [language, rawCode, rawHtml, streamed, token, vals]);
 }
 
 /**
@@ -131,7 +156,7 @@ function DiffLine({
 				data-line-number={side.lineNumber}
 			/>
 			{change !== "unchanged" && (
-				<span className="sr-only" translate="yes">
+				<span className="sr-only select-none" translate="yes">
 					{change === "added" ? "Added: " : "Removed: "}
 				</span>
 			)}
@@ -219,6 +244,10 @@ type CodeBlockDiffProps = Omit<ComponentProps<"div">, "children"> &
  * Pass a function child to show a `CodeBlock.DiffCallout` under a line. The
  * other pane keeps a blank row of the same height, so the lines stay aligned.
  *
+ * A `CodeBlock.CopyButton` in the same `CodeBlock.Root` copies the `to` code.
+ * The diff is `dir="ltr"` unless the call site sets `dir`, so code reads left
+ * to right in a right-to-left page.
+ *
  * Why no `asChild`: the part renders its own panes, so there is no single child to clone.
  *
  * Over 1,000 changed lines, the lines between the common start and end show
@@ -233,6 +262,7 @@ type CodeBlockDiffProps = Omit<ComponentProps<"div">, "children"> &
  * | `data-slot` | `"code-block-diff-expand"` | The button that shows a folded run of unchanged lines, in the left pane. |
  * | `data-slot` | `"code-block-diff-expand-row"` | The row of the expand button, in each pane. |
  * | `data-slot` | `"code-block-diff-spacer"` | The blank row in one pane beside a callout in the other. |
+ * | `data-slot` | `"code-block-diff-callout-row"` | The row that holds a callout, under its line. A block element. |
  *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockdiff
  *
@@ -267,45 +297,36 @@ const Diff = ({
 	wrapLines = false,
 	...props
 }: CodeBlockDiffProps) => {
-	useCodeBlockContext();
-	// Why the fields and not the values: a caller that builds a value in each render must not reset the folds.
-	const fromCode = from.code;
-	const toCode = to.code;
-	const fromHtml = from["~preHtml"];
-	const toHtml = to["~preHtml"];
-	const fromLines = from["~lines"];
-	const toLines = to["~lines"];
-	const fromLanguage = from.language;
-	const toLanguage = to.language;
-	const isJson = fromLanguage === "json" && toLanguage === "json";
-	const { rows, sides, mustWrap } = useMemo(
-		() => ({
-			rows: getSplitDiff({
+	const { copyTextRef } = useCodeBlockContext();
+	const fromSide = useSide(from);
+	const toSide = useSide(to);
+	const fromCode = fromSide.code;
+	const toCode = toSide.code;
+	const isJson = from.language === "json" && to.language === "json";
+	// Why only the code: highlighting that streams in or changes must not diff again, nor fold the runs the reader opened.
+	const rows = useMemo(
+		() =>
+			getSplitDiff({
 				left: fromCode,
 				right: toCode,
 				normalize: isJson ? withoutTrailingComma : undefined,
 			}),
-			sides: {
-				from: readSide({
-					code: fromCode,
-					language: fromLanguage,
-					"~preHtml": fromHtml,
-					"~lines": fromLines,
-				}),
-				to: readSide({ code: toCode, language: toLanguage, "~preHtml": toHtml, "~lines": toLines }),
-			},
-			mustWrap: [fromCode, toCode].some((code) =>
-				code.split("\n").some((line) => line.length > MAX_UNWRAPPED_LINE_LENGTH),
-			),
-		}),
-		[fromCode, fromHtml, fromLanguage, fromLines, isJson, toCode, toHtml, toLanguage, toLines],
+		[fromCode, isJson, toCode],
 	);
+	const mustWrap = [fromCode, toCode].some((code) =>
+		code.split("\n").some((line) => line.length > MAX_UNWRAPPED_LINE_LENGTH),
+	);
+	const sides = { from: fromSide, to: toSide };
 	const [expanded, setExpanded] = useState<{ rows: SplitDiffRow[]; runs: ReadonlySet<number> }>({
 		rows,
 		runs: new Set(),
 	});
 	// Why: new code gets new folds, so an expanded run of the old code does not expand a run of the new.
 	const expandedRuns = expanded.rows === rows ? expanded.runs : new Set<number>();
+	// Why the code after the change: `CodeBlock.CopyButton` copies the code that the block shows as current.
+	useIsomorphicLayoutEffect(() => {
+		copyTextRef.current = toCode;
+	}, [copyTextRef, toCode]);
 	const wrap = wrapLines || mustWrap;
 
 	const fromCells: ReactNode[] = [];
@@ -352,11 +373,15 @@ const Diff = ({
 				),
 			);
 			if (callouts[0] != null || callouts[1] != null) {
-				// Why a keyed `Fragment`: the callout comes from the consumer, who cannot know its place in the pane.
 				cells.push(
-					<Fragment key={`${key}:callout`}>
-						{callouts[index] ?? <div aria-hidden="true" data-slot="code-block-diff-spacer" />}
-					</Fragment>,
+					// Why a row element around the callout: the consumer can return bare text, and text beside the line rows breaks once a translation engine moves it.
+					callouts[index] == null ? (
+						<div key={`${key}:callout`} aria-hidden="true" data-slot="code-block-diff-spacer" />
+					) : (
+						<div key={`${key}:callout`} data-slot="code-block-diff-callout-row">
+							{callouts[index]}
+						</div>
+					),
 				);
 			}
 		}
@@ -403,6 +428,11 @@ const Diff = ({
 	}
 
 	const rowCount = fromCells.length;
+	const paneStyle = { gridRow: `span ${rowCount}` };
+	// Why a style write too: a policy that blocks the server's `style` attribute does not block a write from script, and the panes need the span to share rows.
+	const spanRows = (element: HTMLDivElement | null) => {
+		element?.style.setProperty("grid-row", paneStyle.gridRow);
+	};
 	const paneClassName = cx(
 		// Why no container query on the pane: its layout containment turns `subgrid` into `none`, and the panes lose their shared rows.
 		"grid grid-rows-subgrid overflow-x-auto overscroll-x-none scrollbar",
@@ -412,6 +442,8 @@ const Diff = ({
 		<div
 			data-slot={joinDataSlot(dataSlot, "code-block-diff")}
 			className={cx("@container grid grid-cols-2 text-mono", className)}
+			// Why: code reads left to right in a right-to-left page too, as in `CodeBlock.Code`.
+			dir="ltr"
 			{...props}
 		>
 			<div
@@ -420,7 +452,8 @@ const Diff = ({
 				data-slot="code-block-diff-pane"
 				data-side="from"
 				className={paneClassName}
-				style={{ gridRow: `span ${rowCount}` }}
+				style={paneStyle}
+				ref={spanRows}
 			>
 				{fromCells}
 			</div>
@@ -429,8 +462,9 @@ const Diff = ({
 				aria-label={toLabel}
 				data-slot="code-block-diff-pane"
 				data-side="to"
-				className={cx(paneClassName, "border-l border-gray-300")}
-				style={{ gridRow: `span ${rowCount}` }}
+				className={cx(paneClassName, "border-l border-separator")}
+				style={paneStyle}
+				ref={spanRows}
 			>
 				{toCells}
 			</div>

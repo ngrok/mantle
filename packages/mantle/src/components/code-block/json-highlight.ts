@@ -62,7 +62,7 @@ function isStopChar(char: string): boolean {
 /**
  * Parses a JSON string literal beginning at `start` (a `"`), pushing one segment
  * per run: text runs colored as a key (`COLOR_KEY`) or value (`COLOR_STRING`)
- * depending on whether a `:` follows, and each `\\`-escape sequence as its own
+ * depending on whether a `:` follows, and each `\`-escape sequence as its own
  * `COLOR_ESCAPE` run, which mirrors how the TextMate JSON grammar scopes
  * `constant.character.escape`. Returns the index just past the closing quote.
  */
@@ -269,6 +269,9 @@ function jsonToShikiHtml(code: string): string {
 	return lines.map(renderLine).join("\n");
 }
 
+/** The tags of `new Number()`, `new String()`, and `new Boolean()`, which `JSON.stringify` writes as their values. */
+const BOXED_PRIMITIVE_TAGS = new Set(["[object Number]", "[object String]", "[object Boolean]"]);
+
 /**
  * `JSON.stringify` (2-space indent) that never throws: rendering a detail panel
  * must not crash on awkward values. Serializes `BigInt` as its decimal string
@@ -300,7 +303,12 @@ function safeJsonStringify(value: unknown, { sortKeys }: { sortKeys: boolean }):
 						}
 						seen.add(val);
 						// Why code-unit order and not `localeCompare`: the server and the browser can run in different locales, and the hydrated text must match.
-						if (sortKeys && !Array.isArray(val)) {
+						// Why not a boxed primitive: `JSON.stringify` writes `new Number(7)` as `7`, and its entries would make it an object.
+						if (
+							sortKeys &&
+							!Array.isArray(val) &&
+							!BOXED_PRIMITIVE_TAGS.has(Object.prototype.toString.call(val))
+						) {
 							return Object.fromEntries(
 								Object.entries(val).toSorted(([left], [right]) => (left < right ? -1 : 1)),
 							);
@@ -339,7 +347,8 @@ type JsonCodeBlockValueOptions = {
 	foldable?: boolean | undefined;
 	/**
 	 * Whether each object writes its keys in sorted order, by UTF-16 code unit.
-	 * Arrays keep their order. Sort both values of a `CodeBlock.Diff`, so the same
+	 * Arrays keep their order. Keys that are array indexes, such as `"2"` and
+	 * `"10"`, come first in numeric order, as in each JavaScript object. Sort both values of a `CodeBlock.Diff`, so the same
 	 * key sits on the same line of each side and a reorder shows no change.
 	 * Defaults to `false`.
 	 */

@@ -762,7 +762,7 @@ Inside the highlighted HTML, each line is a `.mantle-code-line` with `data-line-
 
 ### CodeBlock.Diff
 
-Two versions of code side by side. Use it in place of `CodeBlock.Body`, inside a `CodeBlock.Root`. Each pane is a `role="group"` named by `fromLabel` or `toLabel`, and it scrolls sideways on its own. Line numbers and signs are drawn by CSS, so a copy holds only the code. A changed line starts with a visually hidden "Removed:" or "Added:" for a screen reader.
+Two versions of code side by side. Use it in place of `CodeBlock.Body`, inside a `CodeBlock.Root`. Each pane is a `role="group"` named by `fromLabel` or `toLabel`, and it scrolls sideways on its own. Line numbers and signs are drawn by CSS, so a copy holds only the code. A changed line starts with a visually hidden "Removed:" or "Added:" for a screen reader. A `CodeBlock.CopyButton` in the same `CodeBlock.Root` copies the `to` code. The diff is `dir="ltr"` unless you set `dir`, so code reads left to right in a right-to-left page.
 
 All props from [standard HTML div attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) except `children`, plus:
 
@@ -777,15 +777,16 @@ All props from [standard HTML div attributes](https://developer.mozilla.org/en-U
 
 `CodeBlockDiffLine` has `side` (`"from"` or `"to"`), `lineNumber`, `change` (`"unchanged"`, `"removed"`, or `"added"`), `text`, and `path`: the path of the JSON value on the line, such as `["messages", 0, "role"]`, for a `json` value.
 
-| Data Attribute     | Value                          | Description                                                              |
-| :----------------- | :----------------------------- | :----------------------------------------------------------------------- |
-| `data-side`        | `"from"` \| `"to"`             | On each `code-block-diff-pane`. The value the pane shows.                |
-| `data-line-number` | a number                       | On each `code-block-diff-line`. The line number that its gutter shows.   |
-| `data-change`      | `"removed"` \| `"added"`       | On a `code-block-diff-line` that changed. Omitted on an unchanged line.  |
-| `data-slot`        | `"code-block-diff-filler"`     | The blank row in place of a line that the other side added or removed.   |
-| `data-slot`        | `"code-block-diff-expand"`     | The button that shows a folded run of unchanged lines, in the left pane. |
-| `data-slot`        | `"code-block-diff-expand-row"` | The row of the expand button, in each pane.                              |
-| `data-slot`        | `"code-block-diff-spacer"`     | The blank row in one pane beside a callout in the other.                 |
+| Data Attribute     | Value                           | Description                                                              |
+| :----------------- | :------------------------------ | :----------------------------------------------------------------------- |
+| `data-side`        | `"from"` \| `"to"`              | On each `code-block-diff-pane`. The value the pane shows.                |
+| `data-line-number` | a number                        | On each `code-block-diff-line`. The line number that its gutter shows.   |
+| `data-change`      | `"removed"` \| `"added"`        | On a `code-block-diff-line` that changed. Omitted on an unchanged line.  |
+| `data-slot`        | `"code-block-diff-filler"`      | The blank row in place of a line that the other side added or removed.   |
+| `data-slot`        | `"code-block-diff-expand"`      | The button that shows a folded run of unchanged lines, in the left pane. |
+| `data-slot`        | `"code-block-diff-expand-row"`  | The row of the expand button, in each pane.                              |
+| `data-slot`        | `"code-block-diff-spacer"`      | The blank row in one pane beside a callout in the other.                 |
+| `data-slot`        | `"code-block-diff-callout-row"` | The row that holds a callout, under its line. A block element.           |
 
 ### CodeBlock.DiffCallout
 
@@ -888,11 +889,11 @@ Builds a `MantleCodeBlockValue` that renders any value as syntax-highlighted JSO
 jsonCodeBlockValue(value: unknown, options?: JsonCodeBlockValueOptions): MantleCodeBlockValue
 ```
 
-| Option             | Type      | Default | Description                                                                                                    |
-| :----------------- | :-------- | :------ | :------------------------------------------------------------------------------------------------------------- |
-| `foldable?`        | `boolean` | `true`  | Give multi-line objects/arrays collapsible fold toggles (the same fold runtime as every other JSON block).     |
-| `showLineNumbers?` | `boolean` | `false` | Render a line-number gutter. Detail panels usually read better without one.                                    |
-| `sortKeys?`        | `boolean` | `false` | Write each object's keys in sorted order. Arrays keep their order. Use it for each side of a `CodeBlock.Diff`. |
+| Option             | Type      | Default | Description                                                                                                                                                     |
+| :----------------- | :-------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `foldable?`        | `boolean` | `true`  | Give multi-line objects/arrays collapsible fold toggles (the same fold runtime as every other JSON block).                                                      |
+| `showLineNumbers?` | `boolean` | `false` | Render a line-number gutter. Detail panels usually read better without one.                                                                                     |
+| `sortKeys?`        | `boolean` | `false` | Write each object's keys in sorted order. Arrays keep their order, and keys like `"2"` come first in numeric order. Use it for each side of a `CodeBlock.Diff`. |
 
 Byte-for-byte parity with server/build-time Shiki output is guaranteed for canonical `JSON.stringify` shapes. This function produces exactly those shapes.
 

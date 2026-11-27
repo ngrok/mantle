@@ -182,7 +182,8 @@ function backtrack({
 
 /** Splits a line into words, whitespace runs, and single punctuation marks. */
 function tokenizeWords(line: string): string[] {
-	return line.match(/\s+|\w+|[^\w\s]/g) ?? [];
+	// Why `u`: a character outside the Basic Multilingual Plane, such as an emoji, stays one token.
+	return line.match(/\s+|\w+|[^\w\s]/gu) ?? [];
 }
 
 /** Joins neighbor runs with the same mark and gives each run its offset in the line. */

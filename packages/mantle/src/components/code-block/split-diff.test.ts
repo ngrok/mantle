@@ -77,6 +77,13 @@ describe("getSplitDiff", () => {
 });
 
 describe("diffWords", () => {
+	test("keeps an emoji in one token", () => {
+		expect(diffWords("a 😀", "a 😁").left).toEqual([
+			{ text: "a ", changed: false, start: 0 },
+			{ text: "😀", changed: true, start: 2 },
+		]);
+	});
+
 	test("marks each whole line past the word-edit limit", () => {
 		const left = Array.from({ length: 300 }, (_, index) => `a${index}`).join(" ");
 		const right = Array.from({ length: 300 }, (_, index) => `b${index}`).join(" ");

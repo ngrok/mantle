@@ -134,3 +134,9 @@ describe("JSON fold parity", () => {
 		},
 	);
 });
+
+test("sortKeys keeps a boxed primitive as its value", () => {
+	// oxlint-disable-next-line unicorn/new-for-builtins, no-new-wrappers -- Why: the boxed value is the input under test.
+	const value = { b: new Number(7), a: new String("ok") };
+	expect(jsonCodeBlockValue(value, { sortKeys: true }).code).toBe('{\n  "a": "ok",\n  "b": 7\n}');
+});
