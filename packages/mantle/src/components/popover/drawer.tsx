@@ -45,17 +45,20 @@ const PopoverDrawer = ({
 	// Why the trigger names the drawer: as in the popover, the trigger says
 	// what opens. Why a ref that changes with `open`: it runs on each open, and
 	// on a new `<dialog>` that an enclosing dialog renders while open. Why its
-	// rendered `id`, after the commit: a consumer can set one, and the trigger
-	// can render after the content.
+	// text, after the commit, and not its `id`: the modal makes the trigger
+	// inert, and Chromium drops an `aria-labelledby` that points at it.
 	const name = useCallback(
 		(body: HTMLDivElement | null) => {
 			if (!open || body == null || label != null || labelledBy != null) {
 				return;
 			}
 			queueMicrotask(() => {
-				const triggerId = triggerRef.current?.id;
-				if (triggerId) {
-					body.closest("dialog")?.setAttribute("aria-labelledby", triggerId);
+				const trigger = triggerRef.current;
+				const text = trigger?.getAttribute("aria-label") || trigger?.textContent?.trim();
+				const dialog = body.closest("dialog");
+				if (text && dialog) {
+					dialog.removeAttribute("aria-labelledby");
+					dialog.setAttribute("aria-label", text);
 				}
 			});
 		},

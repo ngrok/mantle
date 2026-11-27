@@ -15,8 +15,7 @@ import * as Popover from "./popover-parts.js";
 function Reminder() {
 	return (
 		<Popover.Root presentation="auto">
-			{/* Why an `id`: the drawer takes its name from the trigger's rendered `id`. */}
-			<Popover.Trigger id="add-reminder">Add reminder</Popover.Trigger>
+			<Popover.Trigger>Add reminder</Popover.Trigger>
 			<Popover.Content>
 				<label>
 					Remind me to <input defaultValue="Send the Q3 roadmap" />
@@ -182,6 +181,92 @@ describe.runIf(server.browser === "chromium")('Popover presentation="auto"', () 
 
 		const drawer = await screen.findByRole("dialog", { name: "Schedule" });
 		expect(drawer.matches(":modal")).toBe(true);
+		expect(await commands.accessibleDialogNames()).toContain("Schedule");
+	});
+
+	test("does not open over a modal from a non-modal dialog that opened after it", async () => {
+		await page.viewport(390, 844);
+		await commands.emulateMedia({ hover: "none" });
+		const user = userEvent.setup();
+		function Page() {
+			const [remind, setRemind] = useState(false);
+			const [payment, setPayment] = useState(false);
+			return (
+				<>
+					<Dialog.Root open>
+						<Dialog.Content aria-label="Active task">
+							<button type="button" onClick={() => setPayment(true)}>
+								Pay
+							</button>
+							<button type="button" onClick={() => setRemind(true)}>
+								Remind me
+							</button>
+						</Dialog.Content>
+					</Dialog.Root>
+					<Dialog.Root open={payment} modal={false}>
+						<Dialog.Content
+							aria-label="Payment"
+							onPointerDownOutside={(event) => event.preventDefault()}
+						>
+							<Popover.Root presentation="auto" open={remind} onOpenChange={setRemind}>
+								<Popover.Trigger>Schedule</Popover.Trigger>
+								<Popover.Content>Reminder</Popover.Content>
+							</Popover.Root>
+						</Dialog.Content>
+					</Dialog.Root>
+				</>
+			);
+		}
+		const { unmount } = render(<Reminder />);
+		// Why: an open presents a drawer only once the module loaded.
+		await openDrawer(user);
+		unmount();
+		render(<Page />);
+		const task = screen.getByRole("dialog", { name: "Active task" });
+
+		await user.click(screen.getByRole("button", { name: "Pay" }));
+		await screen.findByRole("dialog", { name: "Payment" });
+		await user.click(screen.getByRole("button", { name: "Remind me" }));
+
+		expect(document.querySelectorAll("dialog:modal")).toHaveLength(1);
+		expect(task.contains(document.activeElement)).toBe(true);
+	});
+
+	test("shows a dialog that opens from a drawer of the bar", async () => {
+		await page.viewport(390, 844);
+		await commands.emulateMedia({ hover: "none" });
+		const user = userEvent.setup();
+		render(
+			<Sandbar.Root open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Dialog.Root>
+					<Reminder />
+					<Popover.Root presentation="auto">
+						<Popover.Trigger>Review</Popover.Trigger>
+						<Popover.Content>
+							<Dialog.Trigger>Commit</Dialog.Trigger>
+						</Popover.Content>
+					</Popover.Root>
+					<Dialog.Content forceMount aria-label="Commit edits">
+						<Dialog.Close>Apply</Dialog.Close>
+					</Dialog.Content>
+				</Dialog.Root>
+			</Sandbar.Root>,
+		);
+		await openDrawer(user);
+		await user.click(screen.getByRole("button", { name: "Add reminder" }));
+		await waitFor(() => expect(document.querySelector("dialog:modal")).toBeNull());
+
+		await user.click(screen.getByRole("button", { name: "Review" }));
+		await waitFor(() =>
+			expect(screen.queryByRole("group", { name: "You have unsaved changes" })).toBeNull(),
+		);
+		await user.click(screen.getByRole("button", { name: "Commit" }));
+		const apply = await screen.findByRole("button", { name: "Apply" });
+
+		await waitFor(() => expect(apply.getBoundingClientRect().width).toBeGreaterThan(0));
+		apply.focus();
+		expect(document.activeElement).toBe(apply);
 	});
 
 	test("does not open over a modal that covers its trigger", async () => {

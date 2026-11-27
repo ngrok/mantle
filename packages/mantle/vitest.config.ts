@@ -94,6 +94,20 @@ const emulateMedia: BrowserCommand<[options: EmulatedMedia]> = async (context, o
 	await frame.waitForFunction((list) => list.every((query) => matchMedia(query).matches), queries);
 };
 
+// Why a command: Chromium can drop a name that the DOM computes, such as an
+// `aria-labelledby` to an inert element, and only its accessibility tree shows it.
+const accessibleDialogNames: BrowserCommand = async (context) => {
+	const frame = await context.frame();
+	const session = await context.page.context().newCDPSession(context.page);
+	const { frameTree } = await session.send("Page.getFrameTree");
+	const frameId = frameTree.childFrames?.find((child) => child.frame.url === frame.url())?.frame.id;
+	const { nodes } = await session.send("Accessibility.getFullAXTree", { frameId });
+	await session.detach();
+	return nodes
+		.filter((node) => !node.ignored && node.role?.value === "dialog")
+		.map((node) => String(node.name?.value ?? ""));
+};
+
 /**
  * The `@custom-variant` rules of `mantle.css`, which sit in one run before its
  * base layer. Without them, Tailwind compiles a class such as
@@ -352,7 +366,7 @@ export default defineConfig({
 									}
 								: {}),
 						})),
-						commands: { emulateMedia, tailwindCss },
+						commands: { accessibleDialogNames, emulateMedia, tailwindCss },
 					},
 				},
 			},

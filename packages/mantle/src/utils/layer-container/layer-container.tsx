@@ -197,8 +197,8 @@ function useIsCoveredByOverlay(
 }
 
 /**
- * Whether the top open overlay covers `floatContainer` now, for a layer that
- * decides at open whether to open as a modal of its own. An overlay that
+ * Whether the top open modal overlay covers `floatContainer` now, for a layer
+ * that decides at open whether to open as a modal of its own. An overlay that
  * plays its exit does not count: the overlay under it is on top.
  *
  * @example
@@ -208,7 +208,10 @@ function useIsCoveredByOverlay(
  * ```
  */
 function isCoveredByOverlay(floatContainer: Element | DocumentFragment | null): boolean {
-	const topOverlay = openOverlays.findLast(({ container }) => container.hasAttribute("data-open"));
+	// Why `:modal`: a non-modal dialog paints under a modal one that opened first.
+	const topOverlay = openOverlays.findLast(
+		({ container }) => container.hasAttribute("data-open") && container.matches(":modal"),
+	);
 	return topOverlay != null && coversFloat(topOverlay, floatContainer);
 }
 

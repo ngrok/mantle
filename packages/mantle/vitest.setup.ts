@@ -22,6 +22,11 @@ declare module "vitest" {
 declare module "vitest/browser" {
 	interface BrowserCommands {
 		/**
+		 * The names that Chromium's accessibility tree gives the dialogs in the
+		 * test frame. Chromium only; the config registers the command.
+		 */
+		accessibleDialogNames: () => Promise<string[]>;
+		/**
 		 * Sets the page's emulated media features through Playwright. A feature
 		 * left out keeps its current emulation. Browser project only; the config
 		 * registers the command.

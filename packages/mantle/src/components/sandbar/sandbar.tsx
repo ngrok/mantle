@@ -668,8 +668,9 @@ const Root = ({
 						"transition-[opacity,translate,visibility,content-visibility] transition-discrete duration-200 ease-out-strong",
 						"not-data-open:pointer-events-none not-data-open:opacity-0 not-data-open:duration-150 motion-safe:not-data-open:translate-y-[calc(100%+2.5rem)]",
 						// Why the parent rules: a drawer that opens from a popover in the bar
-						// portals beside the panel, and the bar cannot move into it.
-						"[:has(>[data-slot=drawer-positioner][data-open])>&]:invisible [:has(>[data-slot=drawer-positioner][data-open])>&]:[content-visibility:hidden] [:has(>[data-slot=drawer-positioner][data-open])>&]:opacity-0 [:has(>[data-slot=drawer-positioner][data-open])>&]:duration-150 motion-safe:[:has(>[data-slot=drawer-positioner][data-open])>&]:translate-y-[calc(100%+2.5rem)]",
+						// portals beside the panel, and the bar cannot move into it. Why not
+						// with an open dialog inside: `content-visibility` would hide it too.
+						"[:has(>[data-slot=drawer-positioner][data-open])>&:not(:has(dialog[open]))]:invisible [:has(>[data-slot=drawer-positioner][data-open])>&:not(:has(dialog[open]))]:[content-visibility:hidden] [:has(>[data-slot=drawer-positioner][data-open])>&:not(:has(dialog[open]))]:opacity-0 [:has(>[data-slot=drawer-positioner][data-open])>&:not(:has(dialog[open]))]:duration-150 motion-safe:[:has(>[data-slot=drawer-positioner][data-open])>&:not(:has(dialog[open]))]:translate-y-[calc(100%+2.5rem)]",
 						className,
 					)}
 					{...props}
