@@ -24,6 +24,7 @@ This monorepo is managed with pnpm workspaces, [Turborepo](https://turbo.build/)
 | [`@ngrok/mantle`](./packages/mantle)                                                     | UI component library (React, Tailwind)                                               | [npm](https://www.npmjs.com/package/@ngrok/mantle)                           |
 | [`@ngrok/mantle-vite-plugins`](./packages/mantle-vite-plugins)                           | Vite plugins: trim the production Tailwind scan, highlight code blocks at build time | [npm](https://www.npmjs.com/package/@ngrok/mantle-vite-plugins)              |
 | [`@ngrok/mantle-server-syntax-highlighter`](./packages/mantle-server-syntax-highlighter) | Server-side syntax highlighting engine powered by Shiki                              | [npm](https://www.npmjs.com/package/@ngrok/mantle-server-syntax-highlighter) |
+| [`@ngrok/oxlint-plugin`](./packages/oxlint-plugin)                                       | oxlint rules for the JSX shapes that crash a translated page                         | [npm](https://www.npmjs.com/package/@ngrok/oxlint-plugin)                    |
 
 ## Local Development
 

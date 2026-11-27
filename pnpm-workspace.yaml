@@ -48,6 +48,7 @@ catalog:
   "oxc-parser": "0.160.0"
   "oxc-transform-react": "0.158.0"
   "oxfmt": "0.80.0"
+  "oxlint": "1.95.0"
   "playwright-core": "1.65.1"
   "playwright": "1.65.1"
   "react-dom": "19.3.1"

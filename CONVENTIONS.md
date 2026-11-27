@@ -4,7 +4,7 @@ The code and prose rules for every file in the monorepo. Read this file in full 
 
 Task-scoped rules live in their own files, and [AGENTS.md](./AGENTS.md) says which task reads which: [COMPONENT_SPEC.md](./COMPONENT_SPEC.md) for components, [docs/testing.md](./docs/testing.md) for tests, [docs/browser-translation.md](./docs/browser-translation.md), and [docs/framework-boundary.md](./docs/framework-boundary.md).
 
-A rule tagged `(lint: name)` has an oxlint check, and the lint message says why and how to fix it. Custom rules are `mantle/<name>` in [scripts/oxlint-plugin-mantle.js](./scripts/oxlint-plugin-mantle.js). An untagged rule has no check, so you and the reviewer enforce it.
+A rule tagged `(lint: name)` has an oxlint check, and the lint message says why and how to fix it. Custom rules are `mantle/<name>` in [scripts/oxlint-plugin-mantle.js](./scripts/oxlint-plugin-mantle.js) or `ngrok/<name>` in `packages/oxlint-plugin`. An untagged rule has no check, so you and the reviewer enforce it.
 
 ## Files & Modules
 

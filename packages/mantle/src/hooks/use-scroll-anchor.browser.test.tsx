@@ -53,7 +53,9 @@ function Content({
 			{paragraphs.slice(0, count).map((text) => (
 				<p key={text}>
 					{inline === "both" && <strong>Note: </strong>}
+					{/* oxlint-disable-next-line ngrok/jsx-no-conditional-before-text -- Why: the fixture measures scroll anchoring, and no test translates it. */}
 					{text}
+					{/* oxlint-disable-next-line ngrok/jsx-no-conditional-text-with-siblings -- Why: the fixture measures scroll anchoring, and no test translates it. */}
 					{inline != null && (
 						<>
 							{` ${text} ${text}`} <strong>Done.</strong>

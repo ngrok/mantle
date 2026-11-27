@@ -630,7 +630,10 @@ Use it in keyboard shortcut hints and `Command.Shortcut` labels so each platform
 ```tsx
 import { MetaKey } from "@ngrok/mantle/command";
 
-<kbd className="bg-muted text-muted inline-flex h-5 items-center gap-1 rounded border border-card-muted px-1.5 font-mono text-[10px] font-medium">
+<kbd
+	translate="no"
+	className="bg-muted text-muted inline-flex h-5 items-center gap-1 rounded border border-card-muted px-1.5 font-mono text-[10px] font-medium"
+>
 	<MetaKey /> K
 </kbd>;
 ```

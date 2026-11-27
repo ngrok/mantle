@@ -28,13 +28,13 @@ export function ErrorPage({ status }: ErrorPageProps) {
 				<h1 className="font-medium text-strong max-w-xl text-5xl leading-none md:text-6xl">
 					{isNotFound ? (
 						<>
-							We haven’t shrimped that page yet.{" "}
+							<span>We haven’t shrimped that page yet.</span>{" "}
 							<span aria-hidden="true" className="text-[0.75em]">
 								🦐
 							</span>
 						</>
 					) : (
-						"We couldn’t load this page."
+						<span>We couldn’t load this page.</span>
 					)}
 				</h1>
 				<Button asChild intent="neutral" appearance="filled">

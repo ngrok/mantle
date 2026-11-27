@@ -34,7 +34,7 @@
     "prepare": "husky",
     "changeset": "changeset",
     "changeset:version": "changeset version && node ./scripts/stamp-migrations.ts",
-    "changeset:publish": "turbo run build --filter=@ngrok/mantle --filter=@ngrok/mantle-vite-plugins --filter=@ngrok/mantle-server-syntax-highlighter && changeset publish",
+    "changeset:publish": "turbo run build --filter=@ngrok/mantle --filter=@ngrok/mantle-vite-plugins --filter=@ngrok/mantle-server-syntax-highlighter --filter=@ngrok/oxlint-plugin && changeset publish",
     "migrate": "node ./scripts/migrate.ts"
   },
   "devDependencies": {
@@ -48,7 +48,7 @@
     "lint-staged": "17.6.2",
     "oxc-parser": "catalog:",
     "oxfmt": "catalog:",
-    "oxlint": "1.95.0",
+    "oxlint": "catalog:",
     "oxlint-tsgolint": "7.0.2008",
     "tsrs": "7.1.0-beta.tsrs5",
     "turbo": "2.11.13",

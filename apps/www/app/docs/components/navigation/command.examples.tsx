@@ -65,7 +65,10 @@ export function ButtonTriggerExample() {
 export function MetakeyExample() {
 	return (
 		<PreviewCanvas>
-			<kbd className="bg-muted text-muted inline-flex h-5 items-center gap-1 rounded border border-card-muted px-1.5 font-mono text-[10px] font-medium">
+			<kbd
+				translate="no"
+				className="bg-muted text-muted inline-flex h-5 items-center gap-1 rounded border border-card-muted px-1.5 font-mono text-[10px] font-medium"
+			>
 				<MetaKey /> K
 			</kbd>
 		</PreviewCanvas>

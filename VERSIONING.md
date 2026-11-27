@@ -59,11 +59,12 @@ describes what a consumer has to do about it, and the answer for an additive cha
 
 ## Which packages get a changeset
 
-Only the three published packages:
+Only the four published packages:
 
 - `@ngrok/mantle`
 - `@ngrok/mantle-vite-plugins`
 - `@ngrok/mantle-server-syntax-highlighter`
+- `@ngrok/oxlint-plugin`
 
 `@app/*` and `@cfg/*` are private and sit in the `ignore` list in `.changeset/config.json`. A docs-site-only
 change needs no changeset at all. When one PR touches two published packages, write one changeset per

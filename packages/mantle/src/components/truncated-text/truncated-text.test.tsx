@@ -655,7 +655,7 @@ describe("TruncatedText", () => {
 			rerender(
 				<TooltipProvider>
 					<TruncatedText asChild data-testid="value" value={url}>
-						<kbd />
+						<kbd translate="no" />
 					</TruncatedText>
 				</TooltipProvider>,
 			);

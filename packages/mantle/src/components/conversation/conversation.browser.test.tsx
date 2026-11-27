@@ -48,6 +48,7 @@ function Transcript({
 							{index === turns.length - 1 && actions}
 						</Message.Root>
 					))}
+					{/* oxlint-disable-next-line ngrok/jsx-no-conditional-before-text -- Why: the fixture measures scrolling, and no test translates it. */}
 					{children}
 				</Conversation.Content>
 			</Conversation.Viewport>

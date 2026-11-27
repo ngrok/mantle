@@ -366,7 +366,7 @@ describe("Sidebar.Nav (desktop)", () => {
 		render(
 			<Sidebar.Root>
 				<Sidebar.Nav />
-				<Sidebar.Trigger shortcut={<kbd>B</kbd>} />
+				<Sidebar.Trigger shortcut={<kbd translate="no">B</kbd>} />
 			</Sidebar.Root>,
 		);
 
@@ -387,7 +387,10 @@ describe("Sidebar.Nav (desktop)", () => {
 		render(
 			<Sidebar.Root>
 				<Sidebar.Nav />
-				<Sidebar.Trigger shortcut={<kbd>B</kbd>} />
+				<Sidebar.Trigger
+					// oxlint-disable-next-line ngrok/jsx-require-translate-no -- Why: the test asserts that the part marks a raw `<kbd>` untranslatable.
+					shortcut={<kbd>B</kbd>}
+				/>
 			</Sidebar.Root>,
 		);
 
@@ -405,7 +408,7 @@ describe("Sidebar.Nav (desktop)", () => {
 		render(
 			<Sidebar.Root keyboardShortcut={false}>
 				<Sidebar.Nav />
-				<Sidebar.Trigger shortcut={<kbd>B</kbd>} />
+				<Sidebar.Trigger shortcut={<kbd translate="no">B</kbd>} />
 			</Sidebar.Root>,
 		);
 
@@ -436,7 +439,7 @@ describe("Sidebar.Nav (desktop)", () => {
 		// element. An early return for a null `shortcut` flipped this component's
 		// root from a text node to an element, and React deleted the translated
 		// label instead.
-		rerender(<Page shortcut={<kbd>B</kbd>} />);
+		rerender(<Page shortcut={<kbd translate="no">B</kbd>} />);
 
 		expect(tooltip).toHaveTextContent("[Toggle Sidebar-es]");
 		expect(tooltip.querySelector('[data-slot="sidebar-tooltip-shortcut"]')).toHaveTextContent("B");
@@ -1455,7 +1458,7 @@ describe("Sidebar.SearchTrigger", () => {
 		// The chord is announced by the `aria-keyshortcuts` that
 		// `Command.SearchTrigger` adds, so the visible chips must not repeat it.
 		render(
-			<Sidebar.SearchTrigger shortcut={<kbd>K</kbd>}>
+			<Sidebar.SearchTrigger shortcut={<kbd translate="no">K</kbd>}>
 				<MagnifyingGlassIcon />
 				<span>Search</span>
 			</Sidebar.SearchTrigger>,
@@ -1470,7 +1473,10 @@ describe("Sidebar.SearchTrigger", () => {
 		// A raw `<kbd>` carries no `translate` of its own, so a translated chord
 		// names the wrong key.
 		render(
-			<Sidebar.SearchTrigger shortcut={<kbd>K</kbd>}>
+			<Sidebar.SearchTrigger
+				// oxlint-disable-next-line ngrok/jsx-require-translate-no -- Why: the test asserts that the part marks a raw `<kbd>` untranslatable.
+				shortcut={<kbd>K</kbd>}
+			>
 				<MagnifyingGlassIcon />
 				<span>Search</span>
 			</Sidebar.SearchTrigger>,
@@ -1565,7 +1571,7 @@ describe("Sidebar.SearchTrigger", () => {
 		translateTextNodes(button);
 		expect(button).toHaveTextContent("[Search-es]");
 
-		rerender(<Row shortcut={<kbd>K</kbd>} />);
+		rerender(<Row shortcut={<kbd translate="no">K</kbd>} />);
 
 		expect(button).toHaveTextContent("[Search-es]");
 		expect(button.querySelector('[data-slot="sidebar-search-trigger-shortcut"]')).toHaveTextContent(
@@ -1585,7 +1591,7 @@ describe("Sidebar.SearchTrigger", () => {
 				<Sidebar.Root defaultOpen={false}>
 					<Sidebar.Nav>
 						<Command.DialogRoot keyboardShortcut={false}>
-							<Sidebar.Tooltip label="Search" shortcut={<kbd>K</kbd>}>
+							<Sidebar.Tooltip label="Search" shortcut={<kbd translate="no">K</kbd>}>
 								<Command.SearchTrigger>
 									<Sidebar.SearchTrigger>
 										<MagnifyingGlassIcon />
@@ -1780,7 +1786,7 @@ describe("Sidebar.Tooltip", () => {
 				<TooltipProvider>
 					<Sidebar.Root defaultOpen={false}>
 						<Sidebar.Nav>
-							<Sidebar.Tooltip label={label} shortcut={<kbd>E</kbd>}>
+							<Sidebar.Tooltip label={label} shortcut={<kbd translate="no">E</kbd>}>
 								<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
 							</Sidebar.Tooltip>
 						</Sidebar.Nav>
