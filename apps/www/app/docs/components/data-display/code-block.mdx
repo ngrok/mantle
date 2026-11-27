@@ -740,7 +740,7 @@ After a copy, the button gets `data-copied` for two seconds, and its icon change
 
 ### CodeBlock.ExpanderButton
 
-The (optional) expander button of the `CodeBlock`. Render this as a child of the `CodeBlock.Root` to allow users to expand/collapse the code block contents. It carries `aria-expanded` and `aria-controls` that points at the `<pre>`. It does not take `asChild`: it renders its own label and caret, so style it with `className`.
+The (optional) expander button of the `CodeBlock`. Render this as a child of the `CodeBlock.Root` to allow users to expand/collapse the code block contents. The server HTML paints the code collapsed, so the page does not shift when it hydrates. It carries `aria-expanded` and `aria-controls` that points at the `<pre>`. It does not take `asChild`: it renders its own label and caret, so style it with `className`.
 
 All props from [standard HTML button attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes) except `children`, `aria-controls`, and `aria-expanded`.
 
