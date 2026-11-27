@@ -11,6 +11,7 @@ Build small parts that compose, and build them first. A prop sets the common cas
 - A prop that forwards props to an internal element: `contentProps`, `triggerProps`, or `slotProps`.
 - A part that renders rows, an empty state, or a footer from a data prop.
 - A boolean prop that shows or hides an internal element. That element is a part.
+- A prop on `Root` for one thing inside it, such as `emptySlotLabel` on `BarChart.Root` (#1978). That thing is a part, even a part that renders nothing ([COMPONENT_SPEC.md §1.12](../../COMPONENT_SPEC.md#112-sketch-the-api-then-wait)).
 - A new component that copies the markup of a component that exists, when it can render that component.
 - A hook or a function that does two jobs, so no caller can use one job alone.
 - A prop for a job that `asChild` or `children` already does.

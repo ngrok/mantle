@@ -22,6 +22,7 @@ Work [§1](../../COMPONENT_SPEC.md#1-before-you-scaffold) with the user and rais
 3. **Compose, do not configure ([§1.5](../../COMPONENT_SPEC.md#15-composition-vs-data-driven)).** If the component shows a collection, its rows, empty state, and footer are parts in the tree. Rows from a data prop come from a function child; rows the consumer authors stay direct children (`List`, `Table`). Never plan an `items`, `options`, or `rows` prop that renders. A data prop is allowed only to feed behavior over unmounted items (filtering, counts). `Query` broke this in #1622 and needed #1633 to fix it.
 4. Check the rest of §1: one intent (§1.1), smallest surface (§1.2), `Root` and DOM-named parts (§1.3), no borrowed ARIA words (§1.4), unions over flags (§1.6), no forbidden shapes (§1.7).
 5. Any part that renders an icon, indicator, or caret beside its `children` ships a label slot, which is public API from the first release ([§3.8](../../COMPONENT_SPEC.md#38-browser-translation)).
+6. Post the API sketch ([§1.12](../../COMPONENT_SPEC.md#112-sketch-the-api-then-wait)) with the tree, and wait for Cody's approval before step 2.
 
 A wrapped third-party primitive: add it pinned first, `pnpm -w add -E <package> -F @ngrok/mantle` (catalog first if shared; check `git diff package.json` for a stray root dep).
 

@@ -24,16 +24,15 @@ Read the files for your task before the first edit. Work is incomplete until you
 
 - **Any code change:** [CONVENTIONS.md](./CONVENTIONS.md) in full: the code and prose rules for every file.
 - **Component source** under `packages/mantle/src/components/`, or its docs page, tests, or wiring: [COMPONENT_SPEC.md](./COMPONENT_SPEC.md), then work its [review checklist](./COMPONENT_SPEC.md#11-review-checklist). Load the `browser-translation-hazards` skill. `/scaffold-component`, `/audit-component`, and `/promote-preview-component` implement the spec.
-- **Hooks, utilities, and other public API:** the [Philosophy page](./apps/www/app/docs/philosophy.mdx) for the rationale. Its JSDoc feeds `llms.txt`, so follow [CONVENTIONS.md § JSDoc](./CONVENTIONS.md#jsdoc).
+- **Hooks, utilities, and other public API:** its JSDoc feeds `llms.txt`, so follow [CONVENTIONS.md § JSDoc](./CONVENTIONS.md#jsdoc).
 - **An import in `packages/mantle/src`, or a part that reads router state:** [docs/framework-boundary.md](./docs/framework-boundary.md).
 - **JSX that renders text beside an element:** [docs/browser-translation.md](./docs/browser-translation.md).
 - **Any animation or transition:** [docs/motion.md](./docs/motion.md). Load the `motion` skill.
-- **A performance change or claim:** [explain the number](./docs/principles/explain-the-number.md) and [COMPONENT_SPEC.md §3.9](./COMPONENT_SPEC.md#39-performance). Measure the base and the branch alike.
+- **A performance change or claim:** [explain the number](./docs/principles/explain-the-number.md) and [COMPONENT_SPEC.md §3.9](./COMPONENT_SPEC.md#39-performance).
 - **Tests:** [docs/testing.md](./docs/testing.md).
 - **Docs site and recipes** under `apps/www`: [COMPONENT_SPEC.md §7](./COMPONENT_SPEC.md#7-the-docs-page) and the `ngrok-style` skill. The recipe-fence tests pin each recipe file.
 - **Changesets and releases:** [VERSIONING.md](./VERSIONING.md) decides the bump. Mantle is `0.x`: a breaking change is a `minor`, an additive change is a `patch`, and `major` is never correct. Never correct a bump that a maintainer set by hand.
 - **Breaking changes and migrations:** the `write-migration` skill. `/scaffold-migration` lays down the guide and the codemod.
-- **Renames across many files:** the `ast-grep` skill.
 - **Dependencies:** [CONVENTIONS.md § Package Management](./CONVENTIONS.md#package-management) and `pnpm-workspace.yaml`.
 - **A change a person sees** (a component, a docs page, a recipe): before you report done, follow [docs/browser-checks.md](./docs/browser-checks.md).
 - **Comments, JSDoc, changesets, decision docs, commits, and PR descriptions:** the `simplified-technical-english` skill. [CONVENTIONS.md § Writing](./CONVENTIONS.md#writing) is the normative copy.
@@ -51,7 +50,7 @@ They are the methods that meet the [north star](#north-star). Each one has a fil
 - [Write less code](./docs/principles/write-less-code.md) (code, prose): the smallest change that meets the task.
 - [Subtract before you add](./docs/principles/subtract-before-you-add.md) (code, prose): remove a cause before you guard it.
 - [Reuse before you build](./docs/principles/reuse-before-you-build.md) (code): search for the helper, hook, or part first.
-- [Composition over configuration](./docs/principles/composition-over-configuration.md) (code): small parts first, and never a prop bag.
+- [Composition over configuration](./docs/principles/composition-over-configuration.md) (code): parts, not props on `Root`; never a prop bag.
 - [Build the behavior in](./docs/principles/build-the-behavior-in.md) (code): a prop needs a named product use case.
 - [Minimize reader load](./docs/principles/minimize-reader-load.md) (code, prose): code and prose that read in one pass.
 - [Experience first](./docs/principles/experience-first.md) (code, prose): judge a change at the call site and in the changelog.
@@ -74,6 +73,7 @@ They are the methods that meet the [north star](#north-star). Each one has a fil
 
 ## Before you edit
 
+- **Sketch API, then wait.** Before code that adds or changes a prop, part, hook option, data attribute, or exported type, post an [API sketch](./COMPONENT_SPEC.md#112-sketch-the-api-then-wait) and wait for Cody (@cody-dot-js) to approve it. A bug fix with no API change is exempt.
 - Search before you create a helper, hook, part, parser, formatter, or dependency. Look in `packages/mantle/src` first, then the owning app.
 - Other sessions can work in the same checkout. Run `git status` before you stage, and stage by path. Never `git add -A`.
 - Do not revert a working-tree change you did not make. Ask first.
@@ -95,7 +95,7 @@ Run checks when a coherent chunk of work is done and again before the final resp
 
 From a fresh clone, run `./scripts/setup`. It installs mise, the pinned Node and pnpm, and the dependencies. Without shell activation, prefix a command with `mise x --`.
 
-Run commands from the repo root with `pnpm -w run <script>` (the root `package.json` lists them). Agents get these wrong:
+Run commands from the repo root with `pnpm -w run <script>`. Agents get these wrong:
 
 ```sh
 pnpm -w run start                 # the docs site dev server
@@ -109,6 +109,5 @@ pnpm -w run test -F @ngrok/mantle # one package
 
 - **Build failures:** `pnpm -w run clean`, then `pnpm -w run build`.
 - **Type errors:** build all packages before you typecheck.
-- **Hot reload:** restart the dev server, or clear `apps/www/.react-router/`.
 - **Toolchain drift:** `mise run doctor`; rerun `./scripts/setup` if it fails.
 - **Lockfile drift** (`mise.lock` out of sync): change the pin in `.nvmrc` or `package.json#packageManager`, run `mise run relock && mise install`, and commit `mise.lock` with the pin.
