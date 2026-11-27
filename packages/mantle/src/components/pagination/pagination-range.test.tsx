@@ -50,6 +50,7 @@ describe("formatPaginationRange", () => {
 		["pageSize", { offset: 0, pageSize: 0, total: 3 }],
 		["total", { offset: 0, pageSize: 20, total: -1 }],
 		["offset", { offset: 1.5, pageSize: 20, total: 3 }],
+		["pageSize", { offset: 0, pageSize: 0, total: null }],
 	])("throws when `%s` is out of range", (name, value) => {
 		expect(() => formatPaginationRange(value)).toThrow(`\`${name}\` must be`);
 	});
@@ -69,19 +70,20 @@ describe("PaginationRange", () => {
 		expect(screen.getByRole("status")).toHaveTextContent("");
 	});
 
-	test("says the list loads in the same live region, then announces the count", () => {
-		const { rerender } = render(
-			<PaginationRange isLoading offset={0} pageSize={20} total={0} noun={noun} />,
-		);
+	test("shows the loading label in the same live region while the total is null", () => {
+		const props = { offset: 0, pageSize: 20, noun, loadingLabel: "Loading domains…" };
+		const { rerender } = render(<PaginationRange {...props} total={2396} />);
 		const status = screen.getByRole("status");
-		expect(status).toHaveTextContent("Loading domains…");
-		expect(status).toHaveAttribute("data-loading", "");
+		expect(status).toHaveTextContent("1–20 of 2,396 domains");
 
-		rerender(<PaginationRange offset={0} pageSize={20} total={2396} noun={noun} />);
+		// A refetch: the count goes unknown, then comes back.
+		rerender(<PaginationRange {...props} total={null} />);
 		// Why the same node: a live region added together with its text is not announced.
 		expect(screen.getByRole("status")).toBe(status);
+		expect(status).toHaveTextContent("Loading domains…");
+
+		rerender(<PaginationRange {...props} total={2396} />);
 		expect(status).toHaveTextContent("1–20 of 2,396 domains");
-		expect(status).not.toHaveAttribute("data-loading");
 	});
 
 	test("renders the text in the child with asChild", () => {

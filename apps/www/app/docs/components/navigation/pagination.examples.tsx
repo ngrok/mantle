@@ -240,7 +240,7 @@ export function ClientPaginatedExample() {
 
 /** The "Loading" example on the Pagination docs page. */
 export function LoadingExample() {
-	const [isLoading, setIsLoading] = useState(true);
+	const [isLoading, setIsLoading] = useState(false);
 
 	return (
 		<PreviewCanvas>
@@ -251,13 +251,13 @@ export function LoadingExample() {
 					intent="neutral"
 					onClick={() => setIsLoading((loading) => !loading)}
 				>
-					{isLoading ? "Finish loading" : "Load again"}
+					{isLoading ? "Finish loading" : "Start loading"}
 				</Button>
 				<PaginationRange
-					isLoading={isLoading}
 					offset={0}
 					pageSize={10}
-					total={23}
+					total={isLoading ? null : 23}
+					loadingLabel="Loading payments…"
 					noun={{ singular: "payment", plural: "payments" }}
 				/>
 			</div>

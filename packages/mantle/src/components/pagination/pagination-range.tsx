@@ -25,8 +25,11 @@ type PaginationRangeValue = {
 	offset: number;
 	/** The most rows a page holds. Must be a positive integer. */
 	pageSize: number;
-	/** How many rows the list holds after its filter. Must be a non-negative integer. */
-	total: number;
+	/**
+	 * How many rows the list holds after its filter. Must be a non-negative
+	 * integer, or `null` while the count is not known, such as while the rows load.
+	 */
+	total: number | null;
 	/**
 	 * The noun to count.
 	 *
@@ -42,12 +45,14 @@ const countFormat = new Intl.NumberFormat("en-US");
 const defaultNoun: PaginationNoun = { singular: "result", plural: "results" };
 
 /**
- * The count line for one page of a list: empty for an empty list, the total
- * when one page holds every row, and the range of the page otherwise.
+ * The count line for one page of a list: empty for an empty list or an
+ * unknown total, the total when one page holds every row, and the range of
+ * the page otherwise.
  *
  * An empty list gets no text, because the list shows its own empty state. One
  * page gets no range, because the range repeats the rows above it. Throws when
- * a count is out of range.
+ * a count is out of range. It checks `offset` and `pageSize` while the total
+ * is `null` too, so a bad value fails before the load ends.
  *
  * @example
  * ```ts
@@ -69,14 +74,14 @@ function formatPaginationRange({
 		`PaginationRange: \`pageSize\` must be a positive integer, received ${String(pageSize)}.`,
 	);
 	invariant(
-		Number.isInteger(total) && total >= 0,
-		`PaginationRange: \`total\` must be a non-negative integer, received ${String(total)}.`,
+		total == null || (Number.isInteger(total) && total >= 0),
+		`PaginationRange: \`total\` must be a non-negative integer or null, received ${String(total)}.`,
 	);
 	invariant(
 		Number.isInteger(offset) && offset >= 0,
 		`PaginationRange: \`offset\` must be a non-negative integer, received ${String(offset)}.`,
 	);
-	if (total === 0) {
+	if (total == null || total === 0) {
 		return "";
 	}
 	const word = total === 1 ? noun.singular : noun.plural;
@@ -99,12 +104,11 @@ type PaginationRangeProps = Omit<ComponentProps<"span">, "children"> &
 	WithDataSlot &
 	PaginationRangeValue & {
 		/**
-		 * Whether the list loads. The line then says "Loading", then the plural
-		 * `noun`, in place of the count, such as "Loading domains…".
-		 *
-		 * @default false
+		 * The text the line shows while `total` is `null`, such as
+		 * "Loading domains…". When omitted, the line has no text until the
+		 * total is known.
 		 */
-		isLoading?: boolean;
+		loadingLabel?: string;
 	};
 
 /**
@@ -118,8 +122,11 @@ type PaginationRangeProps = Omit<ComponentProps<"span">, "children"> &
  * renders in every state, because a live region added together with its text
  * is not announced.
  *
- * While the list loads, pass `isLoading`. The same live region then says
- * "Loading domains…", and it announces the count when the load ends.
+ * While the rows load, pass `total={null}` and a `loadingLabel`. The same live
+ * region shows the label, then the count when the total is known (no text for
+ * an empty list). A screen reader announces each change after mount, such as
+ * a refetch. Text present at mount is not announced, so the first load is
+ * silent.
  *
  * It takes `offset`, `pageSize`, and `total`, so the same part serves offset
  * state from `useOffsetPagination` beside a `Table` and a TanStack table
@@ -130,10 +137,9 @@ type PaginationRangeProps = Omit<ComponentProps<"span">, "children"> &
  * **Polymorphism.** Pass `asChild` to render the text in your own element. The
  * child must have no children of its own, because the part renders the text.
  *
- * | Data Attribute | Value                    | Description                                |
- * | -------------- | ------------------------ | ------------------------------------------ |
- * | `data-slot`    | `"pagination-range"`     | On the root.                               |
- * | `data-loading` | present when `isLoading` | Presence-only. Style with `data-loading:`. |
+ * | Data Attribute | Value                | Description  |
+ * | -------------- | -------------------- | ------------ |
+ * | `data-slot`    | `"pagination-range"` | On the root. |
  *
  * @see https://mantle.ngrok.com/components/navigation/pagination#paginationrange
  *
@@ -165,19 +171,17 @@ function PaginationRange({
 	children,
 	className,
 	"data-slot": dataSlot,
-	isLoading = false,
+	loadingLabel,
 	noun,
 	offset,
 	pageSize,
 	total,
 	...props
 }: PaginationRangeProps) {
-	const text = isLoading
-		? `Loading ${(noun ?? defaultNoun).plural}…`
-		: formatPaginationRange({ offset, pageSize, total, noun });
+	const count = formatPaginationRange({ offset, pageSize, total, noun });
+	const text = total == null ? (loadingLabel ?? "") : count;
 	const rootProps = {
 		role: "status",
-		"data-loading": isLoading ? "" : undefined,
 		"data-slot": joinDataSlot(dataSlot, "pagination-range"),
 		className: cx("text-muted text-sm font-normal", className),
 		...props,
