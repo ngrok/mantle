@@ -1,0 +1,239 @@
+---
+title: Steps
+description: "A read-only setup guide: numbered steps down a page, joined by one continuous vertical rail."
+aliases:
+  - setup guide
+  - onboarding steps
+  - numbered steps
+---
+
+import { Example } from "~/components/example";
+
+# Steps
+
+A read-only setup guide: numbered steps down a page, joined by one continuous vertical rail. Composition order is the numbering, so a step that you add, remove, or render conditionally renumbers the rest with no `index` or `count` prop.
+
+<Example name="components/structure/steps/overview" title="Steps example">
+
+```tsx
+import { Card } from "@ngrok/mantle/card";
+import { Code } from "@ngrok/mantle/code";
+import { Steps } from "@ngrok/mantle/steps";
+
+<Steps.Root>
+	<Steps.Item>
+		<Steps.Title>Install the ngrok agent</Steps.Title>
+		<Card.Root>
+			<Card.Body>
+				<p>
+					Download the agent for your platform, or install it with <Code>brew install ngrok</Code>.
+				</p>
+			</Card.Body>
+		</Card.Root>
+	</Steps.Item>
+	<Steps.Item>
+		<Steps.Title>Add your authtoken</Steps.Title>
+		<Card.Root>
+			<Card.Body>
+				<p>
+					Run <Code>ngrok config add-authtoken $YOUR_AUTHTOKEN</Code> to write the token into your
+					agent config file.
+				</p>
+			</Card.Body>
+		</Card.Root>
+	</Steps.Item>
+	<Steps.Item>
+		<Steps.Title>Get a public URL for your app</Steps.Title>
+		<Card.Root>
+			<Card.Body>
+				<p>
+					Run <Code>ngrok http 8080</Code> against the port your app listens on.
+				</p>
+			</Card.Body>
+		</Card.Root>
+	</Steps.Item>
+</Steps.Root>;
+```
+
+</Example>
+
+## When to use
+
+- Show a read-only, numbered sequence of setup or onboarding steps down a page, with the content of each step visible at once.
+- Prefer [`Tabs`](/components/navigation/tabs) when the reader clicks a step to show one panel at a time.
+- Prefer [`Accordion`](/components/data-display/accordion) when each step collapses and the reader opens the one they need.
+- Use a native `<ul>` when the items have no order that the reader follows.
+
+## Conditional steps
+
+A step that renders conditionally needs nothing else. The numbers come from a CSS counter over the rendered `<li>` elements. Thus a `false` child, a `Fragment`, and a wrapper component that renders `Steps.Item` as its root all number correctly: the DOM is the source of truth, not the children array.
+
+<Example name="components/structure/steps/conditional" title="Steps conditional example">
+
+```tsx
+import { Steps } from "@ngrok/mantle/steps";
+
+const needsDomain = true;
+
+<Steps.Root>
+	<Steps.Item>
+		<Steps.Title>Install the ngrok agent</Steps.Title>
+	</Steps.Item>
+	<Steps.Item>
+		<Steps.Title>Add your authtoken</Steps.Title>
+	</Steps.Item>
+	{needsDomain && (
+		<Steps.Item>
+			<Steps.Title>Bring your own domain</Steps.Title>
+		</Steps.Item>
+	)}
+</Steps.Root>;
+```
+
+</Example>
+
+## Composition
+
+```text showLineNumbers=false
+Steps.Root
+└── Steps.Item
+    └── Steps.Title
+```
+
+- **`Root`** renders the `<ol role="list">`, resets the step counter, and opens the gutter that the markers sit in.
+- **`Item`** renders one `<li>`. It increments the counter, draws its own segment of the rail, and mounts the numbered marker. Its children after `Title` are free-form.
+- **`Title`** renders the step heading, and is what the marker aligns to.
+
+## Polymorphism
+
+Each `Steps` part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default element, and forwards the class names, the `data-*` attributes, and the ref onto that child.
+
+Use it on `Steps.Title` to fit the document outline around the guide. The title renders an `h3` by default, and the component does not set the heading levels of your page. `Steps.Item` also accepts it, and its child must render an `<li>`. Any other element between the `<ol>` and its items is invalid HTML, and `:first-child` and `:last-child` then stop describing the step.
+
+<Example name="components/structure/steps/polymorphism" title="Steps polymorphism example">
+
+```tsx
+import { Steps } from "@ngrok/mantle/steps";
+
+<Steps.Root>
+	<Steps.Item>
+		<Steps.Title asChild>
+			<h2>Install the ngrok agent</h2>
+		</Steps.Title>
+	</Steps.Item>
+	<Steps.Item>
+		<Steps.Title asChild>
+			<h2>Add your authtoken</h2>
+		</Steps.Title>
+	</Steps.Item>
+</Steps.Root>;
+```
+
+</Example>
+
+## The rail is a border
+
+The rail of each step is the `border-inline-start` of its item. A border spans the item at each content height, and the bottom padding is inside the border box, so the rail also runs through the gap to the next step. The last item keeps the width and drops the color, so removing a step moves nothing sideways.
+
+The marker is an SVG blob whose stubs land on that border, in the same color. The same color and the exact overlap make the pair read as one stick that swells into each circle. Two results follow, and they are why the geometry has no props:
+
+- The gutter, the marker box, the offsets, and the rail width are one locked system. The `18px` gutter is `(40 - 4) / 2`, and the stub lands on the rail only because both are `4px`.
+- The fill must stay opaque. A translucent fill paints the overlap twice and shows the joint that the fillets hide.
+
+## Collapsing the marker column
+
+A narrow surface has no horizontal room for the gutter, and the titles carry the order on their own. Hide the gutter, the indent, and the marker with classes, not with a prop: the breakpoint belongs to your layout. The marker is `aria-hidden` at each width, so hiding it changes nothing for a screen reader. Below the `md` breakpoint, this example drops the markers. The `>` selector hides only the marker of the item itself, so a guide nested inside a step keeps its own markers.
+
+<Example name="components/structure/steps/collapse-markers" title="Steps collapsed marker column example">
+
+```tsx
+import { Steps } from "@ngrok/mantle/steps";
+
+<Steps.Root className="max-md:ps-0">
+	<Steps.Item className="max-md:border-s-0 max-md:ps-0 max-md:[&>[data-slot=steps-marker]]:hidden">
+		<Steps.Title>Install the ngrok agent</Steps.Title>
+	</Steps.Item>
+	<Steps.Item className="max-md:border-s-0 max-md:ps-0 max-md:[&>[data-slot=steps-marker]]:hidden">
+		<Steps.Title>Add your authtoken</Steps.Title>
+	</Steps.Item>
+</Steps.Root>;
+```
+
+</Example>
+
+## Theming
+
+`Steps` paints with two design tokens, and each theme sets both. Override them together. The number must stay readable on its fill, and the fill must stay opaque: a translucent fill shows a seam where the stubs of the marker land on the rail.
+
+Each cell below is a WCAG contrast ratio, and higher is better. The number needs 4.5:1 on the rail in each theme. The rail carries no information, so it needs only 1.4:1 against the surface to read as a line. `steps/tokens.test.tsx` measures each value.
+
+| Theme | Number on rail | Rail on page | Rail on card |
+| ----- | -------------- | ------------ | ------------ |
+| light | 12.64          | 1.42         | 1.48         |
+| dark  | 9.93           | 1.81         | 1.73         |
+
+## Accessibility
+
+The guide is a real `<ol>` of `<li>` elements, and the list restates `role="list"`. The design removes `list-style`, and WebKit drops list semantics from a list that has none ([WebKit bug 170179](https://bugs.webkit.org/show_bug.cgi?id=170179), [Scott O'Hara, "Fixing" Lists](https://www.scottohara.me/blog/2019/01/12/lists-and-safari.html)). That would also drop the "2 of 3" position. Two mechanisms keep the role:
+
+- `Steps.Root` omits `role` from its props type, so a caller cannot pass one.
+- Under `asChild`, the part clones the role onto the child, because the props of a child win over the props of its slot.
+
+Each marker is one `aria-hidden` unit with no text of its own: the number is CSS generated content, not a text node. Step position comes from the list, and the visible digits are decoration.
+
+Nothing is focusable, and there is no keyboard contract, because this is static content.
+
+## API Reference
+
+### Steps.Root
+
+The ordered list that holds every step. Renders an `<ol role="list">` that resets the step counter and opens the gutter that the markers sit in. The number is a CSS counter that counts up from 1. Thus the part takes no `start` or `reversed`, because they would make the numbering of the list disagree with the numbers a reader sees. Under `asChild`, it clears the `start` and `reversed` of a native child element for the same reason. A component child keeps the props it owns.
+
+All props from [ol](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol#attributes) except `role`, `start`, and `reversed`, plus:
+
+| Prop       | Type      | Default | Description                                                                                                       |
+| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Steps.Root` styling onto other element types or your own React components. |
+
+Both CSS variables are design tokens that each theme sets, not knobs for one guide. Override them on an ancestor to re-theme each guide below it, and override both together. An `invert-theme` island sets both tokens again, so an override outside the island does not reach a guide inside it. Set the override inside the island.
+
+| CSS Variable           | Default                    | Description                                                                                            |
+| ---------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `--color-steps-rail`   | `var(--color-neutral-300)` | The rail and the marker blob. Keep it opaque: a translucent fill shows a seam where the stubs overlap. |
+| `--color-steps-number` | `var(--color-neutral-950)` | The number on the blob.                                                                                |
+
+| Data Attribute | Value     | Description                                                                                         |
+| -------------- | --------- | --------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"steps"` | On the list element. Stable styling hook that survives a `className` override or an `asChild` swap. |
+
+### Steps.Item
+
+One step. Renders an `<li>` that increments the step counter, draws its own segment of the rail, and mounts the numbered marker before its children. Under `asChild`, the child must render an `<li>`, and the item clears the `value` and `dangerouslySetInnerHTML` of a native child element. A component child keeps the props it owns. Only a visible `Steps.Item` takes a number and a position, so a script or a placeholder in the list changes nothing. To hide a step, unmount it or set `hidden`: CSS cannot see a step that a style hides, such as React's `<Activity>` does. Set `dir` on the content of a step, not on `Steps.Item`: the gutter is on the start side of the list, and an item in the other direction puts its rail and marker outside the gutter.
+
+All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes) except `value` and `dangerouslySetInnerHTML`, plus:
+
+| Prop       | Type      | Default | Description                                                                                                       |
+| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Steps.Item` styling onto other element types or your own React components. |
+
+| Data Attribute | Value                | Description                                                                                                                                        |
+| -------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"steps-item"`       | On the list item. Stable styling hook that survives a `className` override or an `asChild` swap.                                                   |
+| `data-slot`    | `"steps-marker"`     | On the `aria-hidden` marker in the gutter. Target it to hide the marker column; see [Collapsing the marker column](#collapsing-the-marker-column). |
+| `data-slot`    | `"steps-item-label"` | On the `display: contents` label slot that the step's own children render into. It lays out nothing, so style your own child instead.              |
+
+The label slot keeps a translated page working. A translation engine moves each text node into a `<font>`. If the marker sat beside a bare text child, React's next update would remove a node that the list item no longer owns, and the page would go blank. The label slot keeps a lone text child on its own, where React writes it with one `textContent` update. See [Browser Translation](/browser-translation).
+
+### Steps.Title
+
+The heading of one step, and what the marker aligns to. Renders an `h3` by default; pass `asChild` to fit the document outline around the guide. Keep it a heading element (`h1`-`h6`) for accessibility. The marker sits at a fixed offset from the top of the item, so keep the title the first child of the item at the default type size.
+
+All props from [h1-h6](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                        |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------ |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Steps.Title` styling onto other element types or your own React components. |
+
+| Data Attribute | Value           | Description                                                                                            |
+| -------------- | --------------- | ------------------------------------------------------------------------------------------------------ |
+| `data-slot`    | `"steps-title"` | On the heading element. Stable styling hook that survives a `className` override or an `asChild` swap. |

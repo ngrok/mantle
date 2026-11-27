@@ -5657,6 +5657,36 @@
     ]
   },
   {
+    "name": "Steps",
+    "slug": "components/structure/steps",
+    "kind": "component",
+    "category": "Structure",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/steps",
+    "summary": "A read-only setup guide: numbered steps down a page, joined by one continuous vertical rail.",
+    "jsdoc": "A read-only setup guide: an ordered list of steps down a page, each marked by a numbered circle in a left gutter, joined by one continuous vertical rail.",
+    "examples": [
+      "Composition:\n```\nSteps.Root\n└── Steps.Item\n    └── Steps.Title\n```",
+      "```tsx\n<Steps.Root>\n  <Steps.Item>\n    <Steps.Title>Install the ngrok agent</Steps.Title>\n    <p>Download the agent for your platform.</p>\n  </Steps.Item>\n  <Steps.Item>\n    <Steps.Title asChild>\n      <h2>Add your authtoken</h2>\n    </Steps.Title>\n    <p>\n      Run <Code>ngrok config add-authtoken</Code> with the token from your dashboard.\n    </p>\n  </Steps.Item>\n  <Steps.Item>\n    <Steps.Title>Get a public URL for your app</Steps.Title>\n    <p>Start a tunnel to the port your app listens on.</p>\n  </Steps.Item>\n</Steps.Root>\n```"
+    ],
+    "aliases": [
+      "setup guide",
+      "onboarding steps",
+      "numbered steps"
+    ],
+    "siblings": [
+      {
+        "name": "Tabs",
+        "boundary": "the reader clicks a step to show one panel at a time."
+      },
+      {
+        "name": "Accordion",
+        "boundary": "each step collapses, and the reader opens the one they need."
+      }
+    ],
+    "useWhen": "Show a read-only, numbered sequence of setup or onboarding steps down a page, with each step's content visible at once."
+  },
+  {
     "name": "Strata",
     "slug": "components/structure/strata",
     "kind": "component",
