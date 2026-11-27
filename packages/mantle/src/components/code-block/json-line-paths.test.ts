@@ -40,3 +40,15 @@ test("reads an opener that shares a line with its parent's opener", () => {
 		undefined,
 	]);
 });
+
+test("reads brackets with spaces between them", () => {
+	const code = '{\n"messages": [ {\n"role": "user"\n} ],\n"after": 1\n}';
+	expect(jsonLinePaths(code)).toEqual([
+		[],
+		["messages"],
+		["messages", 0, "role"],
+		undefined,
+		["after"],
+		undefined,
+	]);
+});

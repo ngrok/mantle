@@ -91,6 +91,10 @@ describe("diffWords", () => {
 		expect(diffWords("🇺🇸", "🇺🇦").left).toEqual([{ text: "🇺🇸", changed: true, start: 0 }]);
 	});
 
+	test("keeps a text-presentation selector with its character", () => {
+		expect(diffWords("☀\uFE0E", "☀").left).toEqual([{ text: "☀\uFE0E", changed: true, start: 0 }]);
+	});
+
 	test("keeps an emoji in one token", () => {
 		expect(diffWords("a 😀", "a 😁").left).toEqual([
 			{ text: "a ", changed: false, start: 0 },

@@ -74,8 +74,14 @@ function useSide(value: MantleCodeBlockValue) {
 	} = value;
 	return useMemo(() => {
 		const hasVals = vals != null && vals.length > 0;
-		const code = hasVals ? substitutePreValsPlainText(rawCode, vals, token) : rawCode;
-		const html = hasVals && rawHtml != null ? substitutePreVals(rawHtml, vals, token) : rawHtml;
+		// Why LF only: a bare CR or a CRLF ends a line on screen too, so each must end a row and leave no CR in its text.
+		const code = (hasVals ? substitutePreValsPlainText(rawCode, vals, token) : rawCode).replaceAll(
+			/\r\n?/g,
+			"\n",
+		);
+		const html = (
+			hasVals && rawHtml != null ? substitutePreVals(rawHtml, vals, token) : rawHtml
+		)?.replaceAll(/\r\n?/g, "\n");
 		return {
 			code,
 			lines: readCodeLines({ code, "~preHtml": html, "~lines": streamed }),
@@ -170,27 +176,29 @@ function DiffLine({
 				{/* Why a space: an empty line keeps its height, as in `CodeBlock.Code`. */}
 				{side.segments.every((segment) => segment.text === "")
 					? " "
-					: tokensBySegment(line, side.segments).map(({ segment, tokens }) => {
-							const content = tokens.map((token, index) => (
-								// oxlint-disable-next-line react/no-array-index-key -- Why: a token has no identity but its position in a segment that renders as a whole.
-								<TokenView key={index} token={token} />
-							));
-							return segment.changed && change !== "unchanged" ? (
+					: tokensBySegment(line, side.segments).map(({ segment, tokens }) =>
+							segment.changed && change !== "unchanged" ? (
+								// Why the strong text color and no token colors: syntax colors on the two stacked tints fall below 4.5:1 in the light theme.
 								<Mark
 									key={segment.start}
 									className={cx(
-										"rounded-xs text-current",
+										"rounded-xs text-strong",
 										change === "added"
 											? "bg-success-500/25 underline decoration-success-600"
 											: "bg-danger-500/25 line-through decoration-danger-600",
 									)}
 								>
-									{content}
+									{segment.text}
 								</Mark>
 							) : (
-								<span key={segment.start}>{content}</span>
-							);
-						})}
+								<span key={segment.start}>
+									{tokens.map((token, index) => (
+										// oxlint-disable-next-line react/no-array-index-key -- Why: a token has no identity but its position in a segment that renders as a whole.
+										<TokenView key={index} token={token} />
+									))}
+								</span>
+							),
+						)}
 			</span>
 		</div>
 	);
@@ -239,13 +247,13 @@ type CodeBlockDiffProps = Omit<ComponentProps<"div">, "children"> &
  * `jsonCodeBlockValue()`, the server highlighter, or `useCodeBlockStream()`.
  * When both values are `json`, a trailing comma alone does not count as a
  * change. Pass `jsonCodeBlockValue(value, { sortKeys: true })` for each side,
- * so the same key sits on the same line.
+ * so a change in key order alone shows no change.
  *
  * Pass a function child to show a `CodeBlock.DiffCallout` under a line. The
  * other pane keeps a blank row of the same height, so the lines stay aligned.
  *
- * Put a `CodeBlock.CopyButton` directly in the `CodeBlock.Root`: it sits at the
- * top right, over the header, and copies the `to` code.
+ * Put it in a `CodeBlock.Body`. A `CodeBlock.CopyButton` before it sits at the
+ * top right of the `to` pane and copies the `to` code.
  * The diff is `dir="ltr"` unless the call site sets `dir`, so code reads left
  * to right in a right-to-left page.
  *
@@ -257,7 +265,7 @@ type CodeBlockDiffProps = Omit<ComponentProps<"div">, "children"> &
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-side` | `"from"` \| `"to"` | On each `code-block-diff-pane`. The value the pane shows. |
- * | `data-line-number` | a number | On each `code-block-diff-line`. The line number that its gutter shows. |
+ * | `data-line-number` | a number | On each `code-block-diff-line` and on its gutter, the `aria-hidden` first child that draws the number. Select `[data-slot="code-block-diff-line"][data-line-number]` for the line alone. |
  * | `data-change` | `"removed"` \| `"added"` | On a `code-block-diff-line` that changed. Omitted on an unchanged line. |
  * | `data-slot` | `"code-block-diff-filler"` | The blank row in place of a line that the other side added or removed. |
  * | `data-slot` | `"code-block-diff-expand"` | The button that shows a folded run of unchanged lines, in the left pane. |
@@ -270,21 +278,23 @@ type CodeBlockDiffProps = Omit<ComponentProps<"div">, "children"> &
  * @example
  * ```tsx
  * <CodeBlock.Root>
- *   <CodeBlock.CopyButton />
  *   <CodeBlock.Header>
  *     <CodeBlock.Icon preset="file" />
  *     <CodeBlock.Title>request.json</CodeBlock.Title>
  *   </CodeBlock.Header>
- *   <CodeBlock.Diff
- *     from={jsonCodeBlockValue(clientBody, { sortKeys: true })}
- *     to={jsonCodeBlockValue(upstreamBody, { sortKeys: true })}
- *   >
- *     {(line) =>
- *       line.change === "added" && line.path?.join(".") === "max_tokens" && (
- *         <CodeBlock.DiffCallout>The gateway set a default.</CodeBlock.DiffCallout>
- *       )
- *     }
- *   </CodeBlock.Diff>
+ *   <CodeBlock.Body>
+ *     <CodeBlock.CopyButton />
+ *     <CodeBlock.Diff
+ *       from={jsonCodeBlockValue(clientBody, { sortKeys: true })}
+ *       to={jsonCodeBlockValue(upstreamBody, { sortKeys: true })}
+ *     >
+ *       {(line) =>
+ *         line.change === "added" && line.path?.join(".") === "max_tokens" && (
+ *           <CodeBlock.DiffCallout>The gateway set a default.</CodeBlock.DiffCallout>
+ *         )
+ *       }
+ *     </CodeBlock.Diff>
+ *   </CodeBlock.Body>
  * </CodeBlock.Root>
  * ```
  */
@@ -333,6 +343,15 @@ const Diff = ({
 
 	const fromCells: ReactNode[] = [];
 	const toCells: ReactNode[] = [];
+	const keyCounts = { from: new Map<string, number>(), to: new Map<string, number>() };
+	// Why the JSON path first: a line that the other side or an earlier key adds must not move this line's row or callout to another value.
+	const keyFor = (sideName: "from" | "to", side: DiffSide) => {
+		const path = sides[sideName].paths?.[side.lineNumber - 1];
+		const base = path == null ? `line:${side.lineNumber}` : `path:${JSON.stringify(path)}`;
+		const count = keyCounts[sideName].get(base) ?? 0;
+		keyCounts[sideName].set(base, count + 1);
+		return count === 0 ? base : `${base}:${count}`;
+	};
 	const addLineCells = (line: {
 		kind: "context" | "changed";
 		left: DiffSide | null;
@@ -356,8 +375,7 @@ const Diff = ({
 			const side = sideName === "from" ? line.left : line.right;
 			const other = sideName === "from" ? line.right : line.left;
 			const cells = sideName === "from" ? fromCells : toCells;
-			// Why a key from this pane's own line numbers: a line that the other side adds must not remount this pane's rows or callouts.
-			const key = side == null ? `filler:${other?.lineNumber}` : `line:${side.lineNumber}`;
+			const key = side == null ? `filler:${other?.lineNumber}` : keyFor(sideName, side);
 			cells.push(
 				side == null ? (
 					<div
@@ -433,7 +451,7 @@ const Diff = ({
 
 	const paneClassName = cx(
 		// Why no container query on the pane: its layout containment turns `subgrid` into `none`, and the panes lose their shared rows.
-		"grid grid-rows-subgrid overflow-x-auto overscroll-x-none scrollbar",
+		"grid grid-rows-subgrid overflow-x-auto overscroll-x-none scrollbar outline-hidden focus-visible:outline-2 focus-visible:outline-solid focus-visible:-outline-offset-2 focus-visible:outline-accent-600",
 		// Why a fixed span and no style attribute: a strict style policy drops the attribute from the server HTML. Empty rows have no height, and the span adds 0.2ms of layout in Chromium.
 		"row-span-100000",
 		// Why at least the pane width: each row spans the longest line, so its tint, sticky gutter, and callout stay in view as the pane scrolls.
@@ -452,6 +470,8 @@ const Diff = ({
 			<div
 				role="group"
 				aria-label={fromLabel}
+				// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Why: a pane scrolls sideways, and a browser skips a scroller that holds a control, such as an input in a callout.
+				tabIndex={0}
 				data-slot="code-block-diff-pane"
 				data-side="from"
 				className={paneClassName}
@@ -461,6 +481,8 @@ const Diff = ({
 			<div
 				role="group"
 				aria-label={toLabel}
+				// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Why: as for the left pane.
+				tabIndex={0}
 				data-slot="code-block-diff-pane"
 				data-side="to"
 				className={cx(paneClassName, "border-l border-separator")}
@@ -484,21 +506,23 @@ const Diff = ({
  * @example
  * ```tsx
  * <CodeBlock.Root>
- *   <CodeBlock.CopyButton />
  *   <CodeBlock.Header>
  *     <CodeBlock.Icon preset="file" />
  *     <CodeBlock.Title>request.json</CodeBlock.Title>
  *   </CodeBlock.Header>
- *   <CodeBlock.Diff
- *     from={jsonCodeBlockValue(clientBody, { sortKeys: true })}
- *     to={jsonCodeBlockValue(upstreamBody, { sortKeys: true })}
- *   >
- *     {(line) =>
- *       line.change === "added" && line.path?.join(".") === "max_tokens" && (
- *         <CodeBlock.DiffCallout>The gateway set a default.</CodeBlock.DiffCallout>
- *       )
- *     }
- *   </CodeBlock.Diff>
+ *   <CodeBlock.Body>
+ *     <CodeBlock.CopyButton />
+ *     <CodeBlock.Diff
+ *       from={jsonCodeBlockValue(clientBody, { sortKeys: true })}
+ *       to={jsonCodeBlockValue(upstreamBody, { sortKeys: true })}
+ *     >
+ *       {(line) =>
+ *         line.change === "added" && line.path?.join(".") === "max_tokens" && (
+ *           <CodeBlock.DiffCallout>The gateway set a default.</CodeBlock.DiffCallout>
+ *         )
+ *       }
+ *     </CodeBlock.Diff>
+ *   </CodeBlock.Body>
  * </CodeBlock.Root>
  * ```
  */

@@ -2,6 +2,7 @@ import { renderToString } from "react-dom/server";
 import { expect, test } from "vitest";
 import { commands } from "vitest/browser";
 import * as CodeBlock from "./code-block-parts.js";
+import { jsonCodeBlockValue } from "./json-highlight.js";
 import { createMantleCodeBlockValue } from "./mantle-code.js";
 
 const text = (code: string) => createMantleCodeBlockValue({ code, language: "text" });
@@ -83,4 +84,72 @@ test("the gutter and the callout stay in view as a pane scrolls to the end of a 
 	expect(pane.scrollLeft).toBeGreaterThan(1000);
 	expect(Math.round(gutter?.left ?? Number.NaN)).toBe(Math.round(paneLeft));
 	expect(Math.round(callout?.left ?? Number.NaN)).toBe(Math.round(paneLeft));
+});
+
+/** A CSS color as sRGB bytes and alpha, read back from a canvas. */
+function rgba(color: string): number[] {
+	const canvas = document.createElement("canvas");
+	canvas.width = 1;
+	canvas.height = 1;
+	const context = canvas.getContext("2d");
+	if (context == null) {
+		throw new Error("expected a 2D context");
+	}
+	context.fillStyle = color;
+	context.fillRect(0, 0, 1, 1);
+	return [...context.getImageData(0, 0, 1, 1).data];
+}
+
+/** Paints `top` over the opaque `bottom`. */
+function over(top: number[], bottom: number[]): number[] {
+	const alpha = (top[3] ?? 255) / 255;
+	return [0, 1, 2].map((index) => (top[index] ?? 0) * alpha + (bottom[index] ?? 0) * (1 - alpha));
+}
+
+/** The WCAG contrast ratio of two opaque colors. */
+function contrast(first: number[], second: number[]): number {
+	const luminance = (color: number[]) => {
+		const [red, green, blue] = color.map((byte) => {
+			const value = byte / 255;
+			return value <= 0.039_28 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+		});
+		return 0.2126 * (red ?? 0) + 0.7152 * (green ?? 0) + 0.0722 * (blue ?? 0);
+	};
+	const [lighter = 0, darker = 0] = [luminance(first), luminance(second)].toSorted((a, b) => b - a);
+	return (lighter + 0.05) / (darker + 0.05);
+}
+
+test("a changed word keeps 4.5:1 contrast on its tints in the light theme", async () => {
+	const html = renderToString(
+		<CodeBlock.Root>
+			<CodeBlock.Diff
+				from={jsonCodeBlockValue({ a: 7, b: true })}
+				to={jsonCodeBlockValue({ a: 8, b: false })}
+			/>
+		</CodeBlock.Root>,
+	);
+	const frameDocument = await loadServerHtml(html);
+	const view = frameDocument.defaultView;
+	const root = frameDocument.querySelector('[data-slot~="code-block"]');
+	const marks = [...frameDocument.querySelectorAll("del, ins")];
+	if (view == null || root == null) {
+		throw new Error("expected the block");
+	}
+	const base = rgba(view.getComputedStyle(root).backgroundColor);
+	expect(marks).toHaveLength(4);
+	for (const mark of marks) {
+		const line = mark.closest('[data-slot="code-block-diff-line"]');
+		if (line == null) {
+			throw new Error("expected the line");
+		}
+		const background = over(
+			rgba(view.getComputedStyle(mark).backgroundColor),
+			over(rgba(view.getComputedStyle(line).backgroundColor), base),
+		);
+		for (const element of [mark, ...mark.querySelectorAll("*")]) {
+			expect(
+				contrast(rgba(view.getComputedStyle(element).color), background),
+			).toBeGreaterThanOrEqual(4.5);
+		}
+	}
 });

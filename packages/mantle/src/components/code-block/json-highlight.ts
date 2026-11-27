@@ -270,15 +270,12 @@ function jsonToShikiHtml(code: string): string {
 }
 
 /**
- * Whether a value is a `JSON.rawJSON()` result: a frozen object with no
- * prototype and its own `rawJSON` text, which `JSON.stringify` writes as that text.
+ * Whether a value is a `JSON.rawJSON()` result, which `JSON.stringify` writes
+ * as its text. A runtime with no `JSON.isRawJSON` has no such values.
  */
 function isRawJson(value: object): boolean {
-	return (
-		Object.getPrototypeOf(value) == null &&
-		Object.isFrozen(value) &&
-		Object.hasOwn(value, "rawJSON")
-	);
+	const isRawJSON: unknown = Reflect.get(JSON, "isRawJSON");
+	return typeof isRawJSON === "function" && Reflect.apply(isRawJSON, JSON, [value]) === true;
 }
 
 /** The tags of `new Number()`, `new String()`, and `new Boolean()`, which `JSON.stringify` writes as their values. */
@@ -361,8 +358,8 @@ type JsonCodeBlockValueOptions = {
 	/**
 	 * Whether each object writes its keys in sorted order, by UTF-16 code unit.
 	 * Arrays keep their order. Keys that are array indexes, such as `"2"` and
-	 * `"10"`, come first in numeric order, as in each JavaScript object. Sort both values of a `CodeBlock.Diff`, so the same
-	 * key sits on the same line of each side and a reorder shows no change.
+	 * `"10"`, come first in numeric order, as in each JavaScript object. Sort both values of a `CodeBlock.Diff`, so a
+	 * change in key order alone shows no change.
 	 * Defaults to `false`.
 	 */
 	sortKeys?: boolean | undefined;

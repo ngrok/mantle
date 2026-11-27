@@ -127,12 +127,14 @@ describe("CodeBlock.Diff", () => {
 		expect(within(pane("After")).getByText("line 0")).toBeInTheDocument();
 	});
 
-	test("copies the to code from a CopyButton in the same root", async () => {
+	test("copies the to code from a CopyButton in the same body", async () => {
 		const user = userEvent.setup();
 		render(
 			<CodeBlock.Root>
-				<CodeBlock.CopyButton />
-				<CodeBlock.Diff from={text("old")} to={text("new")} />
+				<CodeBlock.Body>
+					<CodeBlock.CopyButton />
+					<CodeBlock.Diff from={text("old")} to={text("new")} />
+				</CodeBlock.Body>
 			</CodeBlock.Root>,
 		);
 		await user.click(screen.getByRole("button", { name: "Copy code" }));
@@ -200,6 +202,71 @@ describe("CodeBlock.Diff", () => {
 		await user.type(screen.getByRole("textbox", { name: "Note" }), "draft");
 		view.rerender(diff("new\nsame\nlast"));
 		expect(screen.getByRole("textbox", { name: "Note" })).toHaveValue("draft");
+	});
+
+	test("keeps a callout's draft with its JSON field when an earlier key is added", async () => {
+		const user = userEvent.setup();
+		const diff = (to: object) => (
+			<CodeBlock.Root>
+				<CodeBlock.Diff
+					from={jsonCodeBlockValue({})}
+					to={jsonCodeBlockValue(to, { sortKeys: true })}
+				>
+					{(line) =>
+						line.side === "to" &&
+						line.path?.length === 1 && (
+							<CodeBlock.DiffCallout>
+								<input aria-label={String(line.path[0])} />
+							</CodeBlock.DiffCallout>
+						)
+					}
+				</CodeBlock.Diff>
+			</CodeBlock.Root>
+		);
+		const view = render(diff({ beta: 1, gamma: 2 }));
+		await user.type(screen.getByRole("textbox", { name: "gamma" }), "note");
+		view.rerender(diff({ alpha: 0, beta: 1, gamma: 2 }));
+		expect(screen.getByRole("textbox", { name: "gamma" })).toHaveValue("note");
+		expect(screen.getByRole("textbox", { name: "beta" })).toHaveValue("");
+	});
+
+	test("lets the keyboard reach a pane that holds a control", async () => {
+		const user = userEvent.setup();
+		renderDiff({
+			from: text("a"),
+			to: text("b"),
+			children: (line) =>
+				line.side === "to" && (
+					<CodeBlock.DiffCallout>
+						<input aria-label="Note" />
+					</CodeBlock.DiffCallout>
+				),
+		});
+		await user.tab();
+		expect(pane("Before")).toHaveFocus();
+		await user.tab();
+		expect(pane("After")).toHaveFocus();
+		await user.tab();
+		expect(screen.getByRole("textbox", { name: "Note" })).toHaveFocus();
+	});
+
+	test("ends a line at a CR or a CRLF", () => {
+		const lines: CodeBlockDiffLine[] = [];
+		renderDiff({
+			from: text("head\rold\r\ntail"),
+			to: text("head\nnew\ntail"),
+			children: (line) => {
+				lines.push(line);
+				return null;
+			},
+		});
+		expect(
+			lines.filter((line) => line.side === "to").map(({ change, text }) => [change, text]),
+		).toEqual([
+			["unchanged", "head"],
+			["added", "new"],
+			["unchanged", "tail"],
+		]);
 	});
 
 	test("does not count a trailing comma as a change in JSON", () => {

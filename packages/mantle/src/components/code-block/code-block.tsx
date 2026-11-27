@@ -204,8 +204,7 @@ const Root = ({
 			data-slot={joinDataSlot(dataSlot, "code-block")}
 			data-orientation={hasTabs ? "horizontal" : undefined}
 			className={cx(
-				// Why `relative`: a `CopyButton` placed directly in the root, as beside a `CodeBlock.Diff`, sits at its top right.
-				"relative text-mono w-full overflow-hidden rounded-xl border border-gray-300 bg-base font-mono",
+				"text-mono w-full overflow-hidden rounded-xl border border-gray-300 bg-base font-mono",
 				"[&_svg]:shrink-0",
 				className,
 			)}
@@ -280,6 +279,8 @@ const Body = ({
 				// wrapper, so an insert in the code does not recheck it. This rule
 				// outranks the breathing room above on specificity.
 				"[&_:is([data-slot~=code-block-copy-button],:has(>[data-slot~=code-block-copy-button]))~*_.mantle-code-line:nth-child(-n+2)]:pr-14",
+				// The same reserve for the first two lines of the right pane of a `CodeBlock.Diff`, under the button.
+				"[&_:is([data-slot~=code-block-copy-button],:has(>[data-slot~=code-block-copy-button]))~*_[data-side=to]>[data-slot=code-block-diff-line]:nth-child(-n+2)]:pr-14",
 				className,
 			)}
 			ref={ref}

@@ -28,7 +28,8 @@ function jsonLinePaths(code: string): (readonly (string | number)[] | undefined)
 	const stack: Container[] = [];
 	return code.split("\n").map((line) => {
 		const text = line.trim();
-		const closers = /^[}\]]*/.exec(text)?.[0].length ?? 0;
+		// Why spaces between the brackets: `} ]` closes two containers, as `}]` does.
+		const closers = /^(?:[}\]]\s*)*/.exec(text)?.[0].replaceAll(/\s/g, "").length ?? 0;
 		for (let index = 0; index < closers; index += 1) {
 			stack.pop();
 		}
@@ -50,7 +51,7 @@ function jsonLinePaths(code: string): (readonly (string | number)[] | undefined)
 			return undefined;
 		}
 		// Why each opener after the first: it opens the first item of the array before it, as in `[{`.
-		const openers = /[[{]*$/.exec(rest)?.[0] ?? "";
+		const openers = /(?:[[{]\s*)*$/.exec(rest)?.[0].replaceAll(/\s/g, "") ?? "";
 		let openerPath = path;
 		for (const [index, opener] of openers.split("").entries()) {
 			if (index > 0) {

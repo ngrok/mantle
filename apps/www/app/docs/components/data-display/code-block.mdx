@@ -329,7 +329,7 @@ For lower-level control, `jsonToShikiHtml(code)` returns only the Shiki-identica
 
 ### Comparing two versions
 
-Use `CodeBlock.Diff` in place of `CodeBlock.Body` to show two versions of code side by side. A changed line gets a tint, a `+` or `−` sign, and its changed words marked with `<ins>` and `<del>`, so the change does not depend on color. Each run of unchanged lines keeps three lines beside each change, and a button expands the rest. Each side keeps the highlighting of its value. For JSON, pass `jsonCodeBlockValue(value, { sortKeys: true })` for each side, so the same key sits on the same line. A trailing comma alone does not count as a change. Return a `CodeBlock.DiffCallout` from the function child to put a note under a line; the other pane keeps a blank row of the same height.
+Put a `CodeBlock.Diff` in a `CodeBlock.Body` to show two versions of code side by side. A changed line gets a tint, a `+` or `−` sign, and its changed words marked with `<ins>` and `<del>`, so the change does not depend on color. Each run of unchanged lines keeps three lines beside each change, and a button expands the rest. Each side keeps the highlighting of its value. For JSON, pass `jsonCodeBlockValue(value, { sortKeys: true })` for each side, so a change in key order alone shows no change. A trailing comma alone does not count as a change. Return a `CodeBlock.DiffCallout` from the function child to put a note under a line; the other pane keeps a blank row of the same height.
 
 <Example name="components/data-display/code-block/comparing-two-versions" title="Code Block Comparing two versions example">
 
@@ -357,26 +357,28 @@ const upstreamRequestBody = {
 export function RequestDiff() {
 	return (
 		<CodeBlock.Root>
-			<CodeBlock.CopyButton />
 			<CodeBlock.Header>
 				<CodeBlock.Icon preset="file" />
 				<CodeBlock.Title>request.json</CodeBlock.Title>
 			</CodeBlock.Header>
-			<CodeBlock.Diff
-				fromLabel="Client request"
-				toLabel="Upstream request"
-				from={jsonCodeBlockValue(clientRequestBody, { sortKeys: true, foldable: false })}
-				to={jsonCodeBlockValue(upstreamRequestBody, { sortKeys: true, foldable: false })}
-			>
-				{(line) =>
-					line.change === "added" &&
-					line.path?.join(".") === "temperature" && (
-						<CodeBlock.DiffCallout>
-							Clamped to a value the upstream API accepts.
-						</CodeBlock.DiffCallout>
-					)
-				}
-			</CodeBlock.Diff>
+			<CodeBlock.Body>
+				<CodeBlock.CopyButton />
+				<CodeBlock.Diff
+					fromLabel="Client request"
+					toLabel="Upstream request"
+					from={jsonCodeBlockValue(clientRequestBody, { sortKeys: true, foldable: false })}
+					to={jsonCodeBlockValue(upstreamRequestBody, { sortKeys: true, foldable: false })}
+				>
+					{(line) =>
+						line.change === "added" &&
+						line.path?.join(".") === "temperature" && (
+							<CodeBlock.DiffCallout>
+								Clamped to a value the upstream API accepts.
+							</CodeBlock.DiffCallout>
+						)
+					}
+				</CodeBlock.Diff>
+			</CodeBlock.Body>
 		</CodeBlock.Root>
 	);
 }
@@ -657,12 +659,13 @@ CodeBlock.Root
 
 # Diff
 CodeBlock.Root
-├── CodeBlock.CopyButton
 ├── CodeBlock.Header
 │   ├── CodeBlock.Icon
 │   └── CodeBlock.Title
-└── CodeBlock.Diff
-    └── CodeBlock.DiffCallout
+└── CodeBlock.Body
+    ├── CodeBlock.CopyButton
+    └── CodeBlock.Diff
+        └── CodeBlock.DiffCallout
 ```
 
 ## Polymorphism
@@ -718,7 +721,7 @@ All props from [standard HTML div attributes](https://developer.mozilla.org/en-U
 
 ### CodeBlock.Body
 
-The body of the `CodeBlock`. This is where the `CodeBlock.Code` and optional `CodeBlock.CopyButton` are rendered as direct children. Put the copy button first: the first two lines of the code after it make room for it.
+The body of the `CodeBlock`. This is where the `CodeBlock.Code` or `CodeBlock.Diff` and optional `CodeBlock.CopyButton` are rendered as direct children. Put the copy button first: the first two lines of the code after it make room for it.
 
 All props from [standard HTML div attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -764,7 +767,7 @@ Inside the highlighted HTML, each line is a `.mantle-code-line` with `data-line-
 
 ### CodeBlock.Diff
 
-Two versions of code side by side. Use it in place of `CodeBlock.Body`, inside a `CodeBlock.Root`. Each pane is a `role="group"` named by `fromLabel` or `toLabel`, and it scrolls sideways on its own. Line numbers and signs are drawn by CSS, so a copy holds only the code. A changed line starts with a visually hidden "Removed:" or "Added:" for a screen reader. Put a `CodeBlock.CopyButton` directly in the `CodeBlock.Root`: it sits at the top right, over the header, and copies the `to` code. The diff is `dir="ltr"` unless you set `dir`, so code reads left to right in a right-to-left page.
+Two versions of code side by side. Put it in a `CodeBlock.Body`, inside a `CodeBlock.Root`. Each pane is a `role="group"` named by `fromLabel` or `toLabel`, and it scrolls sideways on its own. Line numbers and signs are drawn by CSS, so a copy holds only the code. A changed line starts with a visually hidden "Removed:" or "Added:" for a screen reader. A `CodeBlock.CopyButton` before it in the `CodeBlock.Body` sits at the top right of the `to` pane and copies the `to` code; the first two lines of that pane make room for it. The diff is `dir="ltr"` unless you set `dir`, so code reads left to right in a right-to-left page.
 
 All props from [standard HTML div attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) except `children`, plus:
 

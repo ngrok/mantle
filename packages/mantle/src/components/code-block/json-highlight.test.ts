@@ -152,3 +152,10 @@ test("sortKeys keeps raw JSON as its text", () => {
 	const value = { id: JSON.rawJSON("9007199254740993") };
 	expect(jsonCodeBlockValue(value, { sortKeys: true }).code).toBe('{\n  "id": 9007199254740993\n}');
 });
+
+test("sortKeys sorts a frozen record with no prototype and a rawJSON key", () => {
+	const value = Object.freeze(Object.assign(Object.create(null), { z: 1, rawJSON: "42", a: 2 }));
+	expect(jsonCodeBlockValue(value, { sortKeys: true }).code).toBe(
+		'{\n  "a": 2,\n  "rawJSON": "42",\n  "z": 1\n}',
+	);
+});

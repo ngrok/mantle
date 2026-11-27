@@ -791,26 +791,28 @@ export function CodeBlockDiffDemo() {
 	return (
 		<PreviewCanvas>
 			<CodeBlock.Root>
-				<CodeBlock.CopyButton />
 				<CodeBlock.Header>
 					<CodeBlock.Icon preset="file" />
 					<CodeBlock.Title>request.json</CodeBlock.Title>
 				</CodeBlock.Header>
-				<CodeBlock.Diff
-					fromLabel="Client request"
-					toLabel="Upstream request"
-					from={jsonCodeBlockValue(clientRequestBody, { sortKeys: true, foldable: false })}
-					to={jsonCodeBlockValue(upstreamRequestBody, { sortKeys: true, foldable: false })}
-				>
-					{(line) =>
-						line.change === "added" &&
-						line.path?.join(".") === "temperature" && (
-							<CodeBlock.DiffCallout>
-								Clamped to a value the upstream API accepts.
-							</CodeBlock.DiffCallout>
-						)
-					}
-				</CodeBlock.Diff>
+				<CodeBlock.Body>
+					<CodeBlock.CopyButton />
+					<CodeBlock.Diff
+						fromLabel="Client request"
+						toLabel="Upstream request"
+						from={jsonCodeBlockValue(clientRequestBody, { sortKeys: true, foldable: false })}
+						to={jsonCodeBlockValue(upstreamRequestBody, { sortKeys: true, foldable: false })}
+					>
+						{(line) =>
+							line.change === "added" &&
+							line.path?.join(".") === "temperature" && (
+								<CodeBlock.DiffCallout>
+									Clamped to a value the upstream API accepts.
+								</CodeBlock.DiffCallout>
+							)
+						}
+					</CodeBlock.Diff>
+				</CodeBlock.Body>
 			</CodeBlock.Root>
 		</PreviewCanvas>
 	);

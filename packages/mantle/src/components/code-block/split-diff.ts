@@ -186,7 +186,7 @@ function backtrack({
  * point: a mark around part of a character has no width.
  */
 const WORD_TOKEN =
-	/\s+|\p{RI}\p{RI}|(?:[\p{L}\p{N}_][\p{M}]*)+|\p{Extended_Pictographic}(?:\p{EMod}|\uFE0F|\u200D\p{Extended_Pictographic})*|\S\p{M}*/gu;
+	/\s+|\p{RI}\p{RI}|(?:[\p{L}\p{N}_][\p{M}]*)+|\p{Extended_Pictographic}(?:\p{EMod}|[\uFE0E\uFE0F]|\u200D\p{Extended_Pictographic})*|\S\p{M}*/gu;
 
 /** Splits a line into word tokens. */
 function tokenizeWords(line: string): string[] {
