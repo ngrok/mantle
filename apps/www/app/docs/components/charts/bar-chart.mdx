@@ -317,7 +317,7 @@ function NoUsageYetBarChartExample() {
 
 A `null` value is no reading, and a `0` is a reading of nothing. Compose `BarChart.EmptySlot` to show the difference: each row where no `BarChart.Bar` has a value paints an outlined empty bar, and the tooltip, the keyboard announcement, and the data table say its `label` there. You write the label, so it can say why the slot is empty. A row of zeros still paints nothing and reads `0`. The outline spans the row's bars, so it fits stacked, grouped, and horizontal bars alike.
 
-The outline reaches 30% of the plot from the baseline. It marks a slot, not a value, so it never moves the value axis. Without `BarChart.EmptySlot`, a row with no value stays a gap.
+The outline reaches 30% of the plot from the baseline, toward the positive side when it fits there. On a chart of negative values, it grows toward the side with room. It marks a slot, not a value, so it never moves the value axis. Without `BarChart.EmptySlot`, a row with no value stays a gap.
 
 Below, an agent went offline for six hours, and three hours ago it was online with no traffic.
 
@@ -1566,7 +1566,7 @@ Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `Ba
 
 A `children` readout renders inside a `<div data-slot="bar-chart-tooltip-label">`. When it goes away, React removes that div instead of your own text nodes: a browser translation engine reparents text nodes, and a removal aimed at one throws. The div is `display: contents`, so it adds no box and your content stays a direct layout child of the parent. To style it as a box, set a display of your own on it first. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 
-The `HoverSnapshot` passed to `footer` and `children` describes the active category: `{ index, xValue, datum, points, viaKeyboard }`, where `points` lists every series' value at the active index. A stacked chart adds `total`, and a chart with a `BarChart.EmptySlot` adds `emptySlotLabel`, its `label`, when no series has a value at the active index. A custom `children` readout renders that label itself. Stacked, the rows run from the far end of the pile back to the baseline; unstacked, they follow registration order.
+The `HoverSnapshot` passed to `footer` and `children` describes the active category: `{ index, xValue, datum, points, viaKeyboard }`, where `points` lists every series' value at the active index. A stacked chart of two or more series adds `total`. A chart with a `BarChart.EmptySlot` adds `emptySlotLabel`, its `label`, when no series has a value at the active index, and that snapshot has no `total`. A custom `children` readout renders that label itself. Stacked, the rows run from the far end of the pile back to the baseline; unstacked, they follow registration order.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded to the tooltip element the Root owns) except `children`, plus:
 

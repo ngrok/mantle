@@ -13,7 +13,6 @@ import { traceArea, traceLine } from "./curve.js";
  *   to none as the step narrows; on a wide step, `barThickness` caps the bar
  *   (see ./bar-geometry.js); a bar or a whole stack rounds both ends at 2px;
  *   the segments of a stack sit 1px apart
- * - empty slots: a 1px outline in the baseline color, 30% of the plot long
  * - bar textures: marks in the full series color over a ground that mixes 25%
  *   of that color into the card surface (see ./texture.js)
  * - area fills: the series hue at 10% opacity with a 2px band-edge stroke
@@ -212,50 +211,6 @@ const drawBars = (
 		}
 	}
 	ctx.fill();
-};
-
-/**
- * Outline the empty slots of a bar chart as one batched 1px stroke. A slot
- * keeps the bar's corner radius, and its stroke sits inside its rect.
- */
-const drawEmptySlots = (
-	ctx: PaintContext,
-	options: {
-		color: string;
-		rects: readonly PlotRect[];
-		/** How many leading `rects` to draw, so a caller can reuse one longer list. */
-		count: number;
-	},
-): void => {
-	const { color, rects, count } = options;
-	if (count === 0) {
-		return;
-	}
-	ctx.strokeStyle = color;
-	ctx.lineWidth = 1;
-	ctx.beginPath();
-	for (let slot = 0; slot < count; slot++) {
-		const rect = rects[slot];
-		if (rect == null) {
-			continue;
-		}
-		// Why `hairline` and the 1px trim: a stroke centers on its path, so a
-		// whole-pixel edge plus half a pixel keeps a crisp line inside the slot.
-		const width = Math.max(0, Math.round(rect.width) - 1);
-		const height = Math.max(0, Math.round(rect.height) - 1);
-		const radius = cornerRadius({
-			radius: BAR_CORNER_RADIUS,
-			thickness: Math.min(width, height),
-			length: Math.max(width, height),
-		});
-		ctx.roundRect(hairline(rect.left), hairline(rect.top), width, height, [
-			radius,
-			radius,
-			radius,
-			radius,
-		]);
-	}
-	ctx.stroke();
 };
 
 /**
@@ -814,13 +769,13 @@ export {
 	AXIS_FONT_SIZE,
 	BAR_CORNER_RADIUS,
 	BAR_GAP,
+	cornerRadius,
 	drawAreaPath,
 	drawAxisLabels,
 	drawBars,
 	drawBaseline,
 	drawDecimatedArea,
 	drawDecimatedLine,
-	drawEmptySlots,
 	drawGrid,
 	drawHorizontalBars,
 	drawLinePath,

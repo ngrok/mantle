@@ -669,6 +669,27 @@ describe("BarChart empty slots", () => {
 		expect(tooltip?.textContent).toBe("00:00Total0Bytes in—Bytes out—");
 	});
 
+	test("a chart with no series left reports no empty slot", () => {
+		const Chart = ({ withBar }: { withBar: boolean }) => (
+			<BarChart.Root
+				data={[{ hour: "00:00", requests: 9 }]}
+				xKey="hour"
+				activeIndex={0}
+				aria-label="Requests by hour"
+			>
+				{withBar && <BarChart.Bar dataKey="requests" label="Requests" color="blue" />}
+				<BarChart.EmptySlot label="Offline" />
+				<BarChart.Tooltip />
+			</BarChart.Root>
+		);
+		const { rerender } = render(<Chart withBar />);
+		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(tooltip?.textContent).toBe("00:00Requests9");
+		// Why: no series is not a series with no reading, and the row has a reading.
+		rerender(<Chart withBar={false} />);
+		expect(tooltip?.textContent).not.toContain("Offline");
+	});
+
 	test("without EmptySlot, the data table reads a dash for each series of a row with no reading", () => {
 		render(<TrafficChart />);
 		engageChart();

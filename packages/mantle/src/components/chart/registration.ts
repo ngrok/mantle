@@ -14,6 +14,7 @@ import type {
 	YTickContext,
 } from "./types.js";
 import { useChartContext } from "./context.js";
+import { paintEmptySlots } from "./empty-slot.js";
 
 /**
  * The renderless parts (series, grid, axes, reference lines, empty slots)
@@ -191,7 +192,10 @@ const useEmptySlotPrimitive = (partName: string, props: EmptySlotPrimitiveProps)
 		() => `${partName} cannot be composed inside ${context.componentName}.Root.`,
 	);
 	const { label } = props;
-	useLayoutEffect(() => context.store.registerEmptySlot(label), [context.store, label]);
+	useLayoutEffect(
+		() => context.store.registerEmptySlot({ label, paint: paintEmptySlots }),
+		[context.store, label],
+	);
 	return null;
 };
 

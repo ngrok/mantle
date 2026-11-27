@@ -343,8 +343,9 @@ const ReferenceLine = (props: BarChartReferenceLineProps) =>
  * Marks each row with no reading as an empty slot (renderless; the chart
  * paints it). A row where no `BarChart.Bar` has a value (`null` or a missing
  * key) paints a 1px outline as wide as the row's bars, 30% of the plot from
- * the baseline. The tooltip, the keyboard announcement, and the data table say
- * `label` there instead of a value for each series.
+ * the baseline, toward the side with room on a chart of negative values. The
+ * tooltip, the keyboard announcement, and the data table say `label` there
+ * instead of a value for each series.
  *
  * A `0` is a reading, not an empty slot: a row of zeros paints no outline and
  * reads `0`. The outline marks a slot, not a value, so it never moves the

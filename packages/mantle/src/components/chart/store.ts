@@ -11,7 +11,18 @@ import type {
 	XValue,
 	YAxisSpec,
 } from "./types.js";
+import type { EmptySlotPaintInput } from "./empty-slot.js";
+import type { PaintContext } from "./paint-backend.js";
 import { CHART_DECORATIVE_COLOR, cssSeriesColor } from "./colors.js";
+
+/**
+ * A composed `BarChart.EmptySlot`: its label, and the paint it brings, so a
+ * chart without the part ships no empty-slot paint code.
+ */
+type EmptySlotSpec = {
+	label: string;
+	paint: (ctx: PaintContext, input: EmptySlotPaintInput) => void;
+};
 
 /**
  * Tooltip customization registered by a composed Tooltip part. Root renders
@@ -66,8 +77,8 @@ type StoreSnapshot = {
 	yAxis: YAxisSpec | null;
 	/** Reference lines in registration order. */
 	referenceLines: ReferenceLineSpec[];
-	/** Why a bar row with no reading is empty, `null` when no EmptySlot part is composed. */
-	emptySlotLabel: string | null;
+	/** The composed EmptySlot part's label and paint, `null` when none is composed. */
+	emptySlot: EmptySlotSpec | null;
 	/** Tooltip customization, `null` when no Tooltip part is composed. */
 	tooltip: TooltipConfig | null;
 	/** The bar direction the Root registered (DOM consumers: legend texture keys). */
@@ -96,7 +107,7 @@ class ChartStore {
 		xAxis: null,
 		yAxis: null,
 		referenceLines: [],
-		emptySlotLabel: null,
+		emptySlot: null,
 		tooltip: null,
 		orientation: "vertical",
 	};
@@ -114,7 +125,7 @@ class ChartStore {
 	#yAxis: YAxisSpec | null = null;
 	#referenceLines = new Map<string, { spec: ReferenceLineSpec; sequence: number }>();
 	#referenceLineSequenceById = new Map<string, number>();
-	#emptySlot: { label: string } | null = null;
+	#emptySlot: EmptySlotSpec | null = null;
 	#tooltip: TooltipConfig | null = null;
 	#hover: HoverSnapshot | null = null;
 	#hoverEver = false;
@@ -255,14 +266,12 @@ class ChartStore {
 		};
 	}
 
-	registerEmptySlot(label: string): () => void {
-		// Singleton part: last registration wins, and cleanup compares the exact
-		// registration object, as `registerGrid` does.
-		const registration = { label };
-		this.#emptySlot = registration;
+	registerEmptySlot(spec: EmptySlotSpec): () => void {
+		// Singleton part: last registration wins.
+		this.#emptySlot = spec;
 		this.#publishRegistrations();
 		return () => {
-			if (this.#emptySlot === registration) {
+			if (this.#emptySlot === spec) {
 				this.#emptySlot = null;
 				this.#publishRegistrations();
 			}
@@ -328,7 +337,7 @@ class ChartStore {
 			referenceLines: [...this.#referenceLines.values()]
 				.toSorted((a, b) => a.sequence - b.sequence)
 				.map((entry) => entry.spec),
-			emptySlotLabel: this.#emptySlot?.label ?? null,
+			emptySlot: this.#emptySlot,
 			tooltip: this.#tooltip,
 			orientation: this.#orientation,
 		};

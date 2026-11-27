@@ -62,7 +62,6 @@ import {
 	drawBaseline,
 	drawDecimatedArea,
 	drawDecimatedLine,
-	drawEmptySlots,
 	drawGrid,
 	drawHorizontalBars,
 	drawLinePath,
@@ -181,12 +180,6 @@ const EMPTY_SEGMENTS = { lower: null, upper: new Float64Array(0), progress: 1 } 
 
 /** The gap between the segments of a stack, in CSS pixels. */
 const STACK_GAP = 1;
-/**
- * How far an empty slot reaches from the baseline, as a share of the plot. It
- * is a fixed length, not a value on the axis, so it reads as a slot at any
- * scale and never moves the y domain.
- */
-const EMPTY_SLOT_SHARE = 0.3;
 
 /** The headroom a bar chart without ticks keeps over its tallest bar. */
 const BAR_HEADROOM = 1.12;
@@ -397,8 +390,6 @@ class ChartEngine {
 	 */
 	#barRects: BarRect[] = [];
 	#horizontalBarRects: HorizontalBarRect[] = [];
-	/** The outlines of the empty slots, reused across frames as {@link #barRects} is. */
-	#emptySlotRects: PlotRect[] = [];
 	/** `0..rowCount-1`, the index list of a line or area that does not connect nulls. */
 	#allIndexes: number[] = [];
 	/** The zero lower envelope of an unstacked decimated area, per column count. */
@@ -2518,10 +2509,17 @@ class ChartEngine {
 
 		const rects = this.#barRects;
 		const segments = this.#barSegments(specs);
-		this.#paintEmptySlots(ctx, segments, {
+		this.#store.getSnapshot().emptySlot?.paint(ctx, {
+			segments,
+			layout,
+			plot: this.#plot,
+			rowCount: this.#rowCount,
 			across: (groupCount - 1) * (slotWidth + gap) + barWidth,
 			baseline: toPixel(0),
 			horizontal: false,
+			// Why the reference color: the outline is the one mark that tells no
+			// reading from 0, so it needs 3:1 on the card, as a reference line does.
+			color: colors.chrome.reference,
 		});
 		specs.forEach((spec, seriesIndex) => {
 			const { lower, upper, progress } = segments[seriesIndex] ?? EMPTY_SEGMENTS;
@@ -2591,10 +2589,15 @@ class ChartEngine {
 
 		const rects = this.#horizontalBarRects;
 		const segments = this.#barSegments(specs);
-		this.#paintEmptySlots(ctx, segments, {
+		this.#store.getSnapshot().emptySlot?.paint(ctx, {
+			segments,
+			layout,
+			plot: this.#plot,
+			rowCount: this.#rowCount,
 			across: (groupCount - 1) * (slotHeight + gap) + barHeight,
 			baseline: toPixel(0),
 			horizontal: true,
+			color: colors.chrome.reference,
 		});
 		specs.forEach((spec, seriesIndex) => {
 			const { lower, upper, progress } = segments[seriesIndex] ?? EMPTY_SEGMENTS;
@@ -2635,49 +2638,6 @@ class ChartEngine {
 				count,
 			});
 		});
-	}
-
-	/**
-	 * Outline each empty slot: a row where no series has a value, on a chart
-	 * with a composed `BarChart.EmptySlot`. A slot spans the row's bars across
-	 * the band and {@link EMPTY_SLOT_SHARE} of the plot from the baseline. A row
-	 * of zeros is a reading, so it paints no slot.
-	 */
-	#paintEmptySlots(
-		ctx: PaintContext,
-		segments: ReadonlyArray<{ upper: Float64Array }>,
-		options: { across: number; baseline: number; horizontal: boolean },
-	): void {
-		const layout = this.#bandLayout;
-		const colors = this.#colors;
-		if (this.#store.getSnapshot().emptySlotLabel == null || layout == null || colors == null) {
-			return;
-		}
-		const { across, baseline, horizontal } = options;
-		const length = EMPTY_SLOT_SHARE * (horizontal ? this.#plot.width : this.#plot.height);
-		const rects = this.#emptySlotRects;
-		let count = 0;
-		for (let index = 0; index < this.#rowCount; index++) {
-			let empty = true;
-			for (const segment of segments) {
-				if (!Number.isNaN(segment.upper[index] ?? Number.NaN)) {
-					empty = false;
-					break;
-				}
-			}
-			if (!empty) {
-				continue;
-			}
-			const start = bandStart(layout, index) + (layout.bandwidth - across) / 2;
-			const rect = rects[count] ?? { left: 0, top: 0, width: 0, height: 0 };
-			rects[count] = rect;
-			count += 1;
-			rect.left = horizontal ? baseline : start;
-			rect.top = horizontal ? start : baseline - length;
-			rect.width = horizontal ? length : across;
-			rect.height = horizontal ? across : length;
-		}
-		drawEmptySlots(ctx, { color: colors.chrome.baseline, rects, count });
 	}
 
 	#paintLinesOrAreas(
@@ -3017,7 +2977,7 @@ class ChartEngine {
 
 	#publishSnapshot(options: { force: boolean } = { force: false }): void {
 		const index = this.#effectiveIndex();
-		const { emptySlotLabel } = this.#store.getSnapshot();
+		const emptySlotLabel = this.#store.getSnapshot().emptySlot?.label ?? null;
 		if (
 			!options.force &&
 			index === this.#lastPublishedIndex &&
@@ -3075,7 +3035,11 @@ class ChartEngine {
 			points,
 			viaKeyboard: this.#viaKeyboard,
 		};
-		if (emptySlotLabel != null && points.every((point) => point.value == null)) {
+		if (
+			emptySlotLabel != null &&
+			points.length > 0 &&
+			points.every((point) => point.value == null)
+		) {
 			snapshot.emptySlotLabel = emptySlotLabel;
 		} else if (this.#options.stacked && points.length > 1) {
 			snapshot.total = points.reduce((sum, point) => sum + (point.value ?? 0), 0);

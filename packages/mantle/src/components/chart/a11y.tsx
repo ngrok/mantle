@@ -394,8 +394,8 @@ const ChartDataTable = ({
 	// Why a selector: the table reads the label of a composed EmptySlot, not the hover.
 	const emptySlotLabel = useSyncExternalStore(
 		store.subscribe,
-		() => store.getSnapshot().emptySlotLabel,
-		() => store.getSnapshot().emptySlotLabel,
+		() => store.getSnapshot().emptySlot?.label ?? null,
+		() => store.getSnapshot().emptySlot?.label ?? null,
 	);
 	const resolvedLabel = useResolvedChartLabel(label, labelledBy);
 	if (data.length === 0 || series.length === 0) {

@@ -99,6 +99,8 @@ const CHART_1: Rgb = [62, 111, 244];
 const CHART_2: Rgb = [0, 129, 56];
 const CHART_3: Rgb = [246, 51, 154];
 const BASELINE: Rgb = [255, 0, 0];
+/** `--color-neutral-500`, which the reference lines and the empty-slot outlines paint. */
+const REFERENCE: Rgb = [115, 115, 115];
 
 /** The painted canvas, with the device-pixel ratio it was sized at. */
 type Painted = {
@@ -1337,18 +1339,19 @@ describe("empty slots", () => {
 	];
 
 	/**
-	 * The column runs that carry any ink of the baseline color. A chart without
-	 * ticks draws no zero rule, so only an outline paints it. Why any alpha: a
-	 * 1px stroke has antialiased corners, which `isColor` rejects.
+	 * The column runs that carry any gray ink: the outline paints the reference
+	 * color, and the bars here are blue and emerald. Why any alpha: a 1px stroke
+	 * has antialiased corners, which `isColor` rejects.
 	 */
 	const outlineRunsOf = (painted: Painted): Span[] => {
 		const inked = (x: number, y: number) => {
 			const offset = (y * painted.width + x) * 4;
+			const red = painted.data[offset] ?? 0;
 			return (
 				(painted.data[offset + 3] ?? 0) > 0 &&
-				(painted.data[offset] ?? 0) > 200 &&
-				(painted.data[offset + 1] ?? 0) < 60 &&
-				(painted.data[offset + 2] ?? 0) < 60
+				red < 200 &&
+				Math.abs(red - (painted.data[offset + 1] ?? 0)) < 12 &&
+				Math.abs(red - (painted.data[offset + 2] ?? 0)) < 12
 			);
 		};
 		const runs: Span[] = [];
@@ -1408,7 +1411,7 @@ describe("empty slots", () => {
 			expect(tuesday.start - monday.start).toBeCloseTo(step, -1);
 			expect(tuesday.end - tuesday.start).toBeCloseTo(monday.end - monday.start, -1);
 			// The outline rises from the bottom edge to 30% of the plot height.
-			const extent = verticalExtent(painted, [255, 0, 0], {
+			const extent = verticalExtent(painted, REFERENCE, {
 				start: tuesday.start + 4 * painted.scale,
 				end: tuesday.end - 4 * painted.scale,
 			});
@@ -1416,6 +1419,56 @@ describe("empty slots", () => {
 			expect((painted.height - extent.start) / painted.height).toBeCloseTo(0.3, 1);
 		});
 	});
+
+	test.each(["vertical", "horizontal"] as const)(
+		"on a chart of negative readings, a %s outline grows from the baseline into the plot",
+		async (orientation) => {
+			const losses = [
+				{ day: "Mon", loss: -60 },
+				{ day: "Tue", loss: null },
+				{ day: "Wed", loss: -30 },
+			];
+			const { container } = render(
+				<div style={{ width: 600, height: 300 }}>
+					<CanvasBarChartRoot
+						data={losses}
+						xKey="day"
+						orientation={orientation}
+						animate={false}
+						aria-label="Loss by day"
+					>
+						<BarChart.Bar dataKey="loss" label="Loss" color="blue" />
+						<BarChart.EmptySlot label="No reading" />
+					</CanvasBarChartRoot>
+				</div>,
+			);
+			const canvas = await findChartCanvas(container);
+			await waitForPlot(canvas);
+			await waitFor(() => {
+				const painted = readCanvas(canvas);
+				const [outline] = outlineRunsOf(painted);
+				if (outline == null) {
+					throw new Error("expected an outline inside the plot");
+				}
+				// Zero is the top (or right) edge, so the outline reaches 30% of the
+				// plot down (or left) from it: `edge` is its gap to that edge, and
+				// `reach` its length as a share of the plot.
+				const vertical = verticalExtent(painted, REFERENCE, {
+					start: outline.start + 4 * painted.scale,
+					end: outline.end - 4 * painted.scale,
+				});
+				const { edge, reach } =
+					orientation === "vertical"
+						? { edge: vertical.start, reach: vertical.end / painted.height }
+						: {
+								edge: painted.width - 1 - outline.end,
+								reach: (painted.width - outline.start) / painted.width,
+							};
+				expect(edge).toBeLessThanOrEqual(2 * painted.scale);
+				expect(reach).toBeCloseTo(0.3, 1);
+			});
+		},
+	);
 
 	test("without EmptySlot, a row with no reading stays a gap", async () => {
 		const { container } = renderTraffic();
