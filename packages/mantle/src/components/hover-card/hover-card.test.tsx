@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { describe, expect, test } from "vitest";
+import { describe, expect, onTestFinished, test, vi } from "vitest";
 import * as HoverCard from "./hover-card-parts.js";
 
 function renderHoverCard(arrow = <HoverCard.Arrow />) {
@@ -16,6 +16,33 @@ function renderHoverCard(arrow = <HoverCard.Arrow />) {
 }
 
 describe("HoverCard", () => {
+	test("a tap's focus does not open the card, and the next keyboard focus does", () => {
+		vi.useFakeTimers();
+		onTestFinished(() => {
+			vi.useRealTimers();
+		});
+		renderHoverCard();
+		const link = screen.getByRole("link", { name: "@ngrok/mantle" });
+
+		// Why this order: a tap focuses the link after `pointerup`.
+		fireEvent.pointerDown(link, { pointerType: "touch" });
+		fireEvent.pointerUp(link, { pointerType: "touch" });
+		act(() => {
+			link.focus();
+			vi.runAllTimers();
+		});
+		expect(screen.queryByText("The Design System")).toBeNull();
+		fireEvent.click(link);
+
+		act(() => {
+			link.blur();
+			vi.runAllTimers();
+			link.focus();
+			vi.runAllTimers();
+		});
+		expect(screen.getByText("The Design System")).toBeInTheDocument();
+	});
+
 	describe("Arrow", () => {
 		test("renders inside the content once hover opens it, with its data-slot", async () => {
 			const user = userEvent.setup();

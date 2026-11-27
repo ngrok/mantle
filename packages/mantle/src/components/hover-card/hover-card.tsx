@@ -1,13 +1,6 @@
 "use client";
 
-import type {
-	ComponentProps,
-	FocusEvent,
-	PointerEvent,
-	TouchEvent,
-	ReactNode,
-	RefObject,
-} from "react";
+import type { ComponentProps, FocusEvent, PointerEvent, ReactNode, RefObject } from "react";
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
@@ -197,14 +190,15 @@ const Trigger = ({
 	"data-slot": dataSlot,
 	onBlur,
 	onFocus,
+	onPointerDown,
 	onPointerEnter,
 	onPointerLeave,
-	onTouchStart,
 	ref,
 	...props
 }: ComponentProps<"a"> & WithAsChild & WithDataSlot) => {
 	const state = useHoverCardState("Trigger");
 	const composedRef = useComposedRefs(ref, state.setTrigger);
+	const touchPressed = useRef(false);
 	const Component = asChild ? Slot : "a";
 	return (
 		<Component
@@ -229,9 +223,30 @@ const Trigger = ({
 					state.closeSoon();
 				}
 			}}
+			// Why: a tap focuses the link, and the card is for pointers. React adds
+			// `touchstart` as a passive listener, so a `preventDefault()` there cannot
+			// stop that focus. The focus that a touch press causes opens nothing.
+			onPointerDown={(event: PointerEvent<HTMLAnchorElement>) => {
+				onPointerDown?.(event);
+				if (event.defaultPrevented || event.pointerType !== "touch") {
+					return;
+				}
+				touchPressed.current = true;
+				// Why `click`: a tap focuses the link after `pointerup`.
+				// Why `pointercancel` too: a touch scroll ends with it.
+				// Why the capture phase: a handler under the document can stop the click.
+				const document = event.currentTarget.ownerDocument;
+				const release = () => {
+					touchPressed.current = false;
+					document.removeEventListener("click", release, true);
+					document.removeEventListener("pointercancel", release, true);
+				};
+				document.addEventListener("click", release, true);
+				document.addEventListener("pointercancel", release, true);
+			}}
 			onFocus={(event: FocusEvent<HTMLAnchorElement>) => {
 				onFocus?.(event);
-				if (!event.defaultPrevented) {
+				if (!event.defaultPrevented && !touchPressed.current) {
 					state.openSoon();
 				}
 			}}
@@ -240,14 +255,6 @@ const Trigger = ({
 				if (!event.defaultPrevented) {
 					state.closeSoon();
 				}
-			}}
-			// Why: a touch would focus the link and open the card, and the card is for pointers.
-			onTouchStart={(event: TouchEvent<HTMLAnchorElement>) => {
-				onTouchStart?.(event);
-				if (event.defaultPrevented) {
-					return;
-				}
-				event.preventDefault();
 			}}
 		/>
 	);
