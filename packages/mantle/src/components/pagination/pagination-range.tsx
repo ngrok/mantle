@@ -124,9 +124,8 @@ type PaginationRangeProps = Omit<ComponentProps<"span">, "children"> &
  *
  * While the rows load, pass `total={null}` and a `loadingLabel`. The same live
  * region shows the label, then the count when the total is known (no text for
- * an empty list). A screen reader announces each change after mount, such as
- * a refetch. Text present at mount is not announced, so the first load is
- * silent.
+ * an empty list). A screen reader announces a change after mount, such as the
+ * first count or a refetch. A label present at mount is not announced.
  *
  * It takes `offset`, `pageSize`, and `total`, so the same part serves offset
  * state from `useOffsetPagination` beside a `Table` and a TanStack table

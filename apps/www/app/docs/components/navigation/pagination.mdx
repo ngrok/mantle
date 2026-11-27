@@ -269,7 +269,7 @@ The line is a live region (`role="status"`), so a screen reader announces the ne
 
 While the rows load, the count is not known. Pass `total={null}` and a `loadingLabel`, such as "Loading payments…". The same live region shows the label, then the count when the rows arrive, or no text for an empty list. Keep this one `PaginationRange` mounted, and don't add a second `role="status"` element for the load.
 
-A screen reader announces each change after mount, such as a refetch. Text present at mount isn't announced, so the first load is silent. The example starts with the count; press **Start loading** to refetch, then **Finish loading**.
+A screen reader announces a change after mount, such as the first count or a refetch. A label present at mount isn't announced, so a table that mounts while loading says nothing until its count arrives. The example starts with the count; press **Start loading** to refetch, then **Finish loading**.
 
 <Example name="components/navigation/pagination/loading" title="PaginationRange loading example">
 
