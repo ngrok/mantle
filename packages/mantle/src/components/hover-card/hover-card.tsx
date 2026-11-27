@@ -307,7 +307,7 @@ type HoverCardContentProps = ComponentProps<"div"> &
  */
 const Content = (props: HoverCardContentProps) => {
 	const state = useHoverCardState("Content");
-	return useOpenedOnce(state.open) && <MountedContent {...props} />;
+	return useOpenedOnce(state.open) ? <MountedContent {...props} /> : null;
 };
 
 /** `HoverCard.Content` after its first open, when it holds the float. */

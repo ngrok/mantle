@@ -658,7 +658,9 @@ function useReconcileOnTriggerChange(
 	onTriggerChangeRef: RefObject<(() => void) | null>,
 	reconcile: () => void,
 ) {
-	useEffect(() => {
+	// Why a layout effect: content that mounts on its first open must listen
+	// before a trigger that the same commit replaces attaches its ref.
+	useIsomorphicLayoutEffect(() => {
 		onTriggerChangeRef.current = reconcile;
 		return () => {
 			onTriggerChangeRef.current = null;
@@ -677,9 +679,9 @@ function useReconcileOnTriggerChange(
  *
  * @example
  * ```tsx
- * const Content = (props: ContentProps) => {
- *   const state = useState("Content");
- *   return useOpenedOnce(state.open) && <MountedContent {...props} />;
+ * const Content = (props: HoverCardContentProps) => {
+ *   const state = useHoverCardState("Content");
+ *   return useOpenedOnce(state.open) ? <MountedContent {...props} /> : null;
  * };
  * ```
  */

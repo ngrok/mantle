@@ -605,7 +605,7 @@ const Content = (props: PopoverContentProps) => {
 	if (Drawer != null) {
 		return <Drawer state={state} {...props} />;
 	}
-	return opened && <FloatContent {...props} />;
+	return opened ? <FloatContent {...props} /> : null;
 };
 
 type PopoverArrowProps = Omit<ComponentProps<"svg">, "children" | "width" | "height"> &

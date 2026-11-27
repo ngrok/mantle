@@ -546,7 +546,7 @@ type TooltipContentProps = Omit<ComponentProps<"div">, "id"> &
  */
 function Content(props: TooltipContentProps) {
 	const state = useTooltipState("Content");
-	return useOpenedOnce(state.state !== "closed") && <MountedContent {...props} />;
+	return useOpenedOnce(state.state !== "closed") ? <MountedContent {...props} /> : null;
 }
 
 /** `Tooltip.Content` after its first open, when it holds the float. */
