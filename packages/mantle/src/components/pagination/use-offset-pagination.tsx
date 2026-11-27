@@ -392,7 +392,12 @@ function useOffsetPagination({
 			onPageSizeChange(size, nextPage);
 			return;
 		}
-		if (isPageControlled && nextPage !== storedPage) {
+		const echo = awaitedEcho.current;
+		// Why write a page that equals the stored page: a page write to another
+		// page waits, and it would land after this size.
+		const overridesWrite =
+			echo != null && echo.fromPage !== echo.toPage && echo.toPage !== nextPage;
+		if (isPageControlled && (nextPage !== storedPage || overridesWrite)) {
 			// Why wait for the prop: the new size with the old page shows the
 			// wrong rows until the parent commits the page.
 			setPending({ from: storedPage, page: nextPage, size });
@@ -400,7 +405,7 @@ function useOffsetPagination({
 				awaitedEcho.current = {
 					fromPage: storedPage,
 					toPage: nextPage,
-					fromSize: currentPageSize,
+					fromSize: size === currentPageSize ? null : currentPageSize,
 					fromClamp: false,
 				};
 			}
@@ -419,6 +424,9 @@ function useOffsetPagination({
 				fromSize: currentPageSize,
 				fromClamp: false,
 			};
+		} else if (isPageControlled && echo?.fromPage === storedPage && echo.toPage === storedPage) {
+			// Why: a resize back to this render's size leaves no size to wait for.
+			awaitedEcho.current = null;
 		}
 		if (!isPageControlled) {
 			// Why not `setPage`: it compares against the page of this render, and
