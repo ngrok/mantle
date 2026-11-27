@@ -313,6 +313,22 @@ describe("Markdown", () => {
 		expect(container.querySelector("a a")).toBeNull();
 	});
 
+	test("keeps each back link's target when a citation moves to another paragraph", () => {
+		const { container, rerender } = render(
+			<Markdown>{"One[^a].\n\nMiddle[^a].\n\nThree.\n\n[^a]: Note"}</Markdown>,
+		);
+		rerender(<Markdown>{"One.\n\nMiddle[^a].\n\nThree[^a].\n\n[^a]: Note"}</Markdown>);
+		const targets = [...container.querySelectorAll("[data-footnote-backref]")].map(
+			(link) => container.querySelectorAll(`[id="${link.getAttribute("href")?.slice(1)}"]`).length,
+		);
+		expect(targets).toEqual([1, 1]);
+	});
+
+	test("renders an image whose alt text starts with a caret", () => {
+		render(<Markdown>{"![^ caret](/image.png)"}</Markdown>);
+		expect(screen.getByRole("img")).toHaveAccessibleName("^ caret");
+	});
+
 	test("resolves a reference link in a note's list item when the stream ends", () => {
 		const answer =
 			"Text[^1]\n\n[^1]: Steps:\n    - [docs][ref]\n\nMore.\n\n[ref]: https://ngrok.com/docs";

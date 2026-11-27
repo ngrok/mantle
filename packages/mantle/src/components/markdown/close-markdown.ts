@@ -596,7 +596,13 @@ function closeInline(region: string, { math }: { math: boolean }): string {
 			continue;
 		}
 		// Why not before `[^`: `![^1]` is a `!` and a footnote reference.
-		if (char === "[" || (char === "!" && region[index + 1] === "[" && region[index + 2] !== "^")) {
+		if (
+			char === "[" ||
+			(char === "!" &&
+				region[index + 1] === "[" &&
+				// Why to the end too: a half-typed `[^1` can still become a reference.
+				!/^\[\^[^\s[\]]*(?:\]|$)/.test(region.slice(index + 1, index + 1004)))
+		) {
 			const image = char === "!";
 			brackets.push({ image, index });
 			index += image ? 2 : 1;
@@ -627,7 +633,8 @@ function closeInline(region: string, { math }: { math: boolean }): string {
 			// An incomplete destination or label: show the text only, or nothing for an image.
 			const label = region.slice(bracket.index + (bracket.image ? 2 : 1), index - 1);
 			end = bracket.index;
-			suffix = bracket.image ? "" : label;
+			// Why the escape: a reference in a link's label stays text, as the finished link shows it.
+			suffix = bracket.image ? "" : label.replaceAll("[^", "\\[^");
 			brackets.length = 0;
 			break;
 		}

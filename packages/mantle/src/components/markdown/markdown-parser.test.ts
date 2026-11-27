@@ -208,6 +208,37 @@ describe("createMarkdownParser", () => {
 		expect(blocks.map((token) => token.type)).toEqual(["paragraph", "footnote"]);
 	});
 
+	test.each([
+		["a list", "- A[^n]\n[^n]: Note", "list"],
+		["a quote", "> A[^n]\n[^n]: Note", "blockquote"],
+	])("ends %s at a footnote definition", (_, source, type) => {
+		const { notes, blocks } = createMarkdownParser().parse(source, { streaming: false });
+		expect(blocks.map((token) => token.type)).toEqual([type, "footnote"]);
+		expect(notes.references).toEqual({ N: { number: 1, count: 1 } });
+	});
+
+	test("keeps prose after a note's heading out of the note, and bounds nested notes", () => {
+		const { blocks } = createMarkdownParser().parse("[^n]: # Heading\nOutside.", {
+			streaming: false,
+		});
+		expect(blocks.map((token) => token.type)).toEqual(["footnote", "paragraph"]);
+		const deep = Array.from({ length: 40 }, (_, at) => `[^n${at}]: `).join("") + "end";
+		let token = createMarkdownParser().parse(deep, { streaming: false }).blocks[0];
+		let depth = 0;
+		while (token?.type === "footnote") {
+			depth += 1;
+			token = token.tokens?.[0];
+		}
+		expect(depth).toBeLessThanOrEqual(33);
+	});
+
+	test("reads a reference again when a static answer resumes streaming", () => {
+		const parser = createMarkdownParser();
+		parser.parse("A[^x].\n\nTail.", { streaming: false });
+		const { notes } = parser.parse("A[^x].\n\nTail.\n\n[^x]: Note", { streaming: true });
+		expect(notes.references).toEqual({ X: { number: 1, count: 1 } });
+	});
+
 	test("numbers a table's header before its body, and ends an empty note at an unindented line", () => {
 		const source = "| H[^x] |\n| --- |\n| B[^y] |\n\n[^x]:\nOutside\n\n[^y]: Y";
 		const { notes, blocks } = createMarkdownParser().parse(source, { streaming: false });

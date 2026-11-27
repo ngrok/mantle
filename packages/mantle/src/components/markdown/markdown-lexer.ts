@@ -218,7 +218,7 @@ const isFence = (line: string) => fenceOf(line) != null;
 /** Whether `line` starts a block that ends a paragraph. */
 function interrupts(line: string): boolean {
 	if (!BLOCK_START.test(line)) {
-		return false;
+		return FOOTNOTE.test(line);
 	}
 	if (
 		HEADING.test(line) ||
@@ -529,7 +529,6 @@ function lexBlocks(
 	// Why the tokenizer after `start`: a line such as `$$x$$ more` starts like math but stays in the paragraph.
 	const interruptsParagraph = (line: string, at: number) =>
 		interrupts(line) ||
-		FOOTNOTE.test(line) ||
 		(context.block.some((extension) => extension.start?.(line) === 0) && extensionAt(at) != null);
 	const rawLines = (from: number, to: number) => {
 		const out: string[] = [];
@@ -724,10 +723,10 @@ function lexBlocks(
 			}
 
 			// Why before a link definition: `[^1]: text` is one too.
-			const note = FOOTNOTE.exec(line);
+			// Why the depth: a note can hold a note, and deep nesting overflows the stack.
+			const note = context.depth < MAX_NESTING ? FOOTNOTE.exec(line) : null;
 			if (note != null) {
 				const parts = [line.slice(note[0].length)];
-				let afterBlank = false;
 				let end = index + 1;
 				while (end < lines.length) {
 					const next = lineAt(end);
@@ -743,17 +742,17 @@ function lexBlocks(
 						for (; end < after; end += 1) {
 							parts.push("");
 						}
-						afterBlank = true;
 					} else if (indentOf(next) >= 4) {
 						// Why the raw line: a tab after the indent is the note's own, as in code.
 						parts.push(stripColumns(rawLineAt(end), 4, column));
 						end += 1;
 					} else if (
-						!afterBlank &&
-						(parts.at(-1) ?? "").trim() !== "" &&
+						!isBlank(parts.at(-1) ?? "") &&
+						indentOf(parts.at(-1) ?? "") < 4 &&
+						!interrupts(parts.at(-1) ?? "") &&
 						!interruptsParagraph(next, end)
 					) {
-						// A lazy line continues the note's paragraph.
+						// A lazy line continues the note's open paragraph: its last line is prose, not a heading or a fence.
 						parts.push(next);
 						end += 1;
 					} else {
@@ -1620,7 +1619,9 @@ function lexInline(source: string, context: Context): Tok[] {
 		} else if (
 			char === "[" ||
 			// Why not before `[^`: `![^1]` is a `!` and a footnote reference.
-			(char === "!" && source[index + 1] === "[" && source[index + 2] !== "^")
+			(char === "!" &&
+				source[index + 1] === "[" &&
+				!FOOTNOTE_REF.test(source.slice(index + 1, index + 1004)))
 		) {
 			// Why not in a note or a label: a note's reference would number it before the answer does, and a link
 			// cannot hold a link.

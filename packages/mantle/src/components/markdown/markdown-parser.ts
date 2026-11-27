@@ -100,8 +100,11 @@ function addNotes(notes: MarkdownFootnotes, tokens: readonly Token[]) {
 	}
 }
 
-/** Whether two sets of footnotes hold the same numbers, counts, and definitions. */
-function isSameNotes(previous: MarkdownFootnotes, next: MarkdownFootnotes): boolean {
+/**
+ * Whether two sets of footnotes hold the same numbers, counts, and defined
+ * labels: all that a reference in the answer renders from.
+ */
+function isSameCitations(previous: MarkdownFootnotes, next: MarkdownFootnotes): boolean {
 	if (previous === next) {
 		return true;
 	}
@@ -115,7 +118,17 @@ function isSameNotes(previous: MarkdownFootnotes, next: MarkdownFootnotes): bool
 				previous.references[label]?.number === next.references[label]?.number &&
 				previous.references[label]?.count === next.references[label]?.count,
 		) &&
-		defined.every((label) => previous.definitions[label]?.raw === next.definitions[label]?.raw)
+		defined.every((label) => label in previous.definitions)
+	);
+}
+
+/** Whether two sets of footnotes hold the same citations, and each note the same source. */
+function isSameNotes(previous: MarkdownFootnotes, next: MarkdownFootnotes): boolean {
+	return (
+		isSameCitations(previous, next) &&
+		Object.keys(next.definitions).every(
+			(label) => previous.definitions[label]?.raw === next.definitions[label]?.raw,
+		)
 	);
 }
 
@@ -175,6 +188,9 @@ function createMarkdownParser({
 	let frozenNotes = noNotes();
 	// Why the same object: the lexer returns its seed when it reads no footnote, so the check of `setNotes` is one compare.
 	let notes = frozenNotes;
+	// Whether the finished blocks were lexed while the answer streamed. Why: a static parse reads a reference with
+	// no note as text, and a stream that resumes must read it again as a reference.
+	let frozenAwaits = true;
 	/** Keeps the `links` object while its definitions stay the same, so a memoized block does not render again. */
 	const setLinks = (next: MarkdownLinks) => {
 		if (!isSameLinks(links, next)) {
@@ -205,6 +221,7 @@ function createMarkdownParser({
 		frozenReadLinks = Object.keys(all.links).length > 0;
 		frozenNotes = noNotes();
 		addNotes(frozenNotes, frozen);
+		frozenAwaits = false;
 		// Why a new object: the blocks are new tokens, and each must read the definitions again.
 		links = all.links;
 		notes = all.notes;
@@ -214,8 +231,13 @@ function createMarkdownParser({
 	return {
 		parse(rawSource, { streaming, truncated = false }) {
 			const source = rawSource.includes("\r") ? rawSource.replace(/\r\n?/g, "\n") : rawSource;
-			if (!source.startsWith(frozenSource)) {
+			const closes = streaming || truncated;
+			const reset =
+				!source.startsWith(frozenSource) ||
+				(closes && !frozenAwaits && frozenSource.includes("[^"));
+			if (reset) {
 				// Why a reset: the text before the last finished block changed, such as for a new answer.
+				frozenAwaits = true;
 				frozen = [];
 				frozenSource = "";
 				frozenLinks = Object.create(null);
@@ -224,16 +246,16 @@ function createMarkdownParser({
 			}
 
 			const tail = source.slice(frozenSource.length);
-			const closes = streaming || truncated;
 			const text = closes ? closeMarkdown(tail, { math: closeMath }) : tail;
 			// Why `closes`: a stopped answer keeps each reference that showed while it streamed.
 			const tokens = lex(text, { links: frozenLinks, notes: frozenNotes, awaitNotes: closes });
 			const previousLinks = links;
 			setLinks(tokens.links);
-			if (links === previousLinks) {
+			if (links === previousLinks && !reset) {
 				setNotes(tokens.notes);
 			} else {
-				// Why: a note's link can resolve to a new target with no change to its source.
+				// Why: a note's link can resolve to a new target, or a reference take a new occurrence, with no change to
+				// the source of its block.
 				notes = tokens.notes;
 			}
 			// Why: a finished block can hold a reference to a footnote that the answer never defined, and GFM shows it
@@ -292,8 +314,12 @@ function createMarkdownParser({
 						references: Object.assign(Object.create(null), frozenNotes.references),
 					};
 					addNotes(next, finished);
-					frozenNotes = next;
+					// Why the check: `[^` in code adds no footnote, and a new object costs the identity check of `setNotes`.
+					if (!isSameNotes(frozenNotes, next)) {
+						frozenNotes = next;
+					}
 				}
+				frozenAwaits &&= closes;
 			}
 			const blocks = [
 				...frozen,

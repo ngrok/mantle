@@ -635,12 +635,7 @@ function TableBlock({ token, components }: { token: TableToken; components: Mark
 const noComponents: MarkdownComponents = {};
 
 /** Props of a memoized block. `links` changes only when a reference definition can change what the block reads. */
-type BlockProps = {
-	token: Token;
-	components: MarkdownComponents;
-	links: MarkdownLinks;
-	notes: MarkdownFootnotes;
-};
+type BlockProps = { token: Token; components: MarkdownComponents; links: MarkdownLinks };
 
 /**
  * Two renders of a block with the same source and context render the same
@@ -651,11 +646,11 @@ function isSameBlock(previous: BlockProps, next: BlockProps): boolean {
 	return (
 		previous.components === next.components &&
 		previous.links === next.links &&
-		// Why only with `[^`: a reference's number, or whether it is one, changes with the footnotes, and its source does not.
-		(previous.notes === next.notes || !next.token.raw.includes("[^")) &&
 		(previous.token === next.token ||
 			(previous.token.raw === next.token.raw &&
-				looseness(previous.token) === looseness(next.token)))
+				looseness(previous.token) === looseness(next.token) &&
+				// Why: a reference's number, or whether it is one, can change with no change to its source.
+				!next.token.raw.includes("[^")))
 	);
 }
 
@@ -688,7 +683,6 @@ type GroupProps = {
 	start: number;
 	components: MarkdownComponents;
 	links: MarkdownLinks;
-	notes: MarkdownFootnotes;
 };
 
 /**
@@ -699,7 +693,6 @@ function isSameGroup(previous: GroupProps, next: GroupProps): boolean {
 	return (
 		previous.components === next.components &&
 		previous.links === next.links &&
-		previous.notes === next.notes &&
 		previous.blocks.length === next.blocks.length &&
 		previous.blocks[0] === next.blocks[0] &&
 		previous.blocks.at(-1) === next.blocks.at(-1)
@@ -717,7 +710,6 @@ const MarkdownGroup = /* @__PURE__ */ memo(function MarkdownGroup({
 	start,
 	components,
 	links,
-	notes,
 }: GroupProps) {
 	return blocks.map((token, index) => (
 		<MarkdownBlock
@@ -726,7 +718,6 @@ const MarkdownGroup = /* @__PURE__ */ memo(function MarkdownGroup({
 			token={token}
 			components={components}
 			links={links}
-			notes={notes}
 		/>
 	));
 }, isSameGroup);
@@ -738,7 +729,7 @@ const MarkdownGroup = /* @__PURE__ */ memo(function MarkdownGroup({
  */
 const LinksContext = /* @__PURE__ */ createContext<MarkdownLinks>(Object.create(null));
 
-/** The footnotes of the answer. Why a context: as `LinksContext`, for the items of a list deep in a block. */
+/** The footnotes of the answer. Why a context: a reference links to its note only once the note arrives. */
 const NotesContext = /* @__PURE__ */ createContext<MarkdownFootnotes>({
 	definitions: {},
 	references: {},
@@ -755,7 +746,6 @@ const MarkdownListItem = /* @__PURE__ */ memo(function MarkdownListItem({
 /** A list, with each item memoized. */
 function MarkdownList({ token, components }: { token: ListToken; components: MarkdownComponents }) {
 	const links = use(LinksContext);
-	const notes = use(NotesContext);
 	return renderComponent(components.list ?? defaultComponents.list, {
 		key: 0,
 		token,
@@ -766,7 +756,6 @@ function MarkdownList({ token, components }: { token: ListToken; components: Mar
 				token={item}
 				components={components}
 				links={links}
-				notes={notes}
 			/>
 		)),
 	});
@@ -837,7 +826,7 @@ type MarkdownProps = Omit<ComponentProps<"div">, "children"> &
  * note. The notes render at the end, in a `section` with a hidden
  * "Footnotes" heading, in the order of their first reference, and each note
  * links back to each of its references. Footnote ids take a prefix from
- * `useId`, so two answers on one page never share one.
+ * `useId`, so two answers in one React root never share one.
  *
  * While `streaming`, the root is `aria-busy`. The answer is not a live region:
  * a screen reader does not read it as it streams. Announce the start and the
@@ -948,7 +937,6 @@ function Markdown({
 										start={group * GROUP_SIZE}
 										components={components ?? noComponents}
 										links={snapshot.links}
-										notes={snapshot.notes}
 									/>
 								),
 							)}

@@ -49,6 +49,7 @@ describe("closeMarkdown", () => {
 		["Both[^a][^", "Both[^a]"],
 		["one[^_tag]", "one[^_tag]"],
 		["Yes![^n", "Yes!"],
+		["[see[^n]](/pa", "see\\[^n]"],
 		// Tables: the header waits for its delimiter row, which completes.
 		["| a | b |", ""],
 		["| a | b |\n", ""],
