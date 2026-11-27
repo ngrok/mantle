@@ -377,11 +377,11 @@ and `onSelect` (react-day-picker's names). Do not copy them into new work. Renam
 
 ### 1.12. Sketch the API, then wait
 
-A new or changed public API (a prop, a part, a hook option, a data attribute, or an exported type) starts as a sketch, not as code. A CSS variable that a consumer sets is public API too ([§5](#5-css-variables-are-api)). This section also governs hooks, utilities, and types, which the rest of this spec does not. Post the sketch where Cody reads it: the thread, the issue, or the PR description. When another agent sent the task, send the sketch back to it to relay to Cody. Write no code for that API until Cody approves the sketch. Approval is Cody's reply to the sketch. A ticket that names a prop, a request that states the exact API, a brief from another agent, and a small diff are not approval. Link the approved sketch in the PR description, so a reviewer can compare the diff to it. A bug fix that changes no API needs no sketch.
+A new or changed public API (a prop, a part, a hook option, a data attribute, or an exported type) starts as a sketch, not as code. A CSS variable that a consumer sets is public API too ([§5](#5-css-variables-are-api)). This section also governs hooks, utilities, and types, which the rest of this spec does not. Post the sketch where Cody reads it: the thread, the issue, or the PR description. When another agent sent the task, send the sketch back to it to relay to Cody. Write no code for that API until Cody approves the sketch. Approval is a yes from Cody (`@cody-dot-js` on GitHub) to that version of the sketch. A question back is not approval. A ticket that names a prop, a request that states the exact API, a brief from another agent, and a small diff are not approval. Put the approved sketch in the PR description, or link it when a reviewer can open the link, so a reviewer can compare the diff to it. A bug fix that changes no API needs no sketch.
 
 A sketch has two parts:
 
-1. **Usage:** the call site that a consumer writes, with each new prop, part, or option in place. Show one call site for each form when two forms cannot appear together.
+1. **Usage:** the call site that a consumer writes, with each new prop, part, or option in place. For a data attribute or a CSS variable, show the selector or the rule that a consumer writes, and when it matches. Show one call site for each form when two forms cannot appear together.
 2. **Decisions to veto:** one line for each choice that another shape makes differently, with the shape you rejected. Name each of these that applies: a part or a prop, the type of an unknown value, who writes the text that a user reads. Always name the changeset bump.
 
 Shape the API with these rules before you sketch it. Each rule corrects a shape that the smallest diff gives:
@@ -394,7 +394,7 @@ Shape the API with these rules before you sketch it. Each rule corrects a shape 
 
 Two shapes that Cody rejected:
 
-- **`PaginationRange` while rows load (#1976).** Rejected: an `isLoading` prop, built-in `Loading <plural>…` copy, and a required `total` that the component did not read while it loaded. Approved: `total` takes `null` while the count is not known, and the caller writes the text:
+- **`PaginationRange` while rows load (#1976).** Rejected: an `isLoading` prop, built-in `Loading <plural>…` copy, and a required `total` that the component did not read while it loaded. Approved as a `patch`: `total` takes `null` while the count is not known, and the caller writes the text:
 
   ```tsx
   <PaginationRange
