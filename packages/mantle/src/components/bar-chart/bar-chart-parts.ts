@@ -11,6 +11,7 @@ export {
 	XAxis,
 	YAxis,
 	ReferenceLine,
+	EmptySlot,
 	Tooltip,
 	Legend,
 	CopyButton,

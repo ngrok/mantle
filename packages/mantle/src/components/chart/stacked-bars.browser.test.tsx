@@ -1322,3 +1322,110 @@ describe("tooltip placement", () => {
 		});
 	});
 });
+
+describe("empty slots", () => {
+	/**
+	 * A stacked day with a reading, a day with no reading, a day of zeros, and a
+	 * second day with no reading. Only the two days with no reading are empty
+	 * slots: a zero is a reading.
+	 */
+	const traffic = [
+		{ day: "Mon", bytesOut: 60, bytesIn: 40 },
+		{ day: "Tue", bytesOut: null, bytesIn: null },
+		{ day: "Wed", bytesOut: 0, bytesIn: 0 },
+		{ day: "Thu", bytesOut: null, bytesIn: null },
+	];
+
+	/**
+	 * The column runs that carry any ink of the baseline color. A chart without
+	 * ticks draws no zero rule, so only an outline paints it. Why any alpha: a
+	 * 1px stroke has antialiased corners, which `isColor` rejects.
+	 */
+	const outlineRunsOf = (painted: Painted): Span[] => {
+		const inked = (x: number, y: number) => {
+			const offset = (y * painted.width + x) * 4;
+			return (
+				(painted.data[offset + 3] ?? 0) > 0 &&
+				(painted.data[offset] ?? 0) > 200 &&
+				(painted.data[offset + 1] ?? 0) < 60 &&
+				(painted.data[offset + 2] ?? 0) < 60
+			);
+		};
+		const runs: Span[] = [];
+		let open: Span | null = null;
+		for (let x = 0; x < painted.width; x++) {
+			let hit = false;
+			for (let y = 0; y < painted.height && !hit; y++) {
+				hit = inked(x, y);
+			}
+			if (hit) {
+				open = open == null ? { start: x, end: x } : { start: open.start, end: x };
+			} else if (open != null) {
+				runs.push(open);
+				open = null;
+			}
+		}
+		if (open != null) {
+			runs.push(open);
+		}
+		return runs;
+	};
+
+	const renderTraffic = (emptySlotLabel?: string) =>
+		render(
+			<div style={{ width: 600, height: 300 }}>
+				<CanvasBarChartRoot
+					data={traffic}
+					xKey="day"
+					stacked
+					animate={false}
+					aria-label="Traffic by day"
+				>
+					<BarChart.Bar dataKey="bytesOut" label="Bytes out" color="blue" />
+					<BarChart.Bar dataKey="bytesIn" label="Bytes in" color="emerald" />
+					{emptySlotLabel != null && <BarChart.EmptySlot label={emptySlotLabel} />}
+				</CanvasBarChartRoot>
+			</div>,
+		);
+
+	test("a stacked row with no reading paints an outline 30% of the plot tall, and a row of zeros paints none", async () => {
+		const { container } = renderTraffic("No traffic reported");
+		const canvas = await findChartCanvas(container);
+		await waitForPlot(canvas);
+		await waitFor(() => {
+			const painted = readCanvas(canvas);
+			const bars = columnRunsOf(painted, CHART_1);
+			const outlines = outlineRunsOf(painted);
+			// Why two: Tue and Thu have no reading; Wed's zeros are a reading.
+			expect(outlines).toHaveLength(2);
+			const [tuesday, thursday] = outlines;
+			const [monday] = bars;
+			if (tuesday == null || thursday == null || monday == null) {
+				throw new Error("expected Monday's bar and two outlines");
+			}
+			// Each outline sits in its own band, right of Monday's bar, and as wide as it.
+			const step = (thursday.start - tuesday.start) / 2;
+			expect(tuesday.start - monday.start).toBeCloseTo(step, -1);
+			expect(tuesday.end - tuesday.start).toBeCloseTo(monday.end - monday.start, -1);
+			// The outline rises from the bottom edge to 30% of the plot height.
+			const extent = verticalExtent(painted, [255, 0, 0], {
+				start: tuesday.start + 4 * painted.scale,
+				end: tuesday.end - 4 * painted.scale,
+			});
+			expect(painted.height - 1 - extent.end).toBeLessThanOrEqual(2 * painted.scale);
+			expect((painted.height - extent.start) / painted.height).toBeCloseTo(0.3, 1);
+		});
+	});
+
+	test("without EmptySlot, a row with no reading stays a gap", async () => {
+		const { container } = renderTraffic();
+		const canvas = await findChartCanvas(container);
+		await waitForPlot(canvas);
+		await waitFor(() => {
+			const painted = readCanvas(canvas);
+			// Monday paints, so the frame is not blank.
+			expect(columnRunsOf(painted, CHART_1)).toHaveLength(1);
+			expect(outlineRunsOf(painted)).toHaveLength(0);
+		});
+	});
+});

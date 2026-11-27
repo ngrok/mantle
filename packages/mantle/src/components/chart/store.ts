@@ -66,6 +66,8 @@ type StoreSnapshot = {
 	yAxis: YAxisSpec | null;
 	/** Reference lines in registration order. */
 	referenceLines: ReferenceLineSpec[];
+	/** Why a bar row with no reading is empty, `null` when no EmptySlot part is composed. */
+	emptySlotLabel: string | null;
 	/** Tooltip customization, `null` when no Tooltip part is composed. */
 	tooltip: TooltipConfig | null;
 	/** The bar direction the Root registered (DOM consumers: legend texture keys). */
@@ -94,6 +96,7 @@ class ChartStore {
 		xAxis: null,
 		yAxis: null,
 		referenceLines: [],
+		emptySlotLabel: null,
 		tooltip: null,
 		orientation: "vertical",
 	};
@@ -111,6 +114,7 @@ class ChartStore {
 	#yAxis: YAxisSpec | null = null;
 	#referenceLines = new Map<string, { spec: ReferenceLineSpec; sequence: number }>();
 	#referenceLineSequenceById = new Map<string, number>();
+	#emptySlot: { label: string } | null = null;
 	#tooltip: TooltipConfig | null = null;
 	#hover: HoverSnapshot | null = null;
 	#hoverEver = false;
@@ -251,6 +255,20 @@ class ChartStore {
 		};
 	}
 
+	registerEmptySlot(label: string): () => void {
+		// Singleton part: last registration wins, and cleanup compares the exact
+		// registration object, as `registerGrid` does.
+		const registration = { label };
+		this.#emptySlot = registration;
+		this.#publishRegistrations();
+		return () => {
+			if (this.#emptySlot === registration) {
+				this.#emptySlot = null;
+				this.#publishRegistrations();
+			}
+		};
+	}
+
 	registerTooltip(config: TooltipConfig): () => void {
 		// Singleton part: last registration wins.
 		this.#tooltip = config;
@@ -310,6 +328,7 @@ class ChartStore {
 			referenceLines: [...this.#referenceLines.values()]
 				.toSorted((a, b) => a.sequence - b.sequence)
 				.map((entry) => entry.spec),
+			emptySlotLabel: this.#emptySlot?.label ?? null,
 			tooltip: this.#tooltip,
 			orientation: this.#orientation,
 		};

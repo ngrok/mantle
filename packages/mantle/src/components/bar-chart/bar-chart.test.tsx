@@ -1,4 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import type { Root } from "react-dom/client";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
 import invariant from "tiny-invariant";
@@ -605,6 +608,90 @@ describe("BarChart.Tooltip customization", () => {
 		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
 		expect(tooltip?.textContent).toContain("—");
 		expect(tooltip?.textContent).not.toContain("Mobile0");
+	});
+});
+
+describe("BarChart empty slots", () => {
+	// A row with no reading, a row of zeros, and a row with a reading.
+	const traffic = [
+		{ hour: "00:00", bytesOut: null, bytesIn: null },
+		{ hour: "01:00", bytesOut: 0, bytesIn: 0 },
+		{ hour: "02:00", bytesOut: 60, bytesIn: 40 },
+	];
+	const TrafficChart = ({ emptySlotLabel }: { emptySlotLabel?: string }) => (
+		<BarChart.Root data={traffic} xKey="hour" stacked aria-label="Traffic by hour">
+			<BarChart.Bar dataKey="bytesOut" label="Bytes out" color="neutral" />
+			<BarChart.Bar dataKey="bytesIn" label="Bytes in" color="neutral" texture="hatch" />
+			{emptySlotLabel != null && <BarChart.EmptySlot label={emptySlotLabel} />}
+			<BarChart.Tooltip />
+		</BarChart.Root>
+	);
+	const chart = <TrafficChart emptySlotLabel="No traffic reported" />;
+
+	test("a row with no reading says the label in the tooltip and the announcement, and a row of zeros says 0", async () => {
+		const user = userEvent.setup();
+		render(chart);
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(tooltip?.textContent).toBe("00:00No traffic reported");
+		const status = await screen.findByRole("status");
+		await vi.waitFor(() => {
+			expect(status.textContent).toBe("00:00. No traffic reported");
+		});
+		await user.keyboard("{ArrowRight}");
+		expect(tooltip?.textContent).toBe("01:00Total0Bytes in0Bytes out0");
+		await vi.waitFor(() => {
+			expect(status.textContent).toBe("01:00. Total: 0, Bytes in: 0, Bytes out: 0");
+		});
+	});
+
+	test("the data table reads the label across the series columns of a row with no reading", () => {
+		render(chart);
+		engageChart();
+		const empty = screen.getByRole("cell", { name: "No traffic reported" });
+		expect(empty).toHaveAttribute("colspan", "2");
+		expect(screen.getByRole("row", { name: "00:00 No traffic reported" })).toContainElement(empty);
+		expect(screen.getByRole("row", { name: "01:00 0 0" })).toBeInTheDocument();
+	});
+
+	test("a label that changes or goes away while its row is active updates the tooltip", async () => {
+		const user = userEvent.setup();
+		const { rerender } = render(chart);
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(tooltip?.textContent).toBe("00:00No traffic reported");
+		rerender(<TrafficChart emptySlotLabel="Agent offline" />);
+		expect(tooltip?.textContent).toBe("00:00Agent offline");
+		rerender(<TrafficChart />);
+		// Why Total 0: without EmptySlot, an empty stacked row reads as it did before.
+		expect(tooltip?.textContent).toBe("00:00Total0Bytes in—Bytes out—");
+	});
+
+	test("without EmptySlot, the data table reads a dash for each series of a row with no reading", () => {
+		render(<TrafficChart />);
+		engageChart();
+		expect(screen.getByRole("row", { name: "00:00 — —" })).toBeInTheDocument();
+	});
+
+	test("the server markup hydrates with no mismatch", () => {
+		const html = renderToString(chart);
+		const container = document.createElement("div");
+		container.innerHTML = html;
+		document.body.append(container);
+		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		const onRecoverableError = vi.fn<(error: unknown) => void>();
+		let root: Root | undefined;
+		act(() => {
+			root = hydrateRoot(container, chart, { onRecoverableError });
+		});
+		expect(onRecoverableError).toHaveBeenCalledTimes(0);
+		expect(consoleError).toHaveBeenCalledTimes(0);
+		act(() => {
+			root?.unmount();
+		});
+		container.remove();
 	});
 });
 

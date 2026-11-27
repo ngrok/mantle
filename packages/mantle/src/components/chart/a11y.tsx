@@ -180,6 +180,9 @@ const announcementFor = (
 	const label =
 		plainText(tooltip?.labelFormat?.(hover.xValue)) ??
 		formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay });
+	if (hover.emptySlotLabel != null) {
+		return `${label}. ${hover.emptySlotLabel}`;
+	}
 	const values = [
 		// The tooltip passes the Total to `valueFormat` under the key "total".
 		...(hover.total == null ? [] : [`Total: ${valueText(hover.total, "total")}`]),
@@ -308,6 +311,10 @@ function textOutsideChartTables(element: HTMLElement | null): string {
 	return text.trim();
 }
 
+/** Whether a cell holds a value the chart plots. */
+const isFiniteNumber = (value: unknown): value is number =>
+	typeof value === "number" && Number.isFinite(value);
+
 /** Whether an x value has no text form: `null`, a missing key, or a number that is not finite. */
 const hasNoTextForm = (x: unknown): boolean =>
 	x == null || (typeof x === "number" && !Number.isFinite(x));
@@ -384,6 +391,12 @@ const ChartDataTable = ({
 	// change. Without the selector, the table reconciles up to 150 rows for a
 	// value it never reads.
 	const series = useStoreSeries(store);
+	// Why a selector: the table reads the label of a composed EmptySlot, not the hover.
+	const emptySlotLabel = useSyncExternalStore(
+		store.subscribe,
+		() => store.getSnapshot().emptySlotLabel,
+		() => store.getSnapshot().emptySlotLabel,
+	);
 	const resolvedLabel = useResolvedChartLabel(label, labelledBy);
 	if (data.length === 0 || series.length === 0) {
 		return null;
@@ -433,15 +446,20 @@ const ChartDataTable = ({
 										<time dateTime={header.date.toISOString()}>{header.text}</time>
 									)}
 								</th>
-								{series.map((column) => {
-									const value = datumValue(row, column.dataKey);
-									const isFinite = typeof value === "number" && Number.isFinite(value);
-									return (
-										<td key={column.dataKey} data-value={isFinite ? value : undefined}>
-											{isFinite ? formatNumber(value) : "—"}
-										</td>
-									);
-								})}
+								{emptySlotLabel != null &&
+								series.every((column) => !isFiniteNumber(datumValue(row, column.dataKey))) ? (
+									<td colSpan={series.length}>{emptySlotLabel}</td>
+								) : (
+									series.map((column) => {
+										const value = datumValue(row, column.dataKey);
+										const isFinite = isFiniteNumber(value);
+										return (
+											<td key={column.dataKey} data-value={isFinite ? value : undefined}>
+												{isFinite ? formatNumber(value) : "—"}
+											</td>
+										);
+									})
+								)}
 								{zKey != null &&
 									(() => {
 										const zRaw = datumValue(row, zKey);

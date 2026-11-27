@@ -16,8 +16,8 @@ import type {
 import { useChartContext } from "./context.js";
 
 /**
- * The renderless parts (series, grid, axes, reference lines) that register
- * their configuration with the Root's store.
+ * The renderless parts (series, grid, axes, reference lines, empty slots)
+ * that register their configuration with the Root's store.
  *
  * This module is internal shared implementation. The package does not export it.
  */
@@ -175,8 +175,29 @@ const useReferenceLinePrimitive = (partName: string, props: ReferenceLinePrimiti
 	return null;
 };
 
+type EmptySlotPrimitiveProps = {
+	/** Why a row has no reading, such as `"No traffic since it started 15h ago"`. */
+	label: string;
+};
+
+/**
+ * Register the empty-slot label (renderless). Bar charts only: the engine
+ * outlines a bar row with no reading, and the readouts say the label there.
+ */
+const useEmptySlotPrimitive = (partName: string, props: EmptySlotPrimitiveProps): null => {
+	const context = useChartContext(partName);
+	invariant(
+		context.kind === "bar",
+		() => `${partName} cannot be composed inside ${context.componentName}.Root.`,
+	);
+	const { label } = props;
+	useLayoutEffect(() => context.store.registerEmptySlot(label), [context.store, label]);
+	return null;
+};
+
 export type {
 	//,
+	EmptySlotPrimitiveProps,
 	GridPrimitiveProps,
 	ReferenceLinePrimitiveProps,
 	SeriesPrimitiveProps,
@@ -186,6 +207,7 @@ export type {
 
 export {
 	//,
+	useEmptySlotPrimitive,
 	useGridPrimitive,
 	useReferenceLinePrimitive,
 	useSeriesPrimitive,

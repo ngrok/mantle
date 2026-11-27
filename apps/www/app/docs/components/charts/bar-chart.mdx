@@ -313,6 +313,61 @@ function NoUsageYetBarChartExample() {
 
 </Example>
 
+## Empty slots
+
+A `null` value is no reading, and a `0` is a reading of nothing. Compose `BarChart.EmptySlot` to show the difference: each row where no `BarChart.Bar` has a value paints an outlined empty bar, and the tooltip, the keyboard announcement, and the data table say its `label` there. You write the label, so it can say why the slot is empty. A row of zeros still paints nothing and reads `0`. The outline spans the row's bars, so it fits stacked, grouped, and horizontal bars alike.
+
+The outline reaches 30% of the plot from the baseline. It marks a slot, not a value, so it never moves the value axis. Without `BarChart.EmptySlot`, a row with no value stays a gap.
+
+Below, an agent went offline for six hours, and three hours ago it was online with no traffic.
+
+<Example name="components/charts/bar-chart/empty-slots" title="Bar Chart empty slots example">
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+
+const hourlyTraffic = Array.from({ length: 24 }, (_, hour) => {
+	// Bytes in and out of one agent per hour over the last 24 hours, in MB,
+	// oldest first. The agent was offline from 19 to 14 hours ago, so those hours
+	// have no reading. Three hours ago it was online and carried nothing.
+	const hoursAgo = 23 - hour;
+	if (hoursAgo >= 14 && hoursAgo <= 19) {
+		return { hoursAgo, bytesOut: null, bytesIn: null };
+	}
+	if (hoursAgo === 3) {
+		return { hoursAgo, bytesOut: 0, bytesIn: 0 };
+	}
+	const swell = Math.sin(hour / 3) * 0.5 + 0.5;
+	return {
+		hoursAgo,
+		bytesOut: Math.round(200 + swell * 600),
+		bytesIn: Math.round(120 + (1 - swell) * 500),
+	};
+});
+
+function EmptySlotsBarChartExample() {
+	return (
+		<BarChart.Root
+			data={hourlyTraffic}
+			xKey="hoursAgo"
+			stacked
+			aria-label="Bytes in and out over the last 24 hours"
+			className="aspect-auto h-20 w-full"
+		>
+			<BarChart.Bar dataKey="bytesOut" label="Bytes out" color="neutral" />
+			<BarChart.Bar dataKey="bytesIn" label="Bytes in" color="neutral" texture="hatch" />
+			<BarChart.EmptySlot label="Agent offline: no traffic reported" />
+			<BarChart.Tooltip
+				labelFormat={(hoursAgo) => (hoursAgo === 0 ? "This hour" : `${String(hoursAgo)}h ago`)}
+				valueFormat={(megabytes) => `${megabytes} MB`}
+			/>
+		</BarChart.Root>
+	);
+}
+```
+
+</Example>
+
 ## Regrouping a live chart
 
 A dashboard that regroups one chart (by provider, then by region, then by access key) cycles a new set of
@@ -1277,6 +1332,7 @@ BarChart.Root
 ├── BarChart.YAxis
 ├── BarChart.Bar (one per series)
 ├── BarChart.ReferenceLine
+├── BarChart.EmptySlot
 ├── BarChart.Tooltip
 ├── BarChart.Legend
 └── BarChart.CopyButton
@@ -1496,13 +1552,21 @@ A dashed marker at the value `y`, such as an SLO threshold, a budget, or a limit
 | `label?` | `string`      |                         | A short label painted above the line's right end. |
 | `color?` | `SeriesColor` | neutral reference color | Line color.                                       |
 
+### BarChart.EmptySlot
+
+Marks each row with no reading as an empty slot (renderless; the chart paints it): a 1px outline as wide as the row's bars, 30% of the plot from the baseline. The tooltip, the keyboard announcement, and the data table say `label` there. A row of zeros is a reading, not an empty slot. Accepts no `className` or DOM props. See [Empty slots](#empty-slots).
+
+| Prop    | Type     | Default | Description                                                                |
+| ------- | -------- | ------- | -------------------------------------------------------------------------- |
+| `label` | `string` |         | Why a row has no reading, such as `"No traffic since it started 15h ago"`. |
+
 ### BarChart.Tooltip
 
 Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `BarChart.Root`'s interaction contract and renders even when this part is absent. Compose it to format the label or values, append a footer, or replace the content entirely.
 
 A `children` readout renders inside a `<div data-slot="bar-chart-tooltip-label">`. When it goes away, React removes that div instead of your own text nodes: a browser translation engine reparents text nodes, and a removal aimed at one throws. The div is `display: contents`, so it adds no box and your content stays a direct layout child of the parent. To style it as a box, set a display of your own on it first. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 
-The `HoverSnapshot` passed to `footer` and `children` describes the active category: `{ index, xValue, datum, points, viaKeyboard }`, where `points` lists every series' value at the active index. Stacked, the rows run from the far end of the pile back to the baseline; unstacked, they follow registration order.
+The `HoverSnapshot` passed to `footer` and `children` describes the active category: `{ index, xValue, datum, points, viaKeyboard }`, where `points` lists every series' value at the active index. A stacked chart adds `total`, and a chart with a `BarChart.EmptySlot` adds `emptySlotLabel`, its `label`, when no series has a value at the active index. A custom `children` readout renders that label itself. Stacked, the rows run from the far end of the pile back to the baseline; unstacked, they follow registration order.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded to the tooltip element the Root owns) except `children`, plus:
 

@@ -405,7 +405,7 @@ Two shapes that Cody rejected:
   />
   ```
 
-- **`BarChart` rows with no reading (#1978).** Rejected: `emptySlotLabel?: string` on `BarChart.Root`. Cody closed the PR with no new API, because one product needed it. If a second app needs it, the shape to sketch is a part that renders nothing, and `Root` does not change. `BarChart.EmptySlot` does not exist yet:
+- **`BarChart` rows with no reading (#1978).** Rejected: `emptySlotLabel?: string` on `BarChart.Root`. Approved as a `patch` when a second app needed it: a part that renders nothing, and `Root` does not change. The caller writes the label, and a row is empty only when no series has a value, so a `0` stays a reading:
 
   ```tsx
   <BarChart.Root data={data} xKey="hour" aria-label="Agent traffic by hour">
