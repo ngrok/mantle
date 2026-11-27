@@ -24,6 +24,7 @@ describe("ToolCall", () => {
 		{ status: "done", label: "Done" },
 		{ status: "failed", label: "Failed" },
 		{ status: "interrupted", label: "Interrupted" },
+		{ status: "requested", label: "Requested" },
 	] as const)("names the $status state as $label and stamps data-status", ({ status, label }) => {
 		const { container } = render(<Call status={status} />);
 
