@@ -25,8 +25,11 @@ type PaginationRangeValue = {
 	offset: number;
 	/** The most rows a page holds. Must be a positive integer. */
 	pageSize: number;
-	/** How many rows the list holds after its filter. Must be a non-negative integer. */
-	total: number;
+	/**
+	 * How many rows the list holds after its filter. Must be a non-negative
+	 * integer, or `null` while the count is not known, such as while the rows load.
+	 */
+	total: number | null;
 	/**
 	 * The noun to count.
 	 *
@@ -42,12 +45,14 @@ const countFormat = new Intl.NumberFormat("en-US");
 const defaultNoun: PaginationNoun = { singular: "result", plural: "results" };
 
 /**
- * The count line for one page of a list: empty for an empty list, the total
- * when one page holds every row, and the range of the page otherwise.
+ * The count line for one page of a list: empty for an empty list or an
+ * unknown total, the total when one page holds every row, and the range of
+ * the page otherwise.
  *
  * An empty list gets no text, because the list shows its own empty state. One
  * page gets no range, because the range repeats the rows above it. Throws when
- * a count is out of range.
+ * a count is out of range. It checks `offset` and `pageSize` while the total
+ * is `null` too, so a bad value fails before the load ends.
  *
  * @example
  * ```ts
@@ -69,14 +74,14 @@ function formatPaginationRange({
 		`PaginationRange: \`pageSize\` must be a positive integer, received ${String(pageSize)}.`,
 	);
 	invariant(
-		Number.isInteger(total) && total >= 0,
-		`PaginationRange: \`total\` must be a non-negative integer, received ${String(total)}.`,
+		total == null || (Number.isInteger(total) && total >= 0),
+		`PaginationRange: \`total\` must be a non-negative integer or null, received ${String(total)}.`,
 	);
 	invariant(
 		Number.isInteger(offset) && offset >= 0,
 		`PaginationRange: \`offset\` must be a non-negative integer, received ${String(offset)}.`,
 	);
-	if (total === 0) {
+	if (total == null || total === 0) {
 		return "";
 	}
 	const word = total === 1 ? noun.singular : noun.plural;
@@ -97,7 +102,14 @@ function formatPaginationRange({
 type PaginationRangeProps = Omit<ComponentProps<"span">, "children"> &
 	SelfClosingWithAsChild &
 	WithDataSlot &
-	PaginationRangeValue;
+	PaginationRangeValue & {
+		/**
+		 * The text the line shows while `total` is `null`, such as
+		 * "Loading domains…". When omitted, the line has no text until the
+		 * total is known.
+		 */
+		loadingLabel?: string;
+	};
 
 /**
  * The count line beside a paginated list or table, such as "1–20 of 2,396
@@ -109,6 +121,11 @@ type PaginationRangeProps = Omit<ComponentProps<"span">, "children"> &
  * for an empty list, because the list shows its own empty state. The element
  * renders in every state, because a live region added together with its text
  * is not announced.
+ *
+ * While the rows load, pass `total={null}` and a `loadingLabel`. The same live
+ * region shows the label, then the count when the total is known (no text for
+ * an empty list). A screen reader announces a change after mount, such as the
+ * first count or a refetch. A label present at mount is not announced.
  *
  * It takes `offset`, `pageSize`, and `total`, so the same part serves offset
  * state from `useOffsetPagination` beside a `Table` and a TanStack table
@@ -153,13 +170,15 @@ function PaginationRange({
 	children,
 	className,
 	"data-slot": dataSlot,
+	loadingLabel,
 	noun,
 	offset,
 	pageSize,
 	total,
 	...props
 }: PaginationRangeProps) {
-	const text = formatPaginationRange({ offset, pageSize, total, noun });
+	const count = formatPaginationRange({ offset, pageSize, total, noun });
+	const text = total == null ? (loadingLabel ?? "") : count;
 	const rootProps = {
 		role: "status",
 		"data-slot": joinDataSlot(dataSlot, "pagination-range"),

@@ -2,6 +2,7 @@ import { Button } from "@ngrok/mantle/button";
 import {
 	CursorPagination,
 	getOffsetPaginatedSlice,
+	PaginationRange,
 	useOffsetPagination,
 } from "@ngrok/mantle/pagination";
 import { useState } from "react";
@@ -233,6 +234,33 @@ export function ClientPaginatedExample() {
 	return (
 		<PreviewCanvas className="min-h-160">
 			<PaginatedPaymentsDemo />
+		</PreviewCanvas>
+	);
+}
+
+/** The "Loading" example on the Pagination docs page. */
+export function LoadingExample() {
+	const [isLoading, setIsLoading] = useState(false);
+
+	return (
+		<PreviewCanvas>
+			<div className="flex items-center gap-4">
+				<Button
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					onClick={() => setIsLoading((loading) => !loading)}
+				>
+					{isLoading ? "Finish loading" : "Start loading"}
+				</Button>
+				<PaginationRange
+					offset={0}
+					pageSize={10}
+					total={isLoading ? null : 23}
+					loadingLabel="Loading payments…"
+					noun={{ singular: "payment", plural: "payments" }}
+				/>
+			</div>
 		</PreviewCanvas>
 	);
 }
