@@ -293,7 +293,8 @@ describe("Sidebar.Disclosure in the collapsed sidebar", () => {
 		const mcp = screen.getByRole("button", { name: "MCP Gateway" });
 		await userEvent.click(mcp);
 		await userEvent.click(screen.getByRole("button", { name: "Usage" }));
-		expect(mcp.getAttribute("aria-expanded")).toBe("false");
+		// Why a wait: the flyout hides in a task after the row's own handlers.
+		await waitFor(() => expect(mcp.getAttribute("aria-expanded")).toBe("false"));
 		expect(
 			within(listOf(mcp))
 				.getByRole("button", { name: "Usage", hidden: true })
@@ -743,14 +744,75 @@ describe("Sidebar.Disclosure with a row that opens a popup", () => {
 		const account = screen.getByRole("button", { name: "Account" });
 		await userEvent.click(account);
 		await userEvent.click(screen.getByRole("button", { name: "Filters" }));
+		// Why no focus move: focus stays on More, in the outer popover.
 		await userEvent.click(screen.getByRole("button", { name: "More" }));
-		act(() => screen.getByRole("button", { name: "Apply" }).focus());
 
 		await userEvent.keyboard("{Escape}");
 
 		expect(document.getElementById("inner")?.matches(":popover-open")).toBe(false);
 		expect(document.getElementById("outer")?.matches(":popover-open")).toBe(true);
 		expect(account.getAttribute("aria-expanded")).toBe("true");
+	});
+
+	test("Escape closes only a confirmation in a row's dialog, and never one that closes on a choice", async () => {
+		render(
+			<>
+				<PopupNav
+					rows={
+						<Sidebar.Item>
+							{/* Why a spread: React's types have no invoker command attributes yet. */}
+							<Sidebar.ItemButton {...{ command: "show-modal", commandfor: "prefs" }}>
+								Preferences
+							</Sidebar.ItemButton>
+						</Sidebar.Item>
+					}
+				/>
+				<dialog id="prefs">
+					<dialog id="confirm" {...{ closedby: "none" }}>
+						<button type="button">Cancel</button>
+					</dialog>
+				</dialog>
+			</>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Account" }));
+		await userEvent.click(screen.getByRole("button", { name: "Preferences" }));
+		const prefs = document.getElementById("prefs") as HTMLDialogElement;
+		const confirm = document.getElementById("confirm") as HTMLDialogElement;
+		await waitFor(() => expect(prefs.open).toBe(true));
+		act(() => confirm.showModal());
+		act(() => screen.getByRole("button", { name: "Cancel" }).focus());
+
+		await userEvent.keyboard("{Escape}");
+
+		expect(confirm.open).toBe(true);
+		expect(prefs.open).toBe(true);
+	});
+
+	test("a row that shows a popover in the list from its click handler keeps the flyout", async () => {
+		render(
+			<PopupNav
+				rows={
+					<Sidebar.Item>
+						<Sidebar.ItemButton onClick={() => document.getElementById("filters")?.showPopover()}>
+							Filters
+						</Sidebar.ItemButton>
+						<div id="filters" popover="auto">
+							<button type="button">Apply</button>
+						</div>
+					</Sidebar.Item>
+				}
+			/>,
+		);
+		const account = screen.getByRole("button", { name: "Account" });
+		await userEvent.click(account);
+		await userEvent.click(screen.getByRole("button", { name: "Filters" }));
+		// Why a press in the popover: the flyout decides in a task after the row's handlers.
+		await userEvent.click(screen.getByRole("button", { name: "Apply" }));
+
+		expect(account.getAttribute("aria-expanded")).toBe("true");
+		expect(screen.getByRole("button", { name: "Apply" }).getClientRects().length).toBeGreaterThan(
+			0,
+		);
 	});
 
 	test("Escape closes a row's dialog that opens as a popover", async () => {

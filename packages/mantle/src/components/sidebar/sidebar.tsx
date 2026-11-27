@@ -2693,6 +2693,19 @@ function isOpenPopup(element: Element): boolean {
 	);
 }
 
+/** The last open dialog or popover inside `element`, not `element` itself. */
+function innerPopupOf(element: Element): HTMLElement | null {
+	return (
+		Array.from(
+			element.querySelectorAll<HTMLElement>(
+				hasPopoverApi ? "dialog[open], [popover]" : "dialog[open]",
+			),
+		)
+			.filter(isOpenPopup)
+			.at(-1) ?? null
+	);
+}
+
 /** A row that opens a popup, such as a menu, a dialog, or a native popover, and does not navigate. */
 const opensPopupSelector =
 	"[aria-haspopup]:not([aria-haspopup='false']), [aria-controls], [popovertarget], [commandfor]";
@@ -2852,15 +2865,20 @@ const DisclosureList = ({
 		onEscapeKeyDown: (event) => {
 			const popups = listRef.current == null ? [] : nativePopupsOf(listRef.current);
 			const target = event.target instanceof Node ? event.target : null;
-			// Why the innermost: a popover inside another one closes alone.
-			const holding = popups.filter((each) => each.contains(target));
-			const popup =
-				holding.find((each) => !holding.some((other) => other !== each && each.contains(other))) ??
-				popups.at(-1);
+			let popup = popups.find((each) => each.contains(target)) ?? popups.at(-1);
 			if (popup == null) {
 				return;
 			}
 			event.preventDefault();
+			// Why the innermost open layer: a popover or a confirmation inside the
+			// popup is on top, and it closes alone, as native Escape closes it.
+			for (let inner = innerPopupOf(popup); inner != null; inner = innerPopupOf(popup)) {
+				popup = inner;
+			}
+			// Why: such a dialog closes only on a choice in it.
+			if (popup.getAttribute("closedby") === "none") {
+				return;
+			}
 			// Why the popover first: a `<dialog popover>` is shown as a popover.
 			if (popup.matches(":popover-open")) {
 				popup.hidePopover();
@@ -2937,10 +2955,10 @@ const DisclosureList = ({
 				return;
 			}
 			// Why a task after the row's own handlers, which React runs at its root:
-			// a row can open a dialog in the list from `onClick`, and the dialog
-			// hides with the list.
+			// a row can open a dialog or a popover in the list from `onClick`, and
+			// the popup hides with the list.
 			setTimeout(() => {
-				if (!holdsDialog(node)) {
+				if (innerPopupOf(node) == null) {
 					hideFlyout();
 				}
 			});
