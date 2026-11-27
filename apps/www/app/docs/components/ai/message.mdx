@@ -102,7 +102,7 @@ function AnswerOnItsWay() {
 
 ## Name the speaker
 
-Set `speaker` on `Message.Root` when "You said:" or "The assistant said:" is wrong, such as for an error, a tool result, or the caller's user in a captured conversation. The label names the article and starts the body for a screen reader, so the two always agree. `from` still sets the layout. `Message.Content` renders the label, so keep it in each message. Do not set `aria-label` on `Message.Root` for this: it replaces the article's name, but the label stays in the body.
+Set `speaker` on `Message.Root` when "You said:" or "The assistant said:" is wrong, such as for an error, a tool result, or the caller's user in a captured conversation. The label names the article and starts the body for a screen reader, so the two always agree. `from` still sets the layout. `Message.Content` renders the label. A message with no `Message.Content`, such as one that holds only images, still takes `speaker` as its name. Do not set `aria-label` on `Message.Root` for this: it replaces the article's name, but the label stays in the body.
 
 <Example name="components/ai/message/speaker" title="Message speaker example">
 
@@ -147,7 +147,7 @@ Message.Root
 
 ## Accessibility
 
-`Message.Content` starts with a visually hidden speaker label, "You said:" or "The assistant said:", so a screen reader says who wrote each message. The label also names the `<article>` through `aria-labelledby`. `Message.Root`'s `speaker` replaces it in both places.
+`Message.Content` starts with a visually hidden speaker label, "You said:" or "The assistant said:", so a screen reader says who wrote each message. The label also names the `<article>` through `aria-labelledby`. `Message.Root`'s `speaker` replaces it in both places. When you set `speaker`, `Message.Root` also renders it as `aria-label`. `aria-labelledby` wins while `Message.Content` renders the label, so the name falls back to `speaker` only when the message has no `Message.Content`. The server renders both, so the name is correct on the first paint.
 
 ## Translation
 

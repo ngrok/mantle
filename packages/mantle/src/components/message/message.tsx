@@ -62,8 +62,9 @@ type MessageRootProps = ComponentProps<"article"> &
 		 * The speaker label, such as `"Error"` or `"Tool result"`. It names the
 		 * article and starts the body for a screen reader, in place of "You said:"
 		 * or "The assistant said:". It does not change the layout, which `from` sets.
-		 * `Message.Content` renders the label, and an `aria-label` on the root
-		 * replaces the article's name.
+		 * `Message.Content` renders the label. A message with no `Message.Content`,
+		 * such as one that holds only images, still takes `speaker` as its name.
+		 * An `aria-label` on the root replaces the article's name.
 		 *
 		 * @default "You said:" when `from` is "user", else "The assistant said:"
 		 */
@@ -118,19 +119,24 @@ function Root({
 	asChild = false,
 	className,
 	from,
-	speaker = speakerLabels[from],
+	speaker,
+	"aria-label": ariaLabel,
 	...props
 }: MessageRootProps) {
 	const Component = asChild ? Slot : "article";
 	const labelId = useId();
-	const context = useMemo(() => ({ from, speaker, labelId }), [from, speaker, labelId]);
+	const label = speaker ?? speakerLabels[from];
+	const context = useMemo(() => ({ from, speaker: label, labelId }), [from, label, labelId]);
 
 	return (
 		<MessageContext value={context}>
 			<Component
 				// Why: the feed pattern names each article; the speaker label in `Message.Content` says who wrote it.
 				// Why `aria-label` wins: a caller's own name for the message beats the speaker label.
-				aria-labelledby={props["aria-label"] == null ? labelId : undefined}
+				aria-labelledby={ariaLabel == null ? labelId : undefined}
+				// Why both: `aria-labelledby` wins while `Message.Content` renders the label. With no
+				// `Message.Content`, its id matches no element, so the name falls back to `speaker`.
+				aria-label={ariaLabel ?? speaker}
 				data-slot={joinDataSlot(dataSlot, "message")}
 				data-from={from}
 				className={cx(

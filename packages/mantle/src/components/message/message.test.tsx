@@ -20,6 +20,7 @@ describe("Message", () => {
 		const question = screen.getByRole("article", { name: "You said:" });
 		const answer = screen.getByRole("article", { name: "The assistant said:" });
 		expect(question).toHaveAttribute("data-from", "user");
+		expect(question).not.toHaveAttribute("aria-label");
 		expect(question).toHaveTextContent("You said: What's live?");
 		expect(answer).toHaveAttribute("data-from", "assistant");
 		expect(answer).toHaveTextContent("The assistant said: Three endpoints.");
@@ -44,6 +45,29 @@ describe("Message", () => {
 		const caller = screen.getByRole("article", { name: "The caller said:" });
 		expect(caller).toHaveAttribute("data-from", "user");
 		expect(caller).not.toHaveTextContent("You said:");
+	});
+
+	test("speaker names a message that has no Content, and aria-label still wins", () => {
+		render(
+			<div role="feed" aria-label="Messages">
+				<Message.Root from="user" speaker="The caller said:">
+					<img src="chart.png" alt="Traffic chart" width={320} height={180} />
+				</Message.Root>
+				<Message.Root from="assistant" speaker="Tool result" aria-label="Endpoint list">
+					<img src="list.png" alt="Endpoints" width={320} height={180} />
+				</Message.Root>
+			</div>,
+		);
+
+		// Why: with no `Message.Content`, no hidden label exists for the article to point at.
+		expect(screen.getByRole("article", { name: "The caller said:" })).toHaveAttribute(
+			"data-from",
+			"user",
+		);
+		expect(screen.getByRole("article", { name: "Endpoint list" })).toHaveAttribute(
+			"data-from",
+			"assistant",
+		);
 	});
 
 	test("each part forwards className, ref, and data attributes, and joins data-slot", () => {
