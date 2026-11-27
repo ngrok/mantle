@@ -32,7 +32,7 @@ Read the files for your task before the first edit. Work is incomplete until you
 - **Tests:** [docs/testing.md](./docs/testing.md).
 - **Docs site and recipes** under `apps/www`: [COMPONENT_SPEC.md §7](./COMPONENT_SPEC.md#7-the-docs-page) and the `ngrok-style` skill. The recipe-fence tests pin each recipe file.
 - **Changesets and releases:** [VERSIONING.md](./VERSIONING.md) decides the bump. Mantle is `0.x`: a breaking change is a `minor`, an additive change is a `patch`, and `major` is never correct. Never correct a bump that a maintainer set by hand.
-- **Breaking changes and migrations:** the `write-migration` skill. `/scaffold-migration` lays down the guide and the codemod.
+- **Breaking changes and migrations:** the `write-migration` skill. `/scaffold-migration` lays down the guide and the codemod. Mass renames: `ast-grep`.
 - **Dependencies:** [CONVENTIONS.md § Package Management](./CONVENTIONS.md#package-management) and `pnpm-workspace.yaml`.
 - **A change a person sees** (a component, a docs page, a recipe): before you report done, follow [docs/browser-checks.md](./docs/browser-checks.md).
 - **Comments, JSDoc, changesets, decision docs, commits, and PR descriptions:** the `simplified-technical-english` skill. [CONVENTIONS.md § Writing](./CONVENTIONS.md#writing) is the normative copy.
@@ -73,15 +73,15 @@ They are the methods that meet the [north star](#north-star). Each one has a fil
 
 ## Before you edit
 
-- **Sketch API, then wait.** Before code that adds or changes a prop, part, hook option, data attribute, or exported type, post an [API sketch](./COMPONENT_SPEC.md#112-sketch-the-api-then-wait) and wait for Cody (@cody-dot-js) to approve it. A bug fix with no API change is exempt.
+- **Sketch API, then wait.** Before code that changes public API (a prop, part, hook option, data attribute, CSS variable, or type), post an [API sketch](./COMPONENT_SPEC.md#112-sketch-the-api-then-wait) and wait for Cody's approval. No-API bug fixes are exempt.
 - Search before you create a helper, hook, part, parser, formatter, or dependency. Look in `packages/mantle/src` first, then the owning app.
 - Other sessions can work in the same checkout. Run `git status` before you stage, and stage by path. Never `git add -A`.
-- Do not revert a working-tree change you did not make. Ask first.
+- Ask before you revert a working-tree change you did not make.
 - `local/` holds read-only reference clones of related repos. Never edit, build, or commit from it.
 
 ## Before you finish
 
-Run checks when a coherent chunk of work is done and again before the final response, not after each edit.
+Run checks after each coherent chunk of work and before the final response, not after each edit.
 
 1. Read `git diff --name-only` and `git diff` for your files.
 2. Check each file against the docs your task routed you to, and fix the drift.

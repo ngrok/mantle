@@ -377,22 +377,22 @@ and `onSelect` (react-day-picker's names). Do not copy them into new work. Renam
 
 ### 1.12. Sketch the API, then wait
 
-A new or changed public API (a prop, a part, a hook option, a data attribute, or an exported type) starts as a sketch, not as code. This applies to hooks, utilities, and types too. Post the sketch where Cody reads it: the thread, the issue, or the PR description. Write no code for that API until Cody approves the sketch. A ticket that names a prop, a brief from another agent, and a small diff are not approval. A request from Cody that states the exact API is. A bug fix that changes no API needs no sketch.
+A new or changed public API (a prop, a part, a hook option, a data attribute, or an exported type) starts as a sketch, not as code. A CSS variable that a consumer sets is public API too ([§5](#5-css-variables-are-api)). This section also governs hooks, utilities, and types, which the rest of this spec does not. Post the sketch where Cody reads it: the thread, the issue, or the PR description. When another agent sent the task, send the sketch back to it to relay to Cody. Write no code for that API until Cody approves the sketch. A ticket that names a prop, a brief from another agent, and a small diff are not approval. A request from Cody that states the exact API is. A bug fix that changes no API needs no sketch.
 
 A sketch has two parts:
 
 1. **Usage:** the call site that a consumer writes, with each new prop, part, or option in place.
-2. **Decisions to veto:** one line for each choice that another shape makes differently, with the shape you rejected. Name at least these: a part or a prop, the type of an absent value, who writes the text that a user reads, and the changeset bump.
+2. **Decisions to veto:** one line for each choice that another shape makes differently, with the shape you rejected. Name each of these that applies: a part or a prop, the type of an unknown value, who writes the text that a user reads. Always name the changeset bump.
 
 Shape the API with these rules before you sketch it. Each rule corrects a shape that the smallest diff gives:
 
-- **A part, not a prop on `Root`.** A new thing that a compound renders or reports is a part, also when the part renders nothing and only gives `Root` a fact through context. A prop on `Root` is the smallest diff, but then `Root` gets one more switch for each request, and the consumer cannot place, wrap, or omit the thing. A component that is one element, such as `PaginationRange`, can take the text it renders as a prop.
-- **No boolean mode flag.** A prop such as `isLoading` or `isEmpty` forks what the component renders. Put the state in a value that the component already takes, or make the content of that state a part ([§1.6](#16-make-invalid-states-unrepresentable)).
-- **No built-in product copy.** Mantle ships no sentence about the data or the state of an app, such as "Loading flags…" or "No reading". The caller writes it, as children or as a `label` prop.
-- **Absent data is `null`.** A value that is not known yet has a type that says so, such as `total: number | null`. Do not ask for a fake `0`, an empty string, or a required prop that the component ignores in a state.
+- **A part, not a prop on `Root`.** A new thing inside a compound that a consumer can place, wrap, or omit is a part, also when the part renders nothing and only gives `Root` a fact through context. A prop on `Root` is the smallest diff, but then `Root` gets one more switch for each request, and the consumer cannot place, wrap, or omit the thing. A component that is one element, such as `PaginationRange`, can take the text it renders as a prop.
+- **No boolean flag for a state of the data.** A prop such as `isLoading` or `isEmpty` forks what the component renders. Platform controls such as `asChild` and `modal` are not this kind of flag. Put the state in a value that the component already takes, or make the content of that state a part ([§1.6](#16-make-invalid-states-unrepresentable)).
+- **No built-in product copy.** Text that names what the app shows, such as "Loading flags…" or "No reading this hour", comes from the caller, as children or as a `label` prop. Mantle keeps only generic text that its own accessibility contract needs, such as a chart's "no data" description.
+- **Unknown data is `null`.** A value that is not known yet has a type that says so, such as `total: number | null`. Do not ask for a fake `0`, an empty string, or a required prop that the component ignores in a state. An omitted controlled prop stays `undefined` ([§1.11](#111-prop-vocabulary)).
 - **Unsure means no prop** ([§1.9](#19-build-the-behavior-in-before-you-add-a-prop)). Sketch the smallest shape, and list the rest as follow-ups.
 
-Two shapes that Cody rejected, and the shapes that replaced them:
+Two shapes that Cody rejected:
 
 - **`PaginationRange` while rows load (#1976).** Rejected: an `isLoading` prop, built-in "Loading <plural>…" copy, and a required `total` that the component did not read while it loaded. Approved: `total` takes `null` while the count is not known, and the caller writes the text:
 
@@ -405,11 +405,11 @@ Two shapes that Cody rejected, and the shapes that replaced them:
   />
   ```
 
-- **`BarChart` rows with no reading (#1978).** Rejected: `emptySlotLabel?: string` on `BarChart.Root`. Approved: a part that renders nothing, and `Root` does not change:
+- **`BarChart` rows with no reading (#1978).** Rejected: `emptySlotLabel?: string` on `BarChart.Root`. Cody closed the PR with no new API, because one product needed it. If a second app needs it, the shape to sketch is a part that renders nothing, and `Root` does not change. `BarChart.EmptySlot` does not exist yet:
 
   ```tsx
   <BarChart.Root data={data} xKey="hour" aria-label="Agent traffic by hour">
-  	<BarChart.Bar dataKey="requests" label="Requests" />
+  	<BarChart.Bar dataKey="requests" label="Requests" color="blue" />
   	<BarChart.EmptySlot label="No reading this hour" />
   </BarChart.Root>
   ```
@@ -1324,7 +1324,7 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Nothing is public that could have stayed module-internal.
 - [ ] A PR that adds a public component states stable or preview and the evidence ([§1.2](#12-ship-the-smallest-public-surface)).
 - [ ] Each new or changed public API matches the sketch that Cody approved; no prop on `Root` does the job of a
-      part, no boolean mode flag, no built-in product copy, and an absent value is `null`
+      part, no boolean flag for a state of the data, no built-in product copy, and an unknown value is `null`
       ([§1.12](#112-sketch-the-api-then-wait)).
 - [ ] Each new prop names the shipped app that needs it; a behavior with one right answer has no prop
       ([§1.9](#19-build-the-behavior-in-before-you-add-a-prop)).
