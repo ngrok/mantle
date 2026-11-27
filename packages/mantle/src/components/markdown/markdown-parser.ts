@@ -125,10 +125,11 @@ function isSameCitations(previous: MarkdownFootnotes, next: MarkdownFootnotes): 
 /** Whether two sets of footnotes hold the same citations, and each note the same source. */
 function isSameNotes(previous: MarkdownFootnotes, next: MarkdownFootnotes): boolean {
 	return (
-		isSameCitations(previous, next) &&
-		Object.keys(next.definitions).every(
-			(label) => previous.definitions[label]?.raw === next.definitions[label]?.raw,
-		)
+		previous === next ||
+		(isSameCitations(previous, next) &&
+			Object.keys(next.definitions).every(
+				(label) => previous.definitions[label]?.raw === next.definitions[label]?.raw,
+			))
 	);
 }
 
@@ -232,9 +233,11 @@ function createMarkdownParser({
 		parse(rawSource, { streaming, truncated = false }) {
 			const source = rawSource.includes("\r") ? rawSource.replace(/\r\n?/g, "\n") : rawSource;
 			const closes = streaming || truncated;
-			const reset =
-				!source.startsWith(frozenSource) ||
-				(closes && !frozenAwaits && frozenSource.includes("[^"));
+			// Why set once: with no `[^` in the finished blocks, a resumed stream reads them as a static parse did.
+			if (closes && !frozenAwaits && !frozenSource.includes("[^")) {
+				frozenAwaits = true;
+			}
+			const reset = !source.startsWith(frozenSource) || (closes && !frozenAwaits);
 			if (reset) {
 				// Why a reset: the text before the last finished block changed, such as for a new answer.
 				frozenAwaits = true;

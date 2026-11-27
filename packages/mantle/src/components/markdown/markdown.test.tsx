@@ -324,9 +324,9 @@ describe("Markdown", () => {
 		expect(targets).toEqual([1, 1]);
 	});
 
-	test("renders an image whose alt text starts with a caret", () => {
-		render(<Markdown>{"![^ caret](/image.png)"}</Markdown>);
-		expect(screen.getByRole("img")).toHaveAccessibleName("^ caret");
+	test.each(["^ caret", "^n"])("renders an image whose alt text is %j", (alt) => {
+		render(<Markdown>{`![${alt}](/image.png)`}</Markdown>);
+		expect(screen.getByRole("img")).toHaveAccessibleName(alt);
 	});
 
 	test("resolves a reference link in a note's list item when the stream ends", () => {

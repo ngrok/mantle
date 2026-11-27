@@ -600,8 +600,8 @@ function closeInline(region: string, { math }: { math: boolean }): string {
 			char === "[" ||
 			(char === "!" &&
 				region[index + 1] === "[" &&
-				// Why to the end too: a half-typed `[^1` can still become a reference.
-				!/^\[\^[^\s[\]]*(?:\]|$)/.test(region.slice(index + 1, index + 1004)))
+				// Why to the end too: a half-typed `[^1` can still become a reference. A `(` after it opens an image.
+				!/^\[\^[^\s[\]]*(?:\](?!\()|$)/.test(region.slice(index + 1, index + 1004)))
 		) {
 			const image = char === "!";
 			brackets.push({ image, index });

@@ -106,6 +106,11 @@ const NOT_SPACE = /\S/;
 const FOOTNOTE = /^ {0,3}\[\^([^\s[\]]{1,999})\]:[ \t]*/;
 /** A footnote reference, `[^label]`. */
 const FOOTNOTE_REF = /^\[\^([^\s[\]]{1,999})\]/;
+/** Whether the `[` at `at`, after a `!`, opens an image: not a footnote reference, unless a destination follows. */
+const isImageOpener = (source: string, at: number) => {
+	const note = FOOTNOTE_REF.exec(source.slice(at, at + 1003));
+	return note == null || source[at + note[0].length] === "(";
+};
 /** The label of a link reference definition at the start of a line. */
 const DEFINITION_START = /^ {0,3}\[(?:[^\\\]]|\\.)+\]:/;
 const LITERAL = /\\([!-/:-@[-`{-~])|&(?:#\d{1,7}|#[xX][\da-fA-F]{1,6}|[a-zA-Z\d]+);/g;
@@ -1619,9 +1624,7 @@ function lexInline(source: string, context: Context): Tok[] {
 		} else if (
 			char === "[" ||
 			// Why not before `[^`: `![^1]` is a `!` and a footnote reference.
-			(char === "!" &&
-				source[index + 1] === "[" &&
-				!FOOTNOTE_REF.test(source.slice(index + 1, index + 1004)))
+			(char === "!" && source[index + 1] === "[" && isImageOpener(source, index + 1))
 		) {
 			// Why not in a note or a label: a note's reference would number it before the answer does, and a link
 			// cannot hold a link.

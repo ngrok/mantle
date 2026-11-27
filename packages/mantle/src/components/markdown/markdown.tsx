@@ -449,7 +449,7 @@ const MarkdownFootnoteList = /* @__PURE__ */ memo(function MarkdownFootnoteList(
 	const items = Object.entries(notes.references)
 		.flatMap(([label, reference]) => {
 			const note = notes.definitions[label];
-			return note == null ? [] : [{ note, ...reference }];
+			return note == null ? [] : [{ label, note, ...reference }];
 		})
 		.toSorted((a, b) => a.number - b.number);
 	if (items.length === 0) {
@@ -461,9 +461,10 @@ const MarkdownFootnoteList = /* @__PURE__ */ memo(function MarkdownFootnoteList(
 				Footnotes
 			</h2>
 			<ol>
-				{items.map(({ note, number, count }, index) => (
+				{items.map(({ label, note, number, count }, index) => (
 					<MarkdownFootnote
-						key={number}
+						// Why the label: a note keeps its element, and focus, when its number changes.
+						key={label}
 						note={note}
 						number={number}
 						count={count}
