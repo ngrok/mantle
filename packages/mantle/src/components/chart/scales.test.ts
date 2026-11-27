@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+	alignedDomain,
 	bandCenter,
 	bandHitRegion,
 	bandStart,
@@ -353,5 +354,69 @@ describe("niceZeroAnchoredDomain", () => {
 	test("a domain that genuinely reaches below zero keeps its niced bound", () => {
 		expect(niceZeroAnchoredDomain([-3, 5], 5)).toEqual(niceDomain([-3, 5], 5));
 		expect(niceZeroAnchoredDomain([-5, 0], 5)).toEqual(niceDomain([-5, 0], 5));
+	});
+});
+
+describe("alignedDomain", () => {
+	const left = { domain: [0, 100], tick: 0, step: 20 } as const;
+
+	test("picks the smallest 1/2/5 step that covers the data on the left's ticks", () => {
+		// 5 intervals; 2.2e9 / 5 = 4.4e8, so 5e8 is the first step that covers it.
+		expect(alignedDomain({ ...left, extent: [0, 2.2e9], fixed: [0, null], integer: true })).toEqual(
+			[0, 2.5e9],
+		);
+	});
+
+	test("floats a free minimum down to a whole multiple of its step", () => {
+		// 4 intervals over [10, 50]; 15 / 4 = 3.75, so a step of 5 from 0.
+		expect(
+			alignedDomain({
+				domain: [10, 50],
+				tick: 10,
+				step: 10,
+				extent: [3, 18],
+				fixed: [null, null],
+				integer: false,
+			}),
+		).toEqual([0, 20]);
+	});
+
+	test("keeps half-step ends when the left domain stops between ticks", () => {
+		// The left ends sit half a step outside its ticks, and so do the right's.
+		expect(
+			alignedDomain({
+				domain: [5, 45],
+				tick: 10,
+				step: 10,
+				extent: [0, 100],
+				fixed: [null, null],
+				integer: false,
+			}),
+		).toEqual([-25, 175]);
+	});
+
+	test("keeps both fixed ends when they land on the grid", () => {
+		expect(alignedDomain({ ...left, extent: [0, 700], fixed: [0, 1000], integer: false })).toEqual([
+			0, 1000,
+		]);
+	});
+
+	test("returns null when a fixed end cannot land on the grid", () => {
+		// 73 over 5 intervals is no 1/2/5 step.
+		expect(alignedDomain({ ...left, extent: [0, 70], fixed: [0, 73], integer: false })).toBeNull();
+	});
+
+	test("keeps a whole step for whole-number data", () => {
+		// 2 / 5 = 0.4, so fractional data would step by 0.5.
+		expect(
+			alignedDomain({
+				domain: [0, 10],
+				tick: 0,
+				step: 2,
+				extent: [0, 2],
+				fixed: [0, null],
+				integer: true,
+			}),
+		).toEqual([0, 5]);
 	});
 });

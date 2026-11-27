@@ -1068,4 +1068,32 @@ describe("BarChart with a line or an area over the bars", () => {
 			/A line or an area cannot be composed inside BarChart\.Root with orientation="horizontal"/,
 		);
 	});
+
+	test("a right axis inside horizontal bars throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<BarChart.Root data={weeks} xKey="week" orientation="horizontal" aria-label="Lines by week">
+					<BarChart.YAxis side="right" />
+					<BarChart.Bar dataKey="added" label="Added" color="green" />
+				</BarChart.Root>,
+			),
+		).toThrow(
+			/BarChart\.YAxis side="right" cannot be composed inside BarChart\.Root with orientation="horizontal"/,
+		);
+	});
+
+	test("a stacked bar on the right axis throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<BarChart.Root data={weeks} xKey="week" stacked aria-label="Lines by week">
+					<BarChart.YAxis />
+					<BarChart.YAxis side="right" />
+					<BarChart.Bar dataKey="added" label="Added" color="green" />
+					<BarChart.Bar dataKey="removed" label="Deleted" color="red" yAxis="right" />
+				</BarChart.Root>,
+			),
+		).toThrow("BarChart.Root stacks the series on its left axis.");
+	});
 });

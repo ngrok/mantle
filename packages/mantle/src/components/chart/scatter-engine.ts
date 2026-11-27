@@ -4,7 +4,7 @@ import type { PlotRect } from "./renderer.js";
 import { MARKER_RADIUS } from "./renderer.js";
 import type { Scatter3d } from "./scatter-3d.js";
 import { drawScatterPoints } from "./scatter-renderer.js";
-import type { ChartDatum, PointShape, SeriesSpec } from "./types.js";
+import type { ChartDatum, PointShape, SeriesSpec, YAxisSide } from "./types.js";
 
 /**
  * The scatter plot's part of the chart engine: the 2D paint and the hit test.
@@ -44,7 +44,8 @@ type ScatterHost = {
 	reveal: (dataKey: string) => number;
 	shape: (dataKey: string) => PointShape;
 	xCoefficients: () => Coefficients;
-	yCoefficients: () => Coefficients;
+	/** The value-to-pixel coefficients of one y axis. */
+	yCoefficients: (side: YAxisSide) => Coefficients;
 	/** The tweened x and y domains, and the z domain from the last ingest. */
 	domains: () => { x: [number, number]; y: [number, number]; z: [number, number] };
 	xKey: () => string;
@@ -364,7 +365,6 @@ class ScatterView implements PointView {
 			return this.#load3d()?.paint(ctx, colors, specs) ?? null;
 		}
 		const xCo = host.xCoefficients();
-		const yCo = host.yCoefficients();
 		const xs = host.xs();
 		// Degradation tiers count PAINTED points: sparse all-pairs data (each row
 		// populating one series) must not inflate the count by the series factor.
@@ -395,6 +395,7 @@ class ScatterView implements PointView {
 				return;
 			}
 			const values = host.paintedValues(spec, seriesIndex);
+			const yCo = host.yCoefficients(spec.yAxis);
 			ctx.save();
 			ctx.globalAlpha = reveal;
 			drawScatterPoints(ctx, {
@@ -430,7 +431,6 @@ class ScatterView implements PointView {
 		let bestDistance = SCATTER_HIT_RADIUS * SCATTER_HIT_RADIUS;
 		let best: ScatterHit | null = null;
 		const xCo = host.xCoefficients();
-		const yCo = host.yCoefficients();
 		const xs = host.xs();
 		const rowCount = host.rowCount();
 		const screenXAt = (index: number): number => (xs[index] ?? 0) * xCo.k + xCo.b;
@@ -449,6 +449,7 @@ class ScatterView implements PointView {
 			if (values == null) {
 				continue;
 			}
+			const yCo = host.yCoefficients(spec.yAxis);
 			for (let index = start; index < end; index++) {
 				const value = values[index] ?? Number.NaN;
 				if (Number.isNaN(value)) {
@@ -479,10 +480,10 @@ class ScatterView implements PointView {
 			return this.#three?.screenFor(index) ?? null;
 		}
 		const xCo = host.xCoefficients();
-		const yCo = host.yCoefficients();
 		for (const spec of host.specs()) {
 			const value = host.columnOf(spec.dataKey)?.[index] ?? Number.NaN;
 			if (!Number.isNaN(value)) {
+				const yCo = host.yCoefficients(spec.yAxis);
 				return { x: (host.xs()[index] ?? 0) * xCo.k + xCo.b, y: value * yCo.k + yCo.b };
 			}
 		}

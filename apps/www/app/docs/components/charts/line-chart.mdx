@@ -183,7 +183,7 @@ function GapsExample() {
 
 ## Reference lines
 
-`LineChart.ReferenceLine` paints a dashed horizontal marker at a y value (an SLO threshold, a budget, a limit) in the neutral reference color, with an optional label above its right end. Two conventions worth copying here: a series that carries bad meaning (an error rate) wears the functional `color="danger"`, and `yDomain` anchors the rate at zero so the distance to the threshold reads truthfully.
+`LineChart.ReferenceLine` paints a dashed horizontal marker at a y value (an SLO threshold, a budget, a limit) in the neutral reference color, with an optional label above its right end. Two conventions worth copying here: a series that carries bad meaning (an error rate) wears the functional `color="danger"`, and the `YAxis` `domain` anchors the rate at zero so the distance to the threshold reads truthfully.
 
 <Example name="components/charts/line-chart/reference-lines" title="Line Chart reference lines example">
 
@@ -197,18 +197,69 @@ const errorRateData = Array.from({ length: 24 }, (_, hour) => ({
 
 function ReferenceLineExample() {
 	return (
-		<LineChart.Root
-			data={errorRateData}
-			xKey="time"
-			yDomain={[0, "auto"]}
-			aria-label="Error rate against the SLO"
-		>
+		<LineChart.Root data={errorRateData} xKey="time" aria-label="Error rate against the SLO">
 			<LineChart.Grid />
 			<LineChart.XAxis />
-			<LineChart.YAxis tickFormat={(value) => `${value}%`} />
+			<LineChart.YAxis domain={[0, "auto"]} tickFormat={(value) => `${value}%`} />
 			<LineChart.Line dataKey="errorRate" label="Error rate" color="danger" />
 			<LineChart.ReferenceLine y={1} label="SLO" />
 			<LineChart.Tooltip valueFormat={(value) => `${value}%`} />
+		</LineChart.Root>
+	);
+}
+```
+
+</Example>
+
+## Two y axes
+
+Compose a second `LineChart.YAxis` with `side="right"` when one series runs far above the others, and set `yAxis="right"` on that series. Each axis has its own scale. The right axis puts a round value on each of the left axis's grid lines, so one grid reads on both sides. The legend lists the right axis's keys at its far end. `ReferenceLine` takes `yAxis` too.
+
+Set `domain` on each axis to fix its ends: `[0, "auto"]` starts both axes at zero, as here. When a fixed end can't land on the left grid lines, the right axis draws ticks of its own.
+
+Two scales on one plot invite a false reading: where two lines cross means nothing, and neither does which line sits higher. Say which axis a series reads in its label, as this chart does, because mantle shows each label as you write it. When the series don't share a story, draw them as [a list of charts](#lists-of-charts) instead.
+
+<Example name="components/charts/line-chart/two-y-axes" title="Line Chart two y axes example">
+
+```tsx
+import { LineChart } from "@ngrok/mantle/line-chart";
+
+const weeklyTokens = [
+	{ week: "Apr 20", uncached: 3_874_487, cached: 78_082_526, output: 606_678 },
+	{ week: "Apr 27", uncached: 7_645_946, cached: 254_519_999, output: 726_881 },
+	{ week: "May 4", uncached: 2_885_324, cached: 121_050_752, output: 282_128 },
+	{ week: "May 11", uncached: 10_309_560, cached: 344_972_032, output: 827_846 },
+	{ week: "May 18", uncached: 15_866_022, cached: 637_270_656, output: 1_288_182 },
+	{ week: "May 25", uncached: 11_077_746, cached: 318_710_272, output: 892_938 },
+	{ week: "Jun 1", uncached: 33_380_099, cached: 837_972_608, output: 2_834_083 },
+	{ week: "Jun 8", uncached: 28_875_156, cached: 794_703_104, output: 2_407_530 },
+	{ week: "Jun 15", uncached: 104_155_857, cached: 2_196_467_968, output: 6_420_826 },
+];
+
+const compactTokens = new Intl.NumberFormat("en-US", { notation: "compact" });
+
+function TwoYAxesLineChartExample() {
+	return (
+		<LineChart.Root data={weeklyTokens} xKey="week" aria-label="LLM token consumption by week">
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis domain={[0, "auto"]} tickFormat={(value) => compactTokens.format(value)} />
+			<LineChart.YAxis
+				side="right"
+				domain={[0, "auto"]}
+				tickFormat={(value) => compactTokens.format(value)}
+			/>
+			<LineChart.Line dataKey="uncached" label="Uncached input" color="blue" />
+			<LineChart.Line dataKey="output" label="Output" color="amber" shape="square" />
+			<LineChart.Line
+				dataKey="cached"
+				label="Cached input (right axis)"
+				color="neutral"
+				shape="diamond"
+				yAxis="right"
+			/>
+			<LineChart.Tooltip />
+			<LineChart.Legend />
 		</LineChart.Root>
 	);
 }
@@ -457,7 +508,7 @@ Compose the parts of a `LineChart` together to build your own:
 LineChart.Root
 ├── LineChart.Grid
 ├── LineChart.XAxis
-├── LineChart.YAxis
+├── LineChart.YAxis (one for each side)
 ├── LineChart.Line (one per series)
 ├── LineChart.ReferenceLine
 ├── LineChart.Tooltip
@@ -527,24 +578,23 @@ The Bar Chart page lists the [accessibility limits](/components/charts/bar-chart
 
 ### LineChart.Root
 
-The root of a line chart: owns the data, the scales, the renderer, and the entire interaction contract. Renders a `<div>` wrapper (defaulting to a 16:9 aspect ratio, overridable via `className`) that holds the focusable interaction overlay, the sr-only description, and, outside a List, the aria-live region. The paint surface, the crosshair, hover-band, and marker layers, and the sr-only data table arrive later: the data attributes below say when. Lines encode value by vertical position, not length from a baseline, so the full y domain is overridable via `yDomain`. Lines never stack, so there is no `stacked` prop.
+The root of a line chart: owns the data, the scales, the renderer, and the entire interaction contract. Renders a `<div>` wrapper (defaulting to a 16:9 aspect ratio, overridable via `className`) that holds the focusable interaction overlay, the sr-only description, and, outside a List, the aria-live region. The paint surface, the crosshair, hover-band, and marker layers, and the sr-only data table arrive later: the data attributes below say when. Lines never stack, so there is no `stacked` prop.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop                   | Type                                        | Default            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ---------------------- | ------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data`                 | `readonly TDatum[]`                         |                    | Rows of data; each `LineChart.Line` reads one numeric key per row.                                                                                                                                                                                                                                                                                                                                                                             |
-| `xKey`                 | `Extract<keyof TDatum, string>`             |                    | The key of each row's x value.                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `aria-label`           | `string`                                    |                    | The chart's accessible name. Exactly one of `aria-label` or `aria-labelledby` is required, enforced at the type level. Required unless `mode` is `\"decorative\"`, which forbids it.                                                                                                                                                                                                                                                           |
-| `aria-labelledby`      | `string`                                    |                    | The id of a visible element that names the chart. Preferred over `aria-label` when the chart sits under a heading. Required unless `mode` is `\"decorative\"`, which forbids it.                                                                                                                                                                                                                                                               |
-| `mode?`                | `"interactive" \| "static" \| "decorative"` | `"interactive"`    | How much of the contract the Root exposes: explore it (`"interactive"`), glance at it with its values beside it (`"static"`: a named `role="img"`, no Tab stop, no tooltip, no table, `animate` off by default), or paint a placeholder (`"decorative"`: hidden from assistive technology, one neutral fill). The name props are required unless decorative, and the interaction props are allowed only when interactive. See [Modes](#modes). |
-| `xScale?`              | `"time"` \| `"linear"` \| `"point"`         | auto-detected      | Override the auto-detected x scale (`Date` values → `"time"`, numbers → `"linear"`, strings → `"point"`).                                                                                                                                                                                                                                                                                                                                      |
-| `yDomain?`             | `[number \| "auto", number \| "auto"]`      | `["auto", "auto"]` | Override the automatic y domain at either end.                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `animate?`             | `boolean`                                   | `true`             | Animate enter/update transitions. When the chart first comes into view, each line sweeps in from the left. `prefers-reduced-motion` always wins.                                                                                                                                                                                                                                                                                               |
-| `pending?`             | `boolean`                                   | `false`            | Hold the previous render at reduced opacity while fresh data loads. Never swap a chart that has rendered once for a skeleton.                                                                                                                                                                                                                                                                                                                  |
-| `activeIndex?`         | `number \| null`                            |                    | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Allowed only when `mode` is `"interactive"`.                                                                                                                                                                                                                                                                                                                       |
-| `onActiveIndexChange?` | `(index: number \| null) => void`           |                    | Notified when hover/keyboard moves the active index. Allowed only when `mode` is `"interactive"`.                                                                                                                                                                                                                                                                                                                                              |
-| `onDatumActivate?`     | `(event: ChartDatumEvent) => void`          |                    | Notified on datum activation: mark click, or Enter/Space on the focused chart. The event carries `index`, `xValue`, `datum`, and the `dataKey` of the series nearest the pointer (`null` for keyboard activation). Allowed only when `mode` is `"interactive"`.                                                                                                                                                                                |
+| Prop                   | Type                                        | Default         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------- | ------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data`                 | `readonly TDatum[]`                         |                 | Rows of data; each `LineChart.Line` reads one numeric key per row.                                                                                                                                                                                                                                                                                                                                                                             |
+| `xKey`                 | `Extract<keyof TDatum, string>`             |                 | The key of each row's x value.                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `aria-label`           | `string`                                    |                 | The chart's accessible name. Exactly one of `aria-label` or `aria-labelledby` is required, enforced at the type level. Required unless `mode` is `\"decorative\"`, which forbids it.                                                                                                                                                                                                                                                           |
+| `aria-labelledby`      | `string`                                    |                 | The id of a visible element that names the chart. Preferred over `aria-label` when the chart sits under a heading. Required unless `mode` is `\"decorative\"`, which forbids it.                                                                                                                                                                                                                                                               |
+| `mode?`                | `"interactive" \| "static" \| "decorative"` | `"interactive"` | How much of the contract the Root exposes: explore it (`"interactive"`), glance at it with its values beside it (`"static"`: a named `role="img"`, no Tab stop, no tooltip, no table, `animate` off by default), or paint a placeholder (`"decorative"`: hidden from assistive technology, one neutral fill). The name props are required unless decorative, and the interaction props are allowed only when interactive. See [Modes](#modes). |
+| `xScale?`              | `"time"` \| `"linear"` \| `"point"`         | auto-detected   | Override the auto-detected x scale (`Date` values → `"time"`, numbers → `"linear"`, strings → `"point"`).                                                                                                                                                                                                                                                                                                                                      |
+| `animate?`             | `boolean`                                   | `true`          | Animate enter/update transitions. When the chart first comes into view, each line sweeps in from the left. `prefers-reduced-motion` always wins.                                                                                                                                                                                                                                                                                               |
+| `pending?`             | `boolean`                                   | `false`         | Hold the previous render at reduced opacity while fresh data loads. Never swap a chart that has rendered once for a skeleton.                                                                                                                                                                                                                                                                                                                  |
+| `activeIndex?`         | `number \| null`                            |                 | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Allowed only when `mode` is `"interactive"`.                                                                                                                                                                                                                                                                                                                       |
+| `onActiveIndexChange?` | `(index: number \| null) => void`           |                 | Notified when hover/keyboard moves the active index. Allowed only when `mode` is `"interactive"`.                                                                                                                                                                                                                                                                                                                                              |
+| `onDatumActivate?`     | `(event: ChartDatumEvent) => void`          |                 | Notified on datum activation: mark click, or Enter/Space on the focused chart. The event carries `index`, `xValue`, `datum`, and the `dataKey` of the series nearest the pointer (`null` for keyboard activation). Allowed only when `mode` is `"interactive"`.                                                                                                                                                                                |
 
 **Data attributes**
 
@@ -577,6 +627,7 @@ One line series. Renders nothing itself: it registers the series with the chart,
 | `markers?`      | `boolean`                                                                                           | `false`    | Draw point markers with a surface ring. Auto-hidden when points are denser than ~12px apart.                                                                                              |
 | `connectNulls?` | `boolean`                                                                                           | `false`    | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                                                                                      |
 | `shape?`        | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | `"circle"` | The glyph the hover dot, the painted point markers, and the legend key wear. Set it for a second encoding beside color. See [Point shapes](/components/charts/scatter-plot#point-shapes). |
+| `yAxis?`        | `"left" \| "right"`                                                                                 | `"left"`   | The y axis whose scale places this series. A `"right"` series needs a `LineChart.YAxis` with `side="right"` and a series on the left axis beside it.                                      |
 
 ### LineChart.Grid
 
@@ -603,16 +654,19 @@ Value tick labels along the left of the plot (renderless; the chart paints it). 
 | ------------- | ---------------------------------------------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tickFormat?` | `(value: number, context: { defaultLabel: string; step: number }) => string` | thousands-separated | Format a tick label. The second argument carries the tick `step` and the `defaultLabel` the axis paints without a formatter, so a formatter can add a unit to `defaultLabel` and keep its precision. The chart compares the function by identity, so a new function paints the chart again. With the React Compiler in your build, an inline function stays stable; without it, define the function outside the component. |
 | `tickCount?`  | `number`                                                                     | `5`                 | Maximum tick count. When omitted, the axis aims for about 5 ticks. The axis can render fewer: ticks land on human-friendly steps, a vertical axis keeps about 28px for each tick, and a label that would overlap its neighbor is skipped. Integer-valued data never renders fractional ticks.                                                                                                                              |
+| `side?`       | `"left" \| "right"`                                                          | `"left"`            | The edge the axis paints on. A series or a reference line with `yAxis="right"` reads the right axis's scale, and the right axis puts a round value on each left grid line when its `domain` allows it. See [Two y axes](/components/charts/line-chart#two-y-axes).                                                                                                                                                         |
+| `domain?`     | `[number \| "auto", number \| "auto"]`                                       | `["auto", "auto"]`  | Fix either end of the axis's domain. An `"auto"` end follows the data.                                                                                                                                                                                                                                                                                                                                                     |
 
 ### LineChart.ReferenceLine
 
 A dashed horizontal marker at a y value, such as an SLO threshold, a budget, or a limit (renderless; the chart paints it).
 
-| Prop     | Type          | Default           | Description                                                              |
-| -------- | ------------- | ----------------- | ------------------------------------------------------------------------ |
-| `y`      | `number`      |                   | The y value the line marks.                                              |
-| `label?` | `string`      |                   | A short label painted above the line's right end.                        |
-| `color?` | `SeriesColor` | neutral reference | Line color. Defaults to the neutral reference color in the active theme. |
+| Prop     | Type                | Default           | Description                                                              |
+| -------- | ------------------- | ----------------- | ------------------------------------------------------------------------ |
+| `y`      | `number`            |                   | The y value the line marks.                                              |
+| `label?` | `string`            |                   | A short label painted above the line's right end.                        |
+| `color?` | `SeriesColor`       | neutral reference | Line color. Defaults to the neutral reference color in the active theme. |
+| `yAxis?` | `"left" \| "right"` | `"left"`          | The y axis whose scale places `y`.                                       |
 
 ### LineChart.Tooltip
 

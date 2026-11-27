@@ -121,6 +121,33 @@ describe("LineChart.Root", () => {
 		).toThrow(/LineChart\.Line dataKey "p95" does not match any key.*time, p50, p99/);
 	});
 
+	test("a right-axis line without a right axis throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<LineChart.Root data={data} xKey="time" aria-label="Latency">
+					<LineChart.YAxis />
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
+					<LineChart.Line dataKey="p99" label="p99" color="emerald" yAxis="right" />
+				</LineChart.Root>,
+			),
+		).toThrow('A series with yAxis="right" needs a YAxis with side="right" inside LineChart.Root.');
+	});
+
+	test("the legend lists the left axis's keys first, then the right axis's", () => {
+		render(
+			<LineChart.Root data={data} xKey="time" aria-label="Latency">
+				<LineChart.YAxis />
+				<LineChart.YAxis side="right" />
+				<LineChart.Line dataKey="p99" label="p99" color="emerald" yAxis="right" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.Legend />
+			</LineChart.Root>,
+		);
+		const legend = document.querySelector('[data-slot="line-chart-legend"]');
+		expect([...(legend?.children ?? [])].map((key) => key.textContent)).toEqual(["p50", "p99"]);
+	});
+
 	test("the overlay is described by the summary and the keys", () => {
 		const { container } = renderChart();
 		const overlay = screen.getByRole("application", { name: "Request latency" });

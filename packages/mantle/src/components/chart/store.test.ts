@@ -12,6 +12,7 @@ const makeSeries = (dataKey: string, overrides: Partial<SeriesSpec> = {}): Serie
 	connectNulls: false,
 	shape: "circle",
 	texture: "solid",
+	yAxis: "left",
 	...overrides,
 });
 
@@ -160,8 +161,8 @@ describe("ChartStore registrations", () => {
 		{
 			name: "yAxis",
 			register: (store: ChartStore, tickCount: number) =>
-				store.registerYAxis({ tickCount, tickFormat: undefined }),
-			read: (store: ChartStore) => store.getSnapshot().yAxis?.tickCount,
+				store.registerYAxis("left", { tickCount, tickFormat: undefined, domain: undefined }),
+			read: (store: ChartStore) => store.getSnapshot().yAxes.left?.tickCount,
 		},
 		{
 			name: "tooltip",
@@ -229,8 +230,13 @@ describe("ChartStore registrations", () => {
 
 	test("reference lines accumulate in registration order", () => {
 		const store = new ChartStore();
-		store.registerReferenceLine("one", { y: 10, label: "a", color: undefined });
-		store.registerReferenceLine("two", { y: 20, label: "b", color: undefined });
+		store.registerReferenceLine("one", {
+			y: 10,
+			label: "a",
+			color: undefined,
+			yAxis: "left",
+		});
+		store.registerReferenceLine("two", { y: 20, label: "b", color: undefined, yAxis: "left" });
 		expect(store.getSnapshot().referenceLines.map((line) => line.y)).toEqual([10, 20]);
 	});
 
@@ -240,10 +246,11 @@ describe("ChartStore registrations", () => {
 			y: 10,
 			label: "a",
 			color: undefined,
+			yAxis: "left",
 		});
-		store.registerReferenceLine("two", { y: 20, label: "b", color: undefined });
+		store.registerReferenceLine("two", { y: 20, label: "b", color: undefined, yAxis: "left" });
 		unregisterOne();
-		store.registerReferenceLine("one", { y: 15, label: "a", color: undefined });
+		store.registerReferenceLine("one", { y: 15, label: "a", color: undefined, yAxis: "left" });
 		expect(store.getSnapshot().referenceLines.map((line) => line.y)).toEqual([15, 20]);
 	});
 

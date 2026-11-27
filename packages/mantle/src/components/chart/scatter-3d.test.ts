@@ -32,6 +32,7 @@ const seriesSpec = (dataKey: string): SeriesSpec => ({
 	connectNulls: false,
 	shape: "circle",
 	texture: "solid",
+	yAxis: "left",
 });
 
 /** Two series of three points each, six points in all. */

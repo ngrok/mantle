@@ -20,6 +20,7 @@ const p50: SeriesSpec = {
 	connectNulls: false,
 	shape: "circle",
 	texture: "solid",
+	yAxis: "left",
 };
 
 /** A store with one registered series: the table renders nothing without one. */

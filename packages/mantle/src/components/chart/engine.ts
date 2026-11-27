@@ -20,6 +20,8 @@ import type {
 	SeriesMeta,
 	SeriesSpec,
 	XValue,
+	YAxisSide,
+	YDomain,
 } from "./types.js";
 import {
 	observeResize,
@@ -37,9 +39,10 @@ import type {
 import { decimateColumns, shouldDecimate } from "./decimate.js";
 import { formatNumber, formatXValue, tickFractionDigits } from "./format.js";
 import type { ChartNames } from "./datum.js";
-import { ingestRows } from "./ingest.js";
+import { ingestRows, type ValueExtent } from "./ingest.js";
 import { nearestIndex } from "./hit-test.js";
 import {
+	alignedDomain,
 	bandCenter,
 	bandHitRegion,
 	bandStart,
@@ -156,6 +159,13 @@ const PLOT_PADDING = 8;
 const X_AXIS_BAND = 24;
 const FALLBACK_AXIS_GUTTER = 40;
 
+const EMPTY_EXTENT: ValueExtent = { min: 0, max: 0, integers: true };
+
+const AUTO_DOMAIN: YDomain = ["auto", "auto"];
+
+/** The value-to-pixel coefficients of each y axis. */
+type YCoefficients = Record<YAxisSide, { k: number; b: number }>;
+
 /** The most axis label widths one engine holds before it measures again from empty. */
 const TEXT_WIDTH_CACHE_LIMIT = 512;
 
@@ -234,7 +244,6 @@ class ChartEngine {
 	#options: ChartOptions = {
 		xKey: "",
 		xScale: "linear",
-		yDomain: ["auto", "auto"],
 		orientation: "vertical",
 		zKey: null,
 		sizeKey: null,
@@ -301,15 +310,14 @@ class ChartEngine {
 	#columns: Float64Array[] = [];
 	/** The column of each `dataKey`, for the reads that start from a key. */
 	#columnIndex = new Map<string, number>();
-	#valueMin = 0;
-	#valueMax = 0;
 	/**
-	 * Every finite series value is an integer. Integer-count data (requests,
-	 * errors) never renders fractional value ticks (a "1.5" label on a count
-	 * axis is meaningless), so value tick generation clamps its step to whole
-	 * numbers while this holds (MNTL-56).
+	 * The value extent of each y axis's series. `integers` holds when every
+	 * finite value is an integer: integer-count data (requests, errors) never
+	 * renders fractional value ticks (a "1.5" label on a count axis is
+	 * meaningless), so value tick generation clamps its step to whole numbers
+	 * while this holds (MNTL-56).
 	 */
-	#valuesAllIntegers = true;
+	#extents: Record<YAxisSide, ValueExtent> = { left: EMPTY_EXTENT, right: EMPTY_EXTENT };
 	/** Every x position is an integer; linear x scales get the same whole-step tick clamp. */
 	#xsAllIntegers = true;
 	#stack: StackBoundaries | null = null;
@@ -317,24 +325,37 @@ class ChartEngine {
 	// Domains chase their targets, so a retarget mid-motion never jumps. A
 	// stream's x domain glides in a straight line instead (see `#streamInterval`).
 	// Per-datum morphs and reveals stay fixed-duration.
-	#yTween = new ChaseTween({ speed: 0.16 });
+	#yTweens: Record<YAxisSide, ChaseTween> = {
+		left: new ChaseTween({ speed: 0.16 }),
+		right: new ChaseTween({ speed: 0.16 }),
+	};
+	/**
+	 * The map from a left value to the right value on the same grid line, at the
+	 * target domains. `null` when the right axis keeps ticks of its own.
+	 */
+	#rightAlign: { k: number; b: number } | null = null;
 	#xTween = new ChaseTween({ speed: 0.2 });
 	#valueTweens = new Map<string, ValueTween>();
 	#revealTweens = new Map<string, ValueTween>();
 	#hasIngested = false;
 	#xLabelFade = new Map<number, { alpha: number; target: number; text: string }>();
 	#yLabelFade = new Map<number, { alpha: number; target: number; text: string }>();
+	#rightLabelFade = new Map<number, { alpha: number; target: number; text: string }>();
 	#lastPaintTime = 0;
 	/**
 	 * The last tick list of each axis and the inputs it came from. Each frame
 	 * builds each list twice (gutter layout, then paint). A value tween keeps
 	 * the category ticks for the whole glide.
 	 */
-	#yTickMemo: {
-		key: string;
-		format: unknown;
-		ticks: Array<{ value: number; text: string }>;
-	} | null = null;
+	#yTickMemos: Record<
+		YAxisSide,
+		{
+			key: string;
+			format: unknown;
+			source: unknown;
+			ticks: Array<{ value: number; text: string }>;
+		} | null
+	> = { left: null, right: null };
 	#xTickMemo: {
 		key: string;
 		format: unknown;
@@ -561,10 +582,10 @@ class ChartEngine {
 				reveal: (dataKey) => easeOutStrong(this.#enterProgress(dataKey)),
 				shape: (dataKey) => this.#store.seriesShape(dataKey),
 				xCoefficients: () => this.#xCoefficients(),
-				yCoefficients: () => this.#yCoefficients(),
+				yCoefficients: (side) => this.#yCoefficients(side),
 				domains: () => {
 					const x = this.#xTween.values();
-					const y = this.#yTween.values();
+					const y = this.#yTweens.left.values();
 					return { x: [x[0] ?? 0, x[1] ?? 1], y: [y[0] ?? 0, y[1] ?? 1], z: this.#zDomain };
 				},
 				xKey: () => this.#options.xKey,
@@ -847,27 +868,38 @@ class ChartEngine {
 		) {
 			this.#pendingIngest = true;
 		}
-		if (previous.yDomain[0] !== options.yDomain[0] || previous.yDomain[1] !== options.yDomain[1]) {
-			// Why no re-ingest: `#ingest` never reads `yDomain`. The override only
-			// moves the value tween's target, so re-aim it here. The columns, the
-			// stack, and the decimation cache (keyed by the x domain) stay. Every
-			// mark moves, so drop the cached hover pixel (plot space) the way the
-			// resize observer does.
-			this.#activeScreen = null;
-			this.#aimYDomain();
-		}
 		this.#schedule();
 	}
 
-	/** Move the value tween to the current target domain, if the chart has data. */
+	/** Move each value tween to its current target domain, if the chart has data. */
 	#aimYDomain(): void {
 		if (!this.#hasIngested) {
 			return;
 		}
-		if (this.#tweenDuration() === 0) {
-			this.#yTween.jump(this.#targetYDomain());
-		} else {
-			this.#yTween.aim(this.#targetYDomain(), performance.now());
+		// Why drop the hover pixel: a new domain moves every mark, as a resize does.
+		this.#activeScreen = null;
+		this.#aimYDomains(this.#tweenDuration() === 0 ? null : performance.now());
+	}
+
+	/**
+	 * Move each value tween to its target: a chase from `now`, or a jump when
+	 * `now` is `null`. The right target follows the left one.
+	 */
+	#aimYDomains(now: number | null): void {
+		const left = this.#targetYDomain("left");
+		const right = this.#targetRightDomain(left);
+		for (const [tween, target] of [
+			[this.#yTweens.left, left],
+			[this.#yTweens.right, right],
+		] as const) {
+			if (target == null) {
+				continue;
+			}
+			if (now == null) {
+				tween.jump(target);
+			} else {
+				tween.aim(target, now);
+			}
 		}
 	}
 
@@ -1198,7 +1230,7 @@ class ChartEngine {
 	 * left the screen, or a print starts. The caller paints the settled frame.
 	 */
 	#snapAllMotion(): void {
-		this.#yTween.jump(this.#targetYDomain());
+		this.#aimYDomains(null);
 		this.#xTween.jump(this.#targetXDomain());
 		this.#scatter?.settle(this.#options.dimensions);
 		for (const tween of this.#valueTweens.values()) {
@@ -1300,9 +1332,13 @@ class ChartEngine {
 		const previousColumnIndex = this.#columnIndex;
 		this.#columns = ingested.columns;
 		this.#columnIndex = new Map(specs.map((spec, index) => [spec.dataKey, index]));
-		this.#valueMin = ingested.valueMin;
-		this.#valueMax = ingested.valueMax;
-		this.#valuesAllIntegers = ingested.valuesAllIntegers;
+		this.#extents = ingested.extents;
+		this.#store.assertYAxes({
+			root: this.#names.root,
+			kind: this.#kind,
+			stacked: this.#options.stacked,
+			threeD: this.#is3d(),
+		});
 		this.#zs = ingested.zs;
 		this.#zDomain = ingested.zExtent == null ? [0, 1] : niceDomain(ingested.zExtent, Y_TICK_COUNT);
 		this.#scatter?.resetProjection();
@@ -1315,7 +1351,7 @@ class ChartEngine {
 		this.#stack = this.#options.stacked
 			? computeStackBoundaries(
 					specs.map((spec, index) =>
-						spec.mark === this.#kind
+						spec.mark === this.#kind && spec.yAxis === "left"
 							? (this.#columns[index] ?? new Float64Array(0))
 							: new Float64Array(count).fill(Number.NaN),
 					),
@@ -1370,10 +1406,10 @@ class ChartEngine {
 
 		// Domains: snap on first data (and under reduced motion); otherwise glide.
 		if (firstIngest || duration === 0) {
-			this.#yTween.jump(this.#targetYDomain());
+			this.#aimYDomains(null);
 			this.#xTween.jump(this.#targetXDomain());
 		} else {
-			this.#yTween.aim(this.#targetYDomain(), now);
+			this.#aimYDomains(now);
 			// Why a jump: the band layout places each bar, and each mark of a line or an
 			// area on a point scale, so no paint reads the x domain. The columns of a
 			// decimated series do read it.
@@ -1514,27 +1550,29 @@ class ChartEngine {
 		return this.#view != null && prefersReducedMotion(this.#view);
 	}
 
-	#targetYDomain(): [number, number] {
+	#targetYDomain(side: YAxisSide): [number, number] {
 		// Why fixed: the world map projects its own points, so a moving domain
 		// would only paint frames that change nothing.
 		if (this.#scatter?.kind === "geo") {
 			return [-90, 90];
 		}
-		const [minOverride, maxOverride] = this.#options.yDomain;
+		const [minOverride, maxOverride] = this.#fixedEnds(side);
+		const extent = this.#extents[side];
+		const zeroAnchored = this.#zeroAnchored(side);
 		let min: number;
 		let max: number;
-		if (this.#stack != null) {
+		if (this.#stack != null && side === "left") {
 			// Why the raw extent too: a series that joins no pile draws at its own
 			// values. A raw value in a pile never passes its pile's end, so the
 			// raw extent widens the domain only for those series.
-			min = Math.min(0, this.#stack.min, this.#valueMin);
-			max = Math.max(0, this.#stack.max, this.#valueMax);
-		} else if (!this.#zeroAnchored()) {
-			min = this.#valueMin;
-			max = this.#valueMax;
+			min = Math.min(0, this.#stack.min, extent.min);
+			max = Math.max(0, this.#stack.max, extent.max);
+		} else if (!zeroAnchored) {
+			min = extent.min;
+			max = extent.max;
 		} else {
-			min = Math.min(0, this.#valueMin);
-			max = Math.max(0, this.#valueMax);
+			min = Math.min(0, extent.min);
+			max = Math.max(0, extent.max);
 		}
 		if (typeof minOverride === "number") {
 			min = minOverride;
@@ -1555,7 +1593,7 @@ class ChartEngine {
 				typeof maxOverride === "number" ? maxOverride : max * BAR_HEADROOM || (min < 0 ? 0 : 1),
 			];
 		}
-		const niced = this.#zeroAnchored()
+		const niced = zeroAnchored
 			? niceZeroAnchoredDomain([min, max], Y_TICK_COUNT)
 			: niceDomain([min, max], Y_TICK_COUNT);
 		// Never let niceness move an explicit override or re-cross a zero baseline.
@@ -1590,12 +1628,65 @@ class ChartEngine {
 	 * baseline, so a bar or an area Root, and any chart that draws one, fixes
 	 * the axis minimum there. A chart of lines or points may float its domain.
 	 */
-	#zeroAnchored(): boolean {
+	#zeroAnchored(side: YAxisSide): boolean {
 		return (
 			this.#kind === "bar" ||
 			this.#kind === "area" ||
-			this.#store.seriesSpecs().some((spec) => spec.mark === "area")
+			this.#store.seriesSpecs().some((spec) => spec.mark === "area" && spec.yAxis === side)
 		);
+	}
+
+	/** The fixed ends of one side's domain, from its `YAxis` part. */
+	#fixedEnds(side: YAxisSide): YDomain {
+		return this.#store.getSnapshot().yAxes[side]?.domain ?? AUTO_DOMAIN;
+	}
+
+	/**
+	 * The right target domain, `null` when no series reads the right axis. It
+	 * puts a round value on each left tick when it can, so one set of grid
+	 * lines reads on both sides; otherwise it nices on its own.
+	 */
+	#targetRightDomain(left: [number, number]): [number, number] | null {
+		this.#rightAlign = null;
+		if (!this.#store.seriesSpecs().some((spec) => spec.yAxis === "right")) {
+			return null;
+		}
+		const own = this.#targetYDomain("right");
+		const extent = this.#extents.right;
+		const ticks = linearTicks(
+			left,
+			this.#store.getSnapshot().yAxes.left?.tickCount ?? Y_TICK_COUNT,
+			{
+				integer: this.#extents.left.integers,
+			},
+		);
+		const first = ticks[0];
+		const second = ticks[1];
+		if (this.#rowCount === 0 || first == null || second == null) {
+			return own;
+		}
+		const [minOverride, maxOverride] = this.#fixedEnds("right");
+		const zeroAnchored = this.#zeroAnchored("right");
+		// Why zero for a zero-anchored axis: its bars or areas grow from the baseline.
+		const baseline = zeroAnchored && extent.min >= 0 ? 0 : null;
+		const aligned = alignedDomain({
+			domain: left,
+			tick: first,
+			step: second - first,
+			extent: zeroAnchored
+				? [Math.min(0, extent.min), Math.max(0, extent.max)]
+				: [extent.min, extent.max],
+			fixed: [
+				typeof minOverride === "number" ? minOverride : baseline,
+				typeof maxOverride === "number" ? maxOverride : null,
+			],
+			integer: extent.integers,
+		});
+		if (aligned == null) {
+			return own;
+		}
+		this.#rightAlign = linearCoefficients(left, aligned);
+		return aligned;
 	}
 
 	/**
@@ -1603,8 +1694,8 @@ class ChartEngine {
 	 * bar chart, areas in an area chart. A line never stacks, and a mark of
 	 * another family draws at its own values over the piles.
 	 */
-	#stacks(spec: Pick<SeriesSpec, "mark">): boolean {
-		return this.#stack != null && spec.mark === this.#kind;
+	#stacks(spec: Pick<SeriesSpec, "mark" | "yAxis">): boolean {
+		return this.#stack != null && spec.mark === this.#kind && spec.yAxis === "left";
 	}
 
 	#is3d(): boolean {
@@ -1625,7 +1716,12 @@ class ChartEngine {
 	/** Whether any part draws ticks: an axis or a grid. */
 	#hasTicks(): boolean {
 		const snapshot = this.#store.getSnapshot();
-		return snapshot.xAxis != null || snapshot.yAxis != null || snapshot.grid != null;
+		return (
+			snapshot.xAxis != null ||
+			snapshot.yAxes.left != null ||
+			snapshot.yAxes.right != null ||
+			snapshot.grid != null
+		);
 	}
 
 	/**
@@ -1716,8 +1812,9 @@ class ChartEngine {
 			const now = performance.now();
 			let animating = false;
 			const valueExtent = this.#horizontalBars() ? this.#plot.width : this.#plot.height;
-			animating =
-				this.#yTween.tick(now, this.#settleDistance(this.#yTween, valueExtent)) || animating;
+			for (const tween of [this.#yTweens.left, this.#yTweens.right]) {
+				animating = tween.tick(now, this.#settleDistance(tween, valueExtent)) || animating;
+			}
 			animating =
 				this.#xTween.tick(now, this.#settleDistance(this.#xTween, this.#plot.width)) || animating;
 			for (const tween of this.#valueTweens.values()) {
@@ -1787,7 +1884,8 @@ class ChartEngine {
 		const frameless = !this.#hasCartesianFrame();
 		const horizontal = this.#horizontalBars();
 		const hasXAxis = !frameless && snapshot.xAxis != null;
-		const hasYAxis = !frameless && snapshot.yAxis != null;
+		const hasYAxis = !frameless && snapshot.yAxes.left != null;
+		const rightAxis = !frameless && !horizontal && snapshot.yAxes.right != null;
 		// Which composed axis part lands on which physical edge: vertically the
 		// value axis (YAxis) sits in the left gutter and the category axis (XAxis)
 		// runs along the bottom; horizontal orientation flips the two.
@@ -1815,33 +1913,30 @@ class ChartEngine {
 			width: Math.max(0, this.#cssWidth - padding * 2),
 			height,
 		};
-		let left = padding;
-		if (leftAxis) {
-			left = FALLBACK_AXIS_GUTTER;
-			// Why colors first: a dormant chart lays out without resolved colors, and
-			// asking for the context here would allocate one it never paints with.
-			const ctx = this.#colors == null ? null : this.#backend.measureContext();
-			if (ctx != null && this.#colors != null) {
-				ctx.font = `${AXIS_FONT_SIZE}px ${this.#colors.fontFamily()}`;
-				let widest = 0;
-				// The gutter holds whichever labels the orientation puts on the left:
-				// value ticks when vertical, category names when horizontal.
-				const labels = horizontal
-					? this.#xTicks().map((tick) => tick.text)
-					: this.#yTicks().map((tick) => tick.text);
-				for (const text of labels) {
-					const width = this.#textWidth(ctx, text);
-					if (width > widest) {
-						widest = width;
-					}
-				}
-				left = Math.ceil(widest) + 14;
+		// Why colors first: a dormant chart lays out without resolved colors, and
+		// asking for the context here would allocate one it never paints with.
+		const ctx = this.#colors == null ? null : this.#backend.measureContext();
+		const gutter = (labels: () => Array<{ text: string }>): number => {
+			if (ctx == null || this.#colors == null) {
+				return FALLBACK_AXIS_GUTTER;
 			}
-		}
+			ctx.font = `${AXIS_FONT_SIZE}px ${this.#colors.fontFamily()}`;
+			let widest = 0;
+			for (const { text } of labels()) {
+				widest = Math.max(widest, this.#textWidth(ctx, text));
+			}
+			return Math.ceil(widest) + 14;
+		};
+		// The left gutter holds whichever labels the orientation puts there: value
+		// ticks when vertical, category names when horizontal.
+		const left = leftAxis
+			? gutter(() => (horizontal ? this.#xTicks() : this.#yTicks("left")))
+			: padding;
+		const right = rightAxis ? gutter(() => this.#yTicks("right")) : padding;
 		this.#plot = {
 			left,
 			top,
-			width: Math.max(0, this.#cssWidth - left - padding),
+			width: Math.max(0, this.#cssWidth - left - right),
 			height,
 		};
 		// The category band lays out along whichever pixel axis carries categories:
@@ -1882,8 +1977,8 @@ class ChartEngine {
 			});
 	}
 
-	#yCoefficients(): { k: number; b: number } {
-		const domain = this.#yTween.values();
+	#yCoefficients(side: YAxisSide = "left"): { k: number; b: number } {
+		const domain = this.#yTweens[side].values();
 		return linearCoefficients(
 			[domain[0] ?? 0, domain[1] ?? 1],
 			[this.#plot.top + this.#plot.height, this.#plot.top],
@@ -1891,13 +1986,13 @@ class ChartEngine {
 	}
 
 	/**
-	 * Value-axis coefficients: the value domain (`#yTween`) mapped onto the pixel
+	 * Value-axis coefficients: the left value domain mapped onto the pixel
 	 * axis values actually run along. For vertical bars this is the y axis (grows
 	 * up, identical to {@link #yCoefficients}); for horizontal bars it is the x
 	 * axis (grows right from a left baseline).
 	 */
 	#valueCoefficients(): { k: number; b: number } {
-		const domain = this.#yTween.values();
+		const domain = this.#yTweens.left.values();
 		const range: [number, number] = this.#horizontalBars()
 			? [this.#plot.left, this.#plot.left + this.#plot.width]
 			: [this.#plot.top + this.#plot.height, this.#plot.top];
@@ -1921,30 +2016,34 @@ class ChartEngine {
 		return (this.#xs[index] ?? 0) * k + b;
 	}
 
-	#yTicks(): Array<{ value: number; text: string }> {
-		const snapshot = this.#store.getSnapshot();
-		const domain = this.#yTween.values();
-		const tickCount = snapshot.yAxis?.tickCount;
+	#yTicks(side: YAxisSide): Array<{ value: number; text: string }> {
+		const axis = this.#store.getSnapshot().yAxes[side];
+		const domain = this.#yTweens[side].values();
+		const integer = this.#extents[side].integers;
+		// Why the left ticks: an aligned right axis labels the left grid lines.
+		const align = side === "right" ? this.#rightAlign : null;
+		const source = align == null ? null : this.#yTicks("left");
+		const tickCount = axis?.tickCount;
 		// Why a height limit: the labels stack in the left gutter, so a short plot
 		// holds fewer of them. The horizontal value axis thins by measured width.
 		const fit = this.#horizontalBars()
 			? Number.POSITIVE_INFINITY
 			: Math.max(2, Math.floor(this.#plot.height / Y_TICK_SPACING));
 		// Integer data keeps integer ticks even mid-glide (tweened fractional
-		// domain bounds) and under a fractional yDomain override: integrality is
+		// domain bounds) and under a fractional `domain` override: integrality is
 		// a fact about the data, not the domain.
 		const limit = Math.min(tickCount ?? Number.POSITIVE_INFINITY, fit);
 		const count = tickCount ?? Y_TICK_COUNT;
-		const format = snapshot.yAxis?.tickFormat;
-		const key = `${domain[0]}|${domain[1]}|${limit}|${count}|${this.#valuesAllIntegers}`;
-		const memo = this.#yTickMemo;
-		if (memo != null && memo.key === key && memo.format === format) {
+		const format = axis?.tickFormat;
+		const key = `${domain[0]}|${domain[1]}|${limit}|${count}|${integer}|${align?.k}|${align?.b}`;
+		const memo = this.#yTickMemos[side];
+		if (memo != null && memo.key === key && memo.format === format && memo.source === source) {
 			return memo.ticks;
 		}
-		const ticks = linearTicksAtMost([domain[0] ?? 0, domain[1] ?? 1], limit, {
-			count,
-			integer: this.#valuesAllIntegers,
-		});
+		const ticks =
+			align == null || source == null
+				? linearTicksAtMost([domain[0] ?? 0, domain[1] ?? 1], limit, { count, integer })
+				: source.map((tick) => tick.value * align.k + align.b);
 		const step = ticks.length > 1 ? Math.abs((ticks[1] ?? 0) - (ticks[0] ?? 0)) : 0;
 		// Precision follows the tick step, so small-magnitude domains (error
 		// rates) never collapse neighboring labels into identical "0"s. A single
@@ -1963,7 +2062,7 @@ class ChartEngine {
 				text: format == null ? defaultLabel : format(value, { defaultLabel, step }),
 			};
 		});
-		this.#yTickMemo = { key, format, ticks: labeled };
+		this.#yTickMemos[side] = { key, format, source, ticks: labeled };
 		return labeled;
 	}
 
@@ -2098,10 +2197,13 @@ class ChartEngine {
 		if (plot.width <= 0 || plot.height <= 0) {
 			return false;
 		}
-		const yCo = this.#yCoefficients();
+		const yCos = { left: this.#yCoefficients("left"), right: this.#yCoefficients("right") };
+		const yCo = yCos.left;
 		const xCo = this.#xCoefficients();
 		const specs = this.#store.seriesSpecs();
 		const frameless = !this.#hasCartesianFrame();
+		const horizontal = this.#horizontalBars();
+		const rightAxis = !frameless && !horizontal && snapshot.yAxes.right != null;
 
 		// Tick fade state: desired tick sets fade in/out instead of popping, and
 		// gridlines share the label alphas so everything slides together while
@@ -2116,10 +2218,16 @@ class ChartEngine {
 		const desiredXTicks =
 			frameless || !wantsTicks ? [] : this.#desiredXTicks(ctx, colors.fontFamily());
 		const desiredYTicks =
-			frameless || !wantsTicks ? [] : this.#desiredValueTicks(ctx, colors.fontFamily());
+			frameless || !wantsTicks ? [] : this.#desiredValueTicks(ctx, colors.fontFamily(), "left");
+		const desiredRightTicks = rightAxis
+			? this.#desiredValueTicks(ctx, colors.fontFamily(), "right")
+			: [];
 		let labelsAnimating = advanceLabelFade(this.#xLabelFade, desiredXTicks, paintDt, instantLabels);
 		labelsAnimating =
 			advanceLabelFade(this.#yLabelFade, desiredYTicks, paintDt, instantLabels) || labelsAnimating;
+		labelsAnimating =
+			advanceLabelFade(this.#rightLabelFade, desiredRightTicks, paintDt, instantLabels) ||
+			labelsAnimating;
 
 		// Left-edge scroll mask strength: eases in while streaming slides the
 		// window, decays after the stream idles long enough for the domain
@@ -2157,7 +2265,6 @@ class ChartEngine {
 		// band structure, `#xLabelFade`) runs along x when vertical and y when
 		// horizontal; value (`#yLabelFade`, the y tween) runs along y when
 		// vertical and x when horizontal.
-		const horizontal = this.#horizontalBars();
 		const valueCo = horizontal ? this.#valueCoefficients() : yCo;
 		const categoryPosition = (key: number): number =>
 			this.#bandLayout != null ? bandCenter(this.#bandLayout, key) : key * xCo.k + xCo.b;
@@ -2213,11 +2320,11 @@ class ChartEngine {
 				} else if (horizontal) {
 					this.#paintHorizontalBars(ctx, specs);
 				} else {
-					this.#paintLinesOrAreas(ctx, specs, yCo, "area");
+					this.#paintLinesOrAreas(ctx, specs, yCos, "area");
 					if (this.#kind === "bar") {
-						this.#paintBars(ctx, specs, yCo);
+						this.#paintBars(ctx, specs, yCos);
 					}
-					this.#paintLinesOrAreas(ctx, specs, yCo, "line");
+					this.#paintLinesOrAreas(ctx, specs, yCos, "line");
 				}
 				ctx.restore();
 			},
@@ -2252,7 +2359,10 @@ class ChartEngine {
 		// vertical line when horizontal, horizontal otherwise. Skipped when off the
 		// value axis (an unclipped line would strike the label strip) and in 3D.
 		for (const reference of frameless ? [] : snapshot.referenceLines) {
-			const position = valuePosition(reference.y);
+			const position =
+				reference.yAxis === "right"
+					? reference.y * yCos.right.k + yCos.right.b
+					: valuePosition(reference.y);
 			const outOfRange = horizontal
 				? position < plot.left || position > plot.left + plot.width
 				: position < plot.top || position > plot.top + plot.height;
@@ -2295,7 +2405,7 @@ class ChartEngine {
 						alpha: entry.alpha,
 					}));
 		const valueLabels =
-			snapshot.yAxis == null || frameless
+			snapshot.yAxes.left == null || frameless
 				? []
 				: [...this.#yLabelFade.entries()].map(([key, entry]) => ({
 						position: valuePosition(key),
@@ -2304,13 +2414,19 @@ class ChartEngine {
 					}));
 		const xLabels = horizontal ? valueLabels : categoryLabels;
 		const yLabels = horizontal ? categoryLabels : valueLabels;
-		if (xLabels.length > 0 || yLabels.length > 0) {
+		const rightLabels = [...this.#rightLabelFade.entries()].map(([key, entry]) => ({
+			position: key * yCos.right.k + yCos.right.b,
+			text: entry.text,
+			alpha: entry.alpha,
+		}));
+		if (xLabels.length > 0 || yLabels.length > 0 || rightLabels.length > 0) {
 			drawAxisLabels(ctx, {
 				plot,
 				color: colors.chrome.tickText,
 				fontFamily: colors.fontFamily(),
 				xLabels,
 				yLabels,
+				rightLabels,
 			});
 		}
 		return labelsAnimating;
@@ -2354,10 +2470,14 @@ class ChartEngine {
 	 * where they collide by line height. Horizontal charts place them along the x
 	 * axis, where they collide by measured width.
 	 */
-	#desiredValueTicks(ctx: PaintContext, fontFamily: string): Array<{ key: number; text: string }> {
-		const ticks = this.#yTicks();
-		const valueCo = this.#valueCoefficients();
+	#desiredValueTicks(
+		ctx: PaintContext,
+		fontFamily: string,
+		side: YAxisSide,
+	): Array<{ key: number; text: string }> {
+		const ticks = this.#yTicks(side);
 		if (!this.#horizontalBars()) {
+			const valueCo = this.#yCoefficients(side);
 			const desired: Array<{ key: number; text: string }> = [];
 			let previous = Number.NaN;
 			for (const tick of ticks) {
@@ -2370,6 +2490,7 @@ class ChartEngine {
 			}
 			return desired;
 		}
+		const valueCo = this.#valueCoefficients();
 		ctx.font = `${AXIS_FONT_SIZE}px ${fontFamily}`;
 		const desired: Array<{ key: number; text: string }> = [];
 		let previousEnd = Number.NEGATIVE_INFINITY;
@@ -2543,7 +2664,7 @@ class ChartEngine {
 		return isStackedDataEnd({ lower, upper, pileOuter, toPixel });
 	}
 
-	#paintBars(ctx: PaintContext, specs: readonly SeriesSpec[], yCo: { k: number; b: number }): void {
+	#paintBars(ctx: PaintContext, specs: readonly SeriesSpec[], yCos: YCoefficients): void {
 		const layout = this.#bandLayout;
 		const colors = this.#colors;
 		if (layout == null || colors == null || this.#rowCount === 0 || specs.length === 0) {
@@ -2558,7 +2679,11 @@ class ChartEngine {
 		const gap = barGap({ bandwidth: layout.bandwidth, groupCount });
 		const slotWidth = (layout.bandwidth - gap * (groupCount - 1)) / groupCount;
 		const barWidth = barThickness({ step: layout.step, slot: slotWidth });
-		const toPixel = (value: number): number => value * yCo.k + yCo.b;
+		const toPixels = {
+			left: (value: number): number => value * yCos.left.k + yCos.left.b,
+			right: (value: number): number => value * yCos.right.k + yCos.right.b,
+		};
+		const toPixel = toPixels.left;
 		const stackGap = stacked ? STACK_GAP : 0;
 
 		const rects = this.#barRects;
@@ -2576,6 +2701,7 @@ class ChartEngine {
 			}
 			slot += 1;
 			const { lower, upper, progress } = segments[seriesIndex] ?? EMPTY_SEGMENTS;
+			const toPixel = toPixels[spec.yAxis];
 			let count = 0;
 			for (let index = 0; index < this.#rowCount; index++) {
 				const upperValue = upper[index] ?? Number.NaN;
@@ -2728,7 +2854,7 @@ class ChartEngine {
 	#paintLinesOrAreas(
 		ctx: PaintContext,
 		specs: readonly SeriesSpec[],
-		yCo: { k: number; b: number },
+		yCos: YCoefficients,
 		mark: "line" | "area",
 	): void {
 		const colors = this.#colors;
@@ -2746,6 +2872,7 @@ class ChartEngine {
 			}
 			const color = colors.series.get(spec.dataKey) ?? "currentColor";
 			const reveal = easeOutStrong(this.#enterProgress(spec.dataKey));
+			const yCo = yCos[spec.yAxis];
 			ctx.save();
 			if (reveal < 1) {
 				ctx.beginPath();
@@ -2976,6 +3103,7 @@ class ChartEngine {
 		const horizontal = this.#horizontalBars();
 		const isBar = this.#kind === "bar";
 		const { k, b } = horizontal ? this.#valueCoefficients() : this.#yCoefficients();
+		const right = this.#yCoefficients("right");
 		const pointerAlongValue = horizontal ? cssX : cssY;
 		/**
 		 * The series of `marks` whose painted value sits nearest the pointer
@@ -2994,7 +3122,10 @@ class ChartEngine {
 					this.#stacks(spec) ? "upper" : "value",
 					seriesIndex,
 				);
-				const distance = Math.abs((values?.[index] ?? Number.NaN) * k + b - pointerAlongValue);
+				const co = spec.yAxis === "right" ? right : { k, b };
+				const distance = Math.abs(
+					(values?.[index] ?? Number.NaN) * co.k + co.b - pointerAlongValue,
+				);
 				if (marks(spec) && distance < best) {
 					best = distance;
 					found = spec.dataKey;
@@ -3037,8 +3168,9 @@ class ChartEngine {
 				if (Number.isNaN(lower) || Number.isNaN(upper) || lower === upper) {
 					continue;
 				}
-				const lowerPixel = lower * k + b;
-				const upperPixel = upper * k + b;
+				const co = spec.yAxis === "right" ? right : { k, b };
+				const lowerPixel = lower * co.k + co.b;
+				const upperPixel = upper * co.k + co.b;
 				if (
 					pointerAlongValue >= Math.min(lowerPixel, upperPixel) &&
 					pointerAlongValue <= Math.max(lowerPixel, upperPixel)
@@ -3287,7 +3419,7 @@ class ChartEngine {
 		while (markers.children.length < dotted.length) {
 			markers.appendChild(createMarkerDot(markers.ownerDocument));
 		}
-		const yCo = this.#yCoefficients();
+		const yCos = { left: this.#yCoefficients("left"), right: this.#yCoefficients("right") };
 		dotted.forEach((series, dotIndex) => {
 			const dot = markers.children[dotIndex];
 			const seriesIndex = this.#columnIndex.get(series.dataKey) ?? -1;
@@ -3308,6 +3440,7 @@ class ChartEngine {
 			}
 			dot.style.opacity = "1";
 			styleMarkerDot(dot, series.shape, series.color);
+			const yCo = yCos[series.yAxis];
 			dot.style.transform = `translate(${xPx}px, ${painted * yCo.k + yCo.b}px)`;
 		});
 

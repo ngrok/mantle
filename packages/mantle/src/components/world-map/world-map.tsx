@@ -53,7 +53,7 @@ import { WORLD_LAND } from "./world-land.js";
 type WorldMapRootProps<
 	TDatum extends ChartDatum = ChartDatum,
 	TMode extends ChartMode = "interactive",
-> = Omit<ChartRootBaseProps, "stacked" | "yDomain"> &
+> = Omit<ChartRootBaseProps, "stacked"> &
 	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each row is one point per composed `WorldMap.Point` series. */
 		data: readonly TDatum[];

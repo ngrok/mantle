@@ -23,6 +23,7 @@ const contextWith = (current: ChartContextValue["dataRef"]["current"]): ChartCon
 		connectNulls: false,
 		shape: "circle",
 		texture: "solid",
+		yAxis: "left",
 	});
 	return {
 		kind: "line",

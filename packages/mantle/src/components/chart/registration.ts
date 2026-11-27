@@ -11,6 +11,8 @@ import type {
 	SeriesMark,
 	XTickContext,
 	XValue,
+	YAxisSide,
+	YDomain,
 	YTickContext,
 } from "./types.js";
 import { useChartContext } from "./context.js";
@@ -34,6 +36,11 @@ type SeriesPrimitiveProps = {
 	shape?: PointShape;
 	/** The fill texture (bar marks only), worn by the bars and their legend key. */
 	texture?: BarTexture;
+	/**
+	 * The y axis whose scale places the series' values: `"left"` (the default)
+	 * or `"right"`. A `"right"` series needs a `YAxis side="right"` in the same Root.
+	 */
+	yAxis?: YAxisSide;
 };
 
 /**
@@ -64,6 +71,7 @@ const useSeriesPrimitive = (
 		connectNulls = false,
 		shape = "circle",
 		texture = "solid",
+		yAxis = "left",
 	} = props;
 	useLayoutEffect(
 		() =>
@@ -77,8 +85,21 @@ const useSeriesPrimitive = (
 				connectNulls,
 				shape,
 				texture,
+				yAxis,
 			}),
-		[context.store, dataKey, label, color, mark, curve, markers, connectNulls, shape, texture],
+		[
+			context.store,
+			dataKey,
+			label,
+			color,
+			mark,
+			curve,
+			markers,
+			connectNulls,
+			shape,
+			texture,
+			yAxis,
+		],
 	);
 	return null;
 };
@@ -128,7 +149,23 @@ const useXAxisPrimitive = (partName: string, props: XAxisPrimitiveProps): null =
 	return null;
 };
 
-type YAxisPrimitiveProps = {
+type YAxisPrimitiveProps<TDomain extends YDomain = YDomain> = {
+	/**
+	 * The edge the axis paints on: `"left"` (the default) or `"right"`. A series
+	 * or a reference line with `yAxis="right"` reads the right axis's scale.
+	 * The right axis puts its ticks on the left axis's grid lines when it can.
+	 */
+	side?: YAxisSide;
+	/**
+	 * Fix either end of the axis's domain; an `"auto"` end follows the data.
+	 * Ticks still land on round steps inside a fixed domain.
+	 *
+	 * @example
+	 * ```tsx
+	 * <LineChart.YAxis domain={[0, "auto"]} />
+	 * ```
+	 */
+	domain?: TDomain;
 	/**
 	 * Format a tick label. Defaults to thousands-separated numbers. The second
 	 * argument carries the tick `step` and the `defaultLabel`, whose precision
@@ -152,10 +189,19 @@ type YAxisPrimitiveProps = {
 
 const useYAxisPrimitive = (partName: string, props: YAxisPrimitiveProps): null => {
 	const context = useChartContext(partName);
-	const { tickFormat, tickCount } = props;
+	const { side = "left", tickFormat, tickCount, domain } = props;
+	// Why the ends and not the tuple: an inline `domain` is a new array on each
+	// render, and a new spec re-aims the domain.
+	const min = domain?.[0];
+	const max = domain?.[1];
 	useLayoutEffect(
-		() => context.store.registerYAxis({ tickFormat, tickCount }),
-		[context.store, tickFormat, tickCount],
+		() =>
+			context.store.registerYAxis(side, {
+				tickFormat,
+				tickCount,
+				domain: min == null || max == null ? undefined : [min, max],
+			}),
+		[context.store, side, tickFormat, tickCount, min, max],
 	);
 	return null;
 };
@@ -167,15 +213,17 @@ type ReferenceLinePrimitiveProps = {
 	label?: string;
 	/** Line color; defaults to the neutral reference color. */
 	color?: SeriesColor;
+	/** The y axis whose scale places `y`: `"left"` (the default) or `"right"`. */
+	yAxis?: YAxisSide;
 };
 
 const useReferenceLinePrimitive = (partName: string, props: ReferenceLinePrimitiveProps): null => {
 	const context = useChartContext(partName);
 	const id = useId();
-	const { y, label, color } = props;
+	const { y, label, color, yAxis = "left" } = props;
 	useLayoutEffect(
-		() => context.store.registerReferenceLine(id, { y, label, color }),
-		[context.store, id, y, label, color],
+		() => context.store.registerReferenceLine(id, { y, yAxis, label, color }),
+		[context.store, id, y, yAxis, label, color],
 	);
 	return null;
 };

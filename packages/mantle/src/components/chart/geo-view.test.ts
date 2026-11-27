@@ -32,6 +32,7 @@ const SERIES: SeriesSpec = {
 	connectNulls: false,
 	shape: "circle",
 	texture: "solid",
+	yAxis: "left",
 };
 
 /**

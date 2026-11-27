@@ -250,12 +250,22 @@ const ChartLegendPrimitive = ({
 					{children(series)}
 				</div>
 			) : (
-				series.map((item) => (
-					<div key={item.dataKey} className="flex items-center gap-1.5">
-						<LegendSwatch series={item} orientation={orientation} />
-						{item.label}
-					</div>
-				))
+				// Why the order and the margin: the left axis's keys come first, and the
+				// first right-axis key pushes its group to the far edge, over its axis.
+				series
+					.toSorted((a, b) => Number(a.yAxis === "right") - Number(b.yAxis === "right"))
+					.map((item, index, sorted) => (
+						<div
+							key={item.dataKey}
+							className={cx(
+								"flex items-center gap-1.5",
+								item.yAxis === "right" && sorted[index - 1]?.yAxis !== "right" && "ms-auto",
+							)}
+						>
+							<LegendSwatch series={item} orientation={orientation} />
+							{item.label}
+						</div>
+					))
 			)}
 		</div>
 	);

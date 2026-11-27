@@ -24,7 +24,13 @@ import { ChartRootPrimitive } from "../chart/root.js";
 import type { ChartRootBaseProps } from "../chart/root.js";
 import { useTooltipPrimitive } from "../chart/tooltip.js";
 import type { TooltipPrimitiveProps } from "../chart/tooltip.js";
-import type { ChartDatum, ChartDatumEvent, PointShape, SeriesColor } from "../chart/types.js";
+import type {
+	ChartDatum,
+	ChartDatumEvent,
+	PointShape,
+	SeriesColor,
+	YAxisSide,
+} from "../chart/types.js";
 import { createCanvasBackend } from "../chart/canvas-backend.js";
 import { createScatterView, preloadScatter3d } from "../chart/scatter-engine.js";
 import { useEffect } from "react";
@@ -126,6 +132,11 @@ type ScatterPlotPointProps = {
 	 * color vision. Defaults to `"circle"`.
 	 */
 	shape?: PointShape;
+	/**
+	 * The y axis whose scale places this series: `"left"` (the default) or
+	 * `"right"`. A `"right"` series needs a {@link ScatterPlot.YAxis} with `side="right"`.
+	 */
+	yAxis?: YAxisSide;
 };
 
 /**

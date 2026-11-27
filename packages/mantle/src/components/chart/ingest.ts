@@ -1,5 +1,5 @@
 import invariant from "tiny-invariant";
-import type { ChartDatum, SeriesSpec, XScaleKind, XValue } from "./types.js";
+import type { ChartDatum, SeriesSpec, XScaleKind, XValue, YAxisSide } from "./types.js";
 import type { ChartNames } from "./datum.js";
 import { datumValue, missingKeyMessage, toEpochOrNumber, uncoercibleXMessage } from "./datum.js";
 import { hasTimeOfDay } from "./format.js";
@@ -10,6 +10,9 @@ import { hasTimeOfDay } from "./format.js";
  *
  * This module is internal shared implementation. The package does not export it.
  */
+
+/** The value extent of one y axis's series; `integers` holds when every finite value is whole. */
+type ValueExtent = { min: number; max: number; integers: boolean };
 
 type IngestInput = {
 	rows: readonly ChartDatum[];
@@ -40,11 +43,8 @@ type IngestResult = {
 	xHasTimeOfDay: boolean;
 	/** One column per series in `specs` order, by view index; `NaN` is a gap. */
 	columns: Float64Array<ArrayBuffer>[];
-	/** The smallest and largest finite value across every column; `0` when none. */
-	valueMin: number;
-	valueMax: number;
-	/** Every finite value is an integer. */
-	valuesAllIntegers: boolean;
+	/** The value extent of each y axis's columns. */
+	extents: Record<YAxisSide, ValueExtent>;
 	/** The depth column of a 3D scatter plot, by view index; empty without `zKey`. */
 	zs: Float64Array<ArrayBuffer>;
 	/** The finite depth extent, or `null` when no row has a depth. */
@@ -193,12 +193,14 @@ const ingestRows = (input: IngestInput): IngestResult => {
 		}
 	}
 
-	let min = Number.POSITIVE_INFINITY;
-	let max = Number.NEGATIVE_INFINITY;
 	// Stacked sums of integers are integers, so the raw values cover stacked domains too.
-	let valuesAllIntegers = true;
+	const extents = {
+		left: { min: Infinity, max: -Infinity, integers: true },
+		right: { min: Infinity, max: -Infinity, integers: true },
+	};
 	const columns = specs.map((spec) => {
 		const values = new Float64Array(count);
+		const extent = extents[spec.yAxis];
 		let found = false;
 		for (let index = 0; index < count; index++) {
 			const row = rows[sourceOf(index)];
@@ -213,11 +215,9 @@ const ingestRows = (input: IngestInput): IngestResult => {
 			const value = typeof raw === "number" && Number.isFinite(raw) ? raw : Number.NaN;
 			values[index] = value;
 			if (!Number.isNaN(value)) {
-				min = Math.min(min, value);
-				max = Math.max(max, value);
-				if (!Number.isInteger(value)) {
-					valuesAllIntegers = false;
-				}
+				extent.min = Math.min(extent.min, value);
+				extent.max = Math.max(extent.max, value);
+				extent.integers &&= Number.isInteger(value);
 			}
 		}
 		invariant(count === 0 || found, () =>
@@ -225,6 +225,13 @@ const ingestRows = (input: IngestInput): IngestResult => {
 		);
 		return values;
 	});
+
+	for (const extent of [extents.left, extents.right]) {
+		if (extent.min > extent.max) {
+			extent.min = 0;
+			extent.max = 0;
+		}
+	}
 
 	let zs = new Float64Array(0);
 	let zExtent: [number, number] | null = null;
@@ -256,9 +263,7 @@ const ingestRows = (input: IngestInput): IngestResult => {
 		...x,
 		xHasTimeOfDay,
 		columns,
-		valueMin: min === Number.POSITIVE_INFINITY ? 0 : min,
-		valueMax: max === Number.NEGATIVE_INFINITY ? 0 : max,
-		valuesAllIntegers,
+		extents,
 		zs,
 		zExtent,
 	};
@@ -268,6 +273,7 @@ export type {
 	//,
 	IngestInput,
 	IngestResult,
+	ValueExtent,
 };
 export {
 	//,
