@@ -3,6 +3,7 @@ import { type CSSProperties, type ReactNode, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, describe, expect, onTestFinished, test, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { isApplePlatform } from "../../utils/platform.js";
 import * as Dialog from "../dialog/dialog-parts.js";
 import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import { TooltipProvider } from "../tooltip/index.js";
@@ -155,6 +156,12 @@ test("a long name ends in an ellipsis, beside an icon and before the caret", () 
 	const caret = document.querySelector("[data-slot=sidebar-disclosure-trigger-caret]");
 	expect(caret?.getBoundingClientRect().width).toBeGreaterThan(0);
 });
+
+/** Presses the sidebar shortcut with this platform's modifier. */
+async function pressChord() {
+	const modifier = isApplePlatform() ? "Meta" : "Control";
+	await userEvent.keyboard(`{${modifier}>}b{/${modifier}}`);
+}
 
 describe("Sidebar.Disclosure in the expanded sidebar", () => {
 	test("folds its list in place, and a closed list waits for find in page", async () => {
@@ -509,7 +516,7 @@ describe("Sidebar.Disclosure with a row that opens a popup", () => {
 		const toggle = await screen.findByRole("button", { name: "Toggle" });
 		act(() => toggle.focus());
 
-		await userEvent.keyboard("{Control>}b{/Control}");
+		await pressChord();
 
 		expect(document.querySelector("[data-slot~=sidebar-nav]")?.hasAttribute("data-expanded")).toBe(
 			true,
@@ -526,7 +533,7 @@ describe("Sidebar.Disclosure with a row that opens a popup", () => {
 		/** Waits for the list's fold or float exit, which keeps it shown until it ends. */
 		const settled = () => Promise.all(list.getAnimations().map((animation) => animation.finished));
 
-		await userEvent.keyboard("{Control>}b{/Control}");
+		await pressChord();
 		await waitFor(() =>
 			expect(
 				document.querySelector("[data-slot~=sidebar-nav]")?.hasAttribute("data-expanded"),
@@ -536,7 +543,7 @@ describe("Sidebar.Disclosure with a row that opens a popup", () => {
 		expect(toggle.getClientRects().length).toBeGreaterThan(0);
 		expect(document.activeElement).toBe(toggle);
 
-		await userEvent.keyboard("{Control>}b{/Control}");
+		await pressChord();
 		await waitFor(() =>
 			expect(
 				document.querySelector("[data-slot~=sidebar-nav]")?.hasAttribute("data-expanded"),
@@ -659,6 +666,208 @@ describe("Sidebar.Disclosure with a row that opens a popup", () => {
 		expect(account.getAttribute("aria-expanded")).toBe("true");
 	});
 
+	test("a row that opens a dialog in the list from its click handler keeps the flyout", async () => {
+		render(
+			<PopupNav
+				rows={
+					<Sidebar.Item>
+						<Sidebar.ItemButton
+							onClick={() => (document.getElementById("editor") as HTMLDialogElement).showModal()}
+						>
+							Edit
+						</Sidebar.ItemButton>
+						<dialog id="editor">
+							<button type="button">Save</button>
+						</dialog>
+					</Sidebar.Item>
+				}
+			/>,
+		);
+		const account = screen.getByRole("button", { name: "Account" });
+		await userEvent.click(account);
+		await userEvent.click(screen.getByRole("button", { name: "Edit" }));
+		// Why a press in the dialog: the flyout decides in a task after the row's handlers.
+		await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+		expect(account.getAttribute("aria-expanded")).toBe("true");
+		expect(screen.getByRole("button", { name: "Save" }).getClientRects().length).toBeGreaterThan(0);
+	});
+
+	test("Escape lets a row's native dialog keep itself open with a cancel guard", async () => {
+		render(
+			<>
+				<PopupNav
+					rows={
+						<Sidebar.Item>
+							{/* Why a spread: React's types have no invoker command attributes yet. */}
+							<Sidebar.ItemButton {...{ command: "show-modal", commandfor: "prefs" }}>
+								Preferences
+							</Sidebar.ItemButton>
+						</Sidebar.Item>
+					}
+				/>
+				<dialog id="prefs" onCancel={(event) => event.preventDefault()}>
+					<button type="button">Edit</button>
+				</dialog>
+			</>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Account" }));
+		await userEvent.click(screen.getByRole("button", { name: "Preferences" }));
+		const prefs = document.getElementById("prefs") as HTMLDialogElement;
+		await waitFor(() => expect(prefs.open).toBe(true));
+		act(() => screen.getByRole("button", { name: "Edit" }).focus());
+
+		await userEvent.keyboard("{Escape}");
+
+		expect(prefs.open).toBe(true);
+	});
+
+	test("Escape closes only the inner one of a row's nested popovers", async () => {
+		render(
+			<PopupNav
+				rows={
+					<Sidebar.Item>
+						<Sidebar.ItemButton popoverTarget="outer">Filters</Sidebar.ItemButton>
+						<div id="outer" popover="auto">
+							<button type="button" popoverTarget="inner">
+								More
+							</button>
+							<div id="inner" popover="auto">
+								<button type="button">Apply</button>
+							</div>
+						</div>
+					</Sidebar.Item>
+				}
+			/>,
+		);
+		const account = screen.getByRole("button", { name: "Account" });
+		await userEvent.click(account);
+		await userEvent.click(screen.getByRole("button", { name: "Filters" }));
+		await userEvent.click(screen.getByRole("button", { name: "More" }));
+		act(() => screen.getByRole("button", { name: "Apply" }).focus());
+
+		await userEvent.keyboard("{Escape}");
+
+		expect(document.getElementById("inner")?.matches(":popover-open")).toBe(false);
+		expect(document.getElementById("outer")?.matches(":popover-open")).toBe(true);
+		expect(account.getAttribute("aria-expanded")).toBe("true");
+	});
+
+	test("Escape closes a row's dialog that opens as a popover", async () => {
+		render(
+			<PopupNav
+				rows={
+					<Sidebar.Item>
+						<Sidebar.ItemButton popoverTarget="filters">Filters</Sidebar.ItemButton>
+						<dialog id="filters" popover="auto">
+							<button type="button">Apply</button>
+						</dialog>
+					</Sidebar.Item>
+				}
+			/>,
+		);
+		const account = screen.getByRole("button", { name: "Account" });
+		await userEvent.click(account);
+		await userEvent.click(screen.getByRole("button", { name: "Filters" }));
+		act(() => screen.getByRole("button", { name: "Apply" }).focus());
+
+		await userEvent.keyboard("{Escape}");
+
+		expect(document.getElementById("filters")?.matches(":popover-open")).toBe(false);
+		expect(account.getAttribute("aria-expanded")).toBe("true");
+	});
+
+	test("the sidebar chord leaves the mobile sheet open when focus falls from its native modal", async () => {
+		await page.viewport(430, 800);
+		onTestFinished(async () => {
+			await page.viewport(1280, 800);
+		});
+		render(
+			<PopupNav
+				expanded
+				rows={
+					<Sidebar.Item>
+						<dialog id="inner">
+							<button type="button">Gone</button>
+						</dialog>
+					</Sidebar.Item>
+				}
+			/>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: /sidebar/i }));
+		const sheet = document.querySelector("[data-slot~=sidebar-nav]")?.closest("dialog");
+		await waitFor(() => expect(sheet?.open).toBe(true));
+		const inner = document.getElementById("inner") as HTMLDialogElement;
+		act(() => inner.showModal());
+		act(() => (document.activeElement as HTMLElement | null)?.blur());
+		expect(document.activeElement).toBe(document.body);
+
+		await pressChord();
+
+		expect(inner.open).toBe(true);
+		expect(sheet?.open).toBe(true);
+	});
+
+	test("a flyout that opens under a row's native modal shows when the modal closes", async () => {
+		function Page() {
+			const [open, setOpen] = useState(true);
+			return (
+				<TooltipProvider>
+					<Sidebar.Root open={open} onOpenChange={setOpen} mobileBreakpoint="sm">
+						<div style={{ display: "flex", height: 400 }}>
+							<Sidebar.Nav aria-label="Main">
+								<Sidebar.List>
+									<Sidebar.Disclosure defaultOpen>
+										<Sidebar.DisclosureTrigger>Account</Sidebar.DisclosureTrigger>
+										<Sidebar.DisclosureList>
+											<Sidebar.Item>
+												<dialog id="editor">
+													<button type="button" onClick={() => setOpen(false)}>
+														Collapse
+													</button>
+												</dialog>
+											</Sidebar.Item>
+										</Sidebar.DisclosureList>
+									</Sidebar.Disclosure>
+								</Sidebar.List>
+							</Sidebar.Nav>
+						</div>
+					</Sidebar.Root>
+				</TooltipProvider>
+			);
+		}
+		render(<Page />);
+		const editor = document.getElementById("editor") as HTMLDialogElement;
+		act(() => editor.showModal());
+		await userEvent.click(screen.getByRole("button", { name: "Collapse" }));
+		const account = screen.getByRole("button", { name: "Account" });
+		await waitFor(() => expect(account.getAttribute("aria-expanded")).toBe("true"));
+
+		act(() => editor.close());
+
+		await waitFor(() => expect(listOf(account).matches(":popover-open")).toBe(true));
+	});
+
+	test("Escape on an open group's trigger closes the mobile sheet", async () => {
+		await page.viewport(430, 800);
+		onTestFinished(async () => {
+			await page.viewport(1280, 800);
+		});
+		render(<PopupNav expanded rows={<DialogRow />} />);
+		await userEvent.click(screen.getByRole("button", { name: /sidebar/i }));
+		const account = await screen.findByRole("button", { name: "Account" });
+		expect(account.getAttribute("aria-expanded")).toBe("true");
+		act(() => account.focus());
+
+		await userEvent.keyboard("{Escape}");
+
+		await waitFor(() =>
+			expect(document.querySelector("[data-slot~=sidebar-nav]")?.closest("dialog")?.open).toBe(
+				false,
+			),
+		);
+	});
+
 	test("the sidebar chord leaves the mobile sheet open under a row's dialog", async () => {
 		await page.viewport(430, 800);
 		onTestFinished(async () => {
@@ -672,7 +881,7 @@ describe("Sidebar.Disclosure with a row that opens a popup", () => {
 		// Why a button: the chord does nothing in a text field.
 		act(() => screen.getByRole("button", { name: "Toggle" }).focus());
 
-		await userEvent.keyboard("{Control>}b{/Control}");
+		await pressChord();
 
 		expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("unsaved");
 		expect(document.querySelector("[data-slot~=sidebar-nav]")?.closest("dialog")?.open).toBe(true);
@@ -688,7 +897,7 @@ describe("Sidebar.Disclosure with a row that opens a popup", () => {
 		// Why a button: the chord does nothing in a text field.
 		act(() => toggle.focus());
 
-		await userEvent.keyboard("{Control>}b{/Control}");
+		await pressChord();
 		await waitFor(() =>
 			expect(
 				document.querySelector("[data-slot~=sidebar-nav]")?.hasAttribute("data-expanded"),

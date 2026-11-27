@@ -129,38 +129,51 @@ test("a row's translated name in a fragment survives an icon that mounts before 
 	expect(row.querySelector("svg")).not.toBeNull();
 });
 
-test("a row's keyed sibling keeps its state when the name comes and goes", async () => {
-	const user = userEvent.setup();
-	let mounts = 0;
-	function Count() {
-		useEffect(() => {
-			mounts += 1;
-		}, []);
-		return <svg aria-hidden />;
-	}
-	function Page() {
-		const [label, setLabel] = useState(true);
-		return (
-			<Sidebar.Root>
-				<Sidebar.Nav aria-label="Main">
-					<Sidebar.List>
-						<Sidebar.Item>
-							<Sidebar.ItemButton aria-label="Inbox">
-								<Count key="count" />
-								{label && "Inbox"}
-							</Sidebar.ItemButton>
-						</Sidebar.Item>
-					</Sidebar.List>
-				</Sidebar.Nav>
-				<button type="button" onClick={() => setLabel(false)}>
-					Hide name
-				</button>
-			</Sidebar.Root>
-		);
-	}
-	render(<Page />);
+test.each([
+	["bare", false],
+	["in a fragment", true],
+])(
+	"a row's keyed sibling keeps its state when the name comes and goes, %s",
+	async (_, fragment) => {
+		const user = userEvent.setup();
+		let mounts = 0;
+		function Count() {
+			useEffect(() => {
+				mounts += 1;
+			}, []);
+			return <svg aria-hidden />;
+		}
+		function Page() {
+			const [label, setLabel] = useState(true);
+			return (
+				<Sidebar.Root>
+					<Sidebar.Nav aria-label="Main">
+						<Sidebar.List>
+							<Sidebar.Item>
+								<Sidebar.ItemButton aria-label="Inbox">
+									{fragment ? (
+										<>
+											<Count key="count" />
+											{label && "Inbox"}
+										</>
+									) : (
+										[<Count key="count" />, label && "Inbox"]
+									)}
+								</Sidebar.ItemButton>
+							</Sidebar.Item>
+						</Sidebar.List>
+					</Sidebar.Nav>
+					<button type="button" onClick={() => setLabel((shown) => !shown)}>
+						Toggle name
+					</button>
+				</Sidebar.Root>
+			);
+		}
+		render(<Page />);
 
-	await user.click(screen.getByRole("button", { name: "Hide name" }));
+		await user.click(screen.getByRole("button", { name: "Toggle name" }));
+		await user.click(screen.getByRole("button", { name: "Toggle name" }));
 
-	expect(mounts).toBe(1);
-});
+		expect(mounts).toBe(1);
+	},
+);

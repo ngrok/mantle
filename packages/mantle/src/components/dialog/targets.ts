@@ -29,7 +29,8 @@ function isDialogOverlayTarget(target: EventTarget | null): boolean {
  * Whether an Escape pressed at `target` belongs to a popup open inside
  * `container`, so the surface that owns `container` must stay open. The popup
  * owner is the nearest ancestor of `target`, else of the focused element, with
- * `aria-expanded="true"` and `aria-controls`; its popup must sit inside
+ * `aria-expanded="true"` and `aria-controls` that is a combobox or has
+ * `aria-haspopup`; its popup must sit inside
  * `container` and be open (`data-open`). An always-visible list carries no
  * `data-open` and never claims the Escape.
  *
@@ -78,8 +79,11 @@ function getExpandedPopupOwner(node: EventTarget | null): HTMLElement | null {
 		return null;
 	}
 
-	const owner = node.closest<HTMLElement>("[aria-expanded='true'][aria-controls]");
-	return owner;
+	// Why only a combobox or a popup trigger: a disclosure, such as an expanded
+	// accordion trigger, also sets `aria-controls`, but it does not take Escape.
+	return node.closest<HTMLElement>(
+		"[aria-expanded='true'][aria-controls]:is([role='combobox'], [aria-haspopup]:not([aria-haspopup='false']))",
+	);
 }
 
 /**

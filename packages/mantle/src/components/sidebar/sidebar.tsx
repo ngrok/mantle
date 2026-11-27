@@ -658,11 +658,15 @@ const Root = ({
 			}
 			// Why: a modal makes the page under it inert, so the chord does not
 			// change the sidebar there. The sidebar's own sheet is the exception.
-			// Why the focused modal first: modals stack, and DOM order is not their order.
-			const modal =
-				(event.target instanceof Element ? event.target.closest("dialog:modal") : null) ??
-				document.querySelector("dialog:modal");
-			if (modal != null && modal.querySelector("[data-slot~=sidebar-nav]") == null) {
+			// Why the focused modal, else every modal, as when focus fell to `body`:
+			// modals stack, and DOM order is not their order.
+			const focusedModal =
+				event.target instanceof Element ? event.target.closest("dialog:modal") : null;
+			const modals =
+				focusedModal == null ? document.querySelectorAll("dialog:modal") : [focusedModal];
+			if (
+				Array.from(modals).some((modal) => modal.querySelector("[data-slot~=sidebar-nav]") == null)
+			) {
 				return;
 			}
 			const platformModifier = isApple ? event.metaKey : event.ctrlKey;
@@ -1991,7 +1995,10 @@ function truncateText(children: ReactNode, slot: string, className?: string): Re
 	// Why the flat list for several children: the keys then match the list with
 	// text, so a keyed sibling does not remount when a name comes and goes.
 	if (!items.some(isText)) {
-		return Array.isArray(children) ? items : children;
+		// Why a fragment too: the list with text flattens it.
+		return Array.isArray(children) || (isValidElement(children) && children.type === Fragment)
+			? items
+			: children;
 	}
 	const content: ReactNode[] = [];
 	let text = "";
@@ -2845,15 +2852,25 @@ const DisclosureList = ({
 		onEscapeKeyDown: (event) => {
 			const popups = listRef.current == null ? [] : nativePopupsOf(listRef.current);
 			const target = event.target instanceof Node ? event.target : null;
-			const popup = popups.find((each) => each.contains(target)) ?? popups.at(-1);
+			// Why the innermost: a popover inside another one closes alone.
+			const holding = popups.filter((each) => each.contains(target));
+			const popup =
+				holding.find((each) => !holding.some((other) => other !== each && each.contains(other))) ??
+				popups.at(-1);
 			if (popup == null) {
 				return;
 			}
 			event.preventDefault();
-			if (popup instanceof HTMLDialogElement) {
-				popup.close();
-			} else {
+			// Why the popover first: a `<dialog popover>` is shown as a popover.
+			if (popup.matches(":popover-open")) {
 				popup.hidePopover();
+			} else if (popup instanceof HTMLDialogElement) {
+				// Why `requestClose`: it fires `cancel`, so the dialog's own guard can keep it open.
+				if (typeof popup.requestClose === "function") {
+					popup.requestClose();
+				} else {
+					popup.close();
+				}
 			}
 		},
 		onHide: (floating, focusWasInside) => {
@@ -2913,12 +2930,20 @@ const DisclosureList = ({
 			// popover: the reader is not done. The flyout is a popover too.
 			const layer = row?.parentElement?.closest("dialog, [popover]");
 			if (
-				row != null &&
-				!row.matches(opensPopupSelector) &&
-				(layer == null || layer === node || !node.contains(layer))
+				row == null ||
+				row.matches(opensPopupSelector) ||
+				(layer != null && layer !== node && node.contains(layer))
 			) {
-				hideFlyout();
+				return;
 			}
+			// Why a task after the row's own handlers, which React runs at its root:
+			// a row can open a dialog in the list from `onClick`, and the dialog
+			// hides with the list.
+			setTimeout(() => {
+				if (!holdsDialog(node)) {
+					hideFlyout();
+				}
+			});
 		};
 		node.addEventListener("click", onRowPress);
 		return () => node.removeEventListener("click", onRowPress);

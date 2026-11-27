@@ -89,12 +89,11 @@ const openFloats: OpenFloat[] = [];
 /**
  * A layer that a float holds and that handles its own Escape: an overlay, an
  * open popup such as a combobox list with a footer, or an expanded popup owner
- * such as a combobox input, or a native modal `<dialog>`, which takes its own
- * Escape as a close request. An expanded accordion trigger
+ * such as a combobox input. An expanded accordion trigger
  * also sets `aria-controls`, but it does not take Escape.
  */
 const nestedLayerSelector =
-	"[data-mantle-modal-content], [data-mantle-popup], dialog:modal, [aria-expanded='true'][aria-controls]:is([role='combobox'], [aria-haspopup]:not([aria-haspopup='false']))";
+	"[data-mantle-modal-content], [data-mantle-popup], [aria-expanded='true'][aria-controls]:is([role='combobox'], [aria-haspopup]:not([aria-haspopup='false']))";
 
 /** Whether an Escape at `target` belongs to a layer inside `floating`. */
 function belongsToNestedLayer(floating: HTMLElement, target: EventTarget | null): boolean {
@@ -577,7 +576,24 @@ function useFloat({
 			}
 			const anchor = anchorOf();
 			if (anchor != null && floating.isConnected) {
-				return attach(floating, anchor);
+				if (!(hasPopoverApi && !dismissWhenCovered && isUnderNativeModal(floating))) {
+					return attach(floating, anchor);
+				}
+				// Why: a float that stays open under a native modal shows when the
+				// modal closes, and nothing renders it again then.
+				let stop: (() => void) | undefined;
+				const onClose = () => {
+					const next = anchorOf();
+					if (stop == null && next != null && !isUnderNativeModal(floating)) {
+						stop = attach(floating, next) ?? (() => {});
+					}
+				};
+				// Why the capture phase: `close` does not bubble.
+				floating.ownerDocument.addEventListener("close", onClose, true);
+				return () => {
+					floating.ownerDocument.removeEventListener("close", onClose, true);
+					stop?.();
+				};
 			}
 			// Why wait: an Anchor can mount later, and a float can portal into a
 			// menu that is not in the document yet, where `showPopover` throws.
@@ -612,7 +628,7 @@ function useFloat({
 				stop?.();
 			};
 		},
-		[anchorOf, attach, visible],
+		[anchorOf, attach, dismissWhenCovered, visible],
 	);
 
 	return {
