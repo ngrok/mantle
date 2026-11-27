@@ -273,10 +273,12 @@ function useOffsetPagination({
 			return;
 		}
 		// Why skip an empty list: `listSize` is 0 while a list loads, and a
-		// report then erases the page that the URL restores.
+		// report then erases the page that the URL restores. Why skip a pending
+		// resize: a report replaces the requested page, so the size never applies.
 		if (
 			!reportClampedPage ||
 			!isPageControlled ||
+			pending != null ||
 			listSize === 0 ||
 			storedPage === currentPage ||
 			reportedFromPage.current != null
@@ -289,6 +291,7 @@ function useOffsetPagination({
 		currentPage,
 		isPageControlled,
 		listSize,
+		pending,
 		reportClampedPage,
 		resetPageOnListSizeChange,
 		setPage,
