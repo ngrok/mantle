@@ -9,9 +9,20 @@ type UseOffsetPaginationProps = {
 	 */
 	listSize: number;
 	/**
-	 * The number of items per page. A change resets the page to 1.
+	 * The number of items per page. With `onPageSizeChange`, the hook reads the
+	 * page size from this prop and a change leaves the page alone. Without it,
+	 * the prop sets the start value, and a change replaces the size that
+	 * `setPageSize` set and moves the internal page to 1. A change never calls
+	 * `onPageChange`: the parent that changes the page size owns the page.
 	 */
 	pageSize: number;
+	/**
+	 * Called with the next page size when `setPageSize` changes it. Pass it to
+	 * control the page size: the hook then reads the size back from `pageSize`.
+	 * `setPageSize` calls `onPageChange` with the page that keeps the reader's
+	 * place in the same call.
+	 */
+	onPageSizeChange?: (pageSize: number) => void;
 	/**
 	 * The 1-indexed page to start on when uncontrolled. The hook owns the page
 	 * after mount.
@@ -28,7 +39,7 @@ type UseOffsetPaginationProps = {
 	page?: number;
 	/**
 	 * Called with the next 1-indexed page when the hook changes it: a navigation
-	 * call, `setPageSize`, a `pageSize` change, or a `listSize` reset. Not called
+	 * call, `setPageSize`, or a `listSize` reset. Not called
 	 * when the next page equals the stored page (`page` or the internal page).
 	 * A move that lands on a normalized `currentPage` still calls it, so a stale
 	 * `page` catches up.
@@ -86,7 +97,9 @@ type OffsetPaginationState = {
 	 */
 	previousPage: () => void;
 	/**
-	 * Set the number of items per page. This will reset the current page to the first page.
+	 * Set the number of items per page. The page moves to the one that holds the
+	 * first item of the current page, clamped to the last page, so the reader
+	 * keeps their place.
 	 */
 	setPageSize: (size: number) => void;
 	/**
@@ -153,13 +166,28 @@ function useOffsetPagination({
 	defaultPage = 1,
 	listSize,
 	onPageChange,
+	onPageSizeChange,
 	page: pageProp,
 	pageSize,
 	resetPageOnListSizeChange = true,
 }: UseOffsetPaginationProps): OffsetPaginationState {
 	const isPageControlled = pageProp != null;
+	const isPageSizeControlled = onPageSizeChange != null;
 	const [internalPage, setInternalPage] = useState(defaultPage);
-	const [currentPageSize, setCurrentPageSize] = useState(pageSize);
+	const [internalPageSize, setInternalPageSize] = useState(pageSize);
+	const [previousPageSize, setPreviousPageSize] = useState(pageSize);
+	// Why adjust during render and not in an effect: the change touches only
+	// this hook's state, so the first render after it is already correct. Why
+	// no `onPageChange`: a parent that changes `pageSize` sets the page in the
+	// same update, as a URL does on a back or forward move. Why skip it for a
+	// controlled size: the prop is the size, and a router can commit the echo
+	// of `setPageSize` a render late, which would read as an outside change.
+	if (!isPageSizeControlled && previousPageSize !== pageSize) {
+		setPreviousPageSize(pageSize);
+		setInternalPageSize(pageSize);
+		setInternalPage(1);
+	}
+	const currentPageSize = isPageSizeControlled ? pageSize : internalPageSize;
 
 	const totalPages = Math.ceil(listSize / currentPageSize);
 	// Why the clamp: `page` and `defaultPage` come from outside, and a shorter
@@ -186,31 +214,18 @@ function useOffsetPagination({
 		[isPageControlled, onPageChange, storedPage],
 	);
 
-	// Why the refs: an effect also runs on mount, and a mount must keep
+	// Why the ref: an effect also runs on mount, and a mount must keep
 	// `defaultPage` and `page`. Only a real change resets.
-	// Why one effect: two effects each call `setPage(1)` when one render changes
-	// both props, and `onPageChange` then runs twice for one reset.
-	const previousPageSize = useRef(pageSize);
 	const previousListSize = useRef(listSize);
-	// Why an effect and not derived state: `setPageSize` can override the prop, so
-	// `currentPageSize` is state. The reset calls `onPageChange`, an external
-	// callback that must not run during render. For a `pageSize` change alone,
-	// the transitional render repeats the last commit, so a consumer effect keyed
-	// on `offset` or `pageSize` fires once.
+	// Why an effect: the reset calls `onPageChange`, an external callback that
+	// must not run during render.
 	useEffect(() => {
-		const pageSizeChanged = previousPageSize.current !== pageSize;
 		const listSizeChanged = previousListSize.current !== listSize;
-		previousPageSize.current = pageSize;
 		previousListSize.current = listSize;
-		if (pageSizeChanged) {
-			setCurrentPageSize(pageSize);
-		}
-		// Why reset to page 1: the old index means something else against a new
-		// page size. A larger page size can also put it past the new last page.
-		if (pageSizeChanged || (listSizeChanged && resetPageOnListSizeChange)) {
+		if (listSizeChanged && resetPageOnListSizeChange) {
 			setPage(1);
 		}
-	}, [listSize, pageSize, resetPageOnListSizeChange, setPage]);
+	}, [listSize, resetPageOnListSizeChange, setPage]);
 
 	function goToPage(page: number) {
 		setPage(clampPage(page, totalPages));
@@ -229,8 +244,14 @@ function useOffsetPagination({
 	}
 
 	function setPageSize(size: number) {
-		setCurrentPageSize(size);
-		setPage(1);
+		// Why keep the first item in view: a reset to page 1 loses the reader's
+		// place in a long list.
+		const nextPage = clampPage(Math.floor(offset / size) + 1, Math.ceil(listSize / size));
+		if (!isPageSizeControlled) {
+			setInternalPageSize(size);
+		}
+		onPageSizeChange?.(size);
+		setPage(nextPage);
 	}
 
 	function goToLastPage() {
