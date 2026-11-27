@@ -24,7 +24,7 @@ Read the files for your task before the first edit. Work is incomplete until you
 
 - **Any code change:** [CONVENTIONS.md](./CONVENTIONS.md) in full: the code and prose rules for every file.
 - **Component source** under `packages/mantle/src/components/`, or its docs page, tests, or wiring: [COMPONENT_SPEC.md](./COMPONENT_SPEC.md), then work its [review checklist](./COMPONENT_SPEC.md#11-review-checklist). Load the `browser-translation-hazards` skill. `/scaffold-component`, `/audit-component`, and `/promote-preview-component` implement the spec.
-- **Hooks, utilities, and other public API:** its JSDoc feeds `llms.txt`, so follow [CONVENTIONS.md § JSDoc](./CONVENTIONS.md#jsdoc).
+- **Hooks, utilities, and other public API:** the [Philosophy page](./apps/www/app/docs/philosophy.mdx), and [CONVENTIONS.md § JSDoc](./CONVENTIONS.md#jsdoc) (it feeds `llms.txt`).
 - **An import in `packages/mantle/src`, or a part that reads router state:** [docs/framework-boundary.md](./docs/framework-boundary.md).
 - **JSX that renders text beside an element:** [docs/browser-translation.md](./docs/browser-translation.md).
 - **Any animation or transition:** [docs/motion.md](./docs/motion.md). Load the `motion` skill.
@@ -85,7 +85,7 @@ Run checks after each coherent chunk of work and before the final response, not 
 
 1. Read `git diff --name-only` and `git diff` for your files.
 2. Check each file against the docs your task routed you to, and fix the drift.
-3. Run `pnpm -w run check:changed` from the repo root, and make it pass. It covers format, lint, agent-doc budgets, typecheck, and tests for each package changed since `origin/main` (`CHECK_BASE` sets another base).
+3. Run `pnpm -w run check:changed` from the repo root, and make it pass. It covers format, lint, agent-doc budgets, typecheck, and tests for each package changed since `origin/main`.
    - Component work also runs the commands in [COMPONENT_SPEC.md §9](./COMPONENT_SPEC.md#9-verification), with the unscoped `pnpm -w run test`.
 4. Every published package that the diff touches has a changeset with the bump from VERSIONING.md.
 5. Do the [north-star pass](./docs/north-star.md#how-to-use-the-goals), and put it in the PR description.
@@ -93,7 +93,7 @@ Run checks after each coherent chunk of work and before the final response, not 
 
 ## Setup and commands
 
-From a fresh clone, run `./scripts/setup`. It installs mise, the pinned Node and pnpm, and the dependencies. Without shell activation, prefix a command with `mise x --`.
+From a fresh clone, run `./scripts/setup`. It installs mise, the pinned Node and pnpm, and the deps. Without shell activation, prefix a command with `mise x --`.
 
 Run commands from the repo root with `pnpm -w run <script>`. Agents get these wrong:
 
@@ -110,4 +110,4 @@ pnpm -w run test -F @ngrok/mantle # one package
 - **Build failures:** `pnpm -w run clean`, then `pnpm -w run build`.
 - **Type errors:** build all packages before you typecheck.
 - **Toolchain drift:** `mise run doctor`; rerun `./scripts/setup` if it fails.
-- **Lockfile drift** (`mise.lock` out of sync): change the pin in `.nvmrc` or `package.json#packageManager`, run `mise run relock && mise install`, and commit `mise.lock` with the pin.
+- **Lockfile drift** (`mise.lock` out of sync): change the pin in `.nvmrc` or `package.json#packageManager`, run `mise run relock && mise install`, and commit both.
