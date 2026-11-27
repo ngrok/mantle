@@ -18,6 +18,7 @@ import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { Align, Side } from "../../utils/float/position.js";
+import { isInsideBoth } from "../../utils/float/position.js";
 import {
 	floatClassName,
 	hasPopoverApi,
@@ -155,18 +156,6 @@ function useTooltipState(part: string): TooltipState {
 	const state = useContext(TooltipContext);
 	invariant(state != null, `\`Tooltip.${part}\` must be rendered inside \`Tooltip.Root\`.`);
 	return state;
-}
-
-/** Whether the pointer is inside the smallest box that holds both elements. */
-function isInsideBoth(event: globalThis.PointerEvent, a: Element, b: Element): boolean {
-	const boxA = a.getBoundingClientRect();
-	const boxB = b.getBoundingClientRect();
-	return (
-		event.clientX >= Math.min(boxA.left, boxB.left) &&
-		event.clientX <= Math.max(boxA.right, boxB.right) &&
-		event.clientY >= Math.min(boxA.top, boxB.top) &&
-		event.clientY <= Math.max(boxA.bottom, boxB.bottom)
-	);
 }
 
 type TooltipRootProps = {

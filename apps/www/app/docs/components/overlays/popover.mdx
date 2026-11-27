@@ -1,7 +1,7 @@
 ---
 title: Popover
 description: Displays rich content in a portal, triggered by a button.
-aliases: [popup, flyout]
+aliases: [popup, flyout, toggletip, infotip]
 ---
 
 import { Example } from "~/components/example";
@@ -64,10 +64,70 @@ import { Popover } from "@ngrok/mantle/popover";
 ## When to use
 
 - Show interactive floating content anchored to a trigger, such as a form, a menu of actions, filters, or settings.
+- Show help or details behind an info icon, with `openOnHover` on the trigger. See [Open on hover](#open-on-hover).
 - Prefer [`Tooltip`](/components/overlays/tooltip) for a short, non-interactive label on a control (for example, the purpose of an icon-only button).
 - Prefer [`HoverCard`](/components/overlays/hover-card) for a sighted-only preview of content that already lives behind a link.
 - Prefer [`DropdownMenu`](/components/overlays/dropdown-menu) when the content is a list of actions.
 - Prefer [`Dialog`](/components/overlays/dialog) when the task needs a modal window that blocks the page.
+
+## Choose Tooltip, HoverCard, or a hover Popover
+
+All three can open when a pointer rests on a trigger. Pick by what the trigger does when someone presses it:
+
+| The trigger…                                                    | Use                                            | Touch          | Content                                     |
+| :-------------------------------------------------------------- | :--------------------------------------------- | :------------- | :------------------------------------------ |
+| has its own action, such as an icon button that copies or edits | [`Tooltip`](/components/overlays/tooltip)      | never shows    | a short text label, nothing to press        |
+| is a link to a page, and the content previews that page         | [`HoverCard`](/components/overlays/hover-card) | never shows    | a preview of what the link already leads to |
+| exists only to show the content, such as an info icon           | `Popover` with `openOnHover`                   | a tap opens it | any content, including links and buttons    |
+
+A tooltip never holds something a person must read to finish a task, because a touch screen and a screen reader in browse mode do not show it. When the content matters, use a `Popover`.
+
+## Open on hover
+
+Set `openOnHover` on `Popover.Trigger` when the trigger exists only to show the content, such as an info icon next to a setting. A mouse or pen that rests on the trigger for 300ms opens the popover, and a tap, `Enter`, or `Space` opens it as usual. This pattern is also called a toggletip.
+
+- A hover open does not move focus, and a focus on the trigger does not open the popover.
+- The pointer can move from the trigger onto the content. The popover closes when the pointer leaves both, or on `Escape` ([WCAG 1.4.13](https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html)).
+- A press on the trigger while a hover holds it open keeps it open and moves focus into the content, as a press open does. A press or a focus in the content also keeps it open, so a pointer that leaves does not close a field the user is typing in.
+- With `presentation="auto"`, a hover never opens the drawer: only a tap does.
+
+Keep the trigger at least 24 by 24 pixels ([WCAG 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)), such as an `IconButton` with `size="xs"` or larger, and give it a `label` that says what the content is about.
+
+<Example name="components/overlays/popover/open-on-hover" title="Popover open on hover example">
+
+```tsx
+import { Anchor } from "@ngrok/mantle/anchor";
+import { IconButton } from "@ngrok/mantle/button";
+import { Popover } from "@ngrok/mantle/popover";
+import { InfoIcon } from "@phosphor-icons/react/Info";
+
+<p className="flex items-center gap-1 text-sm">
+	Rate limit: 120 requests per minute
+	<Popover.Root>
+		<Popover.Trigger asChild openOnHover>
+			<IconButton
+				type="button"
+				appearance="ghost"
+				intent="neutral"
+				size="xs"
+				icon={<InfoIcon />}
+				label="About rate limits"
+			/>
+		</Popover.Trigger>
+		<Popover.Content preferredWidth="max-w-64">
+			<Popover.Arrow />
+			<p className="text-sm">
+				A request over the limit gets a 429 response.{" "}
+				<Anchor href="https://ngrok.com/docs" target="_top">
+					Learn more
+				</Anchor>
+			</p>
+		</Popover.Content>
+	</Popover.Root>
+</p>;
+```
+
+</Example>
 
 ## Presentation
 
@@ -176,7 +236,7 @@ Popover.Root
 
 ## Focus and dismissal
 
-A `Popover` is a non-modal dialog. Focus moves to the first focusable element in the content on open. `Escape` closes it and returns focus to the trigger. A press or a focus move outside closes it and leaves focus where the user put it. The page (body and any scroll containers) continues to scroll normally. For a task that must block the page, use [`Dialog`](/components/overlays/dialog).
+A `Popover` is a non-modal dialog. Focus moves to the first focusable element in the content on open. A hover open (`openOnHover`) moves no focus until a press on the trigger keeps it open. `Escape` closes it and returns focus to the trigger. A press or a focus move outside closes it and leaves focus where the user put it. The page (body and any scroll containers) continues to scroll normally. For a task that must block the page, use [`Dialog`](/components/overlays/dialog).
 
 ## API Reference
 
@@ -199,9 +259,14 @@ The button that toggles the popover.
 
 All props of a `<button>`. It sets `aria-haspopup="dialog"`, `aria-expanded`, and, while open, `aria-controls`.
 
-| Prop       | Type      | Default | Description                                                           |
-| :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+| Prop           | Type      | Default | Description                                                                                                                                                            |
+| :------------- | :-------- | :------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?`     | `boolean` | `false` | Compose onto an alternative element type or your own React component.                                                                                                  |
+| `openOnHover?` | `boolean` | `false` | Also opens the popover when a mouse or pen rests on the trigger, without a focus move. A tap, `Enter`, and `Space` still open it. See [Open on hover](#open-on-hover). |
+
+| Data Attribute | Value               | Description                                                  |
+| -------------- | ------------------- | ------------------------------------------------------------ |
+| `data-slot`    | `"popover-trigger"` | On the trigger, with any composing part's chain ahead of it. |
 
 ### Popover.Content
 
@@ -248,6 +313,10 @@ All props of a `<div>`.
 | :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
 
+| Data Attribute | Value              | Description                                                 |
+| -------------- | ------------------ | ----------------------------------------------------------- |
+| `data-slot`    | `"popover-anchor"` | On the anchor, with any composing part's chain ahead of it. |
+
 ### Popover.Close
 
 A button that closes an open popover.
@@ -257,6 +326,10 @@ All props of a `<button>`.
 | Prop       | Type      | Default | Description                                                           |
 | :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+
+| Data Attribute | Value             | Description                                                 |
+| -------------- | ----------------- | ----------------------------------------------------------- |
+| `data-slot`    | `"popover-close"` | On the button, with any composing part's chain ahead of it. |
 
 ### Popover.Arrow
 
@@ -272,6 +345,7 @@ All props of an `svg` except `children`, plus:
 | `height?`   | `number` | `7`     | The height of the arrow in pixels. It adds to `sideOffset`, so the tip lands `sideOffset` pixels from the anchor.                                                                         |
 | `className` | `string` |         | Classes for the `svg`. Reach for `fill-*` for the surface, and target the `polyline` child for the edge: `[&>polyline]:…`. The part already sets `filter` and `clip-path` for its shadow. |
 
-| Data Attribute     | Value | Description                                                                                       |
-| ------------------ | ----- | ------------------------------------------------------------------------------------------------- |
-| `data-float-arrow` | `""`  | On the `<span>` around the arrow's `<svg>`. The float moves it to the edge that faces the anchor. |
+| Data Attribute     | Value             | Description                                                                                       |
+| ------------------ | ----------------- | ------------------------------------------------------------------------------------------------- |
+| `data-float-arrow` | `""`              | On the `<span>` around the arrow's `<svg>`. The float moves it to the edge that faces the anchor. |
+| `data-slot`        | `"popover-arrow"` | On the `<svg>`, with any composing part's chain ahead of it.                                      |

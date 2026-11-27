@@ -28,7 +28,7 @@ import * as HoverCardParts from "./hover-card-parts.js";
  *
  * @siblings
  * - `Tooltip`: the content is a short label or hint with no interactive content.
- * - `Popover`: the user opens interactive content on purpose, with a click or a key.
+ * - `Popover`: the user opens interactive content on purpose, with a click or a key, or an info icon opens it on hover and on a tap (`openOnHover`).
  *
  * @see https://mantle.ngrok.com/components/overlays/hover-card
  *

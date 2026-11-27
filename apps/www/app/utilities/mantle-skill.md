@@ -85,7 +85,7 @@ Use the first source that you can reach.
 
 - `Button` and `IconButton` have no default `appearance` or `intent`, so set both. A primary action is `appearance="filled" intent="neutral"`. `Button` takes `"accent"`, `"danger"`, or `"neutral"`; keep `"accent"` for deliberate brand emphasis. `IconButton` takes `"neutral"` only and requires a `label`.
 - Pair each form control with a `Label`. Use real controls (`Input`, `Checkbox`, `RadioGroup`), never a `<div>` with a click handler.
-- `Tooltip` is for short label hints, `Popover` for interactive content, and `HoverCard` for preview cards that are not essential.
+- `Tooltip` is for short label hints on a control with its own action, `Popover` for interactive content, and `HoverCard` for preview cards that are not essential. For an info icon whose only job is to show help, use `Popover.Trigger openOnHover`: it opens on hover and on a tap, and a tooltip never shows on touch.
 - `DataTable` is for rows that the user sorts, filters, pages through, selects, or expands into a detail panel or sub-rows. `Table` is for static rows and has no row expansion.
 - Color scales use Tailwind's `50`–`950` steps, such as `text-accent-600`. There is no `1`–`12` scale. Text colors are `text-strong`, `text-body`, `text-muted`, and `text-placeholder`.
 

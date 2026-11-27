@@ -13,6 +13,9 @@ import { currentDependencies, rpcAt } from "~/utilities/mcp/test-server";
  * not a gap. Fix a miss you can, or add it to `knownMisses`.
  */
 const goldenFinds: Record<string, Record<string, string | readonly string[]>> = {
+	"A hover Popover, in Cody's words": {
+		"popover that opens on hover like a tooltip": "Popover",
+	},
 	"Strata, in Ricky Frame's words": {
 		"form sections (our 2column layouts with label/description on left, inputs or controls on right)":
 			"Strata",
@@ -204,7 +207,10 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
  * below another, or ranks first as a weak match. Each one must still miss, so
  * a fix moves it to `goldenFinds` and it cannot regress again.
  */
-const knownMisses: Record<string, string | readonly string[]> = {};
+const knownMisses: Record<string, string | readonly string[]> = {
+	// Cody's words. `find` ranks Work and Filter from a Value above Popover.
+	"tooltip that works on mobile with a click trigger": "Popover",
+};
 
 /**
  * Needs that mantle has no part for, from real gap reports. `find` must call

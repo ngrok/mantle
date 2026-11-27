@@ -28,7 +28,8 @@ import * as PopoverParts from "./popover-parts.js";
  * popover API, it is a fixed box at `z-50`.
  *
  * @useWhen Show interactive content, such as a small form, a settings menu, or a color picker, that
- * the user opens from a button.
+ * the user opens from a button. With `openOnHover` on the trigger, show help behind an info icon
+ * that opens on hover and on a tap (a toggletip).
  *
  * @siblings
  * - `Tooltip`: the content is a short label or hint that shows on hover or focus.

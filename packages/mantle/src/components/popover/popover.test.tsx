@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -279,6 +279,36 @@ describe("Popover", () => {
 		await user.click(screen.getByRole("button", { name: "Open" }));
 		await user.click(await screen.findByRole("button", { name: "Done" }));
 		expect(onSubmit).not.toHaveBeenCalled();
+	});
+
+	test("an openOnHover trigger ignores a touch hover and a focus, and a tap opens it with focus inside", () => {
+		vi.useFakeTimers();
+		onTestFinished(() => {
+			vi.useRealTimers();
+		});
+		render(
+			<Popover.Root>
+				<Popover.Trigger openOnHover>About limits</Popover.Trigger>
+				<Popover.Content>
+					<button type="button">Learn more</button>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		const trigger = screen.getByRole("button", { name: "About limits" });
+
+		fireEvent.pointerEnter(trigger, { pointerType: "touch" });
+		act(() => {
+			trigger.focus();
+			vi.advanceTimersByTime(1000);
+		});
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+		fireEvent.click(trigger);
+		act(() => {
+			vi.runAllTimers();
+		});
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Learn more" })).toHaveFocus();
 	});
 
 	test("opening focuses the first control that takes focus", async () => {

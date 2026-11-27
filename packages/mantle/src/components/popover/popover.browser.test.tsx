@@ -365,3 +365,94 @@ describe("Popover.Content Tab order", () => {
 		expect(prevented).toBe(false);
 	});
 });
+
+describe("Popover.Trigger openOnHover", () => {
+	let placementStyle: HTMLStyleElement;
+
+	beforeAll(async () => {
+		placementStyle = document.createElement("style");
+		placementStyle.textContent = await commands.tailwindCss("../../utils/float/use-float.ts");
+		document.head.appendChild(placementStyle);
+	});
+
+	afterAll(() => {
+		placementStyle.remove();
+	});
+
+	const trigger = () => screen.getByRole("button", { name: "About limits" });
+
+	function HoverPopover() {
+		return (
+			<div>
+				<Popover.Root>
+					<Popover.Trigger openOnHover>About limits</Popover.Trigger>
+					<Popover.Content side="bottom" sideOffset={8}>
+						<button type="button">Learn more</button>
+					</Popover.Content>
+				</Popover.Root>
+				<button type="button" style={{ marginTop: 300 }}>
+					Elsewhere
+				</button>
+			</div>
+		);
+	}
+
+	test("a hover opens it and leaves focus where it was", async () => {
+		render(<HoverPopover />);
+		const elsewhere = screen.getByRole("button", { name: "Elsewhere" });
+		elsewhere.focus();
+
+		await browserUser.hover(trigger());
+		await screen.findByRole("dialog");
+
+		expect(trigger()).toHaveAttribute("aria-expanded", "true");
+		expect(elsewhere).toHaveFocus();
+	});
+
+	test("stays open while the pointer moves onto the content, and closes when it leaves both", async () => {
+		render(<HoverPopover />);
+		await browserUser.hover(trigger());
+		const content = await screen.findByRole("dialog");
+
+		await browserUser.hover(content);
+		await browserUser.hover(screen.getByRole("button", { name: "Learn more" }));
+		expect(trigger()).toHaveAttribute("aria-expanded", "true");
+
+		await browserUser.hover(screen.getByRole("button", { name: "Elsewhere" }));
+		await waitFor(() => expect(trigger()).toHaveAttribute("aria-expanded", "false"));
+	});
+
+	test("Escape closes a hover open while focus is outside it", async () => {
+		render(<HoverPopover />);
+		await browserUser.hover(trigger());
+		await screen.findByRole("dialog");
+
+		await browserUser.keyboard("{Escape}");
+		await waitFor(() => expect(trigger()).toHaveAttribute("aria-expanded", "false"));
+	});
+
+	test("a press on the trigger keeps a hover open, moves focus in, and the pointer can leave", async () => {
+		render(<HoverPopover />);
+		const button = trigger();
+		await browserUser.hover(button);
+		await screen.findByRole("dialog");
+
+		await browserUser.click(button);
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Learn more" })).toHaveFocus();
+
+		await browserUser.hover(screen.getByRole("button", { name: "Elsewhere" }));
+		await browserUser.hover(document.body);
+		expect(button).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("Enter opens it with focus inside", async () => {
+		render(<HoverPopover />);
+		await browserUser.keyboard("{Tab}");
+		expect(trigger()).toHaveFocus();
+
+		await browserUser.keyboard("{Enter}");
+		await screen.findByRole("dialog");
+		expect(screen.getByRole("button", { name: "Learn more" })).toHaveFocus();
+	});
+});
