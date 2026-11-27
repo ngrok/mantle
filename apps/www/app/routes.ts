@@ -100,6 +100,7 @@ const docsPages = [
 	"components/forms/choice",
 	"components/forms/combobox",
 	"components/forms/field",
+	"components/forms/focus-shortcut",
 	"components/forms/input",
 	"components/forms/label",
 	"components/forms/multi-select",

@@ -45,6 +45,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/empty": () => import("@ngrok/mantle/empty"),
 	"@ngrok/mantle/field": () => import("@ngrok/mantle/field"),
 	"@ngrok/mantle/flag": () => import("@ngrok/mantle/flag"),
+	"@ngrok/mantle/focus-shortcut": () => import("@ngrok/mantle/focus-shortcut"),
 	"@ngrok/mantle/hooks": () => import("@ngrok/mantle/hooks"),
 	"@ngrok/mantle/hover-card": () => import("@ngrok/mantle/hover-card"),
 	"@ngrok/mantle/icon": () => import("@ngrok/mantle/icon"),

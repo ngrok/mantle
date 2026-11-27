@@ -1,6 +1,7 @@
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
 import { Empty } from "@ngrok/mantle/empty";
+import { FocusShortcut } from "@ngrok/mantle/focus-shortcut";
 import {
 	type FilterGrammar,
 	defineRemoteFilterGrammar,
@@ -249,11 +250,16 @@ export function KeyboardShortcutQueryExample() {
 			value={query}
 			onValueChange={setQuery}
 		>
-			<Query.Input
-				keyboardShortcut
-				aria-label="Filter projects"
-				placeholder="Filter projects, or type a filter like is:shared"
-			/>
+			<FocusShortcut.Root>
+				<FocusShortcut.Field>
+					<Query.Input
+						aria-label="Filter projects"
+						placeholder="Filter projects, or type a filter like is:shared"
+					>
+						<FocusShortcut.Hint />
+					</Query.Input>
+				</FocusShortcut.Field>
+			</FocusShortcut.Root>
 			<Query.Content>
 				<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
 				<Query.Empty />

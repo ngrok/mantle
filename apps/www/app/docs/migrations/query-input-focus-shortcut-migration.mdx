@@ -1,0 +1,149 @@
+---
+title: Query Input Focus Shortcut Migration
+description: "Query.Input no longer takes keyboardShortcut. Wrap the field in FocusShortcut.Field inside FocusShortcut.Root, and put FocusShortcut.Hint where the / hint shows."
+---
+
+# Mantle Query Input Focus Shortcut Migration Guide
+
+`Query.Input` no longer takes the `keyboardShortcut` prop. The new `FocusShortcut` component from `@ngrok/mantle/focus-shortcut` does the same job for any focusable field: `FocusShortcut.Field` makes the slash key (`/`) focus its child, and `FocusShortcut.Hint` shows the `/` key where you place it. The behavior does not change: the same keys are skipped, the field carries `aria-keyshortcuts="/"`, and the hint shows only while the field is empty, enabled, and not focused, on a device that can hover.
+
+**TL;DR:** Replace `<Query.Input keyboardShortcut … />` with `<FocusShortcut.Root><FocusShortcut.Field><Query.Input …><FocusShortcut.Hint /></Query.Input></FocusShortcut.Field></FocusShortcut.Root>`, and import `FocusShortcut` from `@ngrok/mantle/focus-shortcut`. Remove `keyboardShortcut={false}`. Where a component forwards a boolean to `keyboardShortcut`, render the wrapped field when the boolean is true and the plain field when it is false.
+
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate query-input-focus-shortcut <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/query-input-focus-shortcut.yml --update-all <path>
+```
+
+The rules apply steps 1, 2, and 3. They wrap each `Query.Input` that sets `keyboardShortcut` or `keyboardShortcut={true}`, put `FocusShortcut.Hint` first among its children, add the `FocusShortcut` import, and remove `keyboardShortcut={false}`. They remove the attribute through the syntax tree, so a string or a comment that names it stays. They find `Query` through its import from `@ngrok/mantle/query`, so a renamed import matches, and a part from another library or a local name that shadows the import stays. These stay manual:
+
+- Step 4, because a forwarded value such as `keyboardShortcut={enabled}` is known only at runtime. The type checker names each one.
+- A `Query.Input` with a `key`, such as one in a `.map()`, because the key must move to the new outer element. Move it to `FocusShortcut.Root` by hand.
+- A `Query.Input` with a spread, because the spread can set `children` or turn the shortcut on or off. This includes `keyboardShortcut={false}` before a spread. A flag inside a spread object is also manual.
+- A `Query.Input` with a `children` prop, or with text or an expression as a child. Put the hint first, and wrap text in an element: bare text beside the hint breaks a page that a browser translated.
+- A `Query.Input` inside `Field.Control`, `Slot` under any name, or an `asChild` part (also through a spread or a ternary), because the part passes its ref and props to its one child. Put `FocusShortcut.Root` outside the part and `FocusShortcut.Field` inside it, around the `Query.Input`.
+- A `Query.Input` with JSX in a prop that also sets `keyboardShortcut`, or with a multi-line string, because the rewrite would change that JSX or the indent of the string.
+- A file that already has its own `FocusShortcut` name, such as a local, a type-only import, or a namespace import, because the wrapper would read that binding.
+- Step 5, because a test query is a string.
+
+The codemod leaves no `keyboardShortcut` it can rewrite, so it is safe to run twice. To print the rewrites first, pass `--dry-run` to the mantle command, or leave out `--update-all` from the `ast-grep` command. Run your formatter after the rewrite.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Search for `keyboardShortcut` on `Query.Input`, through the `Query` import from `@ngrok/mantle/query` and any alias of it (`import { Query as MantleQuery }`). Leave `keyboardShortcut` on `Command.DialogRoot` and `Sidebar.Root` alone: those props stay.
+2. Where the value is `keyboardShortcut` or `keyboardShortcut={true}`, remove the prop and wrap the field:
+   - `FocusShortcut.Root` outside, then `FocusShortcut.Field`, then the `Query.Input`.
+   - `<FocusShortcut.Hint />` as the first child of `Query.Input`, before any inline actions.
+   - `import { FocusShortcut } from "@ngrok/mantle/focus-shortcut";`
+3. Remove `keyboardShortcut={false}`. The shortcut was off by default.
+4. Where a component forwards its own boolean (`keyboardShortcut={keyboardShortcut}`), choose one:
+   - Keep the component's prop, and render the wrapped field from step 2 when it is true and the plain field when it is false. A change of the value at runtime then remounts the field, which loses focus and selection, so set it once per page.
+   - Or remove the component's prop, and let each caller wrap the field. This is the better shape when the component already takes the field as a child.
+5. In tests: the hint's `data-slot` changes.
+   - Before: `document.querySelector('[data-slot~="query-input-shortcut"]')`
+   - After: `document.querySelector('[data-slot~="focus-shortcut-hint"]')`
+   - Where the field has the shortcut, the hint now stays in the DOM with the `hidden` attribute while it does not show. Replace `expect(hint).toBeNull()` with `expect(hint).not.toBeVisible()`. Where the field has no shortcut, keep `expect(hint).toBeNull()`.
+6. Run your formatter, linter, type checker, and tests.
+
+> **Why a component and not a prop?** The `/` shortcut is not specific to `Query`: a plain `Input`, a `Combobox.Input`, and a `TextArea` need it too, and a prop on each field is four copies of one behavior. A part also lets the hint go where the design puts it, such as beside a bare `Combobox.Input`.
+
+## Before → after
+
+### A literal shortcut
+
+```tsx
+// BEFORE
+import { Query } from "@ngrok/mantle/query";
+
+<Query.Input aria-label="Filter projects" keyboardShortcut placeholder="Filter projects" />;
+```
+
+```tsx
+// AFTER
+import { FocusShortcut } from "@ngrok/mantle/focus-shortcut";
+import { Query } from "@ngrok/mantle/query";
+
+<FocusShortcut.Root>
+	<FocusShortcut.Field>
+		<Query.Input aria-label="Filter projects" placeholder="Filter projects">
+			<FocusShortcut.Hint />
+		</Query.Input>
+	</FocusShortcut.Field>
+</FocusShortcut.Root>;
+```
+
+### Inline actions
+
+```tsx
+// BEFORE
+<Query.Input aria-label="Filter projects" keyboardShortcut placeholder="Filter projects">
+	<SaveFilterButton />
+</Query.Input>
+```
+
+```tsx
+// AFTER
+<FocusShortcut.Root>
+	<FocusShortcut.Field>
+		<Query.Input aria-label="Filter projects" placeholder="Filter projects">
+			<FocusShortcut.Hint />
+			<SaveFilterButton />
+		</Query.Input>
+	</FocusShortcut.Field>
+</FocusShortcut.Root>
+```
+
+### A forwarded value
+
+```tsx
+// BEFORE
+function ProjectFilter({ keyboardShortcut = false }: { keyboardShortcut?: boolean }) {
+	return (
+		<Query.Input
+			aria-label="Filter projects"
+			keyboardShortcut={keyboardShortcut}
+			placeholder="Filter projects"
+		/>
+	);
+}
+```
+
+```tsx
+// AFTER
+function ProjectFilter({ keyboardShortcut = false }: { keyboardShortcut?: boolean }) {
+	if (!keyboardShortcut) {
+		return <Query.Input aria-label="Filter projects" placeholder="Filter projects" />;
+	}
+	return (
+		<FocusShortcut.Root>
+			<FocusShortcut.Field>
+				<Query.Input aria-label="Filter projects" placeholder="Filter projects">
+					<FocusShortcut.Hint />
+				</Query.Input>
+			</FocusShortcut.Field>
+		</FocusShortcut.Root>
+	);
+}
+```
+
+## Edge cases & gotchas
+
+- `FocusShortcut.Root` renders no element, so the wrap does not change the layout. It can go higher in the tree when the hint sits outside the field.
+- A caller's own `aria-keyshortcuts` on the field stays. `FocusShortcut.Field` adds `/` to the list.
+- Step 5 covers the test changes.
+
+## How to verify
+
+1. Run the type checker. A `keyboardShortcut` left on `Query.Input` is a type error.
+2. Load a page with the field, click outside it, and press `/`. Focus moves into the field, and the `/` hint hides.
+3. Run your tests after step 5.
