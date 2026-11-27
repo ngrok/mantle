@@ -89,11 +89,12 @@ const openFloats: OpenFloat[] = [];
 /**
  * A layer that a float holds and that handles its own Escape: an overlay, an
  * open popup such as a combobox list with a footer, or an expanded popup owner
- * such as a combobox input. An expanded accordion trigger
+ * such as a combobox input, or a native `<dialog>`, which takes its own Escape
+ * as a close request. An expanded accordion trigger
  * also sets `aria-controls`, but it does not take Escape.
  */
 const nestedLayerSelector =
-	"[data-mantle-modal-content], [data-mantle-popup], [aria-expanded='true'][aria-controls]:is([role='combobox'], [aria-haspopup]:not([aria-haspopup='false']))";
+	"[data-mantle-modal-content], [data-mantle-popup], dialog[open], [aria-expanded='true'][aria-controls]:is([role='combobox'], [aria-haspopup]:not([aria-haspopup='false']))";
 
 /** Whether an Escape at `target` belongs to a layer inside `floating`. */
 function belongsToNestedLayer(floating: HTMLElement, target: EventTarget | null): boolean {

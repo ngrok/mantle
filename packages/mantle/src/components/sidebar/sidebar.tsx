@@ -12,7 +12,10 @@ import type {
 } from "react";
 import {
 	Children,
+	cloneElement,
 	createContext,
+	Fragment,
+	isValidElement,
 	useCallback,
 	useContext,
 	useEffect,
@@ -651,6 +654,12 @@ const Root = ({
 			// on `window` in the bubble phase and calls preventDefault(), so
 			// without the guard it reaches inside every input and embedded editor.
 			if (isTextEditingTarget(event.target)) {
+				return;
+			}
+			// Why: a modal makes the page under it inert, so the chord does not
+			// change the sidebar there. The sidebar's own sheet is the exception.
+			const modal = document.querySelector("dialog:modal");
+			if (modal != null && modal.querySelector("[data-slot~=sidebar-nav]") == null) {
 				return;
 			}
 			const platformModifier = isApple ? event.metaKey : event.ctrlKey;
@@ -1940,6 +1949,10 @@ const rowShapeClassName =
 /** In the collapsed sidebar a row's name clips with no ellipsis, so a collapse shows no shimmer of dots. */
 const railClipClassName = "group-not-data-expanded/sidebar-nav:text-clip";
 
+/** Whether a child is text that shows: a string or a number that is not only whitespace. */
+const isText = (item: ReactNode) =>
+	(typeof item === "string" || typeof item === "number") && String(item).trim() !== "";
+
 /**
  * Wraps each run of text in `children` in a `<span>` that ends a long name in
  * an ellipsis. Elements, such as the leading icon, stay children of the row.
@@ -1954,13 +1967,36 @@ function truncateText(children: ReactNode, slot: string, className?: string): Re
 	if (typeof children === "function") {
 		return children;
 	}
+	const items: ReactNode[] = [];
+	const collect = (node: ReactNode, keyPrefix: string) => {
+		for (const child of Children.toArray(node)) {
+			// Why: a fragment's text sits beside its icon in the row all the same.
+			if (isValidElement<{ children?: ReactNode }>(child) && child.type === Fragment) {
+				collect(child.props.children, `${keyPrefix}${child.key ?? ""}`);
+			} else {
+				items.push(
+					isValidElement(child) && keyPrefix !== ""
+						? cloneElement(child, { key: `${keyPrefix}${child.key ?? ""}` })
+						: child,
+				);
+			}
+		}
+	};
+	collect(children, "");
+	// Why unchanged with no text: a slotted child, such as a menu trigger with
+	// `asChild`, needs its one element, and a void element needs no children.
+	if (!items.some(isText)) {
+		return children;
+	}
 	const content: ReactNode[] = [];
 	let text = "";
 	let runs = 0;
 	const flush = () => {
 		// Why whitespace stays bare: a flex row drops it, and a span would add a gap.
 		if (text.trim() === "") {
-			content.push(text);
+			if (text !== "") {
+				content.push(text);
+			}
 		} else {
 			content.push(
 				<span key={`text-${runs++}`} data-slot={slot} className={cx("min-w-0 truncate", className)}>
@@ -1970,16 +2006,29 @@ function truncateText(children: ReactNode, slot: string, className?: string): Re
 		}
 		text = "";
 	};
-	for (const child of Children.toArray(children)) {
-		if (typeof child === "string" || typeof child === "number") {
-			text += child;
+	for (const item of items) {
+		if (typeof item === "string" || typeof item === "number") {
+			text += item;
 		} else {
 			flush();
-			content.push(child);
+			content.push(item);
 		}
 	}
 	flush();
-	return content;
+	return content.length === 1 ? content[0] : content;
+}
+
+/**
+ * Runs `render` on the content of an `asChild` row. Why it follows the chain:
+ * a slotted element with its own `asChild`, such as a menu trigger, renders
+ * its child, so the text is that child's content.
+ */
+function slotText(element: ReactNode, render: (inner: ReactNode) => ReactNode): ReactNode {
+	return slotContent(element, (inner) =>
+		isValidElement<{ asChild?: boolean }>(element) && element.props.asChild === true
+			? slotText(inner, render)
+			: render(inner),
+	);
 }
 
 /** The name of a group's trigger, which clips in the collapsed sidebar as the other rows do. */
@@ -2162,7 +2211,7 @@ const ItemButton = ({
 			)}
 			{...props}
 		>
-			{asChild ? slotContent(children, itemLabel) : itemLabel(children)}
+			{asChild ? slotText(children, itemLabel) : itemLabel(children)}
 		</Comp>
 	);
 };
@@ -2512,7 +2561,7 @@ const DisclosureTrigger = ({
 	// name is not a lone child, and a consumer's own swap throws on a
 	// translated page. decisions/2026-08-04-translation-safe-label-wrappers.md
 	const content = asChild ? (
-		slotContent(children, triggerText)
+		slotText(children, triggerText)
 	) : (
 		<>
 			<span
@@ -2601,16 +2650,27 @@ function supportsBeforeMatch(): boolean {
 
 /** The open popups of the list's rows, such as a row's menu, which renders outside the list. */
 function popupsOf(list: Element): (HTMLElement | null)[] {
-	const document = list.ownerDocument;
 	return [
 		...Array.from(list.querySelectorAll("[aria-expanded='true'][aria-controls]"), (control) =>
-			document.getElementById(control.getAttribute("aria-controls") ?? ""),
+			list.ownerDocument.getElementById(control.getAttribute("aria-controls") ?? ""),
 		),
-		// Why: a native `popovertarget` button opens its popover with no ARIA state.
-		...Array.from(list.querySelectorAll("[popovertarget]"), (control) =>
-			document.getElementById(control.getAttribute("popovertarget") ?? ""),
-		).filter((popover) => popover?.matches("[popover]:popover-open") === true),
+		...nativePopupsOf(list),
 	];
+}
+
+/**
+ * The open popovers and dialogs that a row's native `popovertarget` or
+ * `commandfor` button opened. Why apart: the browser gives them no ARIA state.
+ */
+function nativePopupsOf(list: Element): HTMLElement[] {
+	return Array.from(list.querySelectorAll("[popovertarget], [commandfor]"), (control) =>
+		list.ownerDocument.getElementById(
+			control.getAttribute("popovertarget") ?? control.getAttribute("commandfor") ?? "",
+		),
+	).filter(
+		(popup): popup is HTMLElement =>
+			popup?.matches("[popover]:popover-open, dialog[open]") === true && !list.contains(popup),
+	);
 }
 
 /** A row that opens a popup, such as a menu, a dialog, or a native popover, and does not navigate. */
@@ -2758,6 +2818,17 @@ const DisclosureList = ({
 		side: "right",
 		align: "start",
 		sideOffset: 8,
+		// Why: a row's native popover has no place in the Escape order of the
+		// floats, so Escape closes it first, and the flyout stays.
+		onEscapeKeyDown: (event) => {
+			const popover = (listRef.current == null ? [] : nativePopupsOf(listRef.current))
+				.filter((popup) => popup.matches("[popover]"))
+				.at(-1);
+			if (popover != null) {
+				event.preventDefault();
+				popover.hidePopover();
+			}
+		},
 		onHide: (floating, focusWasInside) => {
 			const pressed = pressedOutside.current;
 			pressedOutside.current = null;
@@ -2774,8 +2845,9 @@ const DisclosureList = ({
 				}
 				return;
 			}
+			// Why only focus in the list: focus in a row's own popup stays there.
 			// Why: a row's open dialog keeps the list shown in the other mode, and its focus.
-			if (!held || holdsDialog(floating)) {
+			if (!focusWasInside || holdsDialog(floating)) {
 				return;
 			}
 			if (pressed?.isConnected === true) {
@@ -2810,13 +2882,13 @@ const DisclosureList = ({
 		}
 		const onRowPress = (event: Event) => {
 			const row = event.target instanceof Element ? event.target.closest("a[href], button") : null;
-			// Why not a row that opens a popup, or a control in a row's dialog: the
-			// reader is not done.
-			const dialog = row?.closest("dialog");
+			// Why not a row that opens a popup, or a control in a row's dialog or
+			// popover: the reader is not done. The flyout is a popover too.
+			const layer = row?.parentElement?.closest("dialog, [popover]");
 			if (
 				row != null &&
 				!row.matches(opensPopupSelector) &&
-				(dialog == null || !node.contains(dialog))
+				(layer == null || layer === node || !node.contains(layer))
 			) {
 				hideFlyout();
 			}
@@ -2893,6 +2965,8 @@ const DisclosureList = ({
 	// Why a layout effect: a closed list is hidden before the browser paints.
 	const fold = useRef(0);
 	const wasRail = useRef(rail);
+	/** The list's own offsets, which the flyout's placement writes over. */
+	const ownOffsets = useRef({ top: "", left: "" });
 	useIsomorphicLayoutEffect(() => {
 		const node = listRef.current;
 		if (node == null) {
@@ -2900,6 +2974,9 @@ const DisclosureList = ({
 		}
 		const railChanged = wasRail.current !== rail;
 		wasRail.current = rail;
+		if (rail && railChanged) {
+			ownOffsets.current = { top: node.style.top, left: node.style.left };
+		}
 		if (railChanged && holdsDialog(node)) {
 			// Why before paint: a row's open dialog hides with the list, so the list
 			// shows in the new mode at once, and focus stays in the dialog.
@@ -2913,12 +2990,11 @@ const DisclosureList = ({
 			// the group closes, so focus moves to the group's trigger.
 			triggerRef.current?.focus({ preventScroll: true });
 		}
-		// Why only after a flyout: placement wrote the offsets and the side, and a
-		// consumer's own offsets stay.
+		// Why only after a flyout: placement wrote the offsets and the side, and
+		// the list takes back its own.
 		if (!rail && railChanged && node.dataset.side != null) {
-			// Why: the flyout placed the list with inline offsets and a side.
-			node.style.removeProperty("top");
-			node.style.removeProperty("left");
+			node.style.top = ownOffsets.current.top;
+			node.style.left = ownOffsets.current.left;
 			delete node.dataset.side;
 		}
 		// Why: find in page set these to show the list at once. The classes own
@@ -2983,9 +3059,10 @@ const DisclosureList = ({
 					? // Why `hidden` while closed: before hydration, and without the
 						// popover API, nothing else hides the flyout.
 						`${floatClassName} not-data-open:hidden border-popover bg-popover flex max-h-(--available-height) max-w-[min(--spacing(72),var(--available-width))] min-w-44 flex-col gap-px overflow-y-auto rounded-md border p-1 shadow-xl`
-					: // The height and opacity ease open together, as in `Accordion`.
+					: // The height and opacity ease open together, as in `Accordion`. Why
+						// the clip margin: a row's 4px focus ring shows past the list's edge.
 						// `interpolate-size` is Chromium only; other engines snap.
-						"h-0 overflow-hidden opacity-0 transition-[height,opacity,content-visibility] duration-200 ease-out-strong [interpolate-size:allow-keywords] transition-discrete data-open:h-auto data-open:opacity-100 motion-reduce:transition-none group-not-data-hydrated/sidebar-nav:transition-none [&>li]:pl-7",
+						"h-0 overflow-clip opacity-0 [overflow-clip-margin:4px] transition-[height,opacity,content-visibility] duration-200 ease-out-strong [interpolate-size:allow-keywords] transition-discrete data-open:h-auto data-open:opacity-100 motion-reduce:transition-none group-not-data-hydrated/sidebar-nav:transition-none [&>li]:pl-7",
 				className,
 			)}
 			onFocus={(event) => {

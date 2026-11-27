@@ -464,15 +464,16 @@ function PopupNav({ expanded = false, rows }: { expanded?: boolean; rows: ReactN
 }
 
 /** A row that opens a dialog, which renders in place with `forceMount`. */
-function DialogRow({ forceMount }: { forceMount?: true }) {
+function DialogRow({ forceMount, modal }: { forceMount?: true; modal?: boolean }) {
 	return (
 		<Sidebar.Item>
-			<Dialog.Root>
+			<Dialog.Root modal={modal}>
 				<Dialog.Trigger asChild>
 					<Sidebar.ItemButton>Preferences</Sidebar.ItemButton>
 				</Dialog.Trigger>
 				<Dialog.Content forceMount={forceMount}>
 					<Dialog.Title>Preferences</Dialog.Title>
+					<input aria-label="Name" />
 					<button type="button">Toggle</button>
 					<Dialog.Close>Done</Dialog.Close>
 				</Dialog.Content>
@@ -493,8 +494,22 @@ describe("Sidebar.Disclosure with a row that opens a popup", () => {
 		expect(screen.getByRole("button", { name: "Done" }).getClientRects().length).toBeGreaterThan(0);
 	});
 
-	test("a row's dialog stays shown and keeps focus when the sidebar changes mode", async () => {
+	test("the sidebar chord does nothing under a modal dialog", async () => {
 		render(<PopupNav expanded rows={<DialogRow forceMount />} />);
+		await userEvent.click(screen.getByRole("button", { name: "Preferences" }));
+		const toggle = await screen.findByRole("button", { name: "Toggle" });
+		act(() => toggle.focus());
+
+		await userEvent.keyboard("{Control>}b{/Control}");
+
+		expect(document.querySelector("[data-slot~=sidebar-nav]")?.hasAttribute("data-expanded")).toBe(
+			true,
+		);
+		expect(document.activeElement).toBe(toggle);
+	});
+
+	test("a row's non-modal dialog stays shown and keeps focus when the sidebar changes mode", async () => {
+		render(<PopupNav expanded rows={<DialogRow forceMount modal={false} />} />);
 		await userEvent.click(screen.getByRole("button", { name: "Preferences" }));
 		const toggle = await screen.findByRole("button", { name: "Toggle" });
 		act(() => toggle.focus());
@@ -534,6 +549,69 @@ describe("Sidebar.Disclosure with a row that opens a popup", () => {
 
 		const row = within(listOf(account)).getByRole("button", { name: "Preferences" });
 		await waitFor(() => expect(document.activeElement).toBe(row));
+		expect(account.getAttribute("aria-expanded")).toBe("true");
+	});
+
+	test("a row's non-modal dialog keeps the focus it takes when it opens", async () => {
+		render(<PopupNav rows={<DialogRow modal={false} />} />);
+		await userEvent.click(screen.getByRole("button", { name: "Account" }));
+		await userEvent.keyboard("{Tab}{Enter}");
+		const input = await screen.findByRole("textbox", { name: "Name" });
+		await waitFor(() => expect(document.activeElement).toBe(input));
+
+		// Why two frames: the flyout's focus return runs in a microtask after it hides.
+		await new Promise(requestAnimationFrame);
+		await new Promise(requestAnimationFrame);
+
+		expect(document.activeElement).toBe(input);
+	});
+
+	test("Escape closes a row's native dialog and leaves the flyout open", async () => {
+		render(
+			<PopupNav
+				rows={
+					<Sidebar.Item>
+						{/* Why a spread: React's types have no invoker command attributes yet. */}
+						<Sidebar.ItemButton {...{ command: "show-modal", commandfor: "prefs" }}>
+							Preferences
+						</Sidebar.ItemButton>
+						<dialog id="prefs">
+							<button type="button">Done</button>
+						</dialog>
+					</Sidebar.Item>
+				}
+			/>,
+		);
+		const account = screen.getByRole("button", { name: "Account" });
+		await userEvent.click(account);
+		await userEvent.click(screen.getByRole("button", { name: "Preferences" }));
+		const prefs = document.getElementById("prefs") as HTMLDialogElement;
+		await waitFor(() => expect(prefs.open).toBe(true));
+
+		await userEvent.keyboard("{Escape}");
+
+		await waitFor(() => expect(prefs.open).toBe(false));
+		expect(account.getAttribute("aria-expanded")).toBe("true");
+	});
+
+	test("a control in a row's own popover keeps the flyout open", async () => {
+		render(
+			<PopupNav
+				rows={
+					<Sidebar.Item>
+						<Sidebar.ItemButton popoverTarget="filters">Filters</Sidebar.ItemButton>
+						<div id="filters" popover="auto">
+							<button type="button">Toggle filter</button>
+						</div>
+					</Sidebar.Item>
+				}
+			/>,
+		);
+		const account = screen.getByRole("button", { name: "Account" });
+		await userEvent.click(account);
+		await userEvent.click(screen.getByRole("button", { name: "Filters" }));
+		await userEvent.click(screen.getByRole("button", { name: "Toggle filter" }));
+
 		expect(account.getAttribute("aria-expanded")).toBe("true");
 	});
 
@@ -587,7 +665,43 @@ describe("Sidebar.Disclosure with a row that opens a popup", () => {
 		await userEvent.click(account);
 		await userEvent.click(screen.getByRole("button", { name: "Actions" }));
 
-		expect(document.getElementById("actions")?.matches(":popover-open")).toBe(true);
+		const actions = document.getElementById("actions");
+		expect(actions?.matches(":popover-open")).toBe(true);
+		expect(account.getAttribute("aria-expanded")).toBe("true");
+
+		await userEvent.keyboard("{Escape}");
+
+		expect(actions?.matches(":popover-open")).toBe(false);
+		expect(account.getAttribute("aria-expanded")).toBe("true");
+	});
+
+	test("focus in a popover that a row's command button opened keeps the flyout open", async () => {
+		render(
+			<>
+				<PopupNav
+					rows={
+						<Sidebar.Item>
+							{/* Why a spread: React's types have no invoker command attributes yet. */}
+							<Sidebar.ItemButton {...{ command: "toggle-popover", commandfor: "actions" }}>
+								Actions
+							</Sidebar.ItemButton>
+						</Sidebar.Item>
+					}
+				/>
+				<div id="actions" popover="auto">
+					<button type="button">Rename</button>
+				</div>
+			</>,
+		);
+		const account = screen.getByRole("button", { name: "Account" });
+		await userEvent.click(account);
+		await userEvent.click(screen.getByRole("button", { name: "Actions" }));
+		await waitFor(() =>
+			expect(document.getElementById("actions")?.matches(":popover-open")).toBe(true),
+		);
+
+		act(() => screen.getByRole("button", { name: "Rename" }).focus());
+
 		expect(account.getAttribute("aria-expanded")).toBe("true");
 	});
 });
@@ -611,8 +725,16 @@ test("a list keeps its own offsets when the sidebar collapses and expands", asyn
 		</TooltipProvider>,
 	);
 	const list = listOf(screen.getByRole("button", { name: "Account" }));
+	const account = screen.getByRole("button", { name: "Account" });
 	const toggle = screen.getByRole("button", { name: /sidebar/i, hidden: true });
 	await act(async () => toggle.click());
+	await act(async () => toggle.click());
+	expect([list.style.top, list.style.left]).toEqual(["5px", "20px"]);
+
+	// Why the flyout in between: its placement writes over the offsets.
+	await act(async () => toggle.click());
+	await userEvent.click(account);
+	await waitFor(() => expect(list.matches(":popover-open")).toBe(true));
 	await act(async () => toggle.click());
 
 	expect([list.style.top, list.style.left]).toEqual(["5px", "20px"]);
