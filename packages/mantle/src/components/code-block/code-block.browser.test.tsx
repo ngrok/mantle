@@ -6,8 +6,8 @@ import axe from "axe-core";
 import { useState } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import type { ComponentProps, CSSProperties } from "react";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import type { ComponentProps, CSSProperties, ReactElement, ReactNode } from "react";
+import { afterAll, beforeAll, describe, expect, onTestFinished, test } from "vitest";
 import { commands, userEvent as browserUserEvent } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
 import * as CodeBlock from "./code-block-parts.js";
@@ -916,44 +916,88 @@ describe("CodeBlock (browser)", () => {
 		});
 	});
 
-	test("the server HTML paints an expandable block collapsed, and hydration keeps its height", async () => {
-		const style = document.createElement("style");
-		style.textContent = await commands.tailwindCss("./code-block.tsx");
-		document.head.append(style);
+	describe("collapsed height", () => {
+		let style: HTMLStyleElement;
 		const code = Array.from({ length: 30 }, (_, index) => `const line${index} = ${index};`).join(
 			"\n",
 		);
-		const block = (expander: boolean) => (
+		const block = ({
+			expander = <CodeBlock.ExpanderButton />,
+			className,
+		}: { expander?: ReactNode; className?: string } = {}) => (
 			<CodeBlock.Root>
 				<CodeBlock.Body>
-					<CodeBlock.Code value={makeValue(code)} />
+					<CodeBlock.Code className={className} value={makeValue(code)} />
 				</CodeBlock.Body>
-				{expander && <CodeBlock.ExpanderButton />}
+				{expander}
 			</CodeBlock.Root>
 		);
-		const container = document.createElement("div");
-		document.body.append(container);
-		try {
-			container.innerHTML = renderToString(block(false));
-			const fullHeight = container.querySelector("pre")?.getBoundingClientRect().height ?? 0;
+		/** The `<pre>` of the server HTML of `element`, in the page. */
+		const serverPre = (element: ReactElement) => {
+			const container = document.createElement("div");
+			container.innerHTML = renderToString(element);
+			document.body.append(container);
+			onTestFinished(() => {
+				container.remove();
+			});
+			const pre = container.querySelector("pre");
+			if (pre == null) {
+				throw new Error("expected the <pre>");
+			}
+			return pre;
+		};
 
-			container.innerHTML = renderToString(block(true));
-			const serverPre = container.querySelector("pre");
-			const serverHeight = serverPre?.getBoundingClientRect().height ?? 0;
+		beforeAll(async () => {
+			style = document.createElement("style");
+			style.textContent = await commands.tailwindCss(
+				["./code-block.tsx", "./code-block.browser.test.tsx"],
+				{ mantleCss: true },
+			);
+			document.head.append(style);
+		});
+
+		afterAll(() => {
+			style.remove();
+		});
+
+		test("the server HTML paints an expandable block collapsed, and hydration keeps its height", async () => {
+			const fullHeight = serverPre(block({ expander: null })).getBoundingClientRect().height;
+			const pre = serverPre(block());
+			const container = pre.parentElement?.parentElement?.parentElement;
+			if (container == null) {
+				throw new Error("expected the container");
+			}
+			const serverHeight = pre.getBoundingClientRect().height;
 			// 13.6rem at the 16px root font size.
-			expect(serverPre && getComputedStyle(serverPre).maxHeight).toBe("217.6px");
+			expect(getComputedStyle(pre).maxHeight).toBe("217.6px");
 			expect(fullHeight).toBeGreaterThan(serverHeight);
 
-			const root = await act(() => hydrateRoot(container, block(true)));
+			const root = await act(() => hydrateRoot(container, block()));
 			expect(container.querySelector("pre")?.getBoundingClientRect().height).toBe(serverHeight);
 
 			await userEvent.setup().click(screen.getByRole("button", { name: /show more/i }));
 			expect(container.querySelector("pre")?.getBoundingClientRect().height).toBe(fullHeight);
 			act(() => root.unmount());
-		} finally {
-			container.remove();
-			style.remove();
-		}
+		});
+
+		test("a wrapped ExpanderButton collapses the code in the server HTML too", () => {
+			const pre = serverPre(
+				block({
+					expander: (
+						<div>
+							<div>
+								<CodeBlock.ExpanderButton />
+							</div>
+						</div>
+					),
+				}),
+			);
+			expect(getComputedStyle(pre).maxHeight).toBe("217.6px");
+		});
+
+		test("a max-h class on CodeBlock.Code wins over the collapsed height", () => {
+			expect(getComputedStyle(serverPre(block({ className: "max-h-20" }))).maxHeight).toBe("80px");
+		});
 	});
 
 	// Why inset: the button meets three edges of the root's `overflow-hidden`,

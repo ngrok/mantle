@@ -201,12 +201,6 @@ const Root = ({
 			className={cx(
 				"text-mono w-full overflow-hidden rounded-xl border border-gray-300 bg-base font-mono",
 				"[&_svg]:shrink-0",
-				// Why CSS and not a flag that `ExpanderButton` sets from an effect: no
-				// effect runs on the server, so the server HTML painted the code at full
-				// height and hydration collapsed it, a layout shift. Why `:has(>…)`: it
-				// tests only the root's children, so a line that a stream inserts in the
-				// code does not make Chromium check it again (COMPONENT_SPEC §3.9).
-				"[&:has(>[data-slot~=code-block-expander-button])_[data-slot~=code-block-code]:not([data-expanded])]:max-h-[13.6rem]",
 				className,
 			)}
 			ref={ref}
@@ -1123,6 +1117,14 @@ const ExpanderButton = ({
 }: CodeBlockExpanderButtonProps) => {
 	const { codeId, isCodeExpanded, setIsCodeExpanded } = useCodeBlockContext();
 
+	// Why: `data-expanded` on the `<pre>` is present only with a composed button.
+	useEffect(
+		() => () => {
+			setIsCodeExpanded(false);
+		},
+		[setIsCodeExpanded],
+	);
+
 	return (
 		<button
 			{...props}
@@ -1134,6 +1136,8 @@ const ExpanderButton = ({
 				// Why inset: the button meets three edges of the root's `overflow-hidden`, which
 				// clips a ring or a forced-colors outline drawn outside the button.
 				"focus-visible:focus-ring focus-visible:ring-inset focus-visible:-outline-offset-2",
+				// Why: with scripting off, the click cannot expand the code, and `mantle.css` shows it in full.
+				"noscript:hidden",
 				className,
 			)}
 			ref={ref}

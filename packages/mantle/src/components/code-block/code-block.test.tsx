@@ -811,15 +811,16 @@ describe("CodeBlock", () => {
 	describe("ExpanderButton", () => {
 		test("owns the ARIA state and points at the <pre>, which carries data-expanded instead", async () => {
 			const user = userEvent.setup();
-
-			render(
+			const view = (expander: boolean) => (
 				<CodeBlock.Root>
 					<CodeBlock.Body>
 						<CodeBlock.Code value={makeValue("const x = 1;")} />
 					</CodeBlock.Body>
-					<CodeBlock.ExpanderButton />
-				</CodeBlock.Root>,
+					{expander && <CodeBlock.ExpanderButton />}
+				</CodeBlock.Root>
 			);
+
+			const { rerender } = render(view(true));
 
 			const button = screen.getByRole("button", { name: "Show more" });
 			const pre = document.querySelector("pre");
@@ -837,6 +838,10 @@ describe("CodeBlock", () => {
 				"true",
 			);
 			expect(pre).toHaveAttribute("data-expanded");
+
+			// Why: `data-expanded` is present only with a composed button.
+			rerender(view(false));
+			expect(pre).not.toHaveAttribute("data-expanded");
 		});
 
 		test("runs a consumer's onClick and still toggles", async () => {

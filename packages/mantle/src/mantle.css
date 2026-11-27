@@ -2412,6 +2412,38 @@ pre[data-slot~="code-block-code"][data-foldable]
 }
 
 /*
+ * The collapsed height of a `CodeBlock` with an `ExpanderButton`. Why CSS and
+ * not a flag that the button sets from an effect: no effect runs on the
+ * server, so the server HTML painted the code at full height, and hydration
+ * collapsed it. Why a chain of children and not `:has(.button)`: a line that
+ * a stream inserts sits deeper than the chain, so Chromium does not test it
+ * again. The chain finds a button in up to two wrappers. Why `@layer
+ * components`: a `max-h-*` class on `CodeBlock.Code` wins. Why not with
+ * scripting off: the button cannot expand the code, so the code shows in full.
+ */
+@layer components {
+	[data-slot~="code-block"]:has(
+			> [data-slot~="code-block-expander-button"],
+			> * > [data-slot~="code-block-expander-button"],
+			> * > * > [data-slot~="code-block-expander-button"]
+		)
+		pre[data-slot~="code-block-code"]:not([data-expanded]) {
+		max-height: 13.6rem;
+	}
+
+	@media (scripting: none) {
+		[data-slot~="code-block"]:has(
+				> [data-slot~="code-block-expander-button"],
+				> * > [data-slot~="code-block-expander-button"],
+				> * > * > [data-slot~="code-block-expander-button"]
+			)
+			pre[data-slot~="code-block-code"]:not([data-expanded]) {
+			max-height: none;
+		}
+	}
+}
+
+/*
  * The prose styles of `Markdown`. Why `@layer components`: a utility class on
  * an element that a `components` override renders wins over these rules. Why
  * `:where()`: the scope adds no specificity, so each rule weighs one element.
