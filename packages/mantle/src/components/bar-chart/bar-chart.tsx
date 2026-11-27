@@ -66,6 +66,26 @@ type BarChartRootProps<
 		 * match.
 		 */
 		orientation?: BarOrientation;
+		/**
+		 * Why a slot is empty, such as `"No traffic reported"`. Set it to draw an
+		 * outlined empty bar at each row where no `BarChart.Bar` has a value
+		 * (`null` or a missing key). The tooltip, the keyboard announcement, and
+		 * the data table say this text there instead of a value for each series.
+		 *
+		 * A `0` is a reading, not an empty slot: a row of zeros paints no bar and
+		 * no outline, and its tooltip says `0`. The outline is a fixed 30% of the
+		 * plot, not a value, so it never moves the value axis. Without this prop, a
+		 * row with no value is a gap.
+		 *
+		 * @example
+		 * ```tsx
+		 * <BarChart.Root data={hours} xKey="hour" stacked emptySlotLabel="No traffic reported" aria-label="Traffic by hour">
+		 *   <BarChart.Bar dataKey="bytesOut" label="Bytes out" color="neutral" />
+		 *   <BarChart.Bar dataKey="bytesIn" label="Bytes in" color="neutral" texture="hatch" />
+		 * </BarChart.Root>
+		 * ```
+		 */
+		emptySlotLabel?: string;
 	};
 
 /**

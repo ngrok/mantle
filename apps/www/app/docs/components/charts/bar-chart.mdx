@@ -313,6 +313,61 @@ function NoUsageYetBarChartExample() {
 
 </Example>
 
+## Empty slots
+
+A `null` value is no reading, and a `0` is a reading of nothing. Pass `emptySlotLabel` to show the difference: each row where no `BarChart.Bar` has a value paints an outlined empty bar, and the tooltip, the keyboard announcement, and the data table say why the slot is empty. A row of zeros still paints nothing and reads `0`. The outline spans the row's bars, so it fits stacked and grouped bars alike.
+
+The outline reaches 30% of the plot from the baseline. It marks a slot, not a value, so it never moves the value axis. Without `emptySlotLabel`, a row with no value stays a gap.
+
+Below, an agent went offline for six hours, and three hours ago it was online with no traffic.
+
+<Example name="components/charts/bar-chart/empty-slots" title="Bar Chart empty slots example">
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+
+const hourlyTraffic = Array.from({ length: 24 }, (_, hour) => {
+	// Bytes in and out of one agent per hour over the last 24 hours, in MB,
+	// oldest first. The agent was offline from 19 to 14 hours ago, so those hours
+	// have no reading. Three hours ago it was online and carried nothing.
+	const hoursAgo = 23 - hour;
+	if (hoursAgo >= 14 && hoursAgo <= 19) {
+		return { hoursAgo, bytesOut: null, bytesIn: null };
+	}
+	if (hoursAgo === 3) {
+		return { hoursAgo, bytesOut: 0, bytesIn: 0 };
+	}
+	const swell = Math.sin(hour / 3) * 0.5 + 0.5;
+	return {
+		hoursAgo,
+		bytesOut: Math.round(200 + swell * 600),
+		bytesIn: Math.round(120 + (1 - swell) * 500),
+	};
+});
+
+function EmptySlotsBarChartExample() {
+	return (
+		<BarChart.Root
+			data={hourlyTraffic}
+			xKey="hoursAgo"
+			stacked
+			emptySlotLabel="Agent offline: no traffic reported"
+			aria-label="Bytes in and out over the last 24 hours"
+			className="aspect-auto h-20 w-full"
+		>
+			<BarChart.Bar dataKey="bytesOut" label="Bytes out" color="neutral" />
+			<BarChart.Bar dataKey="bytesIn" label="Bytes in" color="neutral" texture="hatch" />
+			<BarChart.Tooltip
+				labelFormat={(hoursAgo) => (hoursAgo === 0 ? "This hour" : `${String(hoursAgo)}h ago`)}
+				valueFormat={(megabytes) => `${megabytes} MB`}
+			/>
+		</BarChart.Root>
+	);
+}
+```
+
+</Example>
+
 ## Regrouping a live chart
 
 A dashboard that regroups one chart (by provider, then by region, then by access key) cycles a new set of
@@ -1423,6 +1478,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `yDomain?`             | `[0, number \| "auto"]`                     | `[0, "auto"]`   | Override the automatic y maximum. The minimum is always the zero baseline.                                                                                                                                                                                                                                                                                                                                                                     |
 | `stacked?`             | `boolean`                                   | `false`         | Stack the series from the baseline up in registration order. See [Stacked bars](#stacked-bars).                                                                                                                                                                                                                                                                                                                                                |
 | `orientation?`         | `"vertical" \| "horizontal"`                | `"vertical"`    | The direction the bars point (not an axis): `"vertical"` bars stand up from a bottom baseline (categories along x); `"horizontal"` bars run rightward from a left baseline (categories down y). See [Horizontal bars](#horizontal-bars).                                                                                                                                                                                                       |
+| `emptySlotLabel?`      | `string`                                    |                 | Why a slot is empty. Each row where no `BarChart.Bar` has a value (`null` or a missing key) paints an outlined empty bar, 30% of the plot from the baseline, and the tooltip, the keyboard announcement, and the data table say this text. A `0` is a reading, not an empty slot. Without it, a row with no value is a gap. See [Empty slots](#empty-slots).                                                                                   |
 | `animate?`             | `boolean`                                   | `true`          | Animate enter/update transitions. When the chart first comes into view, the bars grow from the baseline one after another, in category order. `prefers-reduced-motion` always wins.                                                                                                                                                                                                                                                            |
 | `pending?`             | `boolean`                                   | `false`         | Hold the previous render at reduced opacity while fresh data loads. Never swap a chart that has rendered once for a skeleton.                                                                                                                                                                                                                                                                                                                  |
 | `activeIndex?`         | `number \| null`                            |                 | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Allowed only when `mode` is `"interactive"`.                                                                                                                                                                                                                                                                                                                       |
@@ -1502,7 +1558,7 @@ Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `Ba
 
 A `children` readout renders inside a `<div data-slot="bar-chart-tooltip-label">`. When it goes away, React removes that div instead of your own text nodes: a browser translation engine reparents text nodes, and a removal aimed at one throws. The div is `display: contents`, so it adds no box and your content stays a direct layout child of the parent. To style it as a box, set a display of your own on it first. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 
-The `HoverSnapshot` passed to `footer` and `children` describes the active category: `{ index, xValue, datum, points, viaKeyboard }`, where `points` lists every series' value at the active index. Stacked, the rows run from the far end of the pile back to the baseline; unstacked, they follow registration order.
+The `HoverSnapshot` passed to `footer` and `children` describes the active category: `{ index, xValue, datum, points, viaKeyboard }`, where `points` lists every series' value at the active index. A stacked chart adds `total`, and a chart with an `emptySlotLabel` adds `emptySlotLabel` when no series has a value at the active index. Stacked, the rows run from the far end of the pile back to the baseline; unstacked, they follow registration order.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded to the tooltip element the Root owns) except `children`, plus:
 

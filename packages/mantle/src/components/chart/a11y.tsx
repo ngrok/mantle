@@ -180,6 +180,9 @@ const announcementFor = (
 	const label =
 		plainText(tooltip?.labelFormat?.(hover.xValue)) ??
 		formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay });
+	if (hover.emptySlotLabel != null) {
+		return `${label}. ${hover.emptySlotLabel}`;
+	}
 	const values = [
 		// The tooltip passes the Total to `valueFormat` under the key "total".
 		...(hover.total == null ? [] : [`Total: ${valueText(hover.total, "total")}`]),
@@ -308,6 +311,10 @@ function textOutsideChartTables(element: HTMLElement | null): string {
 	return text.trim();
 }
 
+/** Whether a cell holds a value the chart plots. */
+const isFiniteNumber = (value: unknown): value is number =>
+	typeof value === "number" && Number.isFinite(value);
+
 /** Whether an x value has no text form: `null`, a missing key, or a number that is not finite. */
 const hasNoTextForm = (x: unknown): boolean =>
 	x == null || (typeof x === "number" && !Number.isFinite(x));
@@ -342,6 +349,8 @@ const xHeaderFor = (
 /** The props of a chart's sr-only data table, which a family's readout can replace. */
 type ChartDataTableProps = {
 	data: readonly ChartDatum[];
+	/** Bar charts only: the text of a row with no series value, in one cell across the series columns. */
+	emptySlotLabel?: string;
 	/** The chart's `aria-label`, so multi-chart pages get distinct captions. */
 	label: string | undefined;
 	/**
@@ -371,6 +380,7 @@ type ChartDataTableProps = {
  */
 const ChartDataTable = ({
 	data,
+	emptySlotLabel,
 	label,
 	labelledBy,
 	slotName,
@@ -433,15 +443,20 @@ const ChartDataTable = ({
 										<time dateTime={header.date.toISOString()}>{header.text}</time>
 									)}
 								</th>
-								{series.map((column) => {
-									const value = datumValue(row, column.dataKey);
-									const isFinite = typeof value === "number" && Number.isFinite(value);
-									return (
-										<td key={column.dataKey} data-value={isFinite ? value : undefined}>
-											{isFinite ? formatNumber(value) : "—"}
-										</td>
-									);
-								})}
+								{emptySlotLabel != null &&
+								series.every((column) => !isFiniteNumber(datumValue(row, column.dataKey))) ? (
+									<td colSpan={series.length}>{emptySlotLabel}</td>
+								) : (
+									series.map((column) => {
+										const value = datumValue(row, column.dataKey);
+										const isFinite = isFiniteNumber(value);
+										return (
+											<td key={column.dataKey} data-value={isFinite ? value : undefined}>
+												{isFinite ? formatNumber(value) : "—"}
+											</td>
+										);
+									})
+								)}
 								{zKey != null &&
 									(() => {
 										const zRaw = datumValue(row, zKey);

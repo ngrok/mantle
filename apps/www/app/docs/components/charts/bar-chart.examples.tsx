@@ -166,6 +166,45 @@ export function NoUsageYetBarChartExample() {
 	);
 }
 
+export const hourlyTraffic = Array.from({ length: 24 }, (_, hour) => {
+	// Bytes in and out of one agent per hour over the last 24 hours, in MB,
+	// oldest first. The agent was offline from 19 to 14 hours ago, so those hours
+	// have no reading. Three hours ago it was online and carried nothing.
+	const hoursAgo = 23 - hour;
+	if (hoursAgo >= 14 && hoursAgo <= 19) {
+		return { hoursAgo, bytesOut: null, bytesIn: null };
+	}
+	if (hoursAgo === 3) {
+		return { hoursAgo, bytesOut: 0, bytesIn: 0 };
+	}
+	const swell = Math.sin(hour / 3) * 0.5 + 0.5;
+	return {
+		hoursAgo,
+		bytesOut: Math.round(200 + swell * 600),
+		bytesIn: Math.round(120 + (1 - swell) * 500),
+	};
+});
+
+export function EmptySlotsBarChartExample() {
+	return (
+		<BarChart.Root
+			data={hourlyTraffic}
+			xKey="hoursAgo"
+			stacked
+			emptySlotLabel="Agent offline: no traffic reported"
+			aria-label="Bytes in and out over the last 24 hours"
+			className="aspect-auto h-20 w-full"
+		>
+			<BarChart.Bar dataKey="bytesOut" label="Bytes out" color="neutral" />
+			<BarChart.Bar dataKey="bytesIn" label="Bytes in" color="neutral" texture="hatch" />
+			<BarChart.Tooltip
+				labelFormat={(hoursAgo) => (hoursAgo === 0 ? "This hour" : `${String(hoursAgo)}h ago`)}
+				valueFormat={(megabytes) => `${megabytes} MB`}
+			/>
+		</BarChart.Root>
+	);
+}
+
 export const spendByProvider = [
 	{ month: "April", aws: 1610, gcp: 1145, azure: 520, onPrem: 141 },
 	{ month: "May", aws: 1745, gcp: 1080, azure: 565, onPrem: 133 },
@@ -868,6 +907,15 @@ export function NoUsageYetExample() {
 	return (
 		<PreviewCanvas>
 			<NoUsageYetBarChartExample />
+		</PreviewCanvas>
+	);
+}
+
+/** The "Empty slots" example on the Bar Chart docs page. */
+export function EmptySlotsExample() {
+	return (
+		<PreviewCanvas>
+			<EmptySlotsBarChartExample />
 		</PreviewCanvas>
 	);
 }

@@ -112,6 +112,8 @@ type ChartRootPrimitiveProps = ChartRootBaseProps &
 		 * down y. Ignored by other kinds.
 		 */
 		orientation?: BarOrientation;
+		/** Bar charts only: why a row with no series value is empty. Ignored by other kinds. */
+		emptySlotLabel?: string;
 	};
 
 type InternalRootProps = ChartRootPrimitiveProps & {
@@ -391,6 +393,7 @@ const ChartRootPrimitive = ({
 	yDomain = AUTO_Y_DOMAIN,
 	stacked = false,
 	orientation = "vertical",
+	emptySlotLabel: emptySlotLabelProp,
 	animate: animateProp,
 	pending = false,
 	mode = "interactive",
@@ -512,6 +515,7 @@ const ChartRootPrimitive = ({
 	const xHasTimeOfDay = xSummary.hasTimeOfDay;
 	// Why the readout gate: only a world map has a size key, and a stray prop on another chart must not fail its key check.
 	const sizeKey = readout == null ? null : (sizeKeyProp ?? null);
+	const emptySlotLabel = kind === "bar" ? emptySlotLabelProp : undefined;
 
 	// The latest engine inputs, applied in one go when the engine is created
 	// after the commit that carried them.
@@ -526,6 +530,7 @@ const ChartRootPrimitive = ({
 			stacked,
 			orientation,
 			animate,
+			emptySlotLabel,
 		},
 		callbacks: { onDatumActivate: null, onActiveIndexChange: null },
 		controlledActiveIndex: undefined,
@@ -542,6 +547,7 @@ const ChartRootPrimitive = ({
 				stacked,
 				orientation,
 				animate,
+				emptySlotLabel,
 			},
 			callbacks: interactive
 				? {
@@ -641,6 +647,7 @@ const ChartRootPrimitive = ({
 			stacked,
 			orientation,
 			animate,
+			emptySlotLabel,
 		});
 		// Publish the orientation to DOM consumers too: the legend mirrors bar
 		// textures whose direction-dependent stripes must match the bars.
@@ -661,6 +668,7 @@ const ChartRootPrimitive = ({
 		stacked,
 		orientation,
 		animate,
+		emptySlotLabel,
 	]);
 
 	useLayoutEffect(() => {
@@ -1004,6 +1012,7 @@ const ChartRootPrimitive = ({
 				{interactive && engaged && (
 					<DataTable
 						data={data}
+						emptySlotLabel={emptySlotLabel}
 						label={ariaLabel}
 						labelledBy={ariaLabelledBy}
 						slotName={slotName}

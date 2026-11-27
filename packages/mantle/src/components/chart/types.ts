@@ -261,6 +261,12 @@ type HoverSnapshot = {
 	 * chart with two or more series, where the tooltip leads with it.
 	 */
 	total?: number;
+	/**
+	 * Why the active row is empty: the Root's `emptySlotLabel`. Set only on a
+	 * bar chart with an `emptySlotLabel`, where no series has a value at the
+	 * active index. Such a snapshot has no `total`.
+	 */
+	emptySlotLabel?: string;
 	/** The depth value at the active index (3D scatter plots only). */
 	zValue?: number | null;
 	/** Whether the snapshot came from keyboard stepping (vs pointer hover). */
@@ -314,6 +320,11 @@ type ChartOptions = {
 	dimensions: 1 | 2 | 3;
 	stacked: boolean;
 	animate: boolean;
+	/**
+	 * Bar charts only: why a row with no series value is empty. When set, such a
+	 * row paints an outlined empty slot, and its hover snapshot carries this text.
+	 */
+	emptySlotLabel?: string;
 };
 
 export type {
