@@ -147,6 +147,14 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"Ctrl+B": "Sidebar",
 		"cmd+b": "Sidebar",
 	},
+	"StatusStrip, in the gpu-compare app's words": {
+		"uptime bar": "Status Strip",
+		"status strip": "Status Strip",
+		"in stock or sold out for each hour": "Status Strip",
+		"row of cells for each day shaded by share": "Status Strip",
+		"availability history strip": "Status Strip",
+		"availability uptime bar status history": "Status Strip",
+	},
 	"Forms and other names": {
 		"form validation": "Field",
 		"form validation on submit": "Field",
@@ -214,7 +222,6 @@ const weakFinds: Record<string, string> = {
 	"waffle grid squares showing percentage share": "waffle chart",
 	"vertical timeline steps icons joining line": "timeline",
 	"bounding box image region overlay": "image annotation",
-	"availability uptime bar status history": "status history strip",
 	"mark inline search keyword match highlight": "text match highlight",
 	"highlight text react named highlightedtext matching": "text match highlight",
 };

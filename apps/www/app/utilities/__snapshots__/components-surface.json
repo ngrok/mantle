@@ -5675,6 +5675,57 @@
     ]
   },
   {
+    "name": "Status Strip",
+    "slug": "components/data-display/status-strip",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/status-strip",
+    "summary": "A row of equal cells over time, such as one cell for each hour or day, each shaded by its share of the time in one state.",
+    "jsdoc": "A row of equal cells over time, such as one cell for each hour or day.",
+    "examples": [
+      "Composition:\n```\nStatusStrip.Root\n└── StatusStrip.Cell\n```",
+      "```tsx\n<StatusStrip.Root aria-label=\"In stock 75% of the last 4 hours\">\n  <StatusStrip.Cell value={1} title=\"09:00 UTC: in stock\" />\n  <StatusStrip.Cell value={0.5} title=\"10:00 UTC: in stock in 1 of 2 readings\" />\n  <StatusStrip.Cell value={0} title=\"11:00 UTC: sold out\" />\n  <StatusStrip.Cell value={null} title=\"12:00 UTC: no reading\" />\n</StatusStrip.Root>\n```"
+    ],
+    "aliases": [
+      "uptime bar",
+      "availability strip",
+      "status history",
+      "heartbeat bar"
+    ],
+    "siblings": [
+      {
+        "name": "ProgressBar",
+        "boundary": "show one value, such as how much of a task is complete."
+      },
+      {
+        "name": "BarChart",
+        "boundary": "read exact values over time from axes and a tooltip."
+      }
+    ],
+    "useWhen": "Show when something was in one state over time, such as in stock or up, as a row of equal cells for each hour or day.",
+    "dataAttributes": [
+      {
+        "part": "StatusStrip.Root",
+        "name": "data-slot",
+        "value": "`\"status-strip\"`",
+        "description": "The root element."
+      },
+      {
+        "part": "StatusStrip.Cell",
+        "name": "data-slot",
+        "value": "`\"status-strip-cell\"`",
+        "description": "The cell element."
+      },
+      {
+        "part": "StatusStrip.Cell",
+        "name": "data-share",
+        "value": "`\"no-data\"`, `\"none\"`, `\"some\"`, `\"all\"`",
+        "description": "`null`, 0, between 0 and 1, and 1. Style a state with `data-[share=none]:`."
+      }
+    ]
+  },
+  {
     "name": "Strata",
     "slug": "components/structure/strata",
     "kind": "component",

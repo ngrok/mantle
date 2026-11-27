@@ -82,6 +82,7 @@ const docsPages = [
 	"components/data-display/markdown",
 	"components/data-display/qr-code",
 	"components/data-display/selectable-list",
+	"components/data-display/status-strip",
 	"components/data-display/table",
 	"components/data-display/truncated-text",
 	"components/data-display/typography",
