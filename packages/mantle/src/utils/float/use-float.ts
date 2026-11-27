@@ -666,12 +666,39 @@ function useReconcileOnTriggerChange(
 	}, [onTriggerChangeRef, reconcile]);
 }
 
+/**
+ * Whether a float opened at least one time. Content that never opened skips
+ * `useFloat` and its effects and subscriptions. A page with one tooltip for
+ * each table row then mounts only the triggers. After the first open the
+ * content stays mounted, so its exit transition plays as before.
+ *
+ * Why `useLayerContainer` here: its document listeners must be on the document
+ * before the listeners of a float that opens later.
+ *
+ * @example
+ * ```tsx
+ * const Content = (props: ContentProps) => {
+ *   const state = useState("Content");
+ *   return useOpenedOnce(state.open) && <MountedContent {...props} />;
+ * };
+ * ```
+ */
+function useOpenedOnce(open: boolean): boolean {
+	useLayerContainer();
+	const [opened, setOpened] = useState(open);
+	if (open && !opened) {
+		setOpened(true);
+	}
+	return opened || open;
+}
+
 export {
 	//,
 	floatClassName,
 	hasPopoverApi,
 	resolvePortalTarget,
 	useFloat,
+	useOpenedOnce,
 	useReconcileOnTriggerChange,
 	useTriggerRef,
 };

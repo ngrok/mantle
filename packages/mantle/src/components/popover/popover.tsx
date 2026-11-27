@@ -16,6 +16,7 @@ import {
 	floatClassName,
 	hasPopoverApi,
 	useFloat,
+	useOpenedOnce,
 	useReconcileOnTriggerChange,
 	useTriggerRef,
 } from "../../utils/float/use-float.js";
@@ -599,8 +600,12 @@ const FloatContent = ({
  */
 const Content = (props: PopoverContentProps) => {
 	const state = usePopoverState("Content");
+	const opened = useOpenedOnce(state.open);
 	const Drawer = state.drawer;
-	return Drawer == null ? <FloatContent {...props} /> : <Drawer state={state} {...props} />;
+	if (Drawer != null) {
+		return <Drawer state={state} {...props} />;
+	}
+	return opened && <FloatContent {...props} />;
 };
 
 type PopoverArrowProps = Omit<ComponentProps<"svg">, "children" | "width" | "height"> &

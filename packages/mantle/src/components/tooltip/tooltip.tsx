@@ -22,6 +22,7 @@ import {
 	floatClassName,
 	hasPopoverApi,
 	useFloat,
+	useOpenedOnce,
 	useReconcileOnTriggerChange,
 	useTriggerRef,
 } from "../../utils/float/use-float.js";
@@ -543,7 +544,13 @@ type TooltipContentProps = Omit<ComponentProps<"div">, "id"> &
  * </Tooltip.Root>
  * ```
  */
-function Content({
+function Content(props: TooltipContentProps) {
+	const state = useTooltipState("Content");
+	return useOpenedOnce(state.state !== "closed") && <MountedContent {...props} />;
+}
+
+/** `Tooltip.Content` after its first open, when it holds the float. */
+function MountedContent({
 	align = "center",
 	children,
 	className,

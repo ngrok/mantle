@@ -22,6 +22,7 @@ import {
 	floatClassName,
 	hasPopoverApi,
 	useFloat,
+	useOpenedOnce,
 	useReconcileOnTriggerChange,
 	useTriggerRef,
 } from "../../utils/float/use-float.js";
@@ -304,7 +305,13 @@ type HoverCardContentProps = ComponentProps<"div"> &
  * </HoverCard.Root>
  * ```
  */
-const Content = ({
+const Content = (props: HoverCardContentProps) => {
+	const state = useHoverCardState("Content");
+	return useOpenedOnce(state.open) && <MountedContent {...props} />;
+};
+
+/** `HoverCard.Content` after its first open, when it holds the float. */
+const MountedContent = ({
 	align = "center",
 	className,
 	"data-slot": dataSlot,
