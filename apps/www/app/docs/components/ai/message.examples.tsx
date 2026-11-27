@@ -64,3 +64,23 @@ export function PendingExample() {
 		</PreviewCanvas>
 	);
 }
+
+/** Messages whose speaker is not "You" or "the assistant", such as an error in a captured conversation. */
+export function SpeakerExample() {
+	return (
+		<PreviewCanvas>
+			<Conversation.Root className="w-full max-w-2xl">
+				<Conversation.Viewport>
+					<Conversation.Content aria-label="Captured conversation" className="p-4">
+						<Message.Root from="user" speaker="The caller said:">
+							<Message.Content>Summarize the last hour of traffic.</Message.Content>
+						</Message.Root>
+						<Message.Root from="assistant" speaker="Error">
+							<Message.Content>Quota exceeded for this API key.</Message.Content>
+						</Message.Root>
+					</Conversation.Content>
+				</Conversation.Viewport>
+			</Conversation.Root>
+		</PreviewCanvas>
+	);
+}
