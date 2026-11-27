@@ -1367,23 +1367,32 @@ describe("tooltip placement", () => {
 		});
 	});
 
-	test("a readout does not open above a modal dialog the chart is not in", async () => {
-		// A modal opened first makes the chart inert. A readout that a script or
-		// a controlled index shows must not paint over the dialog.
-		const { container } = renderThreeSegments();
-		const canvas = await findChartCanvas(container);
-		await waitForPlot(canvas);
+	test("a pinned readout stays under a modal when its plot center is off screen", async () => {
+		// The center misses the viewport, so the hit test clamps to the visible
+		// part of the plot, where the modal's backdrop is on top.
 		const dialog = document.createElement("dialog");
 		document.body.append(dialog);
 		onTestFinished(() => dialog.remove());
 		dialog.showModal();
-		const overlay = overlayOf(container);
-		const tooltip = await findTooltip(container, overlay);
-		await waitFor(() => {
-			const plot = overlay.getBoundingClientRect();
-			hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
-			expect(hoverBandOf(container).style.opacity).toBe("1");
-		});
+		const { container } = render(
+			<div style={{ width: 400, height: 300, marginTop: innerHeight - 100 }}>
+				<CanvasBarChartRoot
+					data={threeEqualSegments}
+					xKey="day"
+					stacked
+					animate={false}
+					activeIndex={0}
+					aria-label="Below the fold"
+				>
+					<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
+				</CanvasBarChartRoot>
+			</div>,
+		);
+		const tooltip = await pinnedReadout(container);
+		const plot = overlayOf(container).getBoundingClientRect();
+		// The plot straddles the bottom edge, so its center is off screen.
+		expect(plot.top).toBeLessThan(innerHeight);
+		expect(plot.top + plot.height / 2).toBeGreaterThan(innerHeight);
 		expect(tooltip.matches(":popover-open")).toBe(false);
 	});
 
