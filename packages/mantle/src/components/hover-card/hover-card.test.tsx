@@ -3,9 +3,9 @@ import { userEvent } from "@testing-library/user-event";
 import { describe, expect, onTestFinished, test, vi } from "vitest";
 import * as HoverCard from "./hover-card-parts.js";
 
-function renderHoverCard(arrow = <HoverCard.Arrow />) {
+function renderHoverCard(arrow = <HoverCard.Arrow />, closeDelay?: number) {
 	render(
-		<HoverCard.Root>
+		<HoverCard.Root closeDelay={closeDelay}>
 			<HoverCard.Trigger href="https://ngrok.com">@ngrok/mantle</HoverCard.Trigger>
 			<HoverCard.Content>
 				{arrow}
@@ -20,20 +20,21 @@ describe("HoverCard", () => {
 		const isOpen = () =>
 			document.querySelector("[data-slot='hover-card-content'][data-open]") != null;
 
-		function setUp() {
+		function setUp(closeDelay?: number) {
 			vi.useFakeTimers();
 			onTestFinished(() => {
 				vi.useRealTimers();
 			});
-			renderHoverCard();
+			renderHoverCard(undefined, closeDelay);
 			return screen.getByRole("link", { name: "@ngrok/mantle" });
 		}
 
-		test("opens 700ms after a hover", () => {
-			const link = setUp();
+		test("opens 300ms after a hover", () => {
+			// A close delay that differs from the open delay catches a swap of the two.
+			const link = setUp(1000);
 			fireEvent.pointerEnter(link, { pointerType: "mouse" });
 			act(() => {
-				vi.advanceTimersByTime(699);
+				vi.advanceTimersByTime(299);
 			});
 			expect(isOpen()).toBe(false);
 			act(() => {
@@ -46,7 +47,7 @@ describe("HoverCard", () => {
 			const link = setUp();
 			act(() => {
 				link.focus();
-				vi.advanceTimersByTime(700);
+				vi.advanceTimersByTime(300);
 			});
 			fireEvent.pointerEnter(link, { pointerType: "mouse" });
 			fireEvent.pointerLeave(link, { pointerType: "mouse" });
@@ -66,7 +67,7 @@ describe("HoverCard", () => {
 			const link = setUp();
 			act(() => {
 				link.focus();
-				vi.advanceTimersByTime(700);
+				vi.advanceTimersByTime(300);
 			});
 			const card = document.querySelector("[data-slot='hover-card-content']");
 			if (card == null) {
@@ -84,9 +85,13 @@ describe("HoverCard", () => {
 			const link = setUp();
 			fireEvent.pointerEnter(link, { pointerType: "mouse" });
 			act(() => {
-				vi.advanceTimersByTime(550);
+				vi.advanceTimersByTime(200);
 				link.focus();
-				vi.advanceTimersByTime(150);
+				vi.advanceTimersByTime(99);
+			});
+			expect(isOpen()).toBe(false);
+			act(() => {
+				vi.advanceTimersByTime(1);
 			});
 			expect(isOpen()).toBe(true);
 		});
@@ -98,7 +103,7 @@ describe("HoverCard", () => {
 			fireEvent.keyDown(window, { key: "Tab" });
 			act(() => {
 				link.focus();
-				vi.advanceTimersByTime(700);
+				vi.advanceTimersByTime(300);
 			});
 			expect(isOpen()).toBe(true);
 		});
@@ -121,7 +126,7 @@ describe("HoverCard", () => {
 				pointerType: "mouse",
 			});
 			act(() => {
-				vi.advanceTimersByTime(700);
+				vi.advanceTimersByTime(300);
 			});
 			rerender(tree(true));
 			await act(async () => {
@@ -147,7 +152,7 @@ describe("HoverCard", () => {
 				pointerType: "mouse",
 			});
 			act(() => {
-				vi.advanceTimersByTime(700);
+				vi.advanceTimersByTime(300);
 			});
 			expect(screen.getByRole("link", { name: "Docs" })).toHaveAttribute("tabindex", "-1");
 		});

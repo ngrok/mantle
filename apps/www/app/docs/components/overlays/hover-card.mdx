@@ -99,7 +99,7 @@ HoverCard.Root
 
 `HoverCard` follows [WCAG 1.4.13](https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html) for content that shows on hover or focus.
 
-- A mouse or pen that rests on the link, or a keyboard focus on the link, opens the card after `openDelay` (700ms).
+- A mouse or pen that rests on the link, or a keyboard focus on the link, opens the card after `openDelay` (300ms).
 - The card stays open while a pointer rests on the link or the card, or the link has focus. It closes `closeDelay` (300ms) after neither holds it, so the pointer can cross from the link to the card.
 - `Escape` and a press outside close it.
 - The keyboard never enters the card: its links and buttons leave the Tab order. Focus stays on the trigger.
@@ -123,7 +123,7 @@ The root stateful component that manages the open/closed state of the hover card
 | `open`         | `boolean`                 |         | The controlled open state of the hover card. Must be used in conjunction with `onOpenChange`.                                             |
 | `onOpenChange` | `(open: boolean) => void` |         | Event handler called when the open state of the hover card changes.                                                                       |
 | `defaultOpen`  | `boolean`                 | `false` | The open state of the hover card when it is initially rendered. Use when you do not need to control its open state.                       |
-| `openDelay`    | `number`                  | `700`   | The duration in milliseconds from when the pointer rests on the trigger, or the trigger takes keyboard focus, until the hover card opens. |
+| `openDelay`    | `number`                  | `300`   | The duration in milliseconds from when the pointer rests on the trigger, or the trigger takes keyboard focus, until the hover card opens. |
 | `closeDelay`   | `number`                  | `300`   | The duration in milliseconds from when neither a pointer nor a focus holds the card until it closes.                                      |
 
 ### HoverCard.Trigger
