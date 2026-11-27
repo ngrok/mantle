@@ -128,11 +128,13 @@ FocusShortcut.Root
 
 `FocusShortcut.Field` always merges onto its one child, so it needs no `asChild`.
 
+Inside `Field.Control`, put `FocusShortcut.Root` outside the control and `FocusShortcut.Field` inside it, around the field. The `id`, `name`, and ARIA that `Field.Item` owns then reach the field, and the field still names `/` in its `aria-keyshortcuts`.
+
 ## Behavior
 
 - `/` still types a slash while focus is in any text control, including one inside an open shadow root. On a checkbox, a radio, or a button, `/` moves focus to the field.
 - `/` does nothing with Meta, Ctrl, or Alt held, while an IME composes, or on a key repeat.
-- A field that is disabled (natively or with `aria-disabled`), not displayed, or behind a modal (`inert` or `aria-hidden="true"` on an ancestor) does not take the key. The key then goes to the next field with the shortcut.
+- A field that is disabled (natively, by a `fieldset`, or with `aria-disabled` on it or a group around it), not displayed, or behind a modal (`inert` or `aria-hidden="true"` on an ancestor) does not take the key. The key then goes to the next field with the shortcut.
 - When two fields have the shortcut, `/` goes to the field that mounted first and can take focus. Give the shortcut to one field per page.
 - A listener that calls `preventDefault()` on the key first keeps the key. `FocusShortcut.Field` calls `preventDefault()` when it takes the key, so the slash does not type into the field.
 

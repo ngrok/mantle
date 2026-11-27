@@ -81,12 +81,15 @@ utils:
       - has:
           field: property
           regex: ^Input$
-  # `keyboardShortcut` or `keyboardShortcut={true}`: the shortcut is on.
-  shortcut-on:
+  # Any `keyboardShortcut` attribute.
+  shortcut-attribute:
     kind: jsx_attribute
     has:
       kind: property_identifier
       regex: ^keyboardShortcut$
+  # `keyboardShortcut` or `keyboardShortcut={true}`: the shortcut is on.
+  shortcut-on:
+    matches: shortcut-attribute
     any:
       - not:
           has:
@@ -123,62 +126,123 @@ utils:
                   has:
                     field: name
                     pattern: $QUERY
-rule:
-  kind: jsx_self_closing_element
-  pattern: $SOURCE
-  all:
-    - has:
-        matches: shortcut-on
-    # Why: a wrapper around a keyed element would leave the key off the list item.
-    - not:
-        has:
-          kind: jsx_attribute
-          has:
-            kind: property_identifier
-            regex: ^key$
-    # Why: a later spread can turn the shortcut off, and a `children` prop
-    # loses to the hint as a JSX child. Both stay for a manual edit.
-    - not:
-        has:
-          kind: jsx_attribute
-          has:
-            kind: property_identifier
-            regex: ^children$
-    - not:
-        has:
-          matches: shortcut-on
-          precedes:
-            kind: jsx_expression
-            has:
-              kind: spread_element
+  # A `FocusShortcut` name that does not come from `@ngrok/mantle/focus-shortcut`.
+  # The wrapper would read that binding, so the file stays for a manual edit.
+  foreign-focus-shortcut:
+    any:
+      - kind: identifier
+      - kind: type_identifier
+      - kind: shorthand_property_identifier_pattern
+    regex: ^FocusShortcut$
+    not:
+      any:
+        - inside: { kind: member_expression, field: object }
+        - inside:
             stopBy: end
-    # Why: `Field.Control` passes its ref and props to its one child, and
-    # `FocusShortcut.Root` renders no element to take them.
-    - not:
-        inside:
-          kind: jsx_element
-          has:
-            field: open_tag
+            kind: import_statement
             has:
+              field: source
+              regex: ^["']@ngrok/mantle/focus-shortcut["']$
+  # An opening or self-closing tag that the wrap rules rewrite.
+  shortcut-tag:
+    all:
+      - has:
+          matches: shortcut-on
+      - matches: mantle-query-input
+      # Why: a key must move to the new outer element, a spread can set
+      # `children` or turn the shortcut off, and a `children` prop loses to
+      # the hint as a JSX child.
+      - not:
+          has:
+            any:
+              - kind: jsx_expression
+                has:
+                  kind: spread_element
+              - kind: jsx_attribute
+                has:
+                  kind: property_identifier
+                  regex: ^(?:key|children)$
+      # Why: the attribute rewrite must touch only this tag, so JSX inside a
+      # prop that also sets `keyboardShortcut` stays for a manual edit.
+      - not:
+          has:
+            kind: jsx_attribute
+            has:
+              stopBy: end
+              matches: shortcut-attribute
+      - not:
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              stopBy: end
+              matches: foreign-focus-shortcut
+  # Why: `Slot`, `Field.Control`, and an `asChild` part pass their ref and
+  # props to their one child, and `FocusShortcut.Root` renders no element to
+  # take them. A ternary or `&&` inside such a part counts too.
+  slotted:
+    inside:
+      stopBy:
+        kind: jsx_element
+      kind: jsx_element
+      has:
+        field: open_tag
+        any:
+          - has:
               field: name
-              regex: \.Control$
-    - matches: mantle-query-input
+              regex: (?:^|\.)(?:Slot|Control)$
+          - has:
+              kind: jsx_attribute
+              has:
+                kind: property_identifier
+                regex: ^asChild$
+  # Why: ast-grep indents each line of the wrapped tag, which would change
+  # the text of a multi-line string.
+  multi-line-string:
+    any:
+      - kind: string
+      - kind: template_string
+    regex: \n
+  wrappable-self-closing:
+    kind: jsx_self_closing_element
+    all:
+      - matches: shortcut-tag
+      - not:
+          matches: slotted
+      - not:
+          has:
+            stopBy: end
+            matches: multi-line-string
+  wrappable-element:
+    kind: jsx_element
+    all:
+      - has:
+          field: open_tag
+          matches: shortcut-tag
+      # Why: the hint beside text or an expression would leave text bare beside
+      # an element, which a translated page cannot update. Elements only.
+      - not:
+          has:
+            any:
+              - kind: jsx_expression
+              - kind: jsx_text
+                regex: \S
+      - not:
+          matches: slotted
+      - not:
+          has:
+            stopBy: end
+            matches: multi-line-string
+rule:
+  matches: wrappable-self-closing
+  pattern: $SOURCE
 rewriters:
   # Removes the attribute through the syntax tree, so a string or a comment
-  # that names `keyboardShortcut` stays as it is.
+  # that names `keyboardShortcut` stays as it is. The wrap rules skip a tag
+  # with `keyboardShortcut` inside a prop, so only the tag's own attribute goes.
   - id: drop-shortcut
     rule:
-      kind: jsx_attribute
-      has:
-        kind: property_identifier
-        regex: ^keyboardShortcut$
-      inside:
-        any:
-          - kind: jsx_self_closing_element
-          - kind: jsx_opening_element
-        has:
-          field: name
-          regex: \.Input$
+      matches: shortcut-attribute
     fix: ""
 transform:
   WITHOUT:
@@ -198,6 +262,7 @@ fix: |-
       </$QUERY.Input>
     </FocusShortcut.Field>
   </FocusShortcut.Root>
+
 ---
 id: query-input-shortcut-wrap-element
 language: tsx
@@ -279,12 +344,15 @@ utils:
       - has:
           field: property
           regex: ^Input$
-  # `keyboardShortcut` or `keyboardShortcut={true}`: the shortcut is on.
-  shortcut-on:
+  # Any `keyboardShortcut` attribute.
+  shortcut-attribute:
     kind: jsx_attribute
     has:
       kind: property_identifier
       regex: ^keyboardShortcut$
+  # `keyboardShortcut` or `keyboardShortcut={true}`: the shortcut is on.
+  shortcut-on:
+    matches: shortcut-attribute
     any:
       - not:
           has:
@@ -321,64 +389,126 @@ utils:
                   has:
                     field: name
                     pattern: $QUERY
-rule:
-  kind: jsx_element
-  all:
-    - has:
-        field: open_tag
-        pattern: $SOURCE
-        all:
-          - has:
-              matches: shortcut-on
-          # Why: a wrapper around a keyed element would leave the key off the list item.
-          - not:
-              has:
-                kind: jsx_attribute
+  # A `FocusShortcut` name that does not come from `@ngrok/mantle/focus-shortcut`.
+  # The wrapper would read that binding, so the file stays for a manual edit.
+  foreign-focus-shortcut:
+    any:
+      - kind: identifier
+      - kind: type_identifier
+      - kind: shorthand_property_identifier_pattern
+    regex: ^FocusShortcut$
+    not:
+      any:
+        - inside: { kind: member_expression, field: object }
+        - inside:
+            stopBy: end
+            kind: import_statement
+            has:
+              field: source
+              regex: ^["']@ngrok/mantle/focus-shortcut["']$
+  # An opening or self-closing tag that the wrap rules rewrite.
+  shortcut-tag:
+    all:
+      - has:
+          matches: shortcut-on
+      - matches: mantle-query-input
+      # Why: a key must move to the new outer element, a spread can set
+      # `children` or turn the shortcut off, and a `children` prop loses to
+      # the hint as a JSX child.
+      - not:
+          has:
+            any:
+              - kind: jsx_expression
+                has:
+                  kind: spread_element
+              - kind: jsx_attribute
                 has:
                   kind: property_identifier
-                  regex: ^key$
-          - not:
-              has:
-                matches: shortcut-on
-                precedes:
-                  kind: jsx_expression
-                  has:
-                    kind: spread_element
-                  stopBy: end
-          - matches: mantle-query-input
-    - pattern: <$_NAME $$$>$$$CHILDREN</$_CLOSE>
-    # Why: the hint beside text or an expression would leave text bare beside an
-    # element, which a translated page cannot update. Elements only.
-    - not:
-        has:
-          any:
-            - kind: jsx_expression
-            - kind: jsx_text
-              regex: \S
-    - not:
-        inside:
-          kind: jsx_element
+                  regex: ^(?:key|children)$
+      # Why: the attribute rewrite must touch only this tag, so JSX inside a
+      # prop that also sets `keyboardShortcut` stays for a manual edit.
+      - not:
           has:
-            field: open_tag
+            kind: jsx_attribute
             has:
+              stopBy: end
+              matches: shortcut-attribute
+      - not:
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              stopBy: end
+              matches: foreign-focus-shortcut
+  # Why: `Slot`, `Field.Control`, and an `asChild` part pass their ref and
+  # props to their one child, and `FocusShortcut.Root` renders no element to
+  # take them. A ternary or `&&` inside such a part counts too.
+  slotted:
+    inside:
+      stopBy:
+        kind: jsx_element
+      kind: jsx_element
+      has:
+        field: open_tag
+        any:
+          - has:
               field: name
-              regex: \.Control$
+              regex: (?:^|\.)(?:Slot|Control)$
+          - has:
+              kind: jsx_attribute
+              has:
+                kind: property_identifier
+                regex: ^asChild$
+  # Why: ast-grep indents each line of the wrapped tag, which would change
+  # the text of a multi-line string.
+  multi-line-string:
+    any:
+      - kind: string
+      - kind: template_string
+    regex: \n
+  wrappable-self-closing:
+    kind: jsx_self_closing_element
+    all:
+      - matches: shortcut-tag
+      - not:
+          matches: slotted
+      - not:
+          has:
+            stopBy: end
+            matches: multi-line-string
+  wrappable-element:
+    kind: jsx_element
+    all:
+      - has:
+          field: open_tag
+          matches: shortcut-tag
+      # Why: the hint beside text or an expression would leave text bare beside
+      # an element, which a translated page cannot update. Elements only.
+      - not:
+          has:
+            any:
+              - kind: jsx_expression
+              - kind: jsx_text
+                regex: \S
+      - not:
+          matches: slotted
+      - not:
+          has:
+            stopBy: end
+            matches: multi-line-string
+rule:
+  matches: wrappable-element
+  pattern: <$_NAME $$$>$$$CHILDREN</$_CLOSE>
+  has:
+    field: open_tag
+    pattern: $SOURCE
 rewriters:
   # Removes the attribute through the syntax tree, so a string or a comment
-  # that names `keyboardShortcut` stays as it is.
+  # that names `keyboardShortcut` stays as it is. The wrap rules skip a tag
+  # with `keyboardShortcut` inside a prop, so only the tag's own attribute goes.
   - id: drop-shortcut
     rule:
-      kind: jsx_attribute
-      has:
-        kind: property_identifier
-        regex: ^keyboardShortcut$
-      inside:
-        any:
-          - kind: jsx_self_closing_element
-          - kind: jsx_opening_element
-        has:
-          field: name
-          regex: \.Input$
+      matches: shortcut-attribute
     fix: ""
 transform:
   OPEN:
@@ -394,6 +524,7 @@ fix: |-
       </$QUERY.Input>
     </FocusShortcut.Field>
   </FocusShortcut.Root>
+
 ---
 id: query-input-shortcut-drop-false
 language: tsx
@@ -475,12 +606,15 @@ utils:
       - has:
           field: property
           regex: ^Input$
-  # `keyboardShortcut` or `keyboardShortcut={true}`: the shortcut is on.
-  shortcut-on:
+  # Any `keyboardShortcut` attribute.
+  shortcut-attribute:
     kind: jsx_attribute
     has:
       kind: property_identifier
       regex: ^keyboardShortcut$
+  # `keyboardShortcut` or `keyboardShortcut={true}`: the shortcut is on.
+  shortcut-on:
+    matches: shortcut-attribute
     any:
       - not:
           has:
@@ -517,22 +651,126 @@ utils:
                   has:
                     field: name
                     pattern: $QUERY
-rule:
-  kind: jsx_attribute
-  has:
-    kind: property_identifier
-    regex: ^keyboardShortcut$
-  all:
-    - has:
-        kind: jsx_expression
-        has:
-          kind: "false"
-    - inside:
+  # A `FocusShortcut` name that does not come from `@ngrok/mantle/focus-shortcut`.
+  # The wrapper would read that binding, so the file stays for a manual edit.
+  foreign-focus-shortcut:
+    any:
+      - kind: identifier
+      - kind: type_identifier
+      - kind: shorthand_property_identifier_pattern
+    regex: ^FocusShortcut$
+    not:
+      any:
+        - inside: { kind: member_expression, field: object }
+        - inside:
+            stopBy: end
+            kind: import_statement
+            has:
+              field: source
+              regex: ^["']@ngrok/mantle/focus-shortcut["']$
+  # An opening or self-closing tag that the wrap rules rewrite.
+  shortcut-tag:
+    all:
+      - has:
+          matches: shortcut-on
+      - matches: mantle-query-input
+      # Why: a key must move to the new outer element, a spread can set
+      # `children` or turn the shortcut off, and a `children` prop loses to
+      # the hint as a JSX child.
+      - not:
+          has:
+            any:
+              - kind: jsx_expression
+                has:
+                  kind: spread_element
+              - kind: jsx_attribute
+                has:
+                  kind: property_identifier
+                  regex: ^(?:key|children)$
+      # Why: the attribute rewrite must touch only this tag, so JSX inside a
+      # prop that also sets `keyboardShortcut` stays for a manual edit.
+      - not:
+          has:
+            kind: jsx_attribute
+            has:
+              stopBy: end
+              matches: shortcut-attribute
+      - not:
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              stopBy: end
+              matches: foreign-focus-shortcut
+  # Why: `Slot`, `Field.Control`, and an `asChild` part pass their ref and
+  # props to their one child, and `FocusShortcut.Root` renders no element to
+  # take them. A ternary or `&&` inside such a part counts too.
+  slotted:
+    inside:
+      stopBy:
+        kind: jsx_element
+      kind: jsx_element
+      has:
+        field: open_tag
         any:
-          - kind: jsx_opening_element
-          - kind: jsx_self_closing_element
-        matches: mantle-query-input
+          - has:
+              field: name
+              regex: (?:^|\.)(?:Slot|Control)$
+          - has:
+              kind: jsx_attribute
+              has:
+                kind: property_identifier
+                regex: ^asChild$
+  # Why: ast-grep indents each line of the wrapped tag, which would change
+  # the text of a multi-line string.
+  multi-line-string:
+    any:
+      - kind: string
+      - kind: template_string
+    regex: \n
+  wrappable-self-closing:
+    kind: jsx_self_closing_element
+    all:
+      - matches: shortcut-tag
+      - not:
+          matches: slotted
+      - not:
+          has:
+            stopBy: end
+            matches: multi-line-string
+  wrappable-element:
+    kind: jsx_element
+    all:
+      - has:
+          field: open_tag
+          matches: shortcut-tag
+      # Why: the hint beside text or an expression would leave text bare beside
+      # an element, which a translated page cannot update. Elements only.
+      - not:
+          has:
+            any:
+              - kind: jsx_expression
+              - kind: jsx_text
+                regex: \S
+      - not:
+          matches: slotted
+      - not:
+          has:
+            stopBy: end
+            matches: multi-line-string
+rule:
+  matches: shortcut-attribute
+  has:
+    kind: jsx_expression
+    has:
+      kind: "false"
+  inside:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    matches: mantle-query-input
 fix: ""
+
 ---
 id: query-input-shortcut-import
 language: tsx
@@ -614,12 +852,15 @@ utils:
       - has:
           field: property
           regex: ^Input$
-  # `keyboardShortcut` or `keyboardShortcut={true}`: the shortcut is on.
-  shortcut-on:
+  # Any `keyboardShortcut` attribute.
+  shortcut-attribute:
     kind: jsx_attribute
     has:
       kind: property_identifier
       regex: ^keyboardShortcut$
+  # `keyboardShortcut` or `keyboardShortcut={true}`: the shortcut is on.
+  shortcut-on:
+    matches: shortcut-attribute
     any:
       - not:
           has:
@@ -656,27 +897,125 @@ utils:
                   has:
                     field: name
                     pattern: $QUERY
+  # A `FocusShortcut` name that does not come from `@ngrok/mantle/focus-shortcut`.
+  # The wrapper would read that binding, so the file stays for a manual edit.
+  foreign-focus-shortcut:
+    any:
+      - kind: identifier
+      - kind: type_identifier
+      - kind: shorthand_property_identifier_pattern
+    regex: ^FocusShortcut$
+    not:
+      any:
+        - inside: { kind: member_expression, field: object }
+        - inside:
+            stopBy: end
+            kind: import_statement
+            has:
+              field: source
+              regex: ^["']@ngrok/mantle/focus-shortcut["']$
+  # An opening or self-closing tag that the wrap rules rewrite.
+  shortcut-tag:
+    all:
+      - has:
+          matches: shortcut-on
+      - matches: mantle-query-input
+      # Why: a key must move to the new outer element, a spread can set
+      # `children` or turn the shortcut off, and a `children` prop loses to
+      # the hint as a JSX child.
+      - not:
+          has:
+            any:
+              - kind: jsx_expression
+                has:
+                  kind: spread_element
+              - kind: jsx_attribute
+                has:
+                  kind: property_identifier
+                  regex: ^(?:key|children)$
+      # Why: the attribute rewrite must touch only this tag, so JSX inside a
+      # prop that also sets `keyboardShortcut` stays for a manual edit.
+      - not:
+          has:
+            kind: jsx_attribute
+            has:
+              stopBy: end
+              matches: shortcut-attribute
+      - not:
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              stopBy: end
+              matches: foreign-focus-shortcut
+  # Why: `Slot`, `Field.Control`, and an `asChild` part pass their ref and
+  # props to their one child, and `FocusShortcut.Root` renders no element to
+  # take them. A ternary or `&&` inside such a part counts too.
+  slotted:
+    inside:
+      stopBy:
+        kind: jsx_element
+      kind: jsx_element
+      has:
+        field: open_tag
+        any:
+          - has:
+              field: name
+              regex: (?:^|\.)(?:Slot|Control)$
+          - has:
+              kind: jsx_attribute
+              has:
+                kind: property_identifier
+                regex: ^asChild$
+  # Why: ast-grep indents each line of the wrapped tag, which would change
+  # the text of a multi-line string.
+  multi-line-string:
+    any:
+      - kind: string
+      - kind: template_string
+    regex: \n
+  wrappable-self-closing:
+    kind: jsx_self_closing_element
+    all:
+      - matches: shortcut-tag
+      - not:
+          matches: slotted
+      - not:
+          has:
+            stopBy: end
+            matches: multi-line-string
+  wrappable-element:
+    kind: jsx_element
+    all:
+      - has:
+          field: open_tag
+          matches: shortcut-tag
+      # Why: the hint beside text or an expression would leave text bare beside
+      # an element, which a translated page cannot update. Elements only.
+      - not:
+          has:
+            any:
+              - kind: jsx_expression
+              - kind: jsx_text
+                regex: \S
+      - not:
+          matches: slotted
+      - not:
+          has:
+            stopBy: end
+            matches: multi-line-string
 rule:
   matches: query-import
   pattern: $IMPORT
   all:
+    # Only a file where a wrap rule rewrites a field.
     - inside:
         kind: program
         has:
           stopBy: end
           any:
-            - kind: jsx_self_closing_element
-            - kind: jsx_opening_element
-          all:
-            - has:
-                matches: shortcut-on
-            - not:
-                has:
-                  kind: jsx_attribute
-                  has:
-                    kind: property_identifier
-                    regex: ^key$
-            - matches: mantle-query-input
+            - matches: wrappable-self-closing
+            - matches: wrappable-element
     # A value import of `FocusShortcut` under its own name. An alias or a
     # type-only import leaves the name the wrapper uses unbound.
     - not:

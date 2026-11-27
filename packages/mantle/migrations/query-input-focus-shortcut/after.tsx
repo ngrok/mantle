@@ -4,6 +4,11 @@ import { FocusShortcut } from "@ngrok/mantle/focus-shortcut";
 import { Query } from "@ngrok/mantle/query";
 import { Query as MantleQuery } from "@ngrok/mantle/query";
 import { Query as OtherQuery } from "other-library";
+import { Slot } from "@ngrok/mantle/slot";
+import { Tooltip } from "@ngrok/mantle/tooltip";
+
+declare function show(node: unknown): void;
+declare function save(text: string): void;
 
 // A literal `keyboardShortcut`.
 export function Bare() {
@@ -145,5 +150,67 @@ export function InFieldControl() {
 		<Field.Control>
 			<Query.Input keyboardShortcut placeholder="Filter" />
 		</Field.Control>
+	);
+}
+
+// A spread before the prop can set `children`, so the field stays.
+export function SpreadChildren(props: { children?: React.ReactNode }) {
+	return <Query.Input aria-label="Filter" {...props} keyboardShortcut />;
+}
+
+// A `children` prop on an empty paired element stays.
+export function PairedChildrenProp() {
+	return (
+		<Query.Input
+			aria-label="Filter"
+			// oxlint-disable-next-line react/no-children-prop -- Why: the fixture covers a `children` prop that the codemod must skip.
+			children={<Button>Save</Button>}
+			keyboardShortcut
+			// oxlint-disable-next-line react/self-closing-comp -- Why: the fixture covers a paired element that the codemod must skip.
+		></Query.Input>
+	);
+}
+
+// JSX inside a prop that also sets `keyboardShortcut` stays, the outer field too.
+export function NestedInProp({ enabled }: { enabled: boolean }) {
+	return (
+		<Query.Input
+			aria-label="Filter"
+			keyboardShortcut
+			onClear={() => show(<OtherQuery.Input keyboardShortcut={enabled} />)}
+		/>
+	);
+}
+
+// `Slot` and an `asChild` part pass their ref and props to their one child, so the field stays.
+export function InSlot() {
+	return (
+		<>
+			<Slot aria-label="Search">
+				<Query.Input keyboardShortcut />
+			</Slot>
+			<Tooltip.Trigger asChild>
+				<Query.Input keyboardShortcut />
+			</Tooltip.Trigger>
+		</>
+	);
+}
+
+// A condition inside `Field.Control` still gives the field to the control, so it stays.
+export function TernaryInFieldControl({ show }: { show: boolean }) {
+	return <Field.Control>{show && <Query.Input keyboardShortcut />}</Field.Control>;
+}
+
+// A multi-line string stays, because the rewrite would indent its text.
+export function MultiLineString() {
+	return (
+		<Query.Input
+			aria-label="Filter"
+			keyboardShortcut
+			onClear={() =>
+				save(`one
+two`)
+			}
+		/>
 	);
 }

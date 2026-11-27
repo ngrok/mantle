@@ -24,11 +24,16 @@ import { Kbd } from "../kbd/kbd.js";
 import { Slot } from "../slot/slot.js";
 
 type FocusShortcutContextValue = {
-	isHintShown: boolean;
+	/** Whether a `FocusShortcut.Hint` is mounted, so the field tracks its state only for one. */
+	hasHint: boolean;
+	setHasHint: (hasHint: boolean) => void;
 	setIsHintShown: (isHintShown: boolean) => void;
 };
 
 const FocusShortcutContext = createContext<FocusShortcutContextValue | null>(null);
+
+// Why a second context: only the hint reads this value, so a change does not render the field and its child.
+const FocusShortcutHintShownContext = createContext(false);
 
 function useFocusShortcutContext(part: string): FocusShortcutContextValue {
 	const context = useContext(FocusShortcutContext);
@@ -47,33 +52,43 @@ function isTextControl(target: EventTarget | null): boolean {
 	);
 }
 
-/** Whether a field is disabled, natively or with `aria-disabled`, which keeps it focusable. */
-function isDisabled(field: HTMLElement): boolean {
-	return field.matches(":disabled, [aria-disabled='true']");
-}
-
-/** Whether an ancestor hides the field from the user, across shadow roots. A modal does this to the page behind it. */
-function isHidden(field: HTMLElement): boolean {
+/**
+ * Whether the field or an ancestor matches the selector in the rendered tree:
+ * through the slot a light-DOM child renders in, and out of each shadow root.
+ */
+function isWithin(field: HTMLElement, selector: string): boolean {
 	for (let node: Element | null = field; node != null;) {
-		if (node.closest("[inert], [aria-hidden='true']") != null) {
+		if (node.matches(selector)) {
 			return true;
 		}
-		const root = node.getRootNode();
-		node = root instanceof ShadowRoot ? root.host : null;
+		const parent: Node | null = node.assignedSlot ?? node.parentNode;
+		if (parent instanceof ShadowRoot) {
+			node = parent.host;
+		} else {
+			node = parent instanceof Element ? parent : null;
+		}
 	}
 	return false;
 }
 
-/** Whether the `/` hint shows for a field: it is empty, enabled, and not focused. */
+/** Whether a field is disabled: natively, or with `aria-disabled` on it or on a group around it. */
+function isDisabled(field: HTMLElement): boolean {
+	return field.matches(":disabled") || isWithin(field, "[aria-disabled='true']");
+}
+
+/** Whether the `/` hint shows for a field: it is enabled, not focused, and empty. */
 function canShowHint(field: HTMLElement): boolean {
 	if (field.matches(":focus") || isDisabled(field)) {
 		return false;
 	}
-	return field instanceof HTMLInputElement ||
+	if (
+		field instanceof HTMLInputElement ||
 		field instanceof HTMLTextAreaElement ||
 		field instanceof HTMLSelectElement
-		? field.value === ""
-		: true;
+	) {
+		return field.value === "";
+	}
+	return !field.isContentEditable || field.textContent === "";
 }
 
 /** Joins space-separated `aria-keyshortcuts` lists, without duplicates. */
@@ -83,7 +98,8 @@ function joinKeyShortcuts(...lists: Array<string | undefined>): string {
 
 /**
  * Whether `/` goes to the field: no other text control takes the key, no
- * modifier or IME composition changes it, and no earlier field took it.
+ * modifier or IME composition changes it, no earlier field took it, and the
+ * field is enabled and not behind a modal.
  */
 function isFocusShortcut(event: KeyboardEvent, field: HTMLElement): boolean {
 	return (
@@ -96,8 +112,9 @@ function isFocusShortcut(event: KeyboardEvent, field: HTMLElement): boolean {
 		!event.altKey &&
 		// The composed path starts at a text field inside a shadow root, where `target` is the host.
 		!isTextControl(event.composedPath()[0] ?? null) &&
-		!isDisabled(field) &&
-		!isHidden(field)
+		!field.matches(":disabled") &&
+		// A modal makes the page behind it `inert` or `aria-hidden`.
+		!isWithin(field, "[inert], [aria-hidden='true'], [aria-disabled='true']")
 	);
 }
 
@@ -130,11 +147,16 @@ type FocusShortcutRootProps = {
  * ```
  */
 function Root({ children }: FocusShortcutRootProps) {
+	const [hasHint, setHasHint] = useState(false);
 	// Why hidden first: the server cannot read the field's value, and a hint over a filled field is wrong.
 	const [isHintShown, setIsHintShown] = useState(false);
-	// Why useMemo: each `Hint` and `Field` reads the context, and a new object would render both on each `Root` render.
-	const context = useMemo(() => ({ isHintShown, setIsHintShown }), [isHintShown]);
-	return <FocusShortcutContext value={context}>{children}</FocusShortcutContext>;
+	// Why useMemo: a new object would render the field and its child on each `Root` render.
+	const context = useMemo(() => ({ hasHint, setHasHint, setIsHintShown }), [hasHint]);
+	return (
+		<FocusShortcutContext value={context}>
+			<FocusShortcutHintShownContext value={isHintShown}>{children}</FocusShortcutHintShownContext>
+		</FocusShortcutContext>
+	);
 }
 
 /**
@@ -156,12 +178,16 @@ type FocusShortcutFieldProps = Omit<HTMLAttributes<HTMLElement>, "children"> &
  * Makes `/` move focus into its child field from anywhere on the page. It
  * renders no element of its own: it merges `aria-keyshortcuts="/"` onto the
  * child and keeps the child's own shortcuts in the list. Its other props, such
- * as the ones `Field.Control` passes, merge onto the child as `Slot` merges them.
+ * as the `id`, `name`, and ARIA that `Field.Control` passes, win over the
+ * child's. Handlers, `className`, `style`, and `aria-describedby` compose with
+ * the child's, as `Slot` composes them. Inside `Field.Control`, put
+ * `FocusShortcut.Field` inside the control, around the field.
  *
  * `/` still types a slash in any text control. It does nothing with Meta,
  * Ctrl, or Alt held, while an IME composes, or on a key repeat. A field that
- * is disabled (natively or with `aria-disabled`), not displayed, or behind a
- * modal does not take the key, and leaves it to a later field. When two fields on a page have the shortcut,
+ * is disabled (natively, by a `fieldset`, or with `aria-disabled` on it or a
+ * group around it), not displayed, or behind a modal does not take the key,
+ * and leaves it to a later field. When two fields on a page have the shortcut,
  * `/` goes to the field that mounted first and can take focus.
  *
  * **Data attributes:**
@@ -193,7 +219,7 @@ function Field({
 	ref,
 	...props
 }: FocusShortcutFieldProps) {
-	const { setIsHintShown } = useFocusShortcutContext("FocusShortcut.Field");
+	const { hasHint, setIsHintShown } = useFocusShortcutContext("FocusShortcut.Field");
 	const fieldRef = useRef<HTMLElement | null>(null);
 
 	// Why an effect and not the ref callback: a child that passes a new ref on each render
@@ -204,7 +230,7 @@ function Field({
 			if (field == null || !isFocusShortcut(event, field)) {
 				return;
 			}
-			// A field that is disabled or not displayed does not take focus, and leaves the key to a later field.
+			// A field that is not displayed does not take focus, and leaves the key to a later field.
 			field.focus();
 			if (!field.matches(":focus")) {
 				return;
@@ -219,7 +245,8 @@ function Field({
 	const fieldCallbackRef = useCallback(
 		(field: HTMLElement | null) => {
 			fieldRef.current = field;
-			if (field == null) {
+			// Why only with a hint: without one, nothing reads the field's state.
+			if (field == null || !hasHint) {
 				return;
 			}
 			const syncHint = () => setIsHintShown(field.isConnected && canShowHint(field));
@@ -229,46 +256,56 @@ function Field({
 			// attributes, so the hint follows state that only the child owns.
 			const observer = new MutationObserver(syncHint);
 			observer.observe(field, {
-				attributeFilter: ["value", "disabled"],
+				attributeFilter: ["value", "disabled", "aria-disabled"],
 				characterData: true,
 				childList: true,
 				subtree: true,
 			});
-			const form =
-				field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement
-					? field.form
-					: null;
-			field.addEventListener("focus", syncHint);
-			field.addEventListener("blur", syncHint);
-			field.addEventListener("input", syncHint);
+			// A disabled `fieldset` or an `aria-disabled` group disables the field too.
+			for (let node = field.parentElement; node != null; node = node.parentElement) {
+				observer.observe(node, { attributeFilter: ["disabled", "aria-disabled"] });
+			}
+			const form = "form" in field && field.form instanceof HTMLFormElement ? field.form : null;
+			const events = ["focus", "blur", "input", "change"];
+			for (const type of events) {
+				field.addEventListener(type, syncHint);
+			}
 			form?.addEventListener("reset", syncAfterReset);
 			syncHint();
 			return () => {
-				fieldRef.current = null;
 				observer.disconnect();
-				field.removeEventListener("focus", syncHint);
-				field.removeEventListener("blur", syncHint);
-				field.removeEventListener("input", syncHint);
+				for (const type of events) {
+					field.removeEventListener(type, syncHint);
+				}
 				form?.removeEventListener("reset", syncAfterReset);
 				setIsHintShown(false);
 			};
 		},
-		[setIsHintShown],
+		[hasHint, setIsHintShown],
 	);
 	const composedRef = useComposedRefs(ref, fieldCallbackRef);
 
 	// Why on each render, before paint: a new `value` or `disabled` from the app fires no DOM event.
 	useIsomorphicLayoutEffect(() => {
-		if (fieldRef.current != null) {
+		if (hasHint && fieldRef.current != null) {
 			setIsHintShown(canShowHint(fieldRef.current));
 		}
 	});
 
 	const child = Children.only(children);
+	// Why the part's plain props win: `Field.Control` sets `id`, `name`, and ARIA on this
+	// part, and `Field.Item` owns them, so the child must not replace them. `Slot` still
+	// composes handlers, `className`, `style`, and `aria-describedby`.
+	const ownProps = Object.fromEntries(
+		Object.entries(props).filter(
+			([key, value]) =>
+				value !== undefined && !/^on[A-Z]|^(?:className|style|aria-describedby)$/.test(key),
+		),
+	);
 	return (
 		<Slot {...props} data-slot={joinDataSlot(dataSlot, "focus-shortcut-field")} ref={composedRef}>
-			{/* Why clone: `Slot` lets the child's own `aria-keyshortcuts` replace the part's. */}
 			{cloneElement(child, {
+				...ownProps,
 				"aria-keyshortcuts": joinKeyShortcuts(
 					child.props["aria-keyshortcuts"],
 					ownKeyShortcuts,
@@ -325,13 +362,19 @@ function Hint({
 	"data-slot": dataSlot,
 	...props
 }: FocusShortcutHintProps) {
-	const { isHintShown } = useFocusShortcutContext("FocusShortcut.Hint");
+	const { setHasHint } = useFocusShortcutContext("FocusShortcut.Hint");
+	const isHintShown = useContext(FocusShortcutHintShownContext);
+	useIsomorphicLayoutEffect(() => {
+		setHasHint(true);
+		return () => setHasHint(false);
+	}, [setHasHint]);
+	// Why the part's props last: the field's `aria-keyshortcuts` names the key, so the hint stays decorative.
 	const hintProps = {
+		...props,
 		"aria-hidden": true,
 		className: cx("hover-none:hidden", className),
-		...props,
 		hidden: !isHintShown,
-	};
+	} as const;
 
 	if (asChild) {
 		// Why clone: `Slot` lets the child's props win, and the part owns `hidden`, `aria-hidden`, and `translate`.

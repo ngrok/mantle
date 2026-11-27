@@ -94,6 +94,38 @@ describe("FocusShortcut in a browser", () => {
 		await expect.element(page.getByTestId("Enabled hint")).not.toBeVisible();
 	});
 
+	test("passes over a light-DOM field that an aria-hidden slot hides", async () => {
+		const host = document.createElement("div");
+		host.attachShadow({ mode: "open" }).innerHTML = '<div aria-hidden="true"><slot></slot></div>';
+		document.body.append(host);
+		const { unmount } = render(<SearchField label="Slotted" />, {
+			container: host.appendChild(document.createElement("div")),
+		});
+		render(<SearchField label="Shown" />);
+
+		try {
+			await userEvent.keyboard("/");
+
+			await expect.element(page.getByRole("textbox", { name: "Shown" })).toHaveFocus();
+		} finally {
+			unmount();
+			host.remove();
+		}
+	});
+
+	test("hides the hint when a fieldset around the field turns disabled", async () => {
+		render(
+			<fieldset>
+				<SearchField label="Search" />
+			</fieldset>,
+		);
+		await expect.element(page.getByTestId("Search hint")).toBeVisible();
+
+		(page.getByRole("group").element() as HTMLFieldSetElement).disabled = true;
+
+		await expect.element(page.getByTestId("Search hint")).not.toBeVisible();
+	});
+
 	test.runIf(server.browser === "chromium")(
 		"hides the hint on a device that cannot hover, and keeps the shortcut",
 		async () => {
