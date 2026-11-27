@@ -190,8 +190,9 @@ function useOffsetPagination({
 	const [previousPageSize, setPreviousPageSize] = useState(pageSize);
 	// The page and size that `setPageSize` picked when the parent owns one of
 	// them. Both apply in the render where the parent's prop reports its value,
-	// so the page and the size never show a mixed range.
-	const [pending, setPending] = useState<{ page: number; size: number } | null>(null);
+	// so the page and the size never show a mixed range. `from` is the stored
+	// page when the resize started.
+	const [pending, setPending] = useState<{ from: number; page: number; size: number } | null>(null);
 	// Why adjust during render and not in an effect: the change touches only
 	// this hook's state, so the first render after it is already correct. Why
 	// no `onPageChange`: a parent that changes `pageSize` sets the page in the
@@ -219,6 +220,15 @@ function useOffsetPagination({
 		setPending(null);
 		setInternalPage(pending.page);
 		setInternalPageSize(pending.size);
+	} else if (
+		pending != null &&
+		!isPageSizeControlled &&
+		isPageControlled &&
+		!Object.is(pageProp, pending.from)
+	) {
+		// Why: a parent move to another page, such as a back move, cancels the
+		// resize, so a later write of its page must not apply the size.
+		setPending(null);
 	}
 	// Why read `pending` here: the state updates above land in the next render,
 	// and a parent that reads `currentPage` in this render must get the page at its size.
@@ -252,12 +262,13 @@ function useOffsetPagination({
 			if (next === storedPage) {
 				return;
 			}
-			if (!isPageControlled) {
+			if (isPageControlled) {
+				// Why keep a resize to the same page: the write still carries it.
+				setPending((current) => (current?.page === next ? current : null));
+			} else {
 				setInternalPage(next);
+				setPending(null);
 			}
-			// Why in both modes: a navigation replaces a resize that waits for its
-			// page, so a later write of that page must not apply the size.
-			setPending(null);
 			if (isPageControlled && onPageChange != null) {
 				awaitedEcho.current = {
 					fromPage: storedPage,
@@ -280,12 +291,14 @@ function useOffsetPagination({
 		const listSizeChanged = previousListSize.current !== listSize;
 		previousListSize.current = listSize;
 		const echo = awaitedEcho.current;
-		// Why not on a size change alone: a parent can commit the size first, or
-		// change it on its own, while the page write still waits.
+		// Why wait for both values on the requested page: a parent can commit the
+		// page and the size in separate renders. Any other page supersedes it.
 		if (
 			echo != null &&
-			(!Object.is(storedPage, echo.fromPage) ||
-				(storedPage === echo.toPage && Object.is(currentPageSize, echo.toSize)))
+			(!isPageControlled ||
+				(storedPage === echo.toPage
+					? Object.is(currentPageSize, echo.toSize)
+					: !Object.is(storedPage, echo.fromPage)))
 		) {
 			awaitedEcho.current = null;
 		}
@@ -294,7 +307,10 @@ function useOffsetPagination({
 			if (!(awaitedEcho.current?.fromClamp && awaitedEcho.current.toPage === 1)) {
 				setPage(1);
 			}
-			return;
+			// Why go on without `onPageChange`: no write left, so the clamp reports.
+			if (!isPageControlled || onPageChange != null) {
+				return;
+			}
 		}
 		// Why skip zero pages: `listSize` is 0 while a list loads, and a report
 		// then erases the page that the URL restores. A `NaN` size has no page.
@@ -319,6 +335,7 @@ function useOffsetPagination({
 		currentPageSize,
 		isPageControlled,
 		listSize,
+		onPageChange,
 		onPageClamp,
 		resetPageOnListSizeChange,
 		setPage,
@@ -356,7 +373,7 @@ function useOffsetPagination({
 			if (!isPageControlled) {
 				// Why wait for the prop: the old size with the new page shows the
 				// wrong rows until the parent commits the size.
-				setPending({ page: nextPage, size });
+				setPending({ from: storedPage, page: nextPage, size });
 			}
 			// Why one callback: two router writes in one tick do not compose, so
 			// separate size and page callbacks lose one of the values.
@@ -374,7 +391,7 @@ function useOffsetPagination({
 		if (isPageControlled && nextPage !== storedPage) {
 			// Why wait for the prop: the new size with the old page shows the
 			// wrong rows until the parent commits the page.
-			setPending({ page: nextPage, size });
+			setPending({ from: storedPage, page: nextPage, size });
 			if (onPageChange != null) {
 				awaitedEcho.current = {
 					fromPage: storedPage,
