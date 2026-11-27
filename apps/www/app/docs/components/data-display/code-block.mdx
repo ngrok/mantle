@@ -327,6 +327,62 @@ jsonCodeBlockValue(record, { showLineNumbers: true });
 
 For lower-level control, `jsonToShikiHtml(code)` returns only the Shiki-identical inner HTML for a `<code>` element (no line-number or fold decoration); `jsonCodeBlockValue` builds on it.
 
+### Comparing two versions
+
+Use `CodeBlock.Diff` in place of `CodeBlock.Body` to show two versions of code side by side. A changed line gets a tint, a `+` or `−` sign, and its changed words marked with `<ins>` and `<del>`, so the change does not depend on color. Each run of unchanged lines keeps three lines beside each change, and a button expands the rest. Each side keeps the highlighting of its value. For JSON, pass `jsonCodeBlockValue(value, { sortKeys: true })` for each side, so the same key sits on the same line. A trailing comma alone does not count as a change. Return a `CodeBlock.DiffCallout` from the function child to put a note under a line; the other pane keeps a blank row of the same height.
+
+<Example name="components/data-display/code-block/comparing-two-versions" title="Code Block Comparing two versions example">
+
+```tsx
+import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
+
+const clientRequestBody = {
+	model: "gpt-5",
+	max_output_tokens: 256,
+	messages: [{ role: "user", content: "Summarize this ticket." }],
+	metadata: { team: "support", ticket: "T-4821", tier: "pro", user: "u_93", region: "us-east" },
+	stream: true,
+	temperature: 3,
+};
+
+const upstreamRequestBody = {
+	model: "claude-sonnet-5",
+	max_tokens: 256,
+	messages: [{ role: "user", content: "Summarize this ticket." }],
+	metadata: { team: "support", ticket: "T-4821", tier: "pro", user: "u_93", region: "us-east" },
+	stream: true,
+	temperature: 1,
+};
+
+export function RequestDiff() {
+	return (
+		<CodeBlock.Root>
+			<CodeBlock.Header>
+				<CodeBlock.Icon preset="file" />
+				<CodeBlock.Title>request.json</CodeBlock.Title>
+			</CodeBlock.Header>
+			<CodeBlock.Diff
+				fromLabel="Client request"
+				toLabel="Upstream request"
+				from={jsonCodeBlockValue(clientRequestBody, { sortKeys: true, foldable: false })}
+				to={jsonCodeBlockValue(upstreamRequestBody, { sortKeys: true, foldable: false })}
+			>
+				{(line) =>
+					line.change === "added" &&
+					line.path?.join(".") === "temperature" && (
+						<CodeBlock.DiffCallout>
+							Clamped to a value the upstream API accepts.
+						</CodeBlock.DiffCallout>
+					)
+				}
+			</CodeBlock.Diff>
+		</CodeBlock.Root>
+	);
+}
+```
+
+</Example>
+
 ### Tabbed code block
 
 Use `CodeBlock.TabList`, `CodeBlock.TabTrigger`, and `CodeBlock.TabContent` to create a tabbed code block. Pass `defaultTab` (or `activeTab` / `onActiveTabChange` for controlled mode) to `CodeBlock.Root`, place the tab triggers in the `CodeBlock.Header`, and wrap each `CodeBlock.Code` in a `CodeBlock.TabContent`. The copy button automatically copies whichever code is currently displayed.
@@ -597,15 +653,23 @@ CodeBlock.Root
 │   └── CodeBlock.TabContent
 │       └── CodeBlock.Code
 └── CodeBlock.ExpanderButton
+
+# Diff
+CodeBlock.Root
+├── CodeBlock.Header
+│   ├── CodeBlock.Icon
+│   └── CodeBlock.Title
+└── CodeBlock.Diff
+    └── CodeBlock.DiffCallout
 ```
 
 ## Polymorphism
 
-`CodeBlock.Root`, `CodeBlock.Header`, `CodeBlock.Title`, `CodeBlock.Body`, and `CodeBlock.CopyButton` accept `asChild`. When `true` the part renders its single child instead of its default element, forwarding class names, `data-*` attributes, and `ref` onto it.
+`CodeBlock.Root`, `CodeBlock.Header`, `CodeBlock.Title`, `CodeBlock.Body`, `CodeBlock.CopyButton`, and `CodeBlock.DiffCallout` accept `asChild`. When `true` the part renders its single child instead of its default element, forwarding class names, `data-*` attributes, and `ref` onto it.
 
 Reach for it when `Root` should be a semantic `<figure>` or `<section>`, when `Title` needs a different heading level than the default `<h3>`, or when `Header` and `Body` should be `<header>` and `<section>`. `CopyButton` has no children of its own, so it is typed `SelfClosingWithAsChild`: `<CodeBlock.CopyButton asChild>` requires exactly one child to clone, and forbids children otherwise.
 
-The remaining parts do not accept `asChild`. `CodeBlock.Code` owns the highlighted markup it renders, and `CodeBlock.TabList`, `CodeBlock.TabTrigger`, and `CodeBlock.TabContent` each explicitly omit the prop because their behavior and mounting are driven by the active tab. `CodeBlock.Icon` takes its element through the `svg` prop instead. `CodeBlock.ExpanderButton` renders its own "Show more" / "Show less" label and caret icon, so there is no single child to clone; style it with `className`.
+The remaining parts do not accept `asChild`. `CodeBlock.Code` and `CodeBlock.Diff` own the highlighted markup they render, and `CodeBlock.TabList`, `CodeBlock.TabTrigger`, and `CodeBlock.TabContent` each explicitly omit the prop because their behavior and mounting are driven by the active tab. `CodeBlock.Icon` takes its element through the `svg` prop instead. `CodeBlock.ExpanderButton` renders its own "Show more" / "Show less" label and caret icon, so there is no single child to clone; style it with `className`.
 
 ## Build-time highlighting
 
@@ -695,6 +759,41 @@ Inside the highlighted HTML, each line is a `.mantle-code-line` with `data-line-
 | CSS Variable                 | Default | Description                                       |
 | :--------------------------- | :------ | :------------------------------------------------ |
 | `--mantle-line-number-start` | `1`     | The CSS counter start for the line-number gutter. |
+
+### CodeBlock.Diff
+
+Two versions of code side by side. Use it in place of `CodeBlock.Body`, inside a `CodeBlock.Root`. Each pane is a `role="group"` named by `fromLabel` or `toLabel`, and it scrolls sideways on its own. Line numbers and signs are drawn by CSS, so a copy holds only the code. A changed line starts with a visually hidden "Removed:" or "Added:" for a screen reader.
+
+All props from [standard HTML div attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) except `children`, plus:
+
+| Prop         | Type                                     | Default    | Description                                                                         |
+| :----------- | :--------------------------------------- | :--------- | :---------------------------------------------------------------------------------- |
+| `from`       | `MantleCodeBlockValue`                   |            | The code before the change, on the left.                                            |
+| `to`         | `MantleCodeBlockValue`                   |            | The code after the change, on the right.                                            |
+| `fromLabel?` | `string`                                 | `"Before"` | The accessible name of the left pane.                                               |
+| `toLabel?`   | `string`                                 | `"After"`  | The accessible name of the right pane.                                              |
+| `wrapLines?` | `boolean`                                | `false`    | Whether long lines wrap in their pane. A line over 100,000 characters always wraps. |
+| `children?`  | `(line: CodeBlockDiffLine) => ReactNode` |            | Returns the `CodeBlock.DiffCallout` to show under one side of a line, or nothing.   |
+
+`CodeBlockDiffLine` has `side` (`"from"` or `"to"`), `lineNumber`, `change` (`"unchanged"`, `"removed"`, or `"added"`), `text`, and `path`: the path of the JSON value on the line, such as `["messages", 0, "role"]`, for a `json` value.
+
+| Data Attribute     | Value                          | Description                                                              |
+| :----------------- | :----------------------------- | :----------------------------------------------------------------------- |
+| `data-side`        | `"from"` \| `"to"`             | On each `code-block-diff-pane`. The value the pane shows.                |
+| `data-line-number` | a number                       | On each `code-block-diff-line`. The line number that its gutter shows.   |
+| `data-change`      | `"removed"` \| `"added"`       | On a `code-block-diff-line` that changed. Omitted on an unchanged line.  |
+| `data-slot`        | `"code-block-diff-filler"`     | The blank row in place of a line that the other side added or removed.   |
+| `data-slot`        | `"code-block-diff-expand"`     | The button that shows a folded run of unchanged lines, in the left pane. |
+| `data-slot`        | `"code-block-diff-expand-row"` | The row of the expand button, in each pane.                              |
+| `data-slot`        | `"code-block-diff-spacer"`     | The blank row in one pane beside a callout in the other.                 |
+
+### CodeBlock.DiffCallout
+
+A note under one side of a line of a `CodeBlock.Diff`. Return it from the function child. It stays in view as its pane scrolls sideways, and it wraps at the width of its pane. It carries `translate="yes"`, because it holds prose inside code; pass `translate="no"` when it holds code.
+
+| Prop       | Type      | Default | Description                                                                 |
+| :--------- | :-------- | :------ | :-------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Render the single child in place of the default `<div>`, merging the props. |
 
 ### CodeBlock.Header
 
@@ -789,10 +888,11 @@ Builds a `MantleCodeBlockValue` that renders any value as syntax-highlighted JSO
 jsonCodeBlockValue(value: unknown, options?: JsonCodeBlockValueOptions): MantleCodeBlockValue
 ```
 
-| Option             | Type      | Default | Description                                                                                                |
-| :----------------- | :-------- | :------ | :--------------------------------------------------------------------------------------------------------- |
-| `foldable?`        | `boolean` | `true`  | Give multi-line objects/arrays collapsible fold toggles (the same fold runtime as every other JSON block). |
-| `showLineNumbers?` | `boolean` | `false` | Render a line-number gutter. Detail panels usually read better without one.                                |
+| Option             | Type      | Default | Description                                                                                                    |
+| :----------------- | :-------- | :------ | :------------------------------------------------------------------------------------------------------------- |
+| `foldable?`        | `boolean` | `true`  | Give multi-line objects/arrays collapsible fold toggles (the same fold runtime as every other JSON block).     |
+| `showLineNumbers?` | `boolean` | `false` | Render a line-number gutter. Detail panels usually read better without one.                                    |
+| `sortKeys?`        | `boolean` | `false` | Write each object's keys in sorted order. Arrays keep their order. Use it for each side of a `CodeBlock.Diff`. |
 
 Byte-for-byte parity with server/build-time Shiki output is guaranteed for canonical `JSON.stringify` shapes. This function produces exactly those shapes.
 

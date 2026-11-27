@@ -17,3 +17,9 @@ export {
 	TabTrigger,
 	Title,
 } from "./code-block.js";
+
+export {
+	//,
+	Diff,
+	DiffCallout,
+} from "./code-block-diff.js";

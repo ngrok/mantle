@@ -284,7 +284,7 @@ function jsonToShikiHtml(code: string): string {
  * `"[Circular]"` after its first occurrence. That trade keeps this a single,
  * allocation-light pass and is acceptable for a best-effort inspector panel.
  */
-function safeJsonStringify(value: unknown): string {
+function safeJsonStringify(value: unknown, { sortKeys }: { sortKeys: boolean }): string {
 	const seen = new WeakSet<object>();
 	try {
 		return (
@@ -299,6 +299,12 @@ function safeJsonStringify(value: unknown): string {
 							return "[Circular]";
 						}
 						seen.add(val);
+						// Why code-unit order and not `localeCompare`: the server and the browser can run in different locales, and the hydrated text must match.
+						if (sortKeys && !Array.isArray(val)) {
+							return Object.fromEntries(
+								Object.entries(val).toSorted(([left], [right]) => (left < right ? -1 : 1)),
+							);
+						}
 					}
 					return val;
 				},
@@ -331,6 +337,13 @@ type JsonCodeBlockValueOptions = {
 	 * `true`; set `false` for a flat, non-collapsible panel.
 	 */
 	foldable?: boolean | undefined;
+	/**
+	 * Whether each object writes its keys in sorted order, by UTF-16 code unit.
+	 * Arrays keep their order. Sort both values of a `CodeBlock.Diff`, so the same
+	 * key sits on the same line of each side and a reorder shows no change.
+	 * Defaults to `false`.
+	 */
+	sortKeys?: boolean | undefined;
 };
 
 /**
@@ -362,9 +375,9 @@ type JsonCodeBlockValueOptions = {
  */
 function jsonCodeBlockValue(
 	value: unknown,
-	{ showLineNumbers = false, foldable = true }: JsonCodeBlockValueOptions = {},
+	{ showLineNumbers = false, foldable = true, sortKeys = false }: JsonCodeBlockValueOptions = {},
 ): MantleCodeBlockValue {
-	const code = safeJsonStringify(value);
+	const code = safeJsonStringify(value, { sortKeys });
 	const preHtml = decorateHighlightedHtml({
 		html: jsonToShikiHtml(code),
 		foldableRanges: foldable ? computeJsonFoldRanges(code) : undefined,

@@ -765,3 +765,52 @@ export function JsonCodeBlockValueDemo() {
 		</PreviewCanvas>
 	);
 }
+
+const clientRequestBody = {
+	model: "gpt-5",
+	max_output_tokens: 256,
+	messages: [{ role: "user", content: "Summarize this ticket." }],
+	metadata: { team: "support", ticket: "T-4821", tier: "pro", user: "u_93", region: "us-east" },
+	stream: true,
+	temperature: 3,
+};
+
+const upstreamRequestBody = {
+	model: "claude-sonnet-5",
+	max_tokens: 256,
+	messages: [{ role: "user", content: "Summarize this ticket." }],
+	metadata: { team: "support", ticket: "T-4821", tier: "pro", user: "u_93", region: "us-east" },
+	stream: true,
+	temperature: 1,
+};
+
+/**
+ * A diff of two JSON request bodies with sorted keys, and a callout under the line the gateway clamped.
+ */
+export function CodeBlockDiffDemo() {
+	return (
+		<PreviewCanvas>
+			<CodeBlock.Root>
+				<CodeBlock.Header>
+					<CodeBlock.Icon preset="file" />
+					<CodeBlock.Title>request.json</CodeBlock.Title>
+				</CodeBlock.Header>
+				<CodeBlock.Diff
+					fromLabel="Client request"
+					toLabel="Upstream request"
+					from={jsonCodeBlockValue(clientRequestBody, { sortKeys: true, foldable: false })}
+					to={jsonCodeBlockValue(upstreamRequestBody, { sortKeys: true, foldable: false })}
+				>
+					{(line) =>
+						line.change === "added" &&
+						line.path?.join(".") === "temperature" && (
+							<CodeBlock.DiffCallout>
+								Clamped to a value the upstream API accepts.
+							</CodeBlock.DiffCallout>
+						)
+					}
+				</CodeBlock.Diff>
+			</CodeBlock.Root>
+		</PreviewCanvas>
+	);
+}
