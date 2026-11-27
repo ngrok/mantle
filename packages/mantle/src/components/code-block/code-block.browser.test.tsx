@@ -1,9 +1,10 @@
 "use client";
 
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
 import { useState } from "react";
+import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import type { ComponentProps, CSSProperties } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -913,6 +914,46 @@ describe("CodeBlock (browser)", () => {
 			tabList.scrollLeft = 40;
 			expect(tabList.scrollLeft).toBe(40);
 		});
+	});
+
+	test("the server HTML paints an expandable block collapsed, and hydration keeps its height", async () => {
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./code-block.tsx");
+		document.head.append(style);
+		const code = Array.from({ length: 30 }, (_, index) => `const line${index} = ${index};`).join(
+			"\n",
+		);
+		const block = (expander: boolean) => (
+			<CodeBlock.Root>
+				<CodeBlock.Body>
+					<CodeBlock.Code value={makeValue(code)} />
+				</CodeBlock.Body>
+				{expander && <CodeBlock.ExpanderButton />}
+			</CodeBlock.Root>
+		);
+		const container = document.createElement("div");
+		document.body.append(container);
+		try {
+			container.innerHTML = renderToString(block(false));
+			const fullHeight = container.querySelector("pre")?.getBoundingClientRect().height ?? 0;
+
+			container.innerHTML = renderToString(block(true));
+			const serverPre = container.querySelector("pre");
+			const serverHeight = serverPre?.getBoundingClientRect().height ?? 0;
+			// 13.6rem at the 16px root font size.
+			expect(serverPre && getComputedStyle(serverPre).maxHeight).toBe("217.6px");
+			expect(fullHeight).toBeGreaterThan(serverHeight);
+
+			const root = await act(() => hydrateRoot(container, block(true)));
+			expect(container.querySelector("pre")?.getBoundingClientRect().height).toBe(serverHeight);
+
+			await userEvent.setup().click(screen.getByRole("button", { name: /show more/i }));
+			expect(container.querySelector("pre")?.getBoundingClientRect().height).toBe(fullHeight);
+			act(() => root.unmount());
+		} finally {
+			container.remove();
+			style.remove();
+		}
 	});
 
 	// Why inset: the button meets three edges of the root's `overflow-hidden`,

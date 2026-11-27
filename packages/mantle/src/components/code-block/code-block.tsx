@@ -52,10 +52,8 @@ import type { MantleCodeBlockValue } from "./mantle-code.js";
 type CodeBlockContextType = {
 	codeId: string;
 	copyTextRef: { current: string };
-	hasCodeExpander: boolean;
 	isCodeExpanded: boolean;
 	registerCode: () => void;
-	setHasCodeExpander: (value: boolean) => void;
 	setIsCodeExpanded: Dispatch<SetStateAction<boolean>>;
 	unregisterCode: () => void;
 };
@@ -166,7 +164,6 @@ const Root = ({
 	// an id that `Code` registers from a mount effect is absent in the server HTML.
 	const codeId = useId();
 	const mountedCodeCount = useRef(0);
-	const [hasCodeExpander, setHasCodeExpander] = useState(false);
 	const [isCodeExpanded, setIsCodeExpanded] = useState(false);
 
 	const registerCode = useCallback(() => {
@@ -186,14 +183,12 @@ const Root = ({
 			({
 				codeId,
 				copyTextRef,
-				hasCodeExpander,
 				isCodeExpanded,
 				registerCode,
-				setHasCodeExpander,
 				setIsCodeExpanded,
 				unregisterCode,
 			}) as const,
-		[codeId, hasCodeExpander, isCodeExpanded, registerCode, unregisterCode],
+		[codeId, isCodeExpanded, registerCode, unregisterCode],
 	);
 
 	const hasTabs = defaultTab != null || activeTab != null;
@@ -206,6 +201,12 @@ const Root = ({
 			className={cx(
 				"text-mono w-full overflow-hidden rounded-xl border border-gray-300 bg-base font-mono",
 				"[&_svg]:shrink-0",
+				// Why CSS and not a flag that `ExpanderButton` sets from an effect: no
+				// effect runs on the server, so the server HTML painted the code at full
+				// height and hydration collapsed it, a layout shift. Why `:has(>…)`: it
+				// tests only the root's children, so a line that a stream inserts in the
+				// code does not make Chromium check it again (COMPONENT_SPEC §3.9).
+				"[&:has(>[data-slot~=code-block-expander-button])_[data-slot~=code-block-code]:not([data-expanded])]:max-h-[13.6rem]",
 				className,
 			)}
 			ref={ref}
@@ -639,7 +640,7 @@ const CodeLineGroup = memo(function CodeLineGroup({
 const Code = ({ className, dir, style, value, ref, ...props }: CodeBlockCodeProps) => {
 	const preRef = useRef<HTMLPreElement>(null);
 	const composedRef = useComposedRefs(preRef, ref);
-	const { codeId, copyTextRef, hasCodeExpander, isCodeExpanded, registerCode, unregisterCode } =
+	const { codeId, copyTextRef, isCodeExpanded, registerCode, unregisterCode } =
 		useCodeBlockContext();
 	const {
 		language,
@@ -763,13 +764,12 @@ const Code = ({ className, dir, style, value, ref, ...props }: CodeBlockCodeProp
 			// Why data-expanded and not aria-expanded: `aria-expanded` is not a global
 			// attribute and `<pre>` has no role that supports it. The expander
 			// button owns the ARIA state; this attribute mirrors it for styling.
-			data-expanded={hasCodeExpander && isCodeExpanded ? "" : undefined}
+			data-expanded={isCodeExpanded ? "" : undefined}
 			className={cx(
 				"scrollbar overflow-x-auto overscroll-x-none overflow-y-hidden py-4",
 				!isPreRendered && "pr-14",
 				"data-[mantle-line-numbers~='false']:pl-4",
 				"text-mono m-0 font-mono outline-hidden",
-				hasCodeExpander && !isCodeExpanded && "max-h-[13.6rem]",
 				className,
 			)}
 			data-syntax-highlighted={isPreRendered ? "" : undefined}
@@ -1089,7 +1089,9 @@ type CodeBlockExpanderButtonProps = Omit<
 
 /**
  * The (optional) expander button of the `CodeBlock`. Toggles the expanded
- * state of the code block. When present, the code block is collapsible.
+ * state of the code block. As a child of `CodeBlock.Root`, it makes the code
+ * collapsible, and the server HTML paints the code collapsed, so the page does
+ * not shift when it hydrates.
  *
  * It carries `aria-expanded` and `aria-controls` that points at the `<pre>`.
  * It does not take `asChild`: it renders its own label and caret, so there is
@@ -1119,16 +1121,7 @@ const ExpanderButton = ({
 	ref,
 	...props
 }: CodeBlockExpanderButtonProps) => {
-	const { codeId, isCodeExpanded, setIsCodeExpanded, setHasCodeExpander } = useCodeBlockContext();
-
-	// Why a layout effect: `Code` collapses to its max height from this flag,
-	// and a passive registration paints one frame at full height first.
-	useIsomorphicLayoutEffect(() => {
-		setHasCodeExpander(true);
-		return () => {
-			setHasCodeExpander(false);
-		};
-	}, [setHasCodeExpander]);
+	const { codeId, isCodeExpanded, setIsCodeExpanded } = useCodeBlockContext();
 
 	return (
 		<button
