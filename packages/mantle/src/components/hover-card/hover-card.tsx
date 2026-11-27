@@ -115,12 +115,15 @@ function Root({
 	const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
 	const contentRef = useRef<HTMLElement | null>(null);
 	const held = useRef<Record<HoldSource, boolean>>({ pointer: false, focus: false });
+	/** Whether a timer waits to open the card. */
+	const opening = useRef(false);
 	useEffect(() => () => clearTimeout(timer.current), []);
 
 	const contentId = useId();
 	const state = useMemo<HoverCardState>(() => {
 		const setOpen = (next: boolean) => {
 			clearTimeout(timer.current);
+			opening.current = false;
 			if (next === open) {
 				return;
 			}
@@ -134,8 +137,13 @@ function Root({
 			setOpen,
 			hold: (source) => {
 				held.current[source] = true;
+				// Why: a focus that joins a resting pointer keeps the first deadline.
+				if (opening.current) {
+					return;
+				}
 				clearTimeout(timer.current);
 				if (!open) {
+					opening.current = true;
 					timer.current = setTimeout(() => setOpen(true), openDelay);
 				}
 			},
@@ -147,6 +155,7 @@ function Root({
 				if (held.current.pointer || held.current.focus) {
 					return;
 				}
+				opening.current = false;
 				clearTimeout(timer.current);
 				timer.current = setTimeout(() => {
 					// Why: closing would clear text the user selected in the card. An
@@ -265,6 +274,7 @@ const Trigger = ({
 				const stop = () => {
 					pressed.clear();
 					view.removeEventListener("click", stop, true);
+					view.removeEventListener("keydown", stop, true);
 					view.removeEventListener("pointercancel", onCancel, true);
 				};
 				const onCancel = (cancel: globalThis.PointerEvent) => {
@@ -273,7 +283,10 @@ const Trigger = ({
 						stop();
 					}
 				};
+				// Why `keydown` too: a gesture can end with no click, such as a
+				// two-finger tap, and a keyboard focus always follows a key.
 				view.addEventListener("click", stop, true);
+				view.addEventListener("keydown", stop, true);
 				view.addEventListener("pointercancel", onCancel, true);
 			}}
 			onFocus={(event: FocusEvent<HTMLAnchorElement>) => {
@@ -358,6 +371,7 @@ const Content = ({
 	...props
 }: HoverCardContentProps) => {
 	const state = useHoverCardState("Content");
+	const tabObserver = useRef<MutationObserver | null>(null);
 	const { portalTarget, floatingRef, reconcile } = useFloat({
 		open: state.open,
 		onDismiss: () => state.setOpen(false),
@@ -374,10 +388,20 @@ const Content = ({
 		onFocusOutside: (event) => event.preventDefault(),
 		// Why: the keyboard never enters the card, so its links and buttons leave
 		// the Tab order. Everything in it is reachable from the trigger's link.
+		// Why an observer: a preview can load its links after the card opens.
 		onShow: (floating) => {
-			for (const tabbable of findTabbableDescendants(floating)) {
-				tabbable.tabIndex = -1;
-			}
+			const untab = () => {
+				for (const tabbable of findTabbableDescendants(floating)) {
+					tabbable.tabIndex = -1;
+				}
+			};
+			untab();
+			tabObserver.current = new MutationObserver(untab);
+			tabObserver.current.observe(floating, { childList: true, subtree: true });
+		},
+		onHide: () => {
+			tabObserver.current?.disconnect();
+			tabObserver.current = null;
 		},
 	});
 	useReconcileOnTriggerChange(state.onTriggerChangeRef, reconcile);

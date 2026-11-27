@@ -80,6 +80,56 @@ describe("HoverCard", () => {
 			expect(isOpen()).toBe(true);
 		});
 
+		test("a focus that joins a resting pointer keeps the first deadline", () => {
+			const link = setUp();
+			fireEvent.pointerEnter(link, { pointerType: "mouse" });
+			act(() => {
+				vi.advanceTimersByTime(550);
+				link.focus();
+				vi.advanceTimersByTime(150);
+			});
+			expect(isOpen()).toBe(true);
+		});
+
+		test("a touch gesture with no click leaves the next keyboard focus free", () => {
+			const link = setUp();
+			fireEvent.pointerDown(link, { pointerType: "touch", pointerId: 1 });
+			fireEvent.pointerUp(link, { pointerType: "touch", pointerId: 1 });
+			fireEvent.keyDown(window, { key: "Tab" });
+			act(() => {
+				link.focus();
+				vi.advanceTimersByTime(700);
+			});
+			expect(isOpen()).toBe(true);
+		});
+
+		test("a link that loads into the open card leaves the Tab order", async () => {
+			vi.useFakeTimers();
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+			const tree = (loaded: boolean) => (
+				<HoverCard.Root>
+					<HoverCard.Trigger href="https://ngrok.com">@ngrok/mantle</HoverCard.Trigger>
+					<HoverCard.Content>
+						{loaded ? <a href="https://ngrok.com/docs">Docs</a> : "Loading"}
+					</HoverCard.Content>
+				</HoverCard.Root>
+			);
+			const { rerender } = render(tree(false));
+			fireEvent.pointerEnter(screen.getByRole("link", { name: "@ngrok/mantle" }), {
+				pointerType: "mouse",
+			});
+			act(() => {
+				vi.advanceTimersByTime(700);
+			});
+			rerender(tree(true));
+			await act(async () => {
+				await Promise.resolve();
+			});
+			expect(screen.getByRole("link", { name: "Docs" })).toHaveAttribute("tabindex", "-1");
+		});
+
 		test("the keyboard never enters the card: its links leave the Tab order", () => {
 			vi.useFakeTimers();
 			onTestFinished(() => {
