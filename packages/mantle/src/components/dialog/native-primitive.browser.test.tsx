@@ -288,6 +288,90 @@ describe("Dialog", () => {
 		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
 	});
 
+	test.each([false, true])(
+		"a sheet with closedby closerequest (modal %s) stays open on a press outside, and closes on Escape and Sheet.Close",
+		async (modal) => {
+			const onOpenChange = vi.fn<(open: boolean) => void>();
+			const onOutside = vi.fn<(event: Event) => void>();
+			render(
+				<>
+					<button type="button">Page button</button>
+					<Sheet.Root modal={modal} onOpenChange={onOpenChange}>
+						<Sheet.Trigger>Open sheet</Sheet.Trigger>
+						<Sheet.Content
+							closedby="closerequest"
+							onPointerDownOutside={onOutside}
+							onInteractOutside={onOutside}
+						>
+							<Sheet.Title>Card</Sheet.Title>
+							<input aria-label="Card number" />
+							<Sheet.Close>Cancel</Sheet.Close>
+						</Sheet.Content>
+					</Sheet.Root>
+				</>,
+			);
+			const trigger = screen.getByRole("button", { name: "Open sheet" });
+
+			await userEvent.click(trigger);
+			const dialog = dialogElement();
+			onOpenChange.mockClear();
+			if (modal) {
+				fireEvent.pointerDown(dialog);
+				fireEvent.click(dialog);
+			} else {
+				await userEvent.click(screen.getByRole("button", { name: "Page button" }));
+			}
+			expect(onOpenChange).not.toHaveBeenCalled();
+			expect(onOutside).not.toHaveBeenCalled();
+			expect(dialog.open).toBe(true);
+			expect(dialog).toHaveAttribute("data-open");
+
+			await userEvent.click(screen.getByRole("textbox", { name: "Card number" }));
+			await userEvent.keyboard("{Escape}");
+			await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
+			expect(onOpenChange).toHaveBeenLastCalledWith(false);
+
+			await userEvent.click(trigger);
+			await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+			await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
+		},
+	);
+
+	test("a non-modal sheet with closedby closerequest ignores an Escape that a field in it stops", async () => {
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<Sheet.Root open modal={false} onOpenChange={onOpenChange}>
+				<Sheet.Content closedby="closerequest">
+					<Sheet.Title>Card</Sheet.Title>
+					<input aria-label="Card number" onKeyDown={(event) => event.stopPropagation()} />
+				</Sheet.Content>
+			</Sheet.Root>,
+		);
+
+		await userEvent.click(screen.getByRole("textbox", { name: "Card number" }));
+		await userEvent.keyboard("{Escape}");
+		expect(onOpenChange).not.toHaveBeenCalled();
+		expect(dialogElement().open).toBe(true);
+	});
+
+	test("a backdrop click reads the closedby that is current at the click", () => {
+		const sheet = (closedby: "any" | "closerequest") => (
+			<Sheet.Root defaultOpen>
+				<Sheet.Content closedby={closedby}>
+					<Sheet.Title>Card</Sheet.Title>
+				</Sheet.Content>
+			</Sheet.Root>
+		);
+		const { rerender } = render(sheet("any"));
+		const dialog = dialogElement();
+
+		fireEvent.pointerDown(dialog);
+		rerender(sheet("closerequest"));
+		fireEvent.click(dialog);
+		expect(dialog.open).toBe(true);
+		expect(dialog).toHaveAttribute("data-open");
+	});
+
 	test("onOpenAutoFocus and onCloseAutoFocus get the panel as event.currentTarget", async () => {
 		const targets: (EventTarget | null)[] = [];
 		render(

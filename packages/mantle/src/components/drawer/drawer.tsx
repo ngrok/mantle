@@ -312,7 +312,14 @@ function SwipeHandle() {
 
 type DrawerContentProps = Omit<
 	ComponentProps<typeof DrawerPrimitiveContent>,
-	"scope" | "positionerClassName" | "positionerSlot" | "forceMount" | "inline" | "layer" | "role"
+	| "scope"
+	| "positionerClassName"
+	| "positionerSlot"
+	| "forceMount"
+	| "inline"
+	| "layer"
+	| "role"
+	| "closedby"
 > &
 	WithDataSlot;
 

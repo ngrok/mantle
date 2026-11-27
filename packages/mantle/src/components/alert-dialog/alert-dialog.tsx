@@ -154,7 +154,7 @@ const Trigger = ({
 
 type AlertDialogContentProps = Omit<
 	ComponentProps<typeof AlertDialogPrimitiveContent>,
-	"positionerClassName" | "positionerSlot" | "scope" | "inline" | "layer" | "role"
+	"positionerClassName" | "positionerSlot" | "scope" | "inline" | "layer" | "role" | "closedby"
 > & {
 	/**
 	 * The preferred width of the `AlertDialogContent` as a tailwind `max-w-` class.

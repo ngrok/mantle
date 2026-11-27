@@ -20,7 +20,7 @@ Codemod: manual: each step depends on what a dialog holds or on a selector or a 
 ## You are an agent migrating a codebase. Do this:
 
 1. Find every file that imports `Dialog` from `@ngrok/mantle/dialog`, `AlertDialog` from `@ngrok/mantle/alert-dialog`, `Sheet` from `@ngrok/mantle/sheet`, or `Command` from `@ngrok/mantle/command`, under any local name.
-2. Find each of those overlays that holds a flow where a third-party script puts a frame on `<body>`: Stripe Elements or Stripe.js (`confirmCardSetup`, `confirmPayment`, `handleCardAction`), PayPal, hCaptcha, reCAPTCHA, Turnstile, or a chat widget. Add `modal={false}` to its `Root`. A modal `<dialog>` makes that frame inert and paints over it. Leave every other overlay modal.
+2. Find each of those overlays that holds a flow where a third-party script puts a frame on `<body>`: Stripe Elements or Stripe.js (`confirmCardSetup`, `confirmPayment`, `handleCardAction`), PayPal, hCaptcha, reCAPTCHA, Turnstile, or a chat widget. Add `modal={false}` to its `Root`. A modal `<dialog>` makes that frame inert and paints over it. Leave every other overlay modal. A non-modal overlay closes on a press outside. Where a `Sheet` or `Dialog` holds a form, such as a card form, also set `closedby="closerequest"` on its `Sheet.Content` or `Dialog.Content`: a stray click or a press on a password manager's menu then does not close it, and Escape and the close parts still do. `closedby` needs a mantle release after 0.97.1: on an older release, keep the handler that prevents the close. With `closedby`, the outside handlers do not run. When every outside handler only calls `event.preventDefault()`, remove them all. When any outside handler does more, such as saving a draft, keep every handler and leave out `closedby`. `AlertDialog` never closes on a press outside, and `Command` does not take `closedby`.
 3. Search CSS, `className` strings, and `querySelector` calls for `dialog-overlay`, `sheet-overlay`, and `alert-dialog-overlay`. No element carries these slots now. Style the backdrop with `[data-slot~="dialog-positioner"]::backdrop` (or `sheet-positioner`, `alert-dialog-positioner`). Also search for `--removed-body-scroll-bar-size` and `data-scroll-locked`, which Radix's scroll lock wrote. An open modal marks `<html>` with `data-mantle-scroll-lock` and writes the width of the scrollbar it hides to `--mantle-scrollbar-width` on `<html>`. Read the width only under `[data-mantle-scroll-lock]` or in UI that shows only while the lock holds: the variable stays on `<html>` after the lock ends.
 4. Remove `<Dialog.Overlay />` and unwrap `<Dialog.Portal>`. Both still render (the overlay renders nothing and the portal renders its children), and both are deprecated.
 5. Where a Radix `forceMount` kept the content mounted while closed, pass `forceMount` to `Content`. Remove `forceMount` from `Dialog.Portal` and `Dialog.Overlay`.
@@ -51,7 +51,7 @@ Codemod: manual: each step depends on what a dialog holds or on a selector or a 
 
 // AFTER
 <Sheet.Root modal={false} open={open} onOpenChange={setOpen}>
-	<Sheet.Content>
+	<Sheet.Content closedby="closerequest">
 		<PaymentElement />
 	</Sheet.Content>
 </Sheet.Root>
@@ -86,7 +86,7 @@ expect(content).toHaveAttribute("data-appearance", "full-page");
 
 ## Edge cases & gotchas
 
-- A dialog with `modal={false}` has no backdrop, paints at Tailwind `z-60`, and leaves the page live. Escape and a press outside close it. It no longer closes when focus leaves it.
+- A dialog with `modal={false}` has no backdrop, paints at Tailwind `z-60`, and leaves the page live. Escape and a press outside close it. With `closedby="closerequest"` on its `Sheet.Content` or `Dialog.Content`, a press outside does not. It no longer closes when focus leaves it.
 - On open, the browser focuses the first focusable element in the dialog, which can be an element with `tabindex="-1"`. To pick the element, use `onOpenAutoFocus`: call `event.preventDefault()` and focus it. React's `autoFocus` works in a `Content` that mounts on open. A `forceMount` dialog mounts its content while it is closed, so React's focus does nothing: use `onOpenAutoFocus` there.
 - Tab from the last control in a modal dialog moves focus to the browser UI, such as the address bar, instead of to the first control. This change is on purpose: it is the HTML standard's behavior for a modal dialog. The page behind the dialog stays out of reach, and keyboard users can still reach the browser UI. A test that expects Tab to wrap to the first control fails. [Tab at the end of a dialog](/components/overlays/dialog#tab-at-the-end-of-a-dialog) gives the reasons and the sources.
 - Escape closes the top modal unless a listener prevents the key. An open `Select`, `Combobox`, `MultiSelect`, or a popup with `aria-expanded` and `aria-controls` in the panel takes the key first.
@@ -101,5 +101,6 @@ expect(content).toHaveAttribute("data-appearance", "full-page");
 ## How to verify
 
 - Open each overlay that step 2 changed and complete its third-party flow: the frame takes clicks and keys, and the overlay stays open until your code closes it.
+- In each overlay with `closedby="closerequest"`, type in a field, then press outside the panel: the overlay stays open with your input. Escape and the close button close it.
 - Search the codebase for `dialog-overlay`, `sheet-overlay`, and `alert-dialog-overlay`: no match is left.
 - Run the test suite. Queries for the panel read it inside the `<dialog>`, and assertions after a close wait for it.
