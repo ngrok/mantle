@@ -4,10 +4,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 type UseOffsetPaginationProps = {
 	/**
-	 * The total number of items in the list to paginate. A change resets the
-	 * page to 1 unless `resetPageOnListSizeChange` is `false`.
+	 * The total number of items in the list to paginate, or `null` while the
+	 * size is not known, such as while the list loads. A change resets the page
+	 * to 1 unless `resetPageOnListSizeChange` is `false`. `0` is an empty list:
+	 * it has no pages, and it clamps the page to 1 like any other size. `null`
+	 * keeps the stored page: the hook shows page 1 with no pages, does not reset
+	 * the page, and does not call `onPageClamp`. Pass `null`, not `0`, while a
+	 * list loads, or a reload on page 4 clamps to page 1.
 	 */
-	listSize: number;
+	listSize: number | null;
 	/**
 	 * The number of items per page. With `onPageSizeChange`, the hook reads the
 	 * page size from this prop and a change leaves the page alone. Without it,
@@ -61,8 +66,9 @@ type UseOffsetPaginationProps = {
 	 * as after a shorter list clamps it. Pass it so the stored page follows the
 	 * clamp, and a list that grows back stays on the shown page. Write the page
 	 * in place of the current history entry: a new entry traps the back button.
-	 * Not called while the list has no pages, because `listSize` is 0 while a
-	 * list loads, or before the parent commits a page that the hook requested.
+	 * Called with 1 when `listSize` is `0`, because an empty list has only page 1.
+	 * Not called while `listSize` is `null`, or before the parent commits a page
+	 * that the hook requested.
 	 */
 	onPageClamp?: (page: number) => void;
 };
@@ -238,7 +244,7 @@ function useOffsetPagination({
 	const internal = settlesPending ? pending : { page: internalPage, size: internalPageSize };
 	const currentPageSize = isPageSizeControlled ? pageSize : internal.size;
 
-	const totalPages = Math.ceil(listSize / currentPageSize);
+	const totalPages = Math.ceil((listSize ?? 0) / currentPageSize);
 	// Why the clamp: `page` and `defaultPage` come from outside, and a shorter
 	// list can leave the stored page past the end.
 	const storedPage = isPageControlled ? pageProp : internal.page;
@@ -291,13 +297,16 @@ function useOffsetPagination({
 	);
 
 	// Why the ref: an effect also runs on mount, and a mount must keep
-	// `defaultPage` and `page`. Only a real change resets.
+	// `defaultPage` and `page`. Only a real change resets. Why hold the last
+	// known size: `null` hides no change, so a list that loads or refetches to
+	// its old size keeps the page.
 	const previousListSize = useRef(listSize);
 	// Why an effect: the reset and the clamp report call external callbacks,
 	// which must not run during render.
 	useEffect(() => {
-		const listSizeChanged = previousListSize.current !== listSize;
-		previousListSize.current = listSize;
+		const listSizeChanged =
+			listSize != null && previousListSize.current != null && previousListSize.current !== listSize;
+		previousListSize.current = listSize ?? previousListSize.current;
 		const echo = awaitedEcho.current;
 		// Why wait for both values on the requested page: a parent can commit the
 		// page and the size in separate renders. Any other page supersedes it.
@@ -320,12 +329,13 @@ function useOffsetPagination({
 				return;
 			}
 		}
-		// Why skip zero pages: `listSize` is 0 while a list loads, and a report
-		// then erases the page that the URL restores. A `NaN` size has no page.
+		// Why skip `null`: the list loads, and a report then erases the page that
+		// the URL restores. A `NaN` size has no page.
 		if (
 			onPageClamp == null ||
 			!isPageControlled ||
-			!(totalPages > 0) ||
+			listSize == null ||
+			!(totalPages >= 0) ||
 			storedPage === currentPage ||
 			awaitedEcho.current != null
 		) {
@@ -376,7 +386,7 @@ function useOffsetPagination({
 		}
 		// Why keep the first item in view: a reset to page 1 loses the reader's
 		// place in a long list.
-		const nextPage = clampPage(Math.floor(offset / size) + 1, Math.ceil(listSize / size));
+		const nextPage = clampPage(Math.floor(offset / size) + 1, Math.ceil((listSize ?? 0) / size));
 		if (isPageSizeControlled) {
 			if (!isPageControlled) {
 				// Why wait for the prop: the old size with the new page shows the

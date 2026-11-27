@@ -1,0 +1,101 @@
+---
+title: Offset Pagination Loading List Size Migration
+description: "useOffsetPagination takes listSize as number | null. Pass null while a list loads; 0 now means an empty list and onPageClamp reports page 1 for it."
+---
+
+# Mantle Offset Pagination Loading List Size Migration Guide
+
+`useOffsetPagination` takes `listSize: number | null`. `null` means the size is not known yet, such as while the list loads: the hook keeps the stored page, does not reset it, and does not call `onPageClamp`. A `listSize` of 0 now means an empty list. It clamps like any other size, so `onPageClamp` reports page 1. Before, the hook read 0 as a list that loads and never reported a clamp for it, so a list that emptied and refilled came back on the old page.
+
+**TL;DR:** Where a call passes 0 while its data loads (`data?.length ?? 0`, `[].length`), pass `null` until the data arrives: `listSize: data == null ? null : data.length`. Where 0 means the list is empty, change nothing: the empty list now reports page 1 through `onPageClamp`. Remove app code that wrote page 1 back after a list emptied.
+
+## Codemod
+
+Codemod: manual: only the call site knows whether its 0 means a list that loads or an empty list, and the rules read syntax only.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Search for `useOffsetPagination` from `@ngrok/mantle/pagination`, with any alias, and for each hook or component that forwards a row count into its `listSize`.
+2. For each `listSize` value, find whether it can be 0 while the data loads. Typical shapes: `data?.length ?? 0`, `query.data?.items.length ?? 0`, `rows.length` where `rows` defaults to `[]` before the data arrives.
+3. Where the value can be 0 while the data loads, pass `null` until the data arrives:
+   - `listSize: data?.length ?? 0` becomes `listSize: data?.length ?? null`.
+   - A wrapper hook that takes a row count changes its type from `number` to `number | null` and passes `null` through.
+   - This matters only where the call passes `onPageClamp`, but pass `null` everywhere: with `null`, a load also no longer resets the page.
+4. Where the value is 0 only when the list is empty, leave it. Remove app code that set the page to 1 after the list emptied, because `onPageClamp` now does it.
+5. In tests: a test that renders a loading list with `listSize: 0` and expects the stored page to stay.
+   - Before: `rerender({ listSize: 0 }); expect(onPageClamp).not.toHaveBeenCalled();`
+   - After: `rerender({ listSize: null }); expect(onPageClamp).not.toHaveBeenCalled();`
+6. Run your formatter, linter, type checker, and tests.
+
+> **Why `null` for a list that loads?** One value had two meanings: 0 was both "empty" and "not loaded yet". The hook had to guess, and it guessed "loading", so an empty list never moved the stored page. `null` matches `PaginationRange`'s `total: number | null`, and each value now has one meaning.
+
+## Before → after
+
+### A list that loads from a query
+
+```tsx
+// BEFORE
+const pagination = useOffsetPagination({
+	listSize: data?.length ?? 0,
+	pageSize: 20,
+	page,
+	onPageChange,
+	onPageClamp,
+	resetPageOnListSizeChange: false,
+});
+```
+
+```tsx
+// AFTER
+const pagination = useOffsetPagination({
+	listSize: data?.length ?? null,
+	pageSize: 20,
+	page,
+	onPageChange,
+	onPageClamp,
+	resetPageOnListSizeChange: false,
+});
+```
+
+### A list that empties and refills
+
+```tsx
+// BEFORE
+const pagination = useOffsetPagination({
+	listSize: endpoints.length,
+	pageSize: 10,
+	page,
+	onPageChange,
+	onPageClamp,
+	resetPageOnListSizeChange: false,
+});
+useEffect(() => {
+	if (endpoints.length === 0 && page !== 1) {
+		setPage(1);
+	}
+}, [endpoints.length, page]);
+```
+
+```tsx
+// AFTER
+const pagination = useOffsetPagination({
+	listSize: endpoints.length,
+	pageSize: 10,
+	page,
+	onPageChange,
+	onPageClamp,
+	resetPageOnListSizeChange: false,
+});
+```
+
+## Edge cases & gotchas
+
+- With `null`, the hook shows page 1 with `totalPages` 0 and `offset` 0, as it did for 0. Only the stored page and the callbacks differ.
+- A list that goes from 100 items to `null` and back to 100 is no size change, so the default `resetPageOnListSizeChange` does not reset the page. A list that comes back with another size resets as before.
+- A caller without `onPageClamp` and with the default reset sees one change: a load that passes `null` no longer resets the page to 1 when the data arrives.
+
+## How to verify
+
+Run the type checker: a wrapper that types its row count as `number` still compiles, so search for `?? 0` and `[].length` near each `listSize` by hand. Reload a paginated page on `?page=4` while its data loads, and confirm the URL keeps page 4. Empty the list, refill it, and confirm the page is 1. Step 5 covers the test changes.
