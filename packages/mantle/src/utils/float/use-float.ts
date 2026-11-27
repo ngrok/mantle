@@ -208,6 +208,8 @@ type UseFloatOptions = OutsideHandlers & {
 	dir?: "ltr" | "rtl";
 	/** Runs on Escape while the float is on top. Call `event.preventDefault()` to keep it open. */
 	onEscapeKeyDown?: (event: KeyboardEvent) => void;
+	/** Runs right before the float shows in the top layer. */
+	onBeforeShow?: (floating: HTMLElement) => void;
 	/** Runs after the float shows. */
 	onShow?: (floating: HTMLElement) => void;
 	/** Runs before the float hides, with whether focus was inside it. */
@@ -245,6 +247,7 @@ function useFloat({
 	onHide,
 	onInteractOutside,
 	onPointerDownOutside,
+	onBeforeShow,
 	onShow,
 	open,
 	overlapAnchor,
@@ -272,9 +275,11 @@ function useFloat({
 	const interactOutside = useCallbackRef(onInteractOutside);
 	// Why an insertion effect: the ref callback calls these during this commit,
 	// before a passive effect would update them, so they must be this render's.
+	const latestBeforeShow = useRef(onBeforeShow);
 	const latestShow = useRef(onShow);
 	const latestHide = useRef(onHide);
 	useInsertionEffect(() => {
+		latestBeforeShow.current = onBeforeShow;
 		latestShow.current = onShow;
 		latestHide.current = onHide;
 	});
@@ -383,6 +388,7 @@ function useFloat({
 			floatSessions.set(floating, session);
 			floating.addEventListener("beforetoggle", onBeforeToggle);
 			if (!continuing && hasPopoverApi) {
+				latestBeforeShow.current?.(floating);
 				floating.showPopover();
 			}
 			const track = (target: HTMLElement) =>

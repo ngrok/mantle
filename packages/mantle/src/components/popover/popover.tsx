@@ -72,11 +72,43 @@ function loadDrawer(): void {
 /** A pointer position, from a pointer event. */
 type PointerPoint = Pick<globalThis.PointerEvent, "clientX" | "clientY">;
 
-/** A popover that a hover holds open, and whether its content holds an element. */
-type HoverOpenEntry = { close: () => void; holds: (element: Element) => boolean };
+/** The box around a trigger and its content, in viewport coordinates. */
+type HoverBox = ReturnType<typeof boxAround>;
 
-/** The popover that a hover holds open now. A hover open of another popover closes it. */
-let hoverOpenPopover: HoverOpenEntry | undefined;
+/**
+ * A popover that a hover holds open: whether its content holds an element, and
+ * the box around its trigger and its content, or `null` while it shows none.
+ */
+type HoverOpenEntry = {
+	close: () => void;
+	holds: (element: Element) => boolean;
+	measure: () => HoverBox | null;
+};
+
+/**
+ * The popovers that a hover holds open, outermost first. Each one holds the
+ * trigger of the next. A hover open of another popover closes each one that
+ * does not hold its trigger.
+ */
+const hoverOpenStack: HoverOpenEntry[] = [];
+
+/** Removes `entry` from the hover stack, if it is there. */
+function dropHoverEntry(entry: HoverOpenEntry | null): void {
+	const index = entry == null ? -1 : hoverOpenStack.indexOf(entry);
+	if (index !== -1) {
+		hoverOpenStack.splice(index, 1);
+	}
+}
+
+/** Measures each hover open nested in `entry`'s content. It reads layout once for each. */
+function measureNestedHoverOpens(
+	entry: HoverOpenEntry | null,
+): { entry: HoverOpenEntry; box: HoverBox | null }[] {
+	const index = entry == null ? -1 : hoverOpenStack.indexOf(entry);
+	return index === -1
+		? []
+		: hoverOpenStack.slice(index + 1).map((nested) => ({ entry: nested, box: nested.measure() }));
+}
 
 /** The shown popover content: its element, and how it moves focus into itself. */
 type ShownContent = { element: HTMLElement; focus: () => void };
@@ -114,6 +146,8 @@ type PopoverState = {
 	 * not close. Returns `true` when the open was a hover open.
 	 */
 	pin: () => boolean;
+	/** The pointer is over the content at `point`, or left it (`null`). */
+	trackContentPointer: (point: PointerPoint | null) => void;
 	/** Whether the open came from a hover and nothing pinned it yet. */
 	isHoverOpen: () => boolean;
 	/** The shown content gives its element and the way it moves focus into itself. */
@@ -242,6 +276,8 @@ function Root({
 	const hoverSuppressed = useRef(false);
 	const stopSuppress = useRef<(() => void) | undefined>(undefined);
 	const hoverEntry = useRef<HoverOpenEntry | null>(null);
+	/** Where the pointer was last over the open content, or `null` once it left. */
+	const contentPoint = useRef<PointerPoint | null>(null);
 	// Why a ref: a hover can ask a slow controlled parent to open, and the close
 	// that follows must still reach it before it renders the open.
 	const requestedOpen = useRef(open);
@@ -257,9 +293,8 @@ function Root({
 		if (!open && !newerOpen) {
 			hoverOpenRef.current = false;
 			stopGrace.current?.();
-			if (hoverEntry.current != null && hoverOpenPopover === hoverEntry.current) {
-				hoverOpenPopover = undefined;
-			}
+			dropHoverEntry(hoverEntry.current);
+			contentPoint.current = null;
 		}
 	}, [open]);
 	useEffect(
@@ -267,9 +302,7 @@ function Root({
 			clearTimeout(hoverTimer.current);
 			stopGrace.current?.();
 			stopSuppress.current?.();
-			if (hoverOpenPopover === hoverEntry.current) {
-				hoverOpenPopover = undefined;
-			}
+			dropHoverEntry(hoverEntry.current);
 		},
 		[],
 	);
@@ -278,11 +311,7 @@ function Root({
 			clearTimeout(hoverTimer.current);
 			stopGrace.current?.();
 		};
-		const releaseHoverOwner = () => {
-			if (hoverEntry.current != null && hoverOpenPopover === hoverEntry.current) {
-				hoverOpenPopover = undefined;
-			}
-		};
+		const releaseHoverOwner = () => dropHoverEntry(hoverEntry.current);
 		const endHoverOpen = () => {
 			hoverOpenRef.current = false;
 			releaseHoverOwner();
@@ -317,7 +346,18 @@ function Root({
 		// close clears it.
 		const setOpen: PopoverState["setOpen"] = (next, { byHover = false } = {}) => {
 			stopHover();
-			if (!next && !byHover && (hoverOpenRef.current || pointerOnTrigger.current)) {
+			// Why the content point: a press in content that covers the trigger,
+			// such as on `Popover.Close`, pins the open first, and the pointer then
+			// rests on the trigger once the content hides.
+			const trigger = triggerRef.current;
+			const point = contentPoint.current;
+			if (
+				!next &&
+				!byHover &&
+				(hoverOpenRef.current ||
+					pointerOnTrigger.current ||
+					(point != null && trigger != null && isInsideBoth(point, trigger, trigger)))
+			) {
 				suppressHover();
 			}
 			if (next && byHover) {
@@ -355,7 +395,16 @@ function Root({
 			// Why measure once: a pointer can move more than once a frame, and a
 			// move then reads no layout. A scroll or a resize moves the box.
 			let box = boxAround(trigger, content);
-			if (!isInBox(point, box)) {
+			// Why a nested hover open counts: the pointer crosses the gap to it
+			// outside this box, and closing this one would remove it.
+			let nested = measureNestedHoverOpens(hoverEntry.current);
+			const holds = (at: PointerPoint) =>
+				isInBox(at, box) ||
+				nested.some(
+					(open) =>
+						open.box != null && hoverOpenStack.includes(open.entry) && isInBox(at, open.box),
+				);
+			if (!holds(point)) {
 				setOpen(false, { byHover: true });
 				return;
 			}
@@ -363,9 +412,10 @@ function Root({
 			const view = document.defaultView ?? window;
 			const measure = () => {
 				box = boxAround(trigger, content);
+				nested = measureNestedHoverOpens(hoverEntry.current);
 			};
 			const onMove = (event: globalThis.PointerEvent) => {
-				if (!isInBox(event, box)) {
+				if (!holds(event)) {
 					setOpen(false, { byHover: true });
 				}
 			};
@@ -415,16 +465,31 @@ function Root({
 					// Why: a pointer can reach a neighbor trigger inside this one's
 					// grace box. Why not a popover that holds this trigger: closing it
 					// would remove the trigger.
-					if (!hoverOpenPopover?.holds(trigger)) {
-						hoverOpenPopover?.close();
+					for (
+						let last = hoverOpenStack.at(-1);
+						last != null && !last.holds(trigger);
+						last = hoverOpenStack.at(-1)
+					) {
+						hoverOpenStack.pop();
+						last.close();
+					}
+					// Why: a close above can unmount this popover, and its cleanup ran.
+					if (!trigger.isConnected) {
+						return;
 					}
 					// Why before `onOpenChange`: the callback can unmount this popover,
 					// and its cleanup must find the entry.
 					const entry: HoverOpenEntry = {
 						close: () => setOpen(false, { byHover: true }),
 						holds: (element) => shownContentRef.current?.element.contains(element) ?? false,
+						// Why the current trigger: a slotted trigger can get a new element.
+						measure: () => {
+							const current = triggerRef.current;
+							const content = shownContentRef.current?.element;
+							return current == null || content == null ? null : boxAround(current, content);
+						},
 					};
-					hoverOpenPopover = entry;
+					hoverOpenStack.push(entry);
 					hoverEntry.current = entry;
 					setOpen(true, { byHover: true });
 				}, hoverOpenDelay);
@@ -447,6 +512,9 @@ function Root({
 			},
 			onHoverLeave,
 			onHoverStay: stopHover,
+			trackContentPointer: (point) => {
+				contentPoint.current = point && { clientX: point.clientX, clientY: point.clientY };
+			},
 			pin: () => {
 				stopHover();
 				// Why `open` too: a controlled parent can refuse a hover open, and
@@ -755,6 +823,7 @@ const FloatContent = ({
 	onPointerDownOutside,
 	onPointerEnter,
 	onPointerLeave,
+	onPointerMove,
 	preferredWidth = "max-w-72",
 	ref,
 	side = "bottom",
@@ -789,7 +858,15 @@ const FloatContent = ({
 		},
 		onInteractOutside,
 		onPointerDownOutside,
+		// Why inert while it shows: the browser moves focus to an `autofocus`
+		// field as the content shows, and a hover must not move focus.
+		onBeforeShow: (floating) => {
+			if (state.isHoverOpen()) {
+				floating.inert = true;
+			}
+		},
 		onShow: (floating) => {
+			floating.inert = false;
 			closedFromOutside.current = false;
 			// Why the trigger: a dialog needs a name, and the trigger says what opens.
 			// Why its rendered `id`: a consumer `id` on the trigger replaces the default.
@@ -862,14 +939,22 @@ const FloatContent = ({
 					event.stopPropagation();
 					onClick?.(event);
 				}}
+				// Why the enter and the press track it too: content that shows
+				// under a pointer that does not move sends no `pointermove`.
 				onPointerEnter={(event) => {
 					onPointerEnter?.(event);
+					state.trackContentPointer(event);
 					if (!event.defaultPrevented) {
 						state.onHoverStay();
 					}
 				}}
+				onPointerMove={(event) => {
+					onPointerMove?.(event);
+					state.trackContentPointer(event);
+				}}
 				onPointerLeave={(event) => {
 					onPointerLeave?.(event);
+					state.trackContentPointer(null);
 					if (!event.defaultPrevented && event.pointerType !== "touch") {
 						state.onHoverLeave(event);
 					}
@@ -878,6 +963,7 @@ const FloatContent = ({
 				// must not close a field the user is typing in.
 				onPointerDown={(event) => {
 					onPointerDown?.(event);
+					state.trackContentPointer(event);
 					if (!event.defaultPrevented) {
 						state.pin();
 					}
