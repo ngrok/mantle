@@ -3,9 +3,9 @@ import { userEvent } from "@testing-library/user-event";
 import { describe, expect, onTestFinished, test, vi } from "vitest";
 import * as HoverCard from "./hover-card-parts.js";
 
-function renderHoverCard(arrow = <HoverCard.Arrow />) {
+function renderHoverCard(arrow = <HoverCard.Arrow />, closeDelay?: number) {
 	render(
-		<HoverCard.Root>
+		<HoverCard.Root closeDelay={closeDelay}>
 			<HoverCard.Trigger href="https://ngrok.com">@ngrok/mantle</HoverCard.Trigger>
 			<HoverCard.Content>
 				{arrow}
@@ -20,17 +20,18 @@ describe("HoverCard", () => {
 		const isOpen = () =>
 			document.querySelector("[data-slot='hover-card-content'][data-open]") != null;
 
-		function setUp() {
+		function setUp(closeDelay?: number) {
 			vi.useFakeTimers();
 			onTestFinished(() => {
 				vi.useRealTimers();
 			});
-			renderHoverCard();
+			renderHoverCard(undefined, closeDelay);
 			return screen.getByRole("link", { name: "@ngrok/mantle" });
 		}
 
 		test("opens 300ms after a hover", () => {
-			const link = setUp();
+			// A close delay that differs from the open delay catches a swap of the two.
+			const link = setUp(1000);
 			fireEvent.pointerEnter(link, { pointerType: "mouse" });
 			act(() => {
 				vi.advanceTimersByTime(299);
@@ -86,7 +87,11 @@ describe("HoverCard", () => {
 			act(() => {
 				vi.advanceTimersByTime(200);
 				link.focus();
-				vi.advanceTimersByTime(100);
+				vi.advanceTimersByTime(99);
+			});
+			expect(isOpen()).toBe(false);
+			act(() => {
+				vi.advanceTimersByTime(1);
 			});
 			expect(isOpen()).toBe(true);
 		});
