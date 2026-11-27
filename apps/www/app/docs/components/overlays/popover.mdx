@@ -236,7 +236,7 @@ Popover.Root
 
 ## Focus and dismissal
 
-A `Popover` is a non-modal dialog. Focus moves to the first focusable element in the content on open. A hover open (`openOnHover`) moves no focus until a press on the trigger keeps it open, so `Escape` on a hover open leaves focus where it was. `Escape` closes it and returns focus to the trigger. A press or a focus move outside closes it and leaves focus where the user put it. The page (body and any scroll containers) continues to scroll normally. For a task that must block the page, use [`Dialog`](/components/overlays/dialog).
+A `Popover` is a non-modal dialog. Focus moves to the first focusable element in the content on open. A hover open (`openOnHover`) moves no focus until a press on the trigger keeps it open, so `Escape` on a hover open leaves focus where it was. `Escape` closes it and returns focus to the trigger. A press or a focus move outside closes it and leaves focus where the user put it. A focus move outside does not close a hover open, because focus was never inside it. The page (body and any scroll containers) continues to scroll normally. For a task that must block the page, use [`Dialog`](/components/overlays/dialog).
 
 ## API Reference
 

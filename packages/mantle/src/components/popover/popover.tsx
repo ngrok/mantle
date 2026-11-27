@@ -71,8 +71,8 @@ function loadDrawer(): void {
 /** A pointer position, from a pointer event. */
 type PointerPoint = Pick<globalThis.PointerEvent, "clientX" | "clientY">;
 
-/** A popover that a hover holds open. */
-type HoverOpenEntry = { close: () => void };
+/** A popover that a hover holds open, and whether its content holds an element. */
+type HoverOpenEntry = { close: () => void; holds: (element: Element) => boolean };
 
 /** The popover that a hover holds open now. A hover open of another popover closes it. */
 let hoverOpenPopover: HoverOpenEntry | undefined;
@@ -115,8 +115,12 @@ type PopoverState = {
 	pin: () => boolean;
 	/** Whether the open came from a hover and nothing pinned it yet. */
 	isHoverOpen: () => boolean;
-	/** The shown content gives its element and the way it moves focus into itself, or `null` as it hides. */
-	setShownContent: (shown: ShownContent | null) => void;
+	/** The shown content gives its element and the way it moves focus into itself. */
+	showContent: (shown: ShownContent) => void;
+	/** The content with this element hides. */
+	hideContent: (element: HTMLElement) => void;
+	/** The trigger unmounts or stops opening on hover: drop a pending hover open. */
+	cancelHover: () => void;
 	/** Moves focus into the shown content, as a press open does. */
 	focusContent: () => void;
 };
@@ -235,22 +239,30 @@ function Root({
 	const pointerOnTrigger = useRef(false);
 	/** Whether a pointer that stays on the trigger may not hover-open it again. */
 	const hoverSuppressed = useRef(false);
+	const stopSuppress = useRef<(() => void) | undefined>(undefined);
 	const hoverEntry = useRef<HoverOpenEntry | null>(null);
 	// Why a ref: a hover can ask a slow controlled parent to open, and the close
 	// that follows must still reach it before it renders the open.
 	const requestedOpen = useRef(open);
 	// Why an effect: it follows every way the popover opens and closes,
 	// including a controlled parent that closes it.
+	// Why the hover session ends on any close: a later open by a press or by
+	// the parent must not close on a leave or on a neighbor's hover.
 	useEffect(() => {
 		requestedOpen.current = open;
 		if (!open) {
 			hoverOpenRef.current = false;
+			stopGrace.current?.();
+			if (hoverEntry.current != null && hoverOpenPopover === hoverEntry.current) {
+				hoverOpenPopover = undefined;
+			}
 		}
 	}, [open]);
 	useEffect(
 		() => () => {
 			clearTimeout(hoverTimer.current);
 			stopGrace.current?.();
+			stopSuppress.current?.();
 			if (hoverOpenPopover === hoverEntry.current) {
 				hoverOpenPopover = undefined;
 			}
@@ -262,25 +274,54 @@ function Root({
 			clearTimeout(hoverTimer.current);
 			stopGrace.current?.();
 		};
-		const endHoverOpen = () => {
-			hoverOpenRef.current = false;
+		const releaseHoverOwner = () => {
 			if (hoverEntry.current != null && hoverOpenPopover === hoverEntry.current) {
 				hoverOpenPopover = undefined;
 			}
 		};
+		const endHoverOpen = () => {
+			hoverOpenRef.current = false;
+			releaseHoverOwner();
+		};
+		// Why: a close the user asks for, such as Escape, must hold while the
+		// pointer stays on the trigger. The content that covered the trigger sends
+		// a leave as it hides, so the hold ends only once the pointer is off the
+		// trigger's box.
+		const suppressHover = () => {
+			const trigger = triggerRef.current;
+			if (trigger == null || stopSuppress.current != null) {
+				return;
+			}
+			hoverSuppressed.current = true;
+			const document = trigger.ownerDocument;
+			const onMove = (event: globalThis.PointerEvent) => {
+				if (!isInsideBoth(event, trigger, trigger)) {
+					stopSuppress.current?.();
+				}
+			};
+			document.addEventListener("pointermove", onMove);
+			stopSuppress.current = () => {
+				hoverSuppressed.current = false;
+				document.removeEventListener("pointermove", onMove);
+				stopSuppress.current = undefined;
+			};
+		};
 		// Why the hover mark goes up before `onOpenChange`: a parent that commits
 		// the open in that callback shows the content before this call returns.
+		// Why a hover close keeps the mark: a slow parent can commit the earlier
+		// open after it, and that open must not take focus. The commit of the
+		// close clears it.
 		const setOpen: PopoverState["setOpen"] = (next, { byHover = false } = {}) => {
 			stopHover();
+			if (!next && !byHover && (hoverOpenRef.current || pointerOnTrigger.current)) {
+				suppressHover();
+			}
 			if (next && byHover) {
 				hoverOpenRef.current = true;
+			} else if (byHover) {
+				releaseHoverOwner();
 			} else {
 				endHoverOpen();
-			}
-			// Why: a close the user asks for, such as Escape, must hold while the
-			// pointer stays on a trigger that the content covered.
-			if (!next && !byHover) {
-				hoverSuppressed.current = pointerOnTrigger.current;
 			}
 			if (next === open && next === requestedOpen.current) {
 				return;
@@ -347,28 +388,52 @@ function Root({
 			onHoverEnter: () => {
 				pointerOnTrigger.current = true;
 				stopHover();
+				// Why the requested state: a pointer that returns before a slow
+				// parent commits a hover close asks to open again.
 				// Why not for a drawer: a hover must not open a modal that takes focus.
-				if (open || hoverSuppressed.current || wantsDrawer(presentation)) {
+				if (requestedOpen.current || hoverSuppressed.current || wantsDrawer(presentation)) {
 					return;
 				}
 				hoverTimer.current = setTimeout(() => {
-					// Why again: the trigger can unmount, and a rotated phone can cross
-					// `sm`, during the delay.
-					if (wantsDrawer(presentation) || !triggerRef.current?.isConnected) {
+					const trigger = triggerRef.current;
+					// Why again: a rotated phone can cross `sm`, the trigger can turn
+					// disabled, and another open can come first during the delay.
+					if (
+						requestedOpen.current ||
+						wantsDrawer(presentation) ||
+						trigger == null ||
+						trigger.matches(":disabled, [aria-disabled='true']")
+					) {
 						return;
 					}
-					// Why: a pointer can reach a neighbor trigger inside this one's grace box.
-					hoverOpenPopover?.close();
-					const entry = { close: () => setOpen(false, { byHover: true }) };
-					setOpen(true, { byHover: true });
+					// Why: a pointer can reach a neighbor trigger inside this one's
+					// grace box. Why not a popover that holds this trigger: closing it
+					// would remove the trigger.
+					if (!hoverOpenPopover?.holds(trigger)) {
+						hoverOpenPopover?.close();
+					}
+					// Why before `onOpenChange`: the callback can unmount this popover,
+					// and its cleanup must find the entry.
+					const entry: HoverOpenEntry = {
+						close: () => setOpen(false, { byHover: true }),
+						holds: (element) => shownContentRef.current?.element.contains(element) ?? false,
+					};
 					hoverOpenPopover = entry;
 					hoverEntry.current = entry;
+					setOpen(true, { byHover: true });
 				}, hoverOpenDelay);
 			},
 			onTriggerLeave: (point) => {
 				pointerOnTrigger.current = false;
-				hoverSuppressed.current = false;
+				const trigger = triggerRef.current;
+				if (trigger == null || !isInsideBoth(point, trigger, trigger)) {
+					stopSuppress.current?.();
+				}
 				onHoverLeave(point);
+			},
+			cancelHover: () => {
+				pointerOnTrigger.current = false;
+				clearTimeout(hoverTimer.current);
 			},
 			onHoverLeave,
 			onHoverStay: stopHover,
@@ -381,8 +446,14 @@ function Root({
 				return wasHoverOpen;
 			},
 			isHoverOpen: () => hoverOpenRef.current,
-			setShownContent: (shown) => {
+			showContent: (shown) => {
 				shownContentRef.current = shown;
+			},
+			// Why only its own: a keyed replacement shows before the old one hides.
+			hideContent: (element) => {
+				if (shownContentRef.current?.element === element) {
+					shownContentRef.current = null;
+				}
 			},
 			focusContent: () => shownContentRef.current?.focus(),
 		};
@@ -460,6 +531,15 @@ const Trigger = ({
 	const state = usePopoverState("Trigger");
 	const composedRef = useComposedRefs(ref, state.setTrigger);
 	const Component = asChild ? Slot : "button";
+	const { cancelHover } = state;
+	// Why an effect: it follows a trigger that unmounts or stops opening on
+	// hover while a hover open waits for its delay.
+	useEffect(() => {
+		if (openOnHover) {
+			return cancelHover;
+		}
+		return undefined;
+	}, [cancelHover, openOnHover]);
 	return (
 		<Component
 			aria-controls={state.open ? state.contentId : undefined}
@@ -713,14 +793,14 @@ const FloatContent = ({
 					focusFirst(floating);
 				}
 			};
-			state.setShownContent({ element: floating, focus: focusContent });
+			state.showContent({ element: floating, focus: focusContent });
 			// Why: a hover must not move focus. A press that pins the open moves it.
 			if (!state.isHoverOpen()) {
 				focusContent();
 			}
 		},
 		onHide: (floating, focusWasInside) => {
-			state.setShownContent(null);
+			state.hideContent(floating);
 			const event = new Event("mantle.popover.closeAutoFocus", { cancelable: true });
 			onCloseAutoFocus?.(event);
 			const activeElement = floating.ownerDocument.activeElement;

@@ -458,6 +458,112 @@ describe("Popover", () => {
 			expect(trigger).toHaveAttribute("aria-expanded", "true");
 		});
 
+		test("Escape holds through the leave that hiding content sends over the trigger", () => {
+			vi.useFakeTimers();
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+			render(
+				<Popover.Root>
+					<Popover.Trigger openOnHover>About limits</Popover.Trigger>
+					<Popover.Content>Help</Popover.Content>
+				</Popover.Root>,
+			);
+			const trigger = screen.getByRole("button", { name: "About limits" });
+			hoverOpen(trigger);
+			fireEvent.keyDown(window, { key: "Escape" });
+
+			// Why (0, 0): jsdom boxes are empty at the origin, so this point is on the trigger.
+			fireEvent.pointerLeave(trigger, { pointerType: "mouse", clientX: 0, clientY: 0 });
+			hoverOpen(trigger);
+			expect(trigger).toHaveAttribute("aria-expanded", "false");
+		});
+
+		test("a slow parent that commits a hover open after the leave moves no focus", () => {
+			vi.useFakeTimers();
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+			function Slow({ open }: { open: boolean }) {
+				return (
+					<>
+						<input aria-label="Name" />
+						<Popover.Root open={open} onOpenChange={() => undefined}>
+							<Popover.Trigger openOnHover>About limits</Popover.Trigger>
+							<Popover.Content>
+								<button type="button">Learn more</button>
+							</Popover.Content>
+						</Popover.Root>
+					</>
+				);
+			}
+			const { rerender } = render(<Slow open={false} />);
+			const input = screen.getByRole("textbox", { name: "Name" });
+			act(() => {
+				input.focus();
+			});
+			const trigger = screen.getByRole("button", { name: "About limits" });
+			hoverOpen(trigger);
+			fireEvent.pointerLeave(trigger, { pointerType: "mouse", clientX: 500, clientY: 500 });
+
+			rerender(<Slow open />);
+			act(() => {
+				vi.runAllTimers();
+			});
+			expect(input).toHaveFocus();
+			rerender(<Slow open={false} />);
+			act(() => {
+				vi.runAllTimers();
+			});
+			expect(input).toHaveFocus();
+		});
+
+		test("a pointer that returns before a slow parent closes asks to open again", () => {
+			vi.useFakeTimers();
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+			const onOpenChange = vi.fn<(open: boolean) => void>();
+			const { rerender } = render(
+				<Popover.Root open={false} onOpenChange={onOpenChange}>
+					<Popover.Trigger openOnHover>About limits</Popover.Trigger>
+					<Popover.Content>Help</Popover.Content>
+				</Popover.Root>,
+			);
+			const trigger = screen.getByRole("button", { name: "About limits" });
+			hoverOpen(trigger);
+			rerender(
+				<Popover.Root open onOpenChange={onOpenChange}>
+					<Popover.Trigger openOnHover>About limits</Popover.Trigger>
+					<Popover.Content>Help</Popover.Content>
+				</Popover.Root>,
+			);
+			fireEvent.pointerLeave(trigger, { pointerType: "mouse", clientX: 500, clientY: 500 });
+			hoverOpen(trigger);
+			expect(onOpenChange.mock.calls).toEqual([[true], [false], [true]]);
+		});
+
+		test("a trigger that stops opening on hover during the delay does not open", () => {
+			vi.useFakeTimers();
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+			const tree = (openOnHover: boolean) => (
+				<Popover.Root>
+					<Popover.Trigger openOnHover={openOnHover}>About limits</Popover.Trigger>
+					<Popover.Content>Help</Popover.Content>
+				</Popover.Root>
+			);
+			const { rerender } = render(tree(true));
+			const trigger = screen.getByRole("button", { name: "About limits" });
+			fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
+			rerender(tree(false));
+			act(() => {
+				vi.advanceTimersByTime(300);
+			});
+			expect(trigger).toHaveAttribute("aria-expanded", "false");
+		});
+
 		test("a disabled trigger does not open on hover", () => {
 			vi.useFakeTimers();
 			onTestFinished(() => {
