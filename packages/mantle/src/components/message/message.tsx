@@ -62,6 +62,10 @@ type MessageRootProps = ComponentProps<"article"> &
 		 * The speaker label, such as `"Error"` or `"Tool result"`. It names the
 		 * article and starts the body for a screen reader, in place of "You said:"
 		 * or "The assistant said:". It does not change the layout, which `from` sets.
+		 * `Message.Content` renders the label, and an `aria-label` on the root
+		 * replaces the article's name.
+		 *
+		 * @default "You said:" when `from` is "user", else "The assistant said:"
 		 */
 		speaker?: string;
 	};

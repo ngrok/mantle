@@ -102,7 +102,7 @@ function AnswerOnItsWay() {
 
 ## Name the speaker
 
-Set `speaker` on `Message.Root` when "You said:" or "The assistant said:" is wrong, such as for an error, a tool result, or the caller's user in a captured conversation. The label names the article and starts the body for a screen reader, so the two always agree. `from` still sets the layout. Do not set `aria-label` on `Message.Root` for this: it names the article, but the default label stays in the body.
+Set `speaker` on `Message.Root` when "You said:" or "The assistant said:" is wrong, such as for an error, a tool result, or the caller's user in a captured conversation. The label names the article and starts the body for a screen reader, so the two always agree. `from` still sets the layout. `Message.Content` renders the label, so keep it in each message. Do not set `aria-label` on `Message.Root` for this: it replaces the article's name, but the label stays in the body.
 
 <Example name="components/ai/message/speaker" title="Message speaker example">
 
