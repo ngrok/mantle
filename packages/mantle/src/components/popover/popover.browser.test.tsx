@@ -390,9 +390,11 @@ describe("Popover.Trigger openOnHover", () => {
 						<button type="button">Learn more</button>
 					</Popover.Content>
 				</Popover.Root>
-				<button type="button" style={{ marginTop: 300 }}>
-					Elsewhere
-				</button>
+				{/* Why a block: an inline button shares the trigger's line, and a wide
+				    content box can reach it. */}
+				<div style={{ marginTop: 300 }}>
+					<button type="button">Elsewhere</button>
+				</div>
 			</div>
 		);
 	}
