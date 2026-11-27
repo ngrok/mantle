@@ -1,9 +1,10 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { createPortal } from "react-dom";
 import { userEvent } from "@testing-library/user-event";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, onTestFinished, test, vi } from "vitest";
 import { commands, server, userEvent as browserUser } from "vitest/browser";
 import * as AlertDialog from "../alert-dialog/alert-dialog-parts.js";
 import * as Popover from "./popover-parts.js";
@@ -381,13 +382,19 @@ describe("Popover.Trigger openOnHover", () => {
 
 	const trigger = () => screen.getByRole("button", { name: "About limits" });
 
-	function HoverPopover({ id }: { id?: string }) {
+	function HoverPopover({
+		id,
+		children = <button type="button">Learn more</button>,
+	}: {
+		id?: string;
+		children?: ReactNode;
+	}) {
 		return (
 			<div>
 				<Popover.Root>
 					<Popover.Trigger openOnHover>About limits</Popover.Trigger>
 					<Popover.Content id={id} side="bottom" sideOffset={8}>
-						<button type="button">Learn more</button>
+						{children}
 					</Popover.Content>
 				</Popover.Root>
 				{/* Why a block: an inline button shares the trigger's line, and a wide
@@ -426,6 +433,109 @@ describe("Popover.Trigger openOnHover", () => {
 			await waitFor(() => expect(trigger()).toHaveAttribute("aria-expanded", "false"));
 		},
 	);
+
+	test("a hover open keeps focus off an autofocus field, and the pointer can still leave", async () => {
+		render(
+			<HoverPopover>
+				{/* Why a ref: React moves focus for `autoFocus` itself and renders no attribute. */}
+				<input aria-label="Limit" ref={(field) => field?.setAttribute("autofocus", "")} />
+			</HoverPopover>,
+		);
+		const elsewhere = screen.getByRole("button", { name: "Elsewhere" });
+		elsewhere.focus();
+
+		await browserUser.hover(trigger());
+		await screen.findByRole("dialog");
+		expect(elsewhere).toHaveFocus();
+
+		await browserUser.hover(elsewhere);
+		await waitFor(() => expect(trigger()).toHaveAttribute("aria-expanded", "false"));
+	});
+
+	test("a Popover.Close that covers the trigger closes it, and a still pointer does not reopen it", async () => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		onTestFinished(() => {
+			vi.useRealTimers();
+		});
+		render(
+			<div>
+				<Popover.Root>
+					<Popover.Trigger openOnHover style={{ width: 200, height: 40 }}>
+						About limits
+					</Popover.Trigger>
+					<Popover.Content side="bottom" sideOffset={-40} style={{ padding: 0 }}>
+						<Popover.Close style={{ display: "block", width: 200, height: 40 }}>
+							Close
+						</Popover.Close>
+					</Popover.Content>
+				</Popover.Root>
+				<div style={{ marginTop: 300 }}>
+					<button type="button">Elsewhere</button>
+				</div>
+			</div>,
+		);
+		await browserUser.hover(trigger());
+		await screen.findByRole("dialog");
+		const close = screen.getByRole("button", { name: "Close" });
+		const closeBox = close.getBoundingClientRect();
+		const triggerBox = trigger().getBoundingClientRect();
+		const closeX = closeBox.left + closeBox.width / 2;
+		const closeY = closeBox.top + closeBox.height / 2;
+		// Why: the test means nothing unless the Close sits over the trigger.
+		expect(closeX > triggerBox.left && closeX < triggerBox.right).toBe(true);
+		expect(closeY > triggerBox.top && closeY < triggerBox.bottom).toBe(true);
+
+		await browserUser.click(close);
+		await waitFor(() => expect(trigger()).toHaveAttribute("aria-expanded", "false"));
+		await browserUser.hover(trigger(), { position: { x: 20, y: 20 } });
+		await vi.advanceTimersByTimeAsync(400);
+		expect(trigger()).toHaveAttribute("aria-expanded", "false");
+
+		await browserUser.hover(screen.getByRole("button", { name: "Elsewhere" }));
+		await browserUser.hover(trigger());
+		await waitFor(() => expect(trigger()).toHaveAttribute("aria-expanded", "true"));
+	});
+
+	test("a nested hover open keeps its parent open while the pointer crosses the gap between them", async () => {
+		render(
+			<div data-testid="page" style={{ width: 900, height: 600 }}>
+				<Popover.Root>
+					<Popover.Trigger openOnHover>Plans</Popover.Trigger>
+					<Popover.Content side="bottom" align="start" sideOffset={8} aria-label="Plans">
+						<Popover.Root>
+							<Popover.Trigger openOnHover>Limits</Popover.Trigger>
+							<Popover.Content side="right" sideOffset={40} aria-label="Limits">
+								<button type="button">Raise limits</button>
+							</Popover.Content>
+						</Popover.Root>
+					</Popover.Content>
+				</Popover.Root>
+			</div>,
+		);
+		const plans = screen.getByRole("button", { name: "Plans" });
+		await browserUser.hover(plans);
+		const parent = await screen.findByRole("dialog", { name: "Plans" });
+		await browserUser.hover(screen.getByRole("button", { name: "Limits" }));
+		const child = await screen.findByRole("dialog", { name: "Limits" });
+
+		const page = screen.getByTestId("page").getBoundingClientRect();
+		const parentBox = parent.getBoundingClientRect();
+		const childBox = child.getBoundingClientRect();
+		const gapX = (parentBox.right + childBox.left) / 2;
+		const gapY = childBox.top + childBox.height / 2;
+		// Why: the test means nothing unless the gap lies outside both contents.
+		expect(gapX > parentBox.right && gapX < childBox.left).toBe(true);
+		await browserUser.hover(screen.getByTestId("page"), {
+			position: { x: gapX - page.left, y: gapY - page.top },
+		});
+		expect(plans).toHaveAttribute("aria-expanded", "true");
+		await browserUser.hover(screen.getByRole("button", { name: "Raise limits" }));
+		expect(plans).toHaveAttribute("aria-expanded", "true");
+		expect(screen.getByRole("dialog", { name: "Limits" })).toBeInTheDocument();
+
+		await browserUser.hover(screen.getByTestId("page"), { position: { x: 880, y: 580 } });
+		await waitFor(() => expect(plans).toHaveAttribute("aria-expanded", "false"));
+	});
 
 	test("Escape closes a hover open while focus is outside it", async () => {
 		render(<HoverPopover />);
