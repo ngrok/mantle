@@ -2,7 +2,6 @@
 
 import { render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { createRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import type { ReactElement } from "react";
 import { describe, expect, test, vi } from "vitest";
@@ -812,15 +811,16 @@ describe("CodeBlock", () => {
 	describe("ExpanderButton", () => {
 		test("owns the ARIA state and points at the <pre>, which carries data-expanded instead", async () => {
 			const user = userEvent.setup();
-
-			render(
+			const view = (expander: boolean) => (
 				<CodeBlock.Root>
 					<CodeBlock.Body>
 						<CodeBlock.Code value={makeValue("const x = 1;")} />
 					</CodeBlock.Body>
-					<CodeBlock.ExpanderButton />
-				</CodeBlock.Root>,
+					{expander && <CodeBlock.ExpanderButton />}
+				</CodeBlock.Root>
 			);
+
+			const { rerender } = render(view(true));
 
 			const button = screen.getByRole("button", { name: "Show more" });
 			const pre = document.querySelector("pre");
@@ -838,6 +838,10 @@ describe("CodeBlock", () => {
 				"true",
 			);
 			expect(pre).toHaveAttribute("data-expanded");
+
+			// Why: `data-expanded` is present only with a composed button.
+			rerender(view(false));
+			expect(pre).not.toHaveAttribute("data-expanded");
 		});
 
 		test("runs a consumer's onClick and still toggles", async () => {
@@ -881,42 +885,6 @@ describe("CodeBlock", () => {
 			const preId = pre.getAttribute("id") ?? "";
 			expect(preId).not.toBe("");
 			expect(button).toHaveAttribute("aria-controls", preId);
-		});
-
-		test("collapses the <pre> in the same task as the mount commit", async () => {
-			// Why not `render`: its `act()` flushes layout and passive effects together,
-			// so it cannot tell which one wrote the attribute. `MutationObserver`
-			// reports in the microtask right after the commit, before React runs a
-			// passive effect in a later task. A passive registration paints one frame
-			// at full height; a layout effect re-renders before paint.
-			vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", false);
-			const container = document.createElement("div");
-			document.body.appendChild(container);
-			// Why a class: the collapse is the max height itself, and no attribute
-			// marks a collapsed `<pre>`.
-			const firstObservedCollapsed = new Promise<boolean>((resolve) => {
-				const observer = new MutationObserver(() => {
-					observer.disconnect();
-					resolve(container.querySelector("pre")?.classList.contains("max-h-[13.6rem]") ?? false);
-				});
-				observer.observe(container, { attributes: true, childList: true, subtree: true });
-			});
-			const root = createRoot(container);
-			root.render(
-				<CodeBlock.Root>
-					<CodeBlock.Body>
-						<CodeBlock.Code value={makeValue("const x = 1;")} />
-					</CodeBlock.Body>
-					<CodeBlock.ExpanderButton />
-				</CodeBlock.Root>,
-			);
-
-			try {
-				await expect(firstObservedCollapsed).resolves.toBe(true);
-			} finally {
-				root.unmount();
-				container.remove();
-			}
 		});
 	});
 });

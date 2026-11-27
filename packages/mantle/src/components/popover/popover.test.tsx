@@ -648,6 +648,37 @@ describe("Popover", () => {
 		});
 	});
 
+	test("a trigger replaced on the first open does not take focus back from a later field", async () => {
+		// The content mounts on the first open. It must listen for a new trigger
+		// before that trigger attaches, or its late start pulls focus back inside.
+		const Fixture = () => {
+			const [seen, setSeen] = useState(false);
+			return (
+				<>
+					<Popover.Root
+						onOpenChange={(open) => {
+							if (open) {
+								setSeen(true);
+							}
+						}}
+					>
+						<Popover.Content>
+							<button type="button">Inside</button>
+						</Popover.Content>
+						<Popover.Trigger key={String(seen)}>Open</Popover.Trigger>
+					</Popover.Root>
+					{/* oxlint-disable-next-line jsx-a11y/no-autofocus -- the field that takes focus is the scenario */}
+					{seen && <input aria-label="Later field" autoFocus />}
+				</>
+			);
+		};
+		const user = userEvent.setup();
+		render(<Fixture />);
+		await user.click(screen.getByRole("button", { name: "Open" }));
+		await waitFor(() => expect(screen.getByRole("textbox", { name: "Later field" })).toHaveFocus());
+		expect(screen.getByRole("button", { name: "Open" })).toHaveAttribute("aria-expanded", "false");
+	});
+
 	test("opening focuses the first control that takes focus", async () => {
 		const user = userEvent.setup();
 		render(

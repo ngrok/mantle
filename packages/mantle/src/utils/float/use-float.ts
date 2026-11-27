@@ -658,12 +658,40 @@ function useReconcileOnTriggerChange(
 	onTriggerChangeRef: RefObject<(() => void) | null>,
 	reconcile: () => void,
 ) {
-	useEffect(() => {
+	// Why a layout effect: content that mounts on its first open must listen
+	// before a trigger that the same commit replaces attaches its ref.
+	useIsomorphicLayoutEffect(() => {
 		onTriggerChangeRef.current = reconcile;
 		return () => {
 			onTriggerChangeRef.current = null;
 		};
 	}, [onTriggerChangeRef, reconcile]);
+}
+
+/**
+ * Whether a float opened at least one time. Content that never opened skips
+ * `useFloat` and its effects and subscriptions. A page with one tooltip for
+ * each table row then mounts only the triggers. After the first open the
+ * content stays mounted, so its exit transition plays as before.
+ *
+ * Why `useLayerContainer` here: its document listeners must be on the document
+ * before the listeners of a float that opens later.
+ *
+ * @example
+ * ```tsx
+ * const Content = (props: HoverCardContentProps) => {
+ *   const state = useHoverCardState("Content");
+ *   return useOpenedOnce(state.open) ? <MountedContent {...props} /> : null;
+ * };
+ * ```
+ */
+function useOpenedOnce(open: boolean): boolean {
+	useLayerContainer();
+	const [opened, setOpened] = useState(open);
+	if (open && !opened) {
+		setOpened(true);
+	}
+	return opened || open;
 }
 
 export {
@@ -672,6 +700,7 @@ export {
 	hasPopoverApi,
 	resolvePortalTarget,
 	useFloat,
+	useOpenedOnce,
 	useReconcileOnTriggerChange,
 	useTriggerRef,
 };
