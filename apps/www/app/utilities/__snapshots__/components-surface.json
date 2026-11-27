@@ -906,7 +906,7 @@
         "part": "BarChart.Root",
         "name": "data-slot",
         "value": "`\"bar-chart-markers\"`",
-        "description": "The container for the per-series hover dots; a bar chart never fills it. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `\"interactive\"`. Interactive charts only: a static or decorative chart inserts the surface alone."
+        "description": "The container for the hover dots: one for each composed `LineChart.Line` or `AreaChart.Area`, each carrying `data-slot=\"chart-active-point\"` and a `data-shape`. A chart of bars alone never fills it. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `\"interactive\"`. Interactive charts only: a static or decorative chart inserts the surface alone."
       },
       {
         "part": "BarChart.Root",
@@ -961,6 +961,12 @@
         "name": "data-texture",
         "value": "`\"solid\" \\| \"hatch\" \\| \"hatch-reverse\" \\| \"crosshatch\" \\| \"perpendicular\" \\| \"parallel\" \\| \"grid\" \\| \"dots\"`",
         "description": "On each series' swatch, naming the `texture` its [BarChart.Bar](#barchartbar) registered. The swatch paints the pattern itself, so target this only to restyle a key."
+      },
+      {
+        "part": "BarChart.Legend",
+        "name": "data-shape",
+        "value": "`\"circle\" \\| \"square\" \\| \"triangle\" \\| \"diamond\" \\| \"triangle-down\" \\| \"plus\" \\| \"cross\" \\| \"star\"`",
+        "description": "On the glyph of each line or area key, naming the `shape` its `LineChart.Line` or `AreaChart.Area` wears. A chart of bars alone has none."
       },
       {
         "part": "BarChart.CopyButton",

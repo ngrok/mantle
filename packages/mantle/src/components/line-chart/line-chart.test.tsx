@@ -5,6 +5,7 @@ import { createRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { engageChart } from "../../test-utils/engage-chart.js";
 import { createIntersectionObserverStub } from "../../test-utils/mock-intersection-observer.js";
+import * as AreaChart from "../area-chart/area-chart-parts.js";
 import * as BarChart from "../bar-chart/bar-chart-parts.js";
 import type { ChartDatumEvent } from "./line-chart.js";
 import * as LineChart from "./line-chart-parts.js";
@@ -415,7 +416,9 @@ test("a BarChart.Bar composed inside LineChart.Root throws", () => {
 				<BarChart.Bar dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		),
-	).toThrow(/BarChart\.Bar cannot be composed inside LineChart\.Root/);
+	).toThrow(
+		/BarChart\.Bar cannot be composed inside LineChart\.Root\. A bar needs a slot for each category, which only BarChart\.Root has\./,
+	);
 });
 
 describe("LineChart.Legend", () => {
@@ -975,4 +978,20 @@ describe("LineChart decorative mode", () => {
 		expect(screen.queryByRole("table")).not.toBeInTheDocument();
 		expect(screen.queryByRole("status")).not.toBeInTheDocument();
 	});
+});
+
+test("an AreaChart.Area composes inside LineChart.Root, and the readout lists both series", async () => {
+	const user = userEvent.setup();
+	render(
+		<LineChart.Root data={data} xKey="time" aria-label="Latency with its band">
+			<AreaChart.Area dataKey="p99" label="p99" color="blue" />
+			<LineChart.Line dataKey="p50" label="p50" color="emerald" />
+			<LineChart.Tooltip />
+		</LineChart.Root>,
+	);
+	await user.tab();
+	await user.keyboard("{ArrowRight}");
+	const tooltip = document.querySelector('[data-slot="line-chart-tooltip"]');
+	expect(tooltip?.textContent).toContain("p99480");
+	expect(tooltip?.textContent).toContain("p50120");
 });

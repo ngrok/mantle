@@ -276,6 +276,49 @@ function DivergingBarChartExample() {
 
 </Example>
 
+## A line over the bars
+
+Compose a `LineChart.Line` inside `BarChart.Root` to draw a trend over the bars, such as a running total or a target. The line runs through the center of each category on the same y axis as the bars. It takes no bar slot, joins no stack, and draws on top of the bars, and the axis grows to hold its values. The tooltip, the keyboard announcements, the data table, and the copy button list it as one more series, and the legend keys it with a stroke. A stacked total counts the bars alone.
+
+An `AreaChart.Area` composes the same way and paints under the bars. Both need vertical bars: a horizontal bar chart runs its categories down the y axis, so it throws.
+
+Keep the line's values near the bars' scale. A running total that grows far past the weekly bars squeezes them flat on one shared axis.
+
+<Example name="components/charts/bar-chart/line-over-bars" title="Bar Chart with a line over the bars example">
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+import { LineChart } from "@ngrok/mantle/line-chart";
+
+const weeklyLines = [
+	{ week: "Apr 20", added: 17_074, deleted: -5_434, total: 11_640 },
+	{ week: "Apr 27", added: 14_759, deleted: -5_739, total: 20_660 },
+	{ week: "May 4", added: 5_732, deleted: -1_344, total: 25_048 },
+	{ week: "May 11", added: 9_520, deleted: -4_151, total: 30_417 },
+	{ week: "May 18", added: 14_675, deleted: -2_791, total: 42_301 },
+	{ week: "May 25", added: 12_927, deleted: -1_073, total: 54_155 },
+];
+
+const compact = new Intl.NumberFormat("en-US", { notation: "compact" });
+
+function LineOverBarsBarChartExample() {
+	return (
+		<BarChart.Root data={weeklyLines} xKey="week" stacked aria-label="Lines of code by week">
+			<BarChart.Grid />
+			<BarChart.XAxis />
+			<BarChart.YAxis tickFormat={(value) => compact.format(value)} />
+			<BarChart.Bar dataKey="added" label="Added" color="success" />
+			<BarChart.Bar dataKey="deleted" label="Deleted" color="danger" />
+			<LineChart.Line dataKey="total" label="Total lines" color="amber" curve="monotone" markers />
+			<BarChart.Tooltip />
+			<BarChart.Legend />
+		</BarChart.Root>
+	);
+}
+```
+
+</Example>
+
 ## No usage yet
 
 An all-zero series is data, not an empty state: it reports that nothing happened. The value axis stays anchored
@@ -1331,6 +1374,7 @@ BarChart.Root
 ├── BarChart.XAxis
 ├── BarChart.YAxis
 ├── BarChart.Bar (one per series)
+├── LineChart.Line or AreaChart.Area (optional, over vertical bars)
 ├── BarChart.ReferenceLine
 ├── BarChart.EmptySlot
 ├── BarChart.Tooltip
@@ -1487,19 +1531,19 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 **Data attributes**
 
-| Data Attribute | Value                     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| -------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"bar-chart"`             | The Root wrapper, with any forwarded chain ahead of it.                                                                                                                                                                                                                                                                                                                                                                                         |
-| `data-slot`    | `"bar-chart-plot"`        | The plot box. Every overlay layer positions against it, and the resize observer measures it.                                                                                                                                                                                                                                                                                                                                                    |
-| `data-slot`    | `"bar-chart-svg"`         | The `<svg>` the marks paint on. Always `aria-hidden`. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print).                                                                                                                                                                                                                    |
-| `data-slot`    | `"bar-chart-crosshair"`   | The vertical hairline; a bar chart never shows it. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `"interactive"`. Interactive charts only: a static or decorative chart inserts the surface alone.                                                              |
-| `data-slot`    | `"bar-chart-hover-band"`  | The highlight behind the active category, one category wide. The engine writes its geometry as an inline style. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `"interactive"`. Interactive charts only: a static or decorative chart inserts the surface alone. |
-| `data-slot`    | `"bar-chart-markers"`     | The container for the per-series hover dots; a bar chart never fills it. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `"interactive"`. Interactive charts only: a static or decorative chart inserts the surface alone.                                        |
-| `data-slot`    | `"bar-chart-tooltip"`     | The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it; `BarChart.Tooltip` configures it. A chart nobody points at holds none.                                                                                                                                                                                                                                                                               |
-| `data-slot`    | `"bar-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the category count, the first and last category, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`.                                                                                                                                                                                            |
-| `data-slot`    | `"bar-chart-data-table"`  | The `sr-only` data table. Mounts once focus lands inside the chart (`data-engaged` appears) and stays. Interactive charts only.                                                                                                                                                                                                                                                                                                                 |
-| `data-engaged` | present once engaged      | On the Root. Appears once focus lands inside the chart, and never goes away. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only.                                                                                                                                                                                                                                                            |
-| `data-value`   | a number                  | On each cell of the `sr-only` data table that shows a finite number, and on a numeric x row header. The raw number. A missing value has none.                                                                                                                                                                                                                                                                                                   |
+| Data Attribute | Value                     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"bar-chart"`             | The Root wrapper, with any forwarded chain ahead of it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `data-slot`    | `"bar-chart-plot"`        | The plot box. Every overlay layer positions against it, and the resize observer measures it.                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `data-slot`    | `"bar-chart-svg"`         | The `<svg>` the marks paint on. Always `aria-hidden`. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print).                                                                                                                                                                                                                                                                                                           |
+| `data-slot`    | `"bar-chart-crosshair"`   | The vertical hairline; a bar chart never shows it. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `"interactive"`. Interactive charts only: a static or decorative chart inserts the surface alone.                                                                                                                                                     |
+| `data-slot`    | `"bar-chart-hover-band"`  | The highlight behind the active category, one category wide. The engine writes its geometry as an inline style. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `"interactive"`. Interactive charts only: a static or decorative chart inserts the surface alone.                                                                                        |
+| `data-slot`    | `"bar-chart-markers"`     | The container for the hover dots: one for each composed `LineChart.Line` or `AreaChart.Area`, each carrying `data-slot="chart-active-point"` and a `data-shape`. A chart of bars alone never fills it. Engine-owned: it is absent from server HTML. The engine appends it on the first hover, keyboard step, or controlled `activeIndex` that names a datum. It stays until the Root destroys the engine, such as when `mode` leaves `"interactive"`. Interactive charts only: a static or decorative chart inserts the surface alone. |
+| `data-slot`    | `"bar-chart-tooltip"`     | The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it; `BarChart.Tooltip` configures it. A chart nobody points at holds none.                                                                                                                                                                                                                                                                                                                                                                      |
+| `data-slot`    | `"bar-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the category count, the first and last category, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`.                                                                                                                                                                                                                                                                                   |
+| `data-slot`    | `"bar-chart-data-table"`  | The `sr-only` data table. Mounts once focus lands inside the chart (`data-engaged` appears) and stays. Interactive charts only.                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `data-engaged` | present once engaged      | On the Root. Appears once focus lands inside the chart, and never goes away. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only.                                                                                                                                                                                                                                                                                                                                                   |
+| `data-value`   | a number                  | On each cell of the `sr-only` data table that shows a finite number, and on a numeric x row header. The raw number. A missing value has none.                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ### BarChart.Bar
 
@@ -1603,6 +1647,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `data-slot`    | `"bar-chart-legend"`                                                                                         | The legend list. `BarChart.Legend` renders it in flow below the plot.                                                                                                 |
 | `data-slot`    | `"bar-chart-legend-label"`                                                                                   | On the `<div>` wrapping a `children` render prop. The default legend has none.                                                                                        |
 | `data-texture` | `"solid" \| "hatch" \| "hatch-reverse" \| "crosshatch" \| "perpendicular" \| "parallel" \| "grid" \| "dots"` | On each series' swatch, naming the `texture` its [BarChart.Bar](#barchartbar) registered. The swatch paints the pattern itself, so target this only to restyle a key. |
+| `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"`          | On the glyph of each line or area key, naming the `shape` its `LineChart.Line` or `AreaChart.Area` wears. A chart of bars alone has none.                             |
 
 ### BarChart.CopyButton
 

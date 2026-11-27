@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import invariant from "tiny-invariant";
 import { WORLD_LAND } from "../world-map/world-land.js";
 import { createCanvasBackend } from "./canvas-backend.js";
 import type { ScatterViewFactory } from "./scatter-engine.js";
@@ -2223,5 +2224,101 @@ describe("ChartEngine per-datum tweens", () => {
 
 		// Why one frame: the new array asks for one paint, and a tween to equal values paints that frame again.
 		expect(frames.settle()).toBe(1);
+	});
+});
+
+describe("ChartEngine series of more than one mark", () => {
+	const weeks = [
+		{ x: "Apr 20", added: 17, removed: -5, total: 12 },
+		{ x: "Apr 27", added: 15, removed: -6, total: 21 },
+		{ x: "May 4", added: 6, removed: -1, total: 26 },
+	];
+	const bars = [
+		makeSeries("added", "bar", { color: "emerald" }),
+		makeSeries("removed", "bar", { color: "pink" }),
+	];
+	const mountWeeks = (
+		series: readonly SeriesSpec[],
+		options: Partial<ChartOptions> = {},
+	): Mounted =>
+		mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series,
+			rows: weeks,
+			options: { xScale: "band", yDomain: [-10, 30], ...options },
+		});
+	/** Paint each chart to rest, and return its paths. */
+	const paintAll = (...mounts: Mounted[]): string[][] => {
+		frames.settle();
+		return mounts.map((mount) => paintedPaths(mount));
+	};
+	let frames: ReturnType<typeof installFrameClock>;
+
+	test("a line over stacked bars draws at its own values, after the bars", () => {
+		frames = installFrameClock();
+		const [mixed = [], barsAlone = [], lineAlone = []] = paintAll(
+			mountWeeks([...bars, makeSeries("total", "line", { color: "amber" })], { stacked: true }),
+			mountWeeks(bars, { stacked: true }),
+			mountWeeks([makeSeries("total", "line", { color: "amber" })], { stacked: true }),
+		);
+		expect(lineAlone).toHaveLength(1);
+
+		// Why equal paths: a line that joined the pile would move up by the
+		// added bar, and the bars would not change.
+		expect(mixed.at(-1)).toBe(lineAlone.at(-1));
+		expect(mixed.slice(0, barsAlone.length)).toEqual(barsAlone);
+	});
+
+	test("a line beside grouped bars takes no group slot", () => {
+		frames = installFrameClock();
+		const [mixed = [], barsAlone = []] = paintAll(
+			mountWeeks([...bars, makeSeries("total", "line", { color: "amber" })]),
+			mountWeeks(bars),
+		);
+		expect(barsAlone).toHaveLength(2);
+
+		// Why equal paths: with a third slot for the line, each bar would narrow.
+		expect(mixed.slice(0, barsAlone.length)).toEqual(barsAlone);
+	});
+
+	test("an area over bars paints under them", () => {
+		const area = makeSeries("total", "area", { color: "amber" });
+		frames = installFrameClock();
+		const [mixed = [], areaAlone = []] = paintAll(mountWeeks([...bars, area]), mountWeeks([area]));
+		expect(areaAlone.length).toBeGreaterThan(0);
+
+		expect(mixed[0]).toBe(areaAlone[0]);
+	});
+
+	test("the value axis holds a line that runs far above the stacked bars", async () => {
+		const mount = mountWeeks([...bars, makeSeries("total", "line", { color: "amber" })], {
+			stacked: true,
+			yDomain: ["auto", "auto"],
+		});
+		mount.engine.handleKeyDown("End");
+		await vi.waitFor(() => {
+			expect(hoverOf(mount).markers.children).toHaveLength(1);
+		});
+		const [dot] = hoverOf(mount).markers.children;
+		invariant(dot != null, "expected the line's hover dot");
+		// Why inside the plot: a domain of the stack alone tops out at 17, and
+		// the line's 26 would land above the plot's top edge.
+		expect(dotPosition(dot).y).toBeGreaterThanOrEqual(0);
+	});
+
+	test("a pointer near the line selects the line, and a pointer on a bar selects the bar", async () => {
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		const mount = mountWeeks([...bars, makeSeries("total", "line", { color: "amber" })]);
+		const [dot] = await activateFirstDatum(mount);
+		invariant(dot != null, "expected the line's hover dot");
+		const line = dotPosition(dot);
+		mount.engine.setCallbacks({ onDatumActivate, onActiveIndexChange: null });
+		// The dot sits on the line at the band center, between the two bars, so
+		// 15 px left of it is on the added bar. 30 px below the line is clear of it.
+		mount.engine.handleActivate(line.x - 15, line.y + 3);
+		mount.engine.handleActivate(line.x - 15, line.y + 30);
+
+		expect(onDatumActivate.mock.calls.map(([event]) => event.dataKey)).toEqual(["total", "added"]);
 	});
 });
