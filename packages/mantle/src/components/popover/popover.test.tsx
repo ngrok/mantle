@@ -367,6 +367,102 @@ describe("Popover", () => {
 			expect(screen.getByRole("button", { name: "Learn more" })).not.toHaveFocus();
 		});
 
+		/** A popover whose parent commits `open` only when the test rerenders it. */
+		function SlowParent({
+			open,
+			onOpenChange,
+		}: {
+			open: boolean;
+			onOpenChange: (open: boolean) => void;
+		}) {
+			return (
+				<>
+					<input aria-label="Outside" />
+					<Popover.Root open={open} onOpenChange={onOpenChange}>
+						<Popover.Trigger openOnHover>About limits</Popover.Trigger>
+						<Popover.Content>
+							<button type="button">Learn more</button>
+						</Popover.Content>
+					</Popover.Root>
+				</>
+			);
+		}
+
+		function leave(trigger: HTMLElement) {
+			fireEvent.pointerLeave(trigger, { pointerType: "mouse", clientX: 500, clientY: 500 });
+		}
+
+		test("a controlled parent that closes a hover open ends the hover session", () => {
+			vi.useFakeTimers();
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+			const onOpenChange = vi.fn<(open: boolean) => void>();
+			const Controlled = ({ open }: { open: boolean }) => (
+				<SlowParent open={open} onOpenChange={onOpenChange} />
+			);
+			const { rerender } = render(<Controlled open={false} />);
+			hoverOpen(screen.getByRole("button", { name: "About limits" }));
+			expect(onOpenChange).toHaveBeenLastCalledWith(true);
+			rerender(<Controlled open />);
+			expect(screen.getByRole("button", { name: "Learn more" })).not.toHaveFocus();
+
+			rerender(<Controlled open={false} />);
+			act(() => {
+				vi.runAllTimers();
+			});
+			rerender(<Controlled open />);
+			expect(screen.getByRole("button", { name: "Learn more" })).toHaveFocus();
+		});
+
+		test("a slow parent that commits a hover open, a leave, and a return in turn moves no focus", () => {
+			vi.useFakeTimers();
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+			const onOpenChange = vi.fn<(open: boolean) => void>();
+			const Controlled = ({ open }: { open: boolean }) => (
+				<SlowParent open={open} onOpenChange={onOpenChange} />
+			);
+			const { rerender } = render(<Controlled open={false} />);
+			const outside = screen.getByRole("textbox", { name: "Outside" });
+			outside.focus();
+			const trigger = screen.getByRole("button", { name: "About limits" });
+
+			hoverOpen(trigger);
+			leave(trigger);
+			hoverOpen(trigger);
+			expect(onOpenChange.mock.calls).toEqual([[true], [false], [true]]);
+			rerender(<Controlled open />);
+			rerender(<Controlled open={false} />);
+			rerender(<Controlled open />);
+			expect(outside).toHaveFocus();
+
+			leave(trigger);
+			expect(onOpenChange).toHaveBeenLastCalledWith(false);
+		});
+
+		test("a leave while a slow parent still has a reopen queued asks it to close", () => {
+			vi.useFakeTimers();
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+			const onOpenChange = vi.fn<(open: boolean) => void>();
+			const Controlled = ({ open }: { open: boolean }) => (
+				<SlowParent open={open} onOpenChange={onOpenChange} />
+			);
+			const { rerender } = render(<Controlled open={false} />);
+			const trigger = screen.getByRole("button", { name: "About limits" });
+			hoverOpen(trigger);
+			rerender(<Controlled open />);
+
+			leave(trigger);
+			hoverOpen(trigger);
+			rerender(<Controlled open={false} />);
+			leave(trigger);
+			expect(onOpenChange.mock.calls).toEqual([[true], [false], [true], [false]]);
+		});
+
 		test("Escape holds while the pointer stays on the trigger, until it leaves and comes back", () => {
 			vi.useFakeTimers();
 			onTestFinished(() => {
