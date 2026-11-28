@@ -146,6 +146,11 @@ const ChartTooltipSurface = ({
 	const cap = Math.max(0, Math.floor(config?.maxRows ?? 8)) || 0;
 	const fitKey = `${space}:${rowCount}:${cap}`;
 	const [fit, setFit] = useState<{ key: string; rows: number } | null>(null);
+	// Why a reset on a new key: a fit kept from an earlier key would come back
+	// when that key returns, though the readout has changed since.
+	if (fit != null && fit.key !== fitKey) {
+		setFit(null);
+	}
 	const shown = Math.min(rowCount, cap, fit?.key === fitKey ? fit.rows : Number.POSITIVE_INFINITY);
 	const { className, ref: consumerRef, style, ...divProps } = config?.divProps ?? {};
 	const surfaceRef = useRef<HTMLDivElement | null>(null);
@@ -183,7 +188,19 @@ const ChartTooltipSurface = ({
 			return;
 		}
 		const count = hover.points.length;
-		let overflow = surface.offsetHeight - space;
+		// Why the content's bottom, not the box height: a CSS `max-height` keeps
+		// the box the same height while rows go. Why fractional sizes: a rounded
+		// height can overflow a plot that the readout fits.
+		const box = surface.getBoundingClientRect();
+		const surfaceStyle = getComputedStyle(surface);
+		// Why a scale: a transform scales the rects, but not the plot space.
+		const scale = box.height / Number.parseFloat(surfaceStyle.height) || 1;
+		const bottom = surface.lastElementChild?.getBoundingClientRect().bottom ?? box.bottom;
+		let overflow =
+			(bottom - box.top) / scale +
+			Number.parseFloat(surfaceStyle.paddingBottom) +
+			Number.parseFloat(surfaceStyle.borderBottomWidth) -
+			space;
 		if (overflow <= 0) {
 			return;
 		}
@@ -198,7 +215,7 @@ const ChartTooltipSurface = ({
 		let drop = 0;
 		while (drop < shown && overflow > 0) {
 			drop += 1;
-			overflow -= (rows.children[end - drop]?.getBoundingClientRect().height ?? 0) + gap;
+			overflow -= (rows.children[end - drop]?.getBoundingClientRect().height ?? 0) / scale + gap;
 		}
 		setFit({ key: fitKey, rows: shown - drop });
 	}, [fitKey, hover, shown, space]);

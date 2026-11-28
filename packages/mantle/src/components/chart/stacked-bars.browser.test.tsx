@@ -1133,67 +1133,134 @@ const findTooltip = async (container: HTMLElement, overlay: HTMLElement): Promis
 };
 
 describe("tooltip placement", () => {
-	test("a readout with more rows than fit shows the largest ones inside a clipping card", async () => {
-		// A short chart with many series inside a card that clips, as mantle's
-		// `Panel` (`overflow-clip`) and `Table` (`overflow-hidden`) do. The rows
-		// that do not fit fold into a count, so the card cuts none off.
-		const series = Array.from({ length: 12 }, (_, index) => `key${index}`);
-		const row: Record<string, string | number> = { day: "Mon" };
-		for (const [index, key] of series.entries()) {
-			row[key] = index + 1;
-		}
-		const chart = (maxRows: number) => (
-			<div style={{ width: 600, height: 160, overflow: "clip" }}>
-				<CanvasBarChartRoot
-					data={[row]}
-					xKey="day"
-					stacked
-					animate={false}
-					aria-label="Many series in a card"
+	// Why 70 series: a fit that removes too few rows per pass loops past
+	// React's update limit. Why a max-height and a scale: neither may change
+	// the rows that fit.
+	test.each([
+		{ name: "plain", tooltipStyle: undefined, scale: 1 },
+		{ name: "a CSS max-height", tooltipStyle: { maxHeight: 160, overflow: "auto" }, scale: 1 },
+		{ name: "a scaled card", tooltipStyle: undefined, scale: 0.5 },
+	] as const)(
+		"a readout with more rows than fit shows the largest ones inside a clipping card ($name)",
+		async ({ tooltipStyle, scale }) => {
+			// A short chart with many series inside a card that clips, as mantle's
+			// `Panel` (`overflow-clip`) and `Table` (`overflow-hidden`) do. The rows
+			// that do not fit fold into a count, so the card cuts none off.
+			const series = Array.from({ length: 70 }, (_, index) => `key${index}`);
+			const row: Record<string, string | number> = { day: "Mon" };
+			for (const [index, key] of series.entries()) {
+				row[key] = index + 1;
+			}
+			const chart = (maxRows: number) => (
+				<div
+					style={{
+						width: 600,
+						height: 160,
+						overflow: "clip",
+						transform: `scale(${scale})`,
+						transformOrigin: "left top",
+					}}
 				>
-					{series.map((key) => (
+					<CanvasBarChartRoot
+						data={[row]}
+						xKey="day"
+						stacked
+						animate={false}
+						aria-label="Many series in a card"
+					>
+						{series.map((key) => (
+							<BarChart.Bar key={key} dataKey={key} label={key} color="blue" />
+						))}
+						<BarChart.Tooltip maxRows={maxRows} style={tooltipStyle} />
+					</CanvasBarChartRoot>
+				</div>
+			);
+			// Why a first cap of one row: that readout fits, so a fit kept from it
+			// would let the uncapped readout spill out of the card.
+			const { container, rerender } = render(chart(1));
+			const canvas = await findChartCanvas(container);
+			await waitForPlot(canvas);
+			const overlay = overlayOf(container);
+			const tooltip = await findTooltip(container, overlay);
+			// Why an intersection ratio: a box keeps its full rect when an ancestor
+			// clips it, but the ratio counts only the part the clip leaves visible.
+			const visibleRatio = (element: Element): Promise<number> =>
+				new Promise((resolve) => {
+					const observer = new IntersectionObserver(([entry]) => {
+						observer.disconnect();
+						resolve(entry?.intersectionRatio ?? 0);
+					});
+					observer.observe(element);
+				});
+			const hoverCenter = (): void => {
+				const plot = overlay.getBoundingClientRect();
+				hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
+			};
+			await waitFor(() => {
+				hoverCenter();
+				expect(tooltip.textContent).toContain("+69 more");
+			});
+			rerender(chart(Number.POSITIVE_INFINITY));
+			// Why the text inside the wait: the readout can clear between hovers.
+			let text = "";
+			await waitFor(async () => {
+				hoverCenter();
+				text = tooltip.textContent ?? "";
+				expect(text).toMatch(/\+\d+ more/);
+				expect(await visibleRatio(tooltip)).toBeGreaterThan(0.99);
+				const count = tooltip.querySelector(".grid")?.lastElementChild;
+				expect(count?.textContent).toMatch(/\+\d+ more/);
+				expect(await visibleRatio(count ?? tooltip)).toBeGreaterThan(0.99);
+			});
+			// The largest value reads first, and the smallest folds into the count.
+			expect(text).toContain("key69");
+			expect(text).not.toContain("key0");
+			expect(text).not.toContain("+69 more");
+			// The same readout fits the same plot, whatever its scale: a plot of
+			// 160px less the label and the count holds a few rows.
+			const shown = 70 - Number(/\+(\d+) more/.exec(text)?.[1]);
+			expect(shown).toBeGreaterThanOrEqual(3);
+		},
+	);
+
+	test("a lower cap and a return to the first cap fit the readout again", async () => {
+		// Why a tall label on the first day only: its readout fits fewer rows,
+		// and that fit must not come back for the second day.
+		const days = ["Mon", "Tue"].map((day) => ({ day, a: 4, b: 3, c: 2, d: 1 }));
+		const chart = (activeIndex: number, maxRows: number) => (
+			<div style={{ width: 600, height: 160 }}>
+				<CanvasBarChartRoot
+					data={days}
+					xKey="day"
+					animate={false}
+					activeIndex={activeIndex}
+					aria-label="Four series"
+				>
+					{["a", "b", "c", "d"].map((key) => (
 						<BarChart.Bar key={key} dataKey={key} label={key} color="blue" />
 					))}
-					<BarChart.Tooltip maxRows={maxRows} />
+					<BarChart.Tooltip
+						maxRows={maxRows}
+						labelFormat={(day) =>
+							day === "Mon" ? (
+								<span style={{ display: "block", height: 100 }}>Mon</span>
+							) : (
+								String(day)
+							)
+						}
+					/>
 				</CanvasBarChartRoot>
 			</div>
 		);
-		// Why a first cap of one row: that readout fits, so a fit kept from it
-		// would let the uncapped readout spill out of the card.
-		const { container, rerender } = render(chart(1));
-		const canvas = await findChartCanvas(container);
-		await waitForPlot(canvas);
-		const overlay = overlayOf(container);
-		const tooltip = await findTooltip(container, overlay);
-		// Why an intersection ratio: a box keeps its full rect when an ancestor
-		// clips it, but the ratio counts only the part the clip leaves visible.
-		const visibleRatio = (): Promise<number> =>
-			new Promise((resolve) => {
-				const observer = new IntersectionObserver(([entry]) => {
-					observer.disconnect();
-					resolve(entry?.intersectionRatio ?? 0);
-				});
-				observer.observe(tooltip);
-			});
-		const hoverCenter = (): void => {
-			const plot = overlay.getBoundingClientRect();
-			hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
-		};
-		await waitFor(() => {
-			hoverCenter();
-			expect(tooltip.textContent).toContain("+11 more");
-		});
-		rerender(chart(Number.POSITIVE_INFINITY));
-		await waitFor(async () => {
-			hoverCenter();
-			expect(tooltip.textContent).toMatch(/\+\d+ more/);
-			expect(await visibleRatio()).toBeGreaterThan(0.99);
-		});
-		// The largest value reads first, and the smallest folds into the count.
-		const text = tooltip.textContent ?? "";
-		expect(text).toContain("key11");
-		expect(text).not.toContain("key0");
-		expect(text).not.toContain("+11 more");
+		const { container, rerender } = render(chart(0, 8));
+		await waitForPlot(await findChartCanvas(container));
+		const tooltip = (): string =>
+			container.querySelector('[data-slot="bar-chart-tooltip"]')?.textContent ?? "";
+		await waitFor(() => expect(tooltip()).toMatch(/Mon.*\+\d+ more/));
+		rerender(chart(1, 2));
+		await waitFor(() => expect(tooltip()).toMatch(/Tue.*\+2 more/));
+		rerender(chart(1, 8));
+		await waitFor(() => expect(tooltip()).toBe("Tuea4b3c2d1"));
 	});
 
 	test("a readout that fits stays inside the plot box", async () => {
