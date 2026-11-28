@@ -1,5 +1,13 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.3.1
+
+### Patch Changes
+
+- [#2002](https://github.com/ngrok/mantle/pull/2002) [`441807f`](https://github.com/ngrok/mantle/commit/441807f5506325e92c5af4a672d99ece6283afdd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Update postcss from 8.5.33 to 8.5.34.
+- Updated dependencies []:
+  - @ngrok/mantle-server-syntax-highlighter@1.2.0
+
 ## 1.3.0
 
 ### Minor Changes
