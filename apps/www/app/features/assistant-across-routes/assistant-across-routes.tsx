@@ -90,6 +90,10 @@ function AssistantContentCard({
 		<ViewTransition
 			key={onAssistantPage ? "assistant" : "page"}
 			name={onAssistantPage ? assistantViewTransitionName : undefined}
+			// Why: a product page holds still under the moving card, and the
+			// assistant's page fades over it when no open panel takes its place.
+			enter={onAssistantPage ? "app-layout-card-alone" : "app-layout-card-under"}
+			exit={onAssistantPage ? "app-layout-card-alone" : "app-layout-card-under"}
 			update="none"
 		>
 			<AppLayout.Content>{children}</AppLayout.Content>
