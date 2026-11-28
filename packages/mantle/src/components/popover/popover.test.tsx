@@ -367,6 +367,36 @@ describe("Popover", () => {
 			expect(screen.getByRole("button", { name: "Learn more" })).not.toHaveFocus();
 		});
 
+		test("a controlled parent that closes a hover open ends the hover session", () => {
+			vi.useFakeTimers();
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+			const onOpenChange = vi.fn<(open: boolean) => void>();
+			function Controlled({ open }: { open: boolean }) {
+				return (
+					<Popover.Root open={open} onOpenChange={onOpenChange}>
+						<Popover.Trigger openOnHover>About limits</Popover.Trigger>
+						<Popover.Content>
+							<button type="button">Learn more</button>
+						</Popover.Content>
+					</Popover.Root>
+				);
+			}
+			const { rerender } = render(<Controlled open={false} />);
+			hoverOpen(screen.getByRole("button", { name: "About limits" }));
+			expect(onOpenChange).toHaveBeenLastCalledWith(true);
+			rerender(<Controlled open />);
+			expect(screen.getByRole("button", { name: "Learn more" })).not.toHaveFocus();
+
+			rerender(<Controlled open={false} />);
+			act(() => {
+				vi.runAllTimers();
+			});
+			rerender(<Controlled open />);
+			expect(screen.getByRole("button", { name: "Learn more" })).toHaveFocus();
+		});
+
 		test("Escape holds while the pointer stays on the trigger, until it leaves and comes back", () => {
 			vi.useFakeTimers();
 			onTestFinished(() => {

@@ -281,14 +281,19 @@ function Root({
 	// Why a ref: a hover can ask a slow controlled parent to open, and the close
 	// that follows must still reach it before it renders the open.
 	const requestedOpen = useRef(open);
+	/** Whether `setOpen` asked for a change that no commit has followed yet. */
+	const requestPending = useRef(false);
 	// Why an effect: it follows every way the popover opens and closes,
 	// including a controlled parent that closes it.
 	// Why the hover session ends on any close: a later open by a press or by
 	// the parent must not close on a leave or on a neighbor's hover.
 	// Why not when a newer open waits: a pointer that returned before a slow
 	// parent committed the close asked to open again, by hover.
+	// Why only a pending request: a close that the parent makes by itself
+	// follows no request, and it ends the session too.
 	useEffect(() => {
-		const newerOpen = !open && requestedOpen.current;
+		const newerOpen = !open && requestedOpen.current && requestPending.current;
+		requestPending.current = false;
 		requestedOpen.current = open;
 		if (!open && !newerOpen) {
 			hoverOpenRef.current = false;
@@ -371,6 +376,7 @@ function Root({
 				return;
 			}
 			requestedOpen.current = next;
+			requestPending.current = true;
 			if (openProp === undefined) {
 				setUncontrolledOpen(next);
 			}
