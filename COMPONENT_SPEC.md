@@ -98,7 +98,9 @@ accessible, least surprising, fast, delightful, clean, and efficient.
     scroll handlers). Avoid unremovable module side effects ([§1.7](#17-forbidden-api-shapes)).
 11. **Safe defaults.** A default is the library exercising judgment for the consumer:
     `Button` defaults `type="button"`; `AlertDialog.Action` deliberately does not dismiss; wrapped handlers run
-    the consumer's callback first and bail on `preventDefault()`.
+    the consumer's callback first and bail on `preventDefault()`. The right use takes the least effort, and a
+    wrong use meets a type error, an `invariant`, or a lint rule
+    ([fall into the pit of success](./docs/principles/fall-into-the-pit-of-success.md)).
 12. **Docs are executable contracts.** JSDoc and docs examples feed the published types, `llms.txt`, and the
     component manifest that agents read. They are reproduced verbatim: one recorded migration copied a docs
     pattern into ~57 call sites before the docs were fixed. Maintain examples with the same care as API.
