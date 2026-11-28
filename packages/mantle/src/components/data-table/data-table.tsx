@@ -1406,37 +1406,53 @@ function EmptyRow({ "data-slot": dataSlot, children, ...props }: DataTableEmptyR
 }
 
 /**
- * Keeps the content of a `DataTable.EmptyRow` in the visible part of a table
- * that scrolls sideways: it caps the content to the scroll container's width
- * less the cell's inline padding, and sticks it at the start padding.
+ * Keeps the content of a `DataTable.EmptyRow` in view when the table is wider
+ * than its scroll container: it caps the content to the visible width, less the
+ * cell's inline padding, and sticks it at the start padding. A table that fits,
+ * or content that cannot fit in the cap, keeps the layout from before the stick.
  * Returns the cleanup for the effect that calls it.
  *
  * @private
  */
 function keepEmptyRowInView(content: HTMLDivElement | null) {
 	const cell = content?.parentElement;
-	const scroller = content?.closest("table")?.parentElement;
-	if (content == null || cell == null || scroller == null) {
+	const table = content?.closest("table");
+	const scroller = table?.parentElement;
+	if (content == null || cell == null || table == null || scroller == null) {
 		return;
 	}
+	const { style } = content;
 
-	let width = scroller.clientWidth;
 	let frameId = 0;
-
 	const update = () => {
 		frameId = 0;
-		const style = getComputedStyle(cell);
-		const start = Number.parseFloat(style.paddingInlineStart) || 0;
-		const end = Number.parseFloat(style.paddingInlineEnd) || 0;
-		content.style.position = "";
-		content.style.insetInlineStart = `${start}px`;
-		content.style.maxWidth = `${width - start - end}px`;
-		// Why: content wider than the view stays stuck with its end out of reach.
-		// Let it scroll with the table instead, as it did before the cap.
-		if (content.scrollWidth > content.clientWidth) {
-			content.style.position = "static";
-			content.style.maxWidth = "";
+		style.position = "static";
+		style.maxWidth = "none";
+		// Why `contain`: it measures the table without the empty content's width.
+		// The cap must not narrow a table that the content itself made wide.
+		style.contain = "inline-size";
+		const overflows = table.offsetWidth > scroller.clientWidth;
+		style.contain = "";
+		if (!overflows) {
+			return;
 		}
+
+		const cellStyle = getComputedStyle(cell);
+		const start = Number.parseFloat(cellStyle.paddingInlineStart) || 0;
+		const end = Number.parseFloat(cellStyle.paddingInlineEnd) || 0;
+		const cap = scroller.clientWidth - start - end;
+		// Why min-content: content that cannot fit in the cap, on either side,
+		// stays static so that the table scroll reaches each part of it.
+		style.width = "min-content";
+		const minWidth = content.getBoundingClientRect().width;
+		style.width = "";
+		if (minWidth > cap) {
+			return;
+		}
+
+		style.position = "sticky";
+		style.insetInlineStart = `${start}px`;
+		style.maxWidth = `${cap}px`;
 	};
 
 	// Why the first update runs here: the layout effect lands it before paint.
@@ -1446,18 +1462,17 @@ function keepEmptyRowInView(content: HTMLDivElement | null) {
 		return;
 	}
 
+	// Why each element: a new width, new columns, new padding, or new children
+	// can each change the result. Why a frame: the update resizes what this
+	// observes, and inside the callback that raises the ResizeObserver loop error.
 	const observer = new ResizeObserver(() => {
-		if (scroller.clientWidth === width) {
-			return;
-		}
-		width = scroller.clientWidth;
-		// Why a frame: the update changes the scroller's height. Inside this
-		// callback, that change raises the ResizeObserver loop error.
 		if (frameId === 0) {
 			frameId = requestAnimationFrame(update);
 		}
 	});
-	observer.observe(scroller);
+	for (const element of [scroller, table, cell, content]) {
+		observer.observe(element);
+	}
 
 	return () => {
 		cancelAnimationFrame(frameId);
