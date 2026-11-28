@@ -184,7 +184,14 @@ const ChartTooltipSurface = ({
 	useLayoutEffect(() => {
 		const surface = surfaceRef.current;
 		const rows = rowsRef.current;
-		if (hover == null || surface == null || rows == null || shown === 0) {
+		if (
+			hover == null ||
+			config?.children != null ||
+			surface == null ||
+			rows == null ||
+			shown === 0 ||
+			space === 0
+		) {
 			return;
 		}
 		const count = hover.points.length;
@@ -194,7 +201,14 @@ const ChartTooltipSurface = ({
 		const box = surface.getBoundingClientRect();
 		const surfaceStyle = getComputedStyle(surface);
 		// Why a scale: a transform scales the rects, but not the plot space.
-		const scale = box.height / Number.parseFloat(surfaceStyle.height) || 1;
+		const edges =
+			surfaceStyle.boxSizing === "content-box"
+				? Number.parseFloat(surfaceStyle.paddingTop) +
+					Number.parseFloat(surfaceStyle.paddingBottom) +
+					Number.parseFloat(surfaceStyle.borderTopWidth) +
+					Number.parseFloat(surfaceStyle.borderBottomWidth)
+				: 0;
+		const scale = box.height / (Number.parseFloat(surfaceStyle.height) + edges) || 1;
 		const bottom = surface.lastElementChild?.getBoundingClientRect().bottom ?? box.bottom;
 		let overflow =
 			(bottom - box.top) / scale +
@@ -218,13 +232,16 @@ const ChartTooltipSurface = ({
 			overflow -= (rows.children[end - drop]?.getBoundingClientRect().height ?? 0) / scale + gap;
 		}
 		setFit({ key: fitKey, rows: shown - drop });
-	}, [fitKey, hover, shown, space]);
+	}, [config?.children, fitKey, hover, shown, space]);
 	return (
 		<div
 			data-slot={`${slotName}-tooltip`}
 			ref={composedRef}
+			// Why `max-w-full` and `wrap-anywhere`: a readout wider than the chart
+			// adds a scrollbar to a parent that scrolls. The scrollbar changes the
+			// plot height, the fit, and so the width again, in a loop.
 			className={cx(
-				"bg-popover border-popover text-strong pointer-events-none absolute left-0 top-0 z-10 min-w-32 rounded-md border px-2.5 py-1.5 text-xs shadow-md",
+				"bg-popover border-popover text-strong pointer-events-none absolute left-0 top-0 z-10 min-w-32 max-w-full wrap-anywhere rounded-md border px-2.5 py-1.5 text-xs shadow-md",
 				className,
 			)}
 			style={{ opacity: 0, ...style } satisfies CSSProperties}

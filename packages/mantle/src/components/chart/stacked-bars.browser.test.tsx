@@ -2,8 +2,8 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { userEvent } from "vitest/browser";
+import { afterAll, beforeAll, describe, expect, onTestFinished, test } from "vitest";
+import { commands, userEvent } from "vitest/browser";
 import * as AreaChart from "../area-chart/area-chart-parts.js";
 import * as BarChart from "../bar-chart/bar-chart-parts.js";
 import { CanvasAreaChartRoot, CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
@@ -1261,6 +1261,44 @@ describe("tooltip placement", () => {
 		await waitFor(() => expect(tooltip()).toMatch(/Tue.*\+2 more/));
 		rerender(chart(1, 8));
 		await waitFor(() => expect(tooltip()).toBe("Tuea4b3c2d1"));
+	});
+
+	test("a long label wraps inside the chart, so a scrolling parent shows no scrollbar", async () => {
+		// Why a parent that scrolls on x: a readout wider than the chart adds a
+		// scrollbar, which takes plot height and changes the fit, in a loop.
+		const label = "x".repeat(90);
+		// Why the compiled CSS: the width limit lives in the tooltip's classes.
+		const css = document.createElement("style");
+		css.textContent = await commands.tailwindCss("./tooltip.tsx");
+		document.head.append(css);
+		onTestFinished(() => css.remove());
+		const { container } = render(
+			<div style={{ width: 320, height: 194, overflowX: "auto", overflowY: "hidden" }}>
+				<CanvasBarChartRoot
+					data={[{ day: "Mon", a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8 }]}
+					xKey="day"
+					animate={false}
+					activeIndex={0}
+					aria-label="A long label"
+					style={{ width: "100%", height: "100%" }}
+				>
+					{["a", "b", "c", "d", "e", "f", "g", "h"].map((key) => (
+						<BarChart.Bar key={key} dataKey={key} label={key === "a" ? label : key} color="blue" />
+					))}
+				</CanvasBarChartRoot>
+			</div>,
+		);
+		await waitForPlot(await findChartCanvas(container));
+		const parent = container.firstElementChild;
+		const tooltip = await waitFor(() => {
+			const element = container.querySelector('[data-slot="bar-chart-tooltip"]');
+			expect(element?.textContent).toContain("Mon");
+			return element;
+		});
+		expect(parent?.scrollWidth).toBe(parent?.clientWidth);
+		expect(tooltip?.getBoundingClientRect().right).toBeLessThanOrEqual(
+			parent?.getBoundingClientRect().right ?? 0,
+		);
 	});
 
 	test("a readout that fits stays inside the plot box", async () => {

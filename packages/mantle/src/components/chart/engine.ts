@@ -1806,8 +1806,10 @@ class ChartEngine {
 			width: Math.max(0, this.#cssWidth - left - padding),
 			height,
 		};
-		// The readout clamps between the wrapper top and the plot bottom.
-		this.#store.setReadoutSpace(top + height);
+		// The readout clamps between the wrapper top and the plot bottom. Why a
+		// zero for a plot with no height: the first layout can run before the
+		// size is known, and a fit to that space would drop every row.
+		this.#store.setReadoutSpace(height > 0 ? top + height : 0);
 		// The category band lays out along whichever pixel axis carries categories:
 		// x when vertical, y when horizontal.
 		const bandRangeStart = horizontal ? this.#plot.top : this.#plot.left;
