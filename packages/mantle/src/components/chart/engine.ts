@@ -3163,8 +3163,8 @@ class ChartEngine {
 			// The total is the pile's: a line or an area over it adds nothing.
 			const piled = meta.filter((series) => this.#stacks(series));
 			if (piled.length > 1) {
-				// Why from the far end: the readout lists the pile that way, so the
-				// float sum matches the rows a reader adds.
+				// Why from the far end: the snapshot lists its points that way, so the
+				// float sum stays what it was before a line could join the chart.
 				snapshot.total = piled.reduceRight(
 					// Why `||`: a gap reads `NaN`, which adds nothing to the pile.
 					(sum, series) => sum + (this.#columnOf(series.dataKey)?.[index] || 0),

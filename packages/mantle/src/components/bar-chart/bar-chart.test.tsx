@@ -1035,7 +1035,7 @@ describe("BarChart with a line or an area over the bars", () => {
 			</BarChart.Root>,
 		);
 
-	test("the readout totals the stacked bars alone, then lists the line", async () => {
+	test("the readout totals the stacked bars alone, and lists the line among the series", async () => {
 		const user = userEvent.setup();
 		renderWeeks();
 		await user.tab();
@@ -1045,7 +1045,7 @@ describe("BarChart with a line or an area over the bars", () => {
 			(row) => row.textContent,
 		);
 		// Why 12: 17 + -5. A total that added the line would read 24.
-		expect(rows).toEqual(["Total12", "Total lines12", "Deleted-5", "Added17"]);
+		expect(rows).toEqual(["Total12", "Added17", "Total lines12", "Deleted-5"]);
 	});
 
 	test("the data table holds a column for the line", () => {
