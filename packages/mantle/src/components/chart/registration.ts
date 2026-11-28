@@ -194,14 +194,15 @@ const useYAxisPrimitive = (partName: string, props: YAxisPrimitiveProps): null =
 	// render, and a new spec re-aims the domain.
 	const min = domain?.[0];
 	const max = domain?.[1];
+	const id = useId();
 	useLayoutEffect(
 		() =>
-			context.store.registerYAxis(side, {
-				tickFormat,
-				tickCount,
-				domain: min == null || max == null ? undefined : [min, max],
-			}),
-		[context.store, side, tickFormat, tickCount, min, max],
+			context.store.registerYAxis(
+				side,
+				{ tickFormat, tickCount, domain: min == null || max == null ? undefined : [min, max] },
+				id,
+			),
+		[context.store, side, tickFormat, tickCount, min, max, id],
 	);
 	return null;
 };

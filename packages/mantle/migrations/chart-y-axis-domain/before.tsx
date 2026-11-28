@@ -63,7 +63,8 @@ export const TwoAxes = (
 // Negative cases: a Root with no YAxis keeps yDomain for the type checker, a
 // YAxis that has a domain stays for a person to merge, a YAxis under a
 // condition or in a nested Root stays, a Root with a second YAxis under a
-// condition or with a spread stays, a Root with its own spread stays, another
+// condition, in a fragment, with a closing tag, or with a spread stays, a Root
+// with its own spread stays, another
 // library's chart stays,
 // and a name shadowed by a parameter or a loop binding stays.
 export const NoAxis = (
@@ -98,6 +99,26 @@ export const SpreadSibling = (
 	<LineChart.Root data={rows} xKey="day" yDomain={[0, 100]}>
 		<LineChart.YAxis />
 		<LineChart.YAxis {...{ tickCount: 2 }} />
+		<LineChart.Line dataKey="value" color="blue" />
+	</LineChart.Root>
+);
+
+export const Fragment = (
+	<LineChart.Root data={rows} xKey="day" yDomain={[0, 100]}>
+		<LineChart.YAxis />
+		{/* oxlint-disable-next-line react/jsx-no-useless-fragment -- the fragment is the shape under test */}
+		<>
+			<LineChart.YAxis tickCount={2} />
+		</>
+		<LineChart.Line dataKey="value" color="blue" />
+	</LineChart.Root>
+);
+
+export const ClosingTag = (
+	<LineChart.Root data={rows} xKey="day" yDomain={[0, 100]}>
+		<LineChart.YAxis />
+		{/* oxlint-disable-next-line react/self-closing-comp -- the closing tag is the shape under test */}
+		<LineChart.YAxis tickCount={2}></LineChart.YAxis>
 		<LineChart.Line dataKey="value" color="blue" />
 	</LineChart.Root>
 );

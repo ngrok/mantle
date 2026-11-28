@@ -161,7 +161,11 @@ describe("ChartStore registrations", () => {
 		{
 			name: "yAxis",
 			register: (store: ChartStore, tickCount: number) =>
-				store.registerYAxis("left", { tickCount, tickFormat: undefined, domain: undefined }),
+				store.registerYAxis(
+					"left",
+					{ tickCount, tickFormat: undefined, domain: undefined },
+					`axis-${tickCount}`,
+				),
 			read: (store: ChartStore) => store.getSnapshot().yAxes.left?.tickCount,
 		},
 		{
@@ -181,6 +185,18 @@ describe("ChartStore registrations", () => {
 			},
 		},
 	] as const;
+
+	test("a YAxis that re-registers keeps its place under a later one", () => {
+		const store = new ChartStore();
+		const axis = (tickCount: number) => ({ tickCount, tickFormat: undefined, domain: undefined });
+		const unregisterFirst = store.registerYAxis("right", axis(3), "first");
+		store.registerYAxis("right", axis(9), "override");
+		// A prop change on the first part: React cleans up, then registers again.
+		unregisterFirst();
+		store.registerYAxis("right", axis(4), "first");
+
+		expect(store.getSnapshot().yAxes.right?.tickCount).toBe(9);
+	});
 
 	for (const { name, register, read } of singletonRegistrations) {
 		test(`${name}: the last registration wins and a superseded one cannot clear it`, () => {

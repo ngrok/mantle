@@ -128,8 +128,12 @@ class ChartStore {
 	#orientation: BarOrientation = "vertical";
 	#xAxis: XAxisSpec | null = null;
 	#yAxes: Record<YAxisSide, YAxisSpec | null> = { left: null, right: null };
-	/** Every mounted `YAxis` of each side, in registration order; the last one draws. */
-	#yAxisStacks: Record<YAxisSide, YAxisSpec[]> = { left: [], right: [] };
+	/** Every mounted `YAxis` of each side by part id, in first-mount order; the last one draws. */
+	#yAxisParts: Record<YAxisSide, Map<string, { spec: YAxisSpec; sequence: number }>> = {
+		left: new Map(),
+		right: new Map(),
+	};
+	#yAxisSequenceById = new Map<string, number>();
 	#referenceLines = new Map<string, { spec: ReferenceLineSpec; sequence: number }>();
 	#referenceLineSequenceById = new Map<string, number>();
 	#emptySlot: EmptySlotSpec | null = null;
@@ -339,22 +343,41 @@ class ChartStore {
 		};
 	}
 
-	registerYAxis(side: YAxisSide, spec: YAxisSpec): () => void {
-		const stack = this.#yAxisStacks[side];
-		stack.push(spec);
-		// Why a new object: a published snapshot holds the old one.
-		this.#yAxes = { ...this.#yAxes, [side]: spec };
-		this.#publishRegistrations();
+	/**
+	 * Register one `YAxis` part. Each part keeps the order it first mounted in,
+	 * as a reference line does: a prop change re-registers it, and a fresh place
+	 * would let it take the side from an override mounted after it.
+	 */
+	registerYAxis(side: YAxisSide, spec: YAxisSpec, id: string = side): () => void {
+		const parts = this.#yAxisParts[side];
+		const sequence = this.#yAxisSequenceById.get(id) ?? this.#nextSequence++;
+		this.#yAxisSequenceById.set(id, sequence);
+		parts.set(id, { spec, sequence });
+		this.#publishYAxis(side);
 		return () => {
-			stack.splice(stack.indexOf(spec), 1);
-			// Why the stack: an override that unmounts hands the side back to the
-			// axis still mounted, instead of leaving the side with none.
-			const current = stack.at(-1) ?? null;
-			if (this.#yAxes[side] !== current) {
-				this.#yAxes = { ...this.#yAxes, [side]: current };
-				this.#publishRegistrations();
+			if (parts.get(id)?.spec === spec) {
+				// Why the survivor: an override that unmounts hands the side back to
+				// the axis still mounted, instead of leaving the side with none.
+				parts.delete(id);
+				this.#publishYAxis(side);
 			}
 		};
+	}
+
+	/** Publish the side's last-mounted `YAxis`, if it changed. */
+	#publishYAxis(side: YAxisSide): void {
+		let current: { spec: YAxisSpec; sequence: number } | null = null;
+		for (const part of this.#yAxisParts[side].values()) {
+			if (current == null || part.sequence > current.sequence) {
+				current = part;
+			}
+		}
+		const spec = current?.spec ?? null;
+		if (this.#yAxes[side] !== spec) {
+			// Why a new object: a published snapshot holds the old one.
+			this.#yAxes = { ...this.#yAxes, [side]: spec };
+			this.#publishRegistrations();
+		}
 	}
 
 	registerReferenceLine(id: string, spec: ReferenceLineSpec): () => void {
