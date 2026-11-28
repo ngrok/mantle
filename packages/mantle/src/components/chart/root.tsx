@@ -461,16 +461,27 @@ const ChartRootPrimitive = ({
 		() => false,
 	);
 	const resolvedXScale: XScaleKind = kind === "bar" ? "band" : (xScale ?? detectXScale(data, xKey));
-	// Why a hoisted ref: the context object is state, so a write through
-	// `context.dataRef.current` reads as a state mutation to the React Compiler.
+	// Why a hoisted ref: the context object is a memo, so a write through
+	// `context.dataRef.current` reads as a mutation to the React Compiler.
 	const dataRef = useRef({ data, xKey, xScale: resolvedXScale, zKey });
-	const [context] = useState<ChartContextValue>(() => ({
-		kind,
-		componentName,
-		store,
-		engineRef,
-		dataRef,
-	}));
+	// Why the kind checks: the engine reads `orientation` on bars and `zKey` on
+	// scatter only, so a title must ignore the props where the engine does.
+	const threeD = kind === "scatter" && zKey != null;
+	const titleOrientation = kind === "bar" ? orientation : "vertical";
+	// Why a memo on the layout facts: an axis title reads them at render time,
+	// so the server places it where it stays. A data update keeps the object.
+	const context = useMemo<ChartContextValue>(
+		() => ({
+			kind,
+			componentName,
+			store,
+			orientation: titleOrientation,
+			threeD,
+			engineRef,
+			dataRef,
+		}),
+		[kind, componentName, store, titleOrientation, threeD],
+	);
 
 	useLayoutEffect(() => {
 		dataRef.current = { data, xKey, xScale: resolvedXScale, zKey };
@@ -744,7 +755,13 @@ const ChartRootPrimitive = ({
 			data-slot={joinDataSlot(dataSlot, slotName)}
 			// relative: DOM parts composed as children (e.g. CopyButton) can dock
 			// against the whole chart with absolute positioning.
-			className={cx("relative flex aspect-video w-full flex-col", className)}
+			className={cx(
+				// Why a zero-specificity display from a private variable: an axis title
+				// sets the variable to `grid`, and a consumer's `hidden` or `md:hidden`
+				// still wins over both.
+				"relative aspect-video w-full flex-col where:[display:var(--_chart-display,flex)]",
+				className,
+			)}
 			// A decorative chart is a placeholder backdrop, not information: hide the
 			// whole visualization from assistive technology and keep it out of the tab
 			// order, always winning over any consumer value. Interactive charts name

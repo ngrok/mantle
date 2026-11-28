@@ -267,6 +267,46 @@ function TwoYAxesLineChartExample() {
 
 </Example>
 
+## Axis titles
+
+Compose `LineChart.AxisTitle` inside an axis to name it. The title is HTML text, not paint, so a screen reader and a search engine read it. The x axis's title also heads the x column of the screen-reader data table. The y title reads bottom to top beside the left axis, and top to bottom beside a right axis. A title in each axis of [Two y axes](#two-y-axes) names both scales.
+
+Keep a title short. It stays on one line and truncates with an ellipsis; set `className="whitespace-normal"` to let it wrap. The chart places each title in its own cell, so the order of the parts doesn't move it. To hide a titled chart at some widths, use `max-md:hidden` and not `hidden md:flex`: an explicit display such as `flex` wins over the title's grid.
+
+<Example name="components/charts/line-chart/axis-titles" title="Line Chart axis titles example">
+
+```tsx
+import { LineChart } from "@ngrok/mantle/line-chart";
+
+const latencyStart = new Date("2026-07-18T10:00:00Z").getTime();
+const latencyPoint = (minute: number) => ({
+	time: new Date(latencyStart + minute * 60_000),
+	p50: Math.round(120 + 18 * Math.sin(minute / 4) + 6 * Math.sin(minute / 1.7)),
+	p99: Math.round(480 + 80 * Math.sin(minute / 5 + 1) + 24 * Math.sin(minute / 2.3)),
+});
+const latencyData = Array.from({ length: 30 }, (_, minute) => latencyPoint(minute));
+
+function AxisTitlesLineChartExample() {
+	return (
+		<LineChart.Root data={latencyData} xKey="time" aria-label="Request latency by percentile">
+			<LineChart.Grid />
+			<LineChart.XAxis>
+				<LineChart.AxisTitle>Time of request</LineChart.AxisTitle>
+			</LineChart.XAxis>
+			<LineChart.YAxis tickFormat={(value) => `${value}ms`}>
+				<LineChart.AxisTitle>Latency</LineChart.AxisTitle>
+			</LineChart.YAxis>
+			<LineChart.Line dataKey="p50" label="p50" color="blue" />
+			<LineChart.Line dataKey="p99" label="p99" color="emerald" />
+			<LineChart.Tooltip valueFormat={(value) => `${value}ms`} />
+			<LineChart.Legend />
+		</LineChart.Root>
+	);
+}
+```
+
+</Example>
+
 ## Linked charts
 
 The active position is controllable: pass `activeIndex` and `onActiveIndexChange` to share one crosshair across charts plotted over the same rows (the dashboard "linked crosshair" pattern). Hover or arrow through either chart and both move together, so a latency spike and its error spike line up without eyeballing timestamps.
@@ -508,7 +548,9 @@ Compose the parts of a `LineChart` together to build your own:
 LineChart.Root
 ├── LineChart.Grid
 ├── LineChart.XAxis
+│   └── LineChart.AxisTitle
 ├── LineChart.YAxis (one for each side)
+│   └── LineChart.AxisTitle
 ├── LineChart.Line (one per series)
 ├── LineChart.ReferenceLine
 ├── LineChart.Tooltip
@@ -645,6 +687,7 @@ Tick labels along the bottom of the plot (renderless; the chart paints it). Labe
 | ------------- | -------------------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tickFormat?` | `(value: string \| number \| Date, context: { defaultLabel: string }) => string` | scale-dependent | Format a tick label. Receives the row's x value: a `Date` on time scales, a number on linear scales, and the category value on point scales. Defaults to calendar-aware formatting on time scales and thousands-separated numbers on linear scales. The second argument is `{ defaultLabel }`: the label the axis paints without a formatter. The chart compares the function by identity, so a new function paints the chart again. With the React Compiler in your build, an inline function stays stable; without it, define the function outside the component. |
 | `tickCount?`  | `number`                                                                         | density-derived | Target tick count (continuous scales only). Approximate: a linear axis over integer-only x values never renders fractional ticks.                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `children?`   | `ReactElement`                                                                   |                 | The axis's [`LineChart.AxisTitle`](#linechartaxistitle).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 ### LineChart.YAxis
 
@@ -656,6 +699,27 @@ Value tick labels along the left of the plot (renderless; the chart paints it). 
 | `tickCount?`  | `number`                                                                     | `5`                 | Maximum tick count. When omitted, the axis aims for about 5 ticks. The axis can render fewer: ticks land on human-friendly steps, a vertical axis keeps about 28px for each tick, and a label that would overlap its neighbor is skipped. Integer-valued data never renders fractional ticks.                                                                                                                              |
 | `side?`       | `"left" \| "right"`                                                          | `"left"`            | The edge the axis paints on. A series or a reference line with `yAxis="right"` reads the right axis's scale, and the right axis puts a round value on each left grid line when its `domain` allows it. See [Two y axes](/components/charts/line-chart#two-y-axes).                                                                                                                                                         |
 | `domain?`     | `[number \| "auto", number \| "auto"]`                                       | `["auto", "auto"]`  | Fix either end of the axis's domain. An `"auto"` end follows the data.                                                                                                                                                                                                                                                                                                                                                     |
+| `children?`   | `ReactElement`                                                               |                     | The axis's [`LineChart.AxisTitle`](#linechartaxistitle).                                                                                                                                                                                                                                                                                                                                                                   |
+
+### LineChart.AxisTitle
+
+Names the axis it sits in, as HTML text beside the plot. Compose it inside `LineChart.XAxis` or `LineChart.YAxis`. An x title sits under the plot and also heads the x column of the screen-reader data table. A y title reads bottom to top on the left, and top to bottom beside a right axis. A title turns the Root into a grid, so each title takes its own cell in any source order. The table header reads the title's text.
+
+The title is one line, and it truncates with an ellipsis, so keep it short. Set `className="whitespace-normal"` to let it wrap.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type        | Default | Description                                                              |
+| ---------- | ----------- | ------- | ------------------------------------------------------------------------ |
+| `children` | `ReactNode` |         | The title. The x axis's title text also heads the data table's x column. |
+| `asChild?` | `boolean`   | `false` | Render the title on its child element instead of a `div`.                |
+
+**Data attributes**
+
+| Data Attribute | Value                     | Description                                                 |
+| -------------- | ------------------------- | ----------------------------------------------------------- |
+| `data-slot`    | `"line-chart-axis-title"` | The title.                                                  |
+| `data-axis`    | `"x" \| "y"`              | The axis the title names: `"y"` for a left or a right axis. |
 
 ### LineChart.ReferenceLine
 

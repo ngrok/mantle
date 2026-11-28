@@ -10,6 +10,7 @@ export {
 	Grid,
 	XAxis,
 	YAxis,
+	AxisTitle,
 	ReferenceLine,
 	EmptySlot,
 	Tooltip,

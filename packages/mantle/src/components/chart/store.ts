@@ -88,14 +88,17 @@ type StoreSnapshot = {
 	tooltip: TooltipConfig | null;
 	/** The bar direction the Root registered (DOM consumers: legend texture keys). */
 	orientation: BarOrientation;
+	/** The text of the x axis's `AxisTitle`, which heads the data table's x column. `null` when none is composed. */
+	xTitle: string | null;
 };
 
 /**
  * What a registration changed, which picks the engine hook: `"series"` needs
- * a new ingest and `"presentation"` a repaint. `"tooltip"` calls no hook,
- * because the engine paints nothing from the tooltip config.
+ * a new ingest and `"presentation"` a repaint. `"tooltip"` and `"title"` call
+ * no hook, because the engine paints nothing from the tooltip config or an
+ * axis title.
  */
-type RegistrationChange = "series" | "presentation" | "tooltip";
+type RegistrationChange = "series" | "presentation" | "tooltip" | "title";
 
 /** The glyph a series wears when it sets no `shape`. */
 const DEFAULT_SHAPE: PointShape = "circle";
@@ -115,6 +118,7 @@ class ChartStore {
 		emptySlot: null,
 		tooltip: null,
 		orientation: "vertical",
+		xTitle: null,
 	};
 
 	#seriesByKey = new Map<string, { spec: SeriesSpec; sequence: number }>();
@@ -138,6 +142,8 @@ class ChartStore {
 	#referenceLineSequenceById = new Map<string, number>();
 	#emptySlot: EmptySlotSpec | null = null;
 	#tooltip: TooltipConfig | null = null;
+	/** Each mounted x title's text by its `AxisTitle`, so a survivor takes over when the winner unmounts. */
+	#xTitles = new Map<string, string>();
 	#hover: HoverSnapshot | null = null;
 	#hoverEver = false;
 	#readoutSpace = 0;
@@ -420,6 +426,35 @@ class ChartStore {
 		};
 	}
 
+	/**
+	 * Set the x title's text, or clear it with `null`. An equal text is a no-op,
+	 * so an `AxisTitle` can call it after each commit. The last mounted title
+	 * wins, and a clear hands the header to the title mounted before it.
+	 */
+	setXTitle(owner: string, text: string | null): void {
+		const before = this.#xTitleText();
+		if (text == null) {
+			this.#xTitles.delete(owner);
+		} else if (this.#xTitles.get(owner) !== text) {
+			// Why delete first: an owner that mounts later wins, and a Map keeps
+			// insertion order, so the last entry is the winner.
+			this.#xTitles.delete(owner);
+			this.#xTitles.set(owner, text);
+		}
+		if (this.#xTitleText() !== before) {
+			this.#publishRegistrations("title");
+		}
+	}
+
+	/** The text of the last mounted x title, `null` when none is mounted. */
+	#xTitleText(): string | null {
+		let text: string | null = null;
+		for (const value of this.#xTitles.values()) {
+			text = value;
+		}
+		return text;
+	}
+
 	/** Engine-side: publish the current hover/keyboard snapshot (or clear it). */
 	publishHover(hover: HoverSnapshot | null): void {
 		if (this.#hover === hover) {
@@ -471,6 +506,7 @@ class ChartStore {
 			emptySlot: this.#emptySlot,
 			tooltip: this.#tooltip,
 			orientation: this.#orientation,
+			xTitle: this.#xTitleText(),
 		};
 		this.#emit();
 		if (change === "series") {

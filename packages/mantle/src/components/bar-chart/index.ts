@@ -41,7 +41,9 @@ import * as BarChartParts from "./bar-chart-parts.js";
  * BarChart.Root
  * ├── BarChart.Grid
  * ├── BarChart.XAxis
+ * │   └── BarChart.AxisTitle
  * ├── BarChart.YAxis
+ * │   └── BarChart.AxisTitle
  * ├── BarChart.Bar (one per series)
  * ├── BarChart.ReferenceLine
  * ├── BarChart.EmptySlot
@@ -83,6 +85,7 @@ export {
 };
 export type {
 	//,
+	BarChartAxisTitleProps,
 	BarChartBarProps,
 	BarChartCopyButtonProps,
 	BarChartEmptySlotProps,

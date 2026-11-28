@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
+import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import * as BarChart from "../bar-chart/bar-chart-parts.js";
 import { POINT_SHAPE_CLIP_PATHS } from "../chart/engine.js";
@@ -545,4 +546,28 @@ describe("ScatterPlot decorative mode", () => {
 		expect(screen.queryByRole("table")).not.toBeInTheDocument();
 		expect(screen.queryByRole("status")).not.toBeInTheDocument();
 	});
+});
+
+test("a 3D scatter draws no axis titles, and its table keeps the xKey header", () => {
+	const { container } = render(
+		<ScatterPlot.Root data={data3d} xKey="latency" zKey="depth" aria-label="Latency by depth">
+			<ScatterPlot.XAxis>
+				<ScatterPlot.AxisTitle>Latency (ms)</ScatterPlot.AxisTitle>
+			</ScatterPlot.XAxis>
+			<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
+		</ScatterPlot.Root>,
+	);
+	expect(
+		renderToString(
+			<ScatterPlot.Root data={data3d} xKey="latency" zKey="depth" aria-label="Latency by depth">
+				<ScatterPlot.XAxis>
+					<ScatterPlot.AxisTitle>Latency (ms)</ScatterPlot.AxisTitle>
+				</ScatterPlot.XAxis>
+				<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
+			</ScatterPlot.Root>,
+		),
+	).not.toContain("data-axis");
+	engageChart();
+	expect(container.querySelector("[data-axis]")).toBeNull();
+	expect(screen.getByRole("columnheader", { name: "latency" })).toBeInTheDocument();
 });

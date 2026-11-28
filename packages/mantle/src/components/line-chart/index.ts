@@ -44,7 +44,9 @@ import * as LineChartParts from "./line-chart-parts.js";
  * LineChart.Root
  * ├── LineChart.Grid
  * ├── LineChart.XAxis
+ * │   └── LineChart.AxisTitle
  * ├── LineChart.YAxis
+ * │   └── LineChart.AxisTitle
  * ├── LineChart.Line (one per series)
  * ├── LineChart.ReferenceLine
  * ├── LineChart.Tooltip
@@ -87,6 +89,7 @@ export type {
 	//,
 	ChartDatumEvent,
 	ChartMode,
+	LineChartAxisTitleProps,
 	LineChartCopyButtonProps,
 	LineChartGridProps,
 	LineChartLegendProps,

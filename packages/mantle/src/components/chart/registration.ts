@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useLayoutEffect } from "react";
+import type { ReactElement } from "react";
+import { createElement, useId, useLayoutEffect } from "react";
 import invariant from "tiny-invariant";
 import type {
 	BarTexture,
@@ -15,12 +16,13 @@ import type {
 	YDomain,
 	YTickContext,
 } from "./types.js";
-import { useChartContext } from "./context.js";
+import { ChartAxisContext, useChartContext } from "./context.js";
 import { paintEmptySlots } from "./empty-slot.js";
 
 /**
  * The renderless parts (series, grid, axes, reference lines, empty slots)
- * that register their configuration with the Root's store.
+ * that register their configuration with the Root's store. An axis renders
+ * only its children: the `AxisTitle` that names it.
  *
  * This module is internal shared implementation. The package does not export it.
  */
@@ -137,16 +139,22 @@ type XAxisPrimitiveProps = {
 	 * the integer step wins over the requested count.
 	 */
 	tickCount?: number;
+	/**
+	 * The axis's `AxisTitle`, the only part an axis takes. Why an element and
+	 * no text: bare text would sit beside the plot with no owner element, which
+	 * a browser translation engine can break.
+	 */
+	children?: ReactElement | false | null;
 };
 
-const useXAxisPrimitive = (partName: string, props: XAxisPrimitiveProps): null => {
+const useXAxisPrimitive = (partName: string, props: XAxisPrimitiveProps): ReactElement => {
 	const context = useChartContext(partName);
-	const { tickFormat, tickCount } = props;
+	const { tickFormat, tickCount, children } = props;
 	useLayoutEffect(
 		() => context.store.registerXAxis({ tickFormat, tickCount }),
 		[context.store, tickFormat, tickCount],
 	);
-	return null;
+	return createElement(ChartAxisContext.Provider, { value: "x" }, children);
 };
 
 type YAxisPrimitiveProps<TDomain extends YDomain = YDomain> = {
@@ -185,11 +193,17 @@ type YAxisPrimitiveProps<TDomain extends YDomain = YDomain> = {
 	 * ticks.
 	 */
 	tickCount?: number;
+	/**
+	 * The axis's `AxisTitle`, the only part an axis takes. Why an element and
+	 * no text: bare text would sit beside the plot with no owner element, which
+	 * a browser translation engine can break.
+	 */
+	children?: ReactElement | false | null;
 };
 
-const useYAxisPrimitive = (partName: string, props: YAxisPrimitiveProps): null => {
+const useYAxisPrimitive = (partName: string, props: YAxisPrimitiveProps): ReactElement => {
 	const context = useChartContext(partName);
-	const { side = "left", tickFormat, tickCount, domain } = props;
+	const { side = "left", tickFormat, tickCount, domain, children } = props;
 	// Why the ends and not the tuple: an inline `domain` is a new array on each
 	// render, and a new spec re-aims the domain.
 	const min = domain?.[0];
@@ -204,7 +218,7 @@ const useYAxisPrimitive = (partName: string, props: YAxisPrimitiveProps): null =
 			),
 		[context.store, side, tickFormat, tickCount, min, max, id],
 	);
-	return null;
+	return createElement(ChartAxisContext.Provider, { value: side }, children);
 };
 
 type ReferenceLinePrimitiveProps = {
