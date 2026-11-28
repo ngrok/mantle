@@ -584,6 +584,12 @@
       },
       {
         "part": "AreaChart.Root",
+        "name": "data-y-scale",
+        "value": "`\"log\"` or absent",
+        "description": "On the Root. Present while a `YAxis` on either side has `scale={logScale}`. Absent on a linear chart."
+      },
+      {
+        "part": "AreaChart.Root",
         "name": "data-slot",
         "value": "`\"chart-active-point\"`",
         "description": "One hover dot inside the markers layer. Also carries `data-shape`."
@@ -931,6 +937,12 @@
         "name": "data-engaged",
         "value": "present once engaged",
         "description": "On the Root. Appears once focus lands inside the chart, and never goes away. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only."
+      },
+      {
+        "part": "BarChart.Root",
+        "name": "data-y-scale",
+        "value": "`\"log\"` or absent",
+        "description": "On the Root. Present while a `YAxis` on either side has `scale={logScale}`. Absent on a linear chart."
       },
       {
         "part": "BarChart.Root",
@@ -3064,6 +3076,12 @@
         "name": "data-engaged",
         "value": "present once engaged",
         "description": "On the Root. Appears once focus lands inside the chart, and never goes away. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only."
+      },
+      {
+        "part": "LineChart.Root",
+        "name": "data-y-scale",
+        "value": "`\"log\"` or absent",
+        "description": "On the Root. Present while a `YAxis` on either side has `scale={logScale}`. Absent on a linear chart."
       },
       {
         "part": "LineChart.Root",

@@ -432,7 +432,7 @@ and it replays the enter animation on every switch. Cycle the series instead and
 <Example name="components/charts/bar-chart/regrouping-a-live-chart" title="Bar Chart regrouping a live chart example">
 
 ```tsx
-import { BarChart, type BarChartBarProps } from "@ngrok/mantle/bar-chart";
+import { BarChart, type BarChartBarProps, logScale } from "@ngrok/mantle/bar-chart";
 import { Button } from "@ngrok/mantle/button";
 import { useState } from "react";
 
@@ -908,6 +908,53 @@ function IntegerCountsBarChartExample() {
 			<BarChart.Bar dataKey="failures" label="Failures" color="blue" />
 			<BarChart.Tooltip />
 		</BarChart.Root>
+	);
+}
+```
+
+</Example>
+
+## Log scale
+
+When values span orders of magnitude, `scale={logScale}` on `BarChart.YAxis` spaces each power of ten evenly, so a 12-request endpoint and a 2.3M-request endpoint both read on one axis. The ticks are powers of ten with compact labels (`1K`, `1M`). Switch `scale` between `logScale` and `"linear"` to toggle the axis; the bars glide to their new heights, and reduced motion jumps.
+
+A log axis has no zero, so the bottom of the plot sits on a power of ten at least one decade below the smallest value, so the smallest bar keeps a length. `domain={[0, "auto"]}` works under both scales. Under `logScale`, a positive minimum is kept, and a minimum of `0` or `"auto"` follows the data. A value at or below zero has no bar; the tooltip, the data table, and the announcements still read it. A log axis does not stack, and the chart description tells a screen reader that the axis is a log scale.
+
+<Example name="components/charts/bar-chart/log-scale" title="Bar Chart log scale example">
+
+```tsx
+import { BarChart, logScale } from "@ngrok/mantle/bar-chart";
+import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+import { useState } from "react";
+
+const requestsByEndpoint = [
+	{ endpoint: "/v1/chat", requests: 2_300_000 },
+	{ endpoint: "/v1/embed", requests: 410_000 },
+	{ endpoint: "/v1/files", requests: 8_200 },
+	{ endpoint: "/v1/audit", requests: 340 },
+	{ endpoint: "/v1/admin", requests: 12 },
+];
+
+function LogScaleBarChartExample() {
+	const [scale, setScale] = useState<"linear" | "log">("log");
+	return (
+		<div className="w-full space-y-3">
+			<SegmentedControl.Root
+				aria-label="Y-axis scale"
+				value={scale}
+				onValueChange={(value) => setScale(value === "linear" ? "linear" : "log")}
+			>
+				<SegmentedControl.Item value="linear">Linear</SegmentedControl.Item>
+				<SegmentedControl.Item value="log">Log</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<BarChart.Root data={requestsByEndpoint} xKey="endpoint" aria-label="Requests by endpoint">
+				<BarChart.Grid />
+				<BarChart.XAxis />
+				<BarChart.YAxis scale={scale === "log" ? logScale : "linear"} domain={[0, "auto"]} />
+				<BarChart.Bar dataKey="requests" label="Requests" color="blue" />
+				<BarChart.Tooltip />
+			</BarChart.Root>
+		</div>
 	);
 }
 ```
@@ -1550,6 +1597,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `data-slot`    | `"bar-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the category count, the first and last category, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`.                                                                                                                                                                                                                                                                                   |
 | `data-slot`    | `"bar-chart-data-table"`  | The `sr-only` data table. Mounts once focus lands inside the chart (`data-engaged` appears) and stays. Interactive charts only.                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `data-engaged` | present once engaged      | On the Root. Appears once focus lands inside the chart, and never goes away. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only.                                                                                                                                                                                                                                                                                                                                                   |
+| `data-y-scale` | `"log"` or absent         | On the Root. Present while a `YAxis` on either side has `scale={logScale}`. Absent on a linear chart.                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `data-value`   | a number                  | On each cell of the `sr-only` data table that shows a finite number, and on a numeric x row header. The raw number. A missing value has none.                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ### BarChart.Bar
@@ -1594,7 +1642,8 @@ Value tick labels (renderless; the chart paints it): along the left for vertical
 | `tickFormat?` | `(value: number, context: { defaultLabel: string; step: number }) => string` | thousands-separated numbers | Format a tick label. The second argument carries the tick `step` and the `defaultLabel` the axis paints without a formatter, so a formatter can add a unit to `defaultLabel` and keep its precision. The chart compares the function by identity, so a new function paints the chart again. With the React Compiler in your build, an inline function stays stable; without it, define the function outside the component. |
 | `tickCount?`  | `number`                                                                     |                             | Maximum tick count. When omitted, the axis aims for about 5 ticks. The axis can render fewer: ticks land on human-friendly steps, a vertical axis keeps about 28px for each tick, and a label that would overlap its neighbor is skipped. Integer-valued data never renders fractional ticks.                                                                                                                              |
 | `side?`       | `"left" \| "right"`                                                          | `"left"`                    | The edge the axis paints on. A series or a reference line with `yAxis="right"` reads the right axis's scale, and the right axis puts a round value on each left grid line when its `domain` allows it. See [Two y axes](/components/charts/line-chart#two-y-axes). Horizontal bars take no right axis, so they throw.                                                                                                      |
-| `domain?`     | `[0, number \| "auto"]`                                                      | `[0, "auto"]`               | Fix the axis maximum. An `"auto"` maximum follows the data, and the minimum is always the zero baseline.                                                                                                                                                                                                                                                                                                                   |
+| `domain?`     | `[0, number \| "auto"]`                                                      | `[0, "auto"]`               | Fix the axis maximum. An `"auto"` maximum follows the data, and the minimum is the zero baseline. With `scale={logScale}`, the domain takes `[number \| "auto", number \| "auto"]`: a positive end is kept, and an end at or below zero follows the data.                                                                                                                                                                  |
+| `scale?`      | `"linear" \| YScale`                                                         | `"linear"`                  | How values map to height. `logScale`, imported from this module, spaces each power of ten evenly and ticks at powers of ten. A value at or below zero has no mark, and the tooltip and the data table keep its value. Takes no stacked chart. See [Log scale](/components/charts/bar-chart#log-scale).                                                                                                                     |
 
 ### BarChart.ReferenceLine
 

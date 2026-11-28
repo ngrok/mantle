@@ -4,6 +4,7 @@
  * @see https://mantle.ngrok.com/components/charts/bar-chart
  */
 
+import { logScale } from "../chart/log-scale.js";
 import * as BarChartParts from "./bar-chart-parts.js";
 /**
  * A bar chart for comparing values across categories, with
@@ -80,6 +81,7 @@ const BarChart = BarChartParts;
 export {
 	//,
 	BarChart,
+	logScale,
 };
 export type {
 	//,
@@ -97,3 +99,4 @@ export type {
 	ChartDatumEvent,
 	ChartMode,
 } from "./bar-chart.js";
+export type { YScale } from "../chart/types.js";

@@ -1,3 +1,4 @@
+import { logScale } from "./log-scale.js";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import invariant from "tiny-invariant";
 import { WORLD_LAND } from "../world-map/world-land.js";
@@ -2735,5 +2736,123 @@ describe("ChartEngine series of more than one mark", () => {
 		mount.engine.handleActivate(line.x - 15, line.y + 30);
 
 		expect(onDatumActivate.mock.calls.map(([event]) => event.dataKey)).toEqual(["total", "added"]);
+	});
+});
+
+describe("ChartEngine log y axis", () => {
+	/** Register a left `YAxis` with a log scale, as a re-render with `scale="log"` does. */
+	const setLog = (mount: Pick<Mounted, "store">, domain?: YDomain): void => {
+		mount.store.registerYAxis("left", {
+			tickFormat: undefined,
+			tickCount: undefined,
+			domain,
+			scale: logScale,
+		});
+	};
+	/** The y of each vertex of the first painted path, top to bottom of the plot. */
+	const vertexYs = (mount: Pick<Mounted, "elements">): number[] =>
+		[...(paintedPaths(mount)[0] ?? "").matchAll(/[ML]\s*[-\d.e]+[ ,]([-\d.e]+)/g)].map((match) =>
+			Number(match[1]),
+		);
+	const leftLabels = (mount: Mounted): string[] =>
+		[...mount.elements.plot.querySelectorAll("svg text")]
+			.filter(
+				(text) =>
+					text instanceof SVGElement && text.style.getPropertyValue("text-anchor") === "end",
+			)
+			.map((text) => text.textContent ?? "");
+
+	test("spaces each power of ten evenly and labels the decades", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [1, 10, 100, 1000].map((a, x) => ({ x, a })),
+			size: { width: 400, height: 300 },
+		});
+		setLog(mount);
+		mount.engine.commitNow();
+		const ys = vertexYs(mount);
+
+		// Why: on a linear axis 1, 10, and 100 sit near the bottom, 900 apart from 1000.
+		expect(ys).toHaveLength(4);
+		const gaps = ys.slice(1).map((y, index) => (ys[index] ?? 0) - y);
+		for (const gap of gaps) {
+			expect(gap).toBeCloseTo(gaps[0] ?? 0, 6);
+		}
+		// Why 0.1: the floor sits one decade below the smallest value, so it keeps a length.
+		expect(leftLabels(mount)).toEqual(["0.1", "1", "10", "100", "1K"]);
+	});
+
+	test("draws no mark for a value at or below zero, and the readout keeps it", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [5, 0, 50, -3, 500].map((a, x) => ({ x, a })),
+		});
+		setLog(mount);
+		mount.engine.commitNow();
+
+		// Why: 0 and -3 break the line into three single points, so no segment joins them.
+		expect((paintedPaths(mount)[0] ?? "").match(/L/g) ?? []).toHaveLength(0);
+		mount.engine.handleKeyDown("Home");
+		mount.engine.handleKeyDown("ArrowRight");
+		expect(mount.store.getSnapshot().hover?.points[0]?.value).toBe(0);
+	});
+
+	test("keeps a positive domain end and fits a zero minimum to the data", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [30, 4000].map((a, x) => ({ x, a })),
+			size: { width: 400, height: 300 },
+		});
+		setLog(mount, [0, 100_000]);
+		mount.engine.commitNow();
+
+		// Why: the auto minimum is a full decade below 30, and the fixed maximum holds.
+		expect(leftLabels(mount)).toEqual(["1", "10", "100", "1K", "10K", "100K"]);
+	});
+
+	test("a switch back to linear paints the raw values again", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [1, 10, 100, 1000].map((a, x) => ({ x, a })),
+			size: { width: 400, height: 300 },
+		});
+		setLog(mount);
+		mount.engine.commitNow();
+		mount.store.registerYAxis("left", {
+			tickFormat: undefined,
+			tickCount: undefined,
+			domain: undefined,
+		});
+		mount.engine.flushIngest();
+		mount.engine.commitNow();
+		const ys = vertexYs(mount);
+
+		// Why: linear 1 → 10 is 9 units and 100 → 1000 is 900, so the gaps differ 100 times.
+		const low = (ys[0] ?? 0) - (ys[1] ?? 0);
+		const high = (ys[2] ?? 0) - (ys[3] ?? 0);
+		expect(high / low).toBeCloseTo(100, 0);
+		expect(leftLabels(mount)).not.toContain("1K");
+	});
+
+	test("a log axis on a stacked chart throws", () => {
+		expect(() => {
+			const mount = mountEngine({
+				kind: "bar",
+				backend: createSvgBackend,
+				series: [makeSeries("a", "bar")],
+				rows: [{ x: "a", a: 1 }],
+				options: { xScale: "band", stacked: true },
+			});
+			setLog(mount);
+			mount.engine.flushIngest();
+		}).toThrow(/YAxis scale only unstacked/);
 	});
 });

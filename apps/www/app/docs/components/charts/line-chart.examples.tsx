@@ -1,5 +1,5 @@
 import { Empty } from "@ngrok/mantle/empty";
-import { LineChart } from "@ngrok/mantle/line-chart";
+import { LineChart, logScale } from "@ngrok/mantle/line-chart";
 import { useEffect, useState } from "react";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
@@ -361,6 +361,42 @@ export function GapsAndConnectnullsExample() {
 	return (
 		<PreviewCanvas>
 			<GapsExample />
+		</PreviewCanvas>
+	);
+}
+
+export const parameterTail = [
+	{ value: 1, llama: 48_000, mistral: 61_000 },
+	{ value: 2, llama: 2_100, mistral: 5_400 },
+	{ value: 4, llama: 130, mistral: 610 },
+	{ value: 8, llama: 9, mistral: 74 },
+	{ value: 16, llama: 0, mistral: 6 },
+	{ value: 32, llama: 0, mistral: 1 },
+];
+
+export function LogScaleLineChartExample() {
+	return (
+		<LineChart.Root
+			data={parameterTail}
+			xKey="value"
+			aria-label="Parameters by magnitude, log scale"
+		>
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis scale={logScale} />
+			<LineChart.Line dataKey="llama" label="Llama" color="blue" markers />
+			<LineChart.Line dataKey="mistral" label="Mistral" color="emerald" markers />
+			<LineChart.Legend />
+			<LineChart.Tooltip />
+		</LineChart.Root>
+	);
+}
+
+/** The "Log scale" example on the Line Chart docs page. */
+export function LogScaleExample() {
+	return (
+		<PreviewCanvas>
+			<LogScaleLineChartExample />
 		</PreviewCanvas>
 	);
 }

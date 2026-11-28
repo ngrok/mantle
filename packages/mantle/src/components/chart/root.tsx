@@ -315,6 +315,13 @@ const usePrintActivation = ({
 };
 
 /**
+ * The name of the `YScale` on either side, such as `"log"`, else `undefined`.
+ * A primitive, so a hover publish leaves the selector's value unchanged.
+ */
+const yScaleOf = (snapshot: ReturnType<ChartStore["getSnapshot"]>): string | undefined =>
+	snapshot.yAxes.left?.scale?.name ?? snapshot.yAxes.right?.scale?.name;
+
+/**
  * Write the series sentence of the description from the store, not from a
  * render: the parts register after the Root's first render, and a re-render
  * for it would change the text after the first layout. The subscription also
@@ -338,7 +345,11 @@ const useDescriptionSeries = ({
 		}
 		let last: string | null = null;
 		const write = () => {
-			const text = describeSeries(store.getSnapshot().series.map((series) => series.label));
+			const snapshot = store.getSnapshot();
+			const scale = yScaleOf(snapshot);
+			const text = `${describeSeries(snapshot.series.map((series) => series.label))}${
+				scale == null ? "" : ` The y axis uses a ${scale} scale.`
+			}`;
 			if (text !== last) {
 				last = text;
 				target.textContent = text;
@@ -459,6 +470,12 @@ const ChartRootPrimitive = ({
 		store.subscribe,
 		() => store.hoverEver,
 		() => false,
+	);
+	// Why a selector: a hover publish keeps the value, so it does not re-render the Root.
+	const yScale = useSyncExternalStore(
+		store.subscribe,
+		() => yScaleOf(store.getSnapshot()),
+		() => undefined,
 	);
 	const resolvedXScale: XScaleKind = kind === "bar" ? "band" : (xScale ?? detectXScale(data, xKey));
 	// Why a hoisted ref: the context object is state, so a write through
@@ -799,6 +816,7 @@ const ChartRootPrimitive = ({
 			// props object must not carry a stale value past it. Only an interactive
 			// chart has an overlay to focus, so only it carries the latch.
 			data-engaged={interactive && engaged ? "" : undefined}
+			data-y-scale={yScale}
 		>
 			<ChartContext.Provider value={context}>
 				<div

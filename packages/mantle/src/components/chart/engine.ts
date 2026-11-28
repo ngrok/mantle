@@ -9,6 +9,7 @@ import {
 } from "./bar-geometry.js";
 import type { DecimatedColumns } from "./decimate.js";
 import type { BandLayout } from "./scales.js";
+import type { LinearCoefficients } from "./scales.js";
 import type { ChartStore } from "./store.js";
 import type {
 	ChartDatum,
@@ -22,6 +23,7 @@ import type {
 	XValue,
 	YAxisSide,
 	YDomain,
+	YScalePlot,
 } from "./types.js";
 import {
 	observeResize,
@@ -313,6 +315,16 @@ class ChartEngine {
 	/** The column of each `dataKey`, for the reads that start from a key. */
 	#columnIndex = new Map<string, number>();
 	/**
+	 * The columns that marks paint, in `#columns` order: a series on an axis
+	 * with a `YScale` paints that scale's units, and any other its own column.
+	 * The tooltip and the table read `#columns`.
+	 */
+	#plotColumns: Float64Array[] = [];
+	/** Each axis's values under its `YScale`; `null` on a linear axis. */
+	#plots: Record<YAxisSide, YScalePlot | null> = { left: null, right: null };
+	/** The scale inputs the last ingest read, so a change plots the columns again. */
+	#scaleKey = "";
+	/**
 	 * The value extent of each y axis's series. `integers` holds when every
 	 * finite value is an integer: integer-count data (requests, errors) never
 	 * renders fractional value ticks (a "1.5" label on a count axis is
@@ -355,6 +367,7 @@ class ChartEngine {
 		YAxisSide,
 		{
 			key: string;
+			plot: YScalePlot | null;
 			format: unknown;
 			source: unknown;
 			ticks: Array<{ value: number; text: string }>;
@@ -525,6 +538,10 @@ class ChartEngine {
 			// Why defer the check: a part that swaps mid-commit unregisters before
 			// its replacement registers. `#commit` checks once the commit settles.
 			this.#pendingAxisCheck = true;
+			// Why an ingest: a scaled axis paints columns built from its scale and its domain.
+			if (this.#scaleInputs() !== this.#scaleKey) {
+				this.#pendingIngest = true;
+			}
 			// Why re-aim: a bar chart's domain depends on whether an axis or a grid
 			// draws ticks. Aiming at an unchanged target does nothing.
 			this.#aimYDomain();
@@ -1269,6 +1286,21 @@ class ChartEngine {
 		this.#decimationCache.clear();
 		const previousXs = this.#xs;
 		const previousXValues = this.#xValues;
+		const scaleKey = this.#scaleInputs();
+		const rescaled = scaleKey !== this.#scaleKey;
+		this.#scaleKey = scaleKey;
+		// Why the old maps: a new scale moves each mark, so it glides from where
+		// it painted under the old one.
+		const before =
+			rescaled && this.#hasIngested && this.#tweenDuration() > 0
+				? { left: this.#valueScale("left"), right: this.#valueScale("right") }
+				: null;
+		if (rescaled) {
+			// Why: a fading label is keyed by its painted value, which a new scale
+			// moves; the old labels would slide to the wrong height as they fade.
+			this.#yLabelFade.clear();
+			this.#rightLabelFade.clear();
+		}
 		const ingested = ingestRows({
 			rows,
 			xKey: this.#options.xKey,
@@ -1351,6 +1383,7 @@ class ChartEngine {
 		this.#columns = ingested.columns;
 		this.#columnIndex = new Map(specs.map((spec, index) => [spec.dataKey, index]));
 		this.#extents = ingested.extents;
+		this.#plotScales(specs);
 		this.#store.assertYAxes({
 			root: this.#names.root,
 			kind: this.#kind,
@@ -1399,6 +1432,9 @@ class ChartEngine {
 			}
 		}
 
+		if (before != null) {
+			this.#remapScale(specs, before);
+		}
 		this.#retargetTweens(specs, previousColumnIndex, sameXVector);
 
 		// Data changed under the active position: clamp, then force a republish
@@ -1497,7 +1533,7 @@ class ChartEngine {
 			} else if (holdsValueTweens && this.#scatter?.kind !== "geo") {
 				retargetBuffer(
 					`${spec.dataKey}:value`,
-					this.#columns[seriesIndex] ?? new Float64Array(0),
+					this.#plotColumns[seriesIndex] ?? new Float64Array(0),
 					hadPrevious,
 				);
 			}
@@ -1574,6 +1610,10 @@ class ChartEngine {
 		// would only paint frames that change nothing.
 		if (this.#scatter?.kind === "geo") {
 			return [-90, 90];
+		}
+		const plot = this.#plots[side];
+		if (plot != null) {
+			return plot.domain;
 		}
 		const [minOverride, maxOverride] = this.#fixedEnds(side);
 		const extent = this.#extents[side];
@@ -1655,6 +1695,64 @@ class ChartEngine {
 		);
 	}
 
+	/** The scale and the domain of each scaled axis: the inputs of `#plotScales`. */
+	#scaleInputs(): string {
+		// Why the domain only with a scale: a linear axis re-aims its domain with no ingest.
+		const { left, right } = this.#store.getSnapshot().yAxes;
+		return [left, right]
+			.map((axis) => (axis?.scale == null ? "" : `${axis.scale.name} ${axis.domain?.join()}`))
+			.join("|");
+	}
+
+	/**
+	 * Plot the columns of each axis that has a `YScale`. A chart with no such
+	 * axis paints its own columns and allocates nothing.
+	 */
+	#plotScales(specs: readonly SeriesSpec[]): void {
+		const { yAxes } = this.#store.getSnapshot();
+		this.#plotColumns = this.#columns;
+		for (const side of ["left", "right"] as const) {
+			// Why every column: the plot keeps the indexes; it reads only the side's columns.
+			const plot = (this.#plots[side] =
+				yAxes[side]?.scale?.plot(
+					this.#columns.filter((_, index) => specs[index]?.yAxis === side),
+					yAxes[side]?.domain ?? AUTO_DOMAIN,
+				) ?? null);
+			if (plot != null) {
+				let at = 0;
+				this.#plotColumns = this.#plotColumns.map((column, index) =>
+					specs[index]?.yAxis === side ? (plot.columns[at++] ?? column) : column,
+				);
+			}
+		}
+	}
+
+	/** The map from a painted value to a pixel on the axis the side's values run along. */
+	#valueScale(side: YAxisSide): LinearCoefficients {
+		return side === "left" && this.#horizontalBars()
+			? this.#valueCoefficients()
+			: this.#yCoefficients(side);
+	}
+
+	/**
+	 * Start each value tween of a new scale at the pixel its mark painted at
+	 * under the old one, and jump the domains to the new scale. The marks then
+	 * glide to their new places, and the axis labels never read a domain that
+	 * is part linear and part log.
+	 */
+	#remapScale(specs: readonly SeriesSpec[], before: Record<YAxisSide, LinearCoefficients>): void {
+		this.#aimYDomains(null);
+		for (const spec of specs) {
+			const tween = this.#valueTweens.get(`${spec.dataKey}:value`);
+			const from = before[spec.yAxis];
+			const to = this.#valueScale(spec.yAxis);
+			if (tween != null && to.k !== 0) {
+				const start = tween.values().map((value) => (value * from.k + from.b - to.b) / to.k);
+				tween.retarget(start, { duration: 0, now: 0 });
+			}
+		}
+	}
+
 	/** The fixed ends of one side's domain, from its `YAxis` part. */
 	#fixedEnds(side: YAxisSide): YDomain {
 		return this.#store.getSnapshot().yAxes[side]?.domain ?? AUTO_DOMAIN;
@@ -1675,6 +1773,10 @@ class ChartEngine {
 			return null;
 		}
 		const own = this.#targetYDomain("right");
+		// Why no alignment: a scaled axis has no even step to put on the other grid.
+		if (this.#plots.left != null || this.#plots.right != null) {
+			return own;
+		}
 		const extent = this.#extents.right;
 		const leftCount = this.#store.getSnapshot().yAxes.left?.tickCount;
 		// Why the fitted count: the right ticks must land on the grid the plot
@@ -2106,8 +2208,20 @@ class ChartEngine {
 		const settled = !this.#yTweens.left.active && !this.#yTweens.right.active;
 		const key = `${domain[0]}|${domain[1]}|${limit}|${count}|${integer}|${align?.k}|${align?.b}|${settled}`;
 		const memo = this.#yTickMemos[side];
-		if (memo != null && memo.key === key && memo.format === format && memo.source === source) {
+		const plot = this.#plots[side];
+		if (
+			memo != null &&
+			memo.key === key &&
+			memo.plot === plot &&
+			memo.format === format &&
+			memo.source === source
+		) {
 			return memo.ticks;
+		}
+		if (plot != null) {
+			const ticks = plot.ticks([domain[0] ?? 0, domain[1] ?? 1], limit, format);
+			this.#yTickMemos[side] = { key, plot, format, source, ticks };
+			return ticks;
 		}
 		const aligned =
 			align == null || source == null || !settled
@@ -2150,7 +2264,7 @@ class ChartEngine {
 				text: format == null ? defaultLabel : format(value, { defaultLabel, step }),
 			};
 		});
-		this.#yTickMemos[side] = { key, format, source, ticks: labeled };
+		this.#yTickMemos[side] = { key, plot, format, source, ticks: labeled };
 		return labeled;
 	}
 
@@ -2461,13 +2575,15 @@ class ChartEngine {
 		// vertical line when horizontal, horizontal otherwise. Skipped when off the
 		// value axis (an unclipped line would strike the label strip) and in 3D.
 		for (const reference of frameless ? [] : snapshot.referenceLines) {
+			const y = this.#plots[reference.yAxis]?.toPlot(reference.y) ?? reference.y;
 			const position =
-				reference.yAxis === "right"
-					? reference.y * yCos.right.k + yCos.right.b
-					: valuePosition(reference.y);
-			const outOfRange = horizontal
-				? position < plot.left || position > plot.left + plot.width
-				: position < plot.top || position > plot.top + plot.height;
+				reference.yAxis === "right" ? y * yCos.right.k + yCos.right.b : valuePosition(y);
+			// Why `NaN`: a scale can have no place for a value, as a log axis has none for 0.
+			const outOfRange =
+				Number.isNaN(position) ||
+				(horizontal
+					? position < plot.left || position > plot.left + plot.width
+					: position < plot.top || position > plot.top + plot.height);
 			if (outOfRange) {
 				continue;
 			}
@@ -2633,7 +2749,7 @@ class ChartEngine {
 			}
 		}
 		if (boundary === "value") {
-			return this.#columns[seriesIndex] ?? new Float64Array(0);
+			return this.#plotColumns[seriesIndex] ?? new Float64Array(0);
 		}
 		const rows = boundary === "lower" ? this.#stack?.lower : this.#stack?.upper;
 		return rows?.[seriesIndex] ?? new Float64Array(0);

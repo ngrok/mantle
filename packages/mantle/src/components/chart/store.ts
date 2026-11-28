@@ -274,8 +274,16 @@ class ChartStore {
 				kind === "area" ||
 				specs.some((spec) => spec.yAxis === side && (spec.mark === "bar" || spec.mark === "area"));
 			const [min, max] = this.#yAxes[side]?.domain ?? [];
+			const log = this.#yAxes[side]?.scale != null;
+			// Why: a stack adds values, and a log axis has no zero to grow from.
+			// A scatter plot projects its own points.
+			invariant(
+				!log || (kind !== "scatter" && !(stacked && side === "left")),
+				() => `${root} takes a YAxis scale only unstacked.`,
+			);
 			invariant(
 				!anchored ||
+					log ||
 					((typeof min !== "number" || min <= 0) && (typeof max !== "number" || max >= 0)),
 				() => `A bar or an area inside ${root} draws from zero, so its YAxis domain includes 0.`,
 			);
