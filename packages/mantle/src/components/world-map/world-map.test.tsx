@@ -315,6 +315,26 @@ describe("WorldMap.Tooltip", () => {
 		expect(label).toHaveTextContent("Row 1");
 	});
 
+	test("maxRows folds the later series into a count, in drawn order", async () => {
+		const user = userEvent.setup();
+		render(
+			<WorldMap.Root
+				data={[{ longitude: 0, south: 5, north: 50 }]}
+				longitudeKey="longitude"
+				aria-label="Bands"
+			>
+				<WorldMap.Point latitudeKey="south" color="blue" label="South" />
+				<WorldMap.Point latitudeKey="north" color="blue" label="North" />
+				<WorldMap.Tooltip maxRows={1} />
+			</WorldMap.Root>,
+		);
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		expect(tooltipText()).toContain("South");
+		expect(tooltipText()).not.toContain("North");
+		expect(tooltipText()).toContain("+1 more");
+	});
+
 	// Why one table: the same query reads the color key as present and as absent.
 	test.each([
 		{

@@ -2,8 +2,8 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { userEvent } from "vitest/browser";
+import { afterAll, beforeAll, describe, expect, onTestFinished, test } from "vitest";
+import { commands, userEvent } from "vitest/browser";
 import * as AreaChart from "../area-chart/area-chart-parts.js";
 import * as BarChart from "../bar-chart/bar-chart-parts.js";
 import { CanvasAreaChartRoot, CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
@@ -1133,49 +1133,172 @@ const findTooltip = async (container: HTMLElement, overlay: HTMLElement): Promis
 };
 
 describe("tooltip placement", () => {
-	test("a readout taller than the plot starts at the top of the plot box", async () => {
-		// A readout that cannot fit the plot rect falls back to the wrapper's top
-		// edge. Clamping it against the inset rect instead pins it below the top
-		// padding and spills the whole overflow past the bottom.
-		const series = Array.from({ length: 12 }, (_, index) => `key${index}`);
-		const row: Record<string, string | number> = { day: "Mon" };
-		for (const key of series) {
-			row[key] = 5;
-		}
-		const { container } = render(
+	// Why 70 series: a fit that removes too few rows per pass loops past
+	// React's update limit. Why a max-height and a scale: neither may change
+	// the rows that fit.
+	test.each([
+		{ name: "plain", tooltipStyle: undefined, scale: 1 },
+		{ name: "a CSS max-height", tooltipStyle: { maxHeight: 160, overflow: "auto" }, scale: 1 },
+		{ name: "a scaled card", tooltipStyle: undefined, scale: 0.5 },
+	] as const)(
+		"a readout with more rows than fit shows the largest ones inside a clipping card ($name)",
+		async ({ tooltipStyle, scale }) => {
+			// A short chart with many series inside a card that clips, as mantle's
+			// `Panel` (`overflow-clip`) and `Table` (`overflow-hidden`) do. The rows
+			// that do not fit fold into a count, so the card cuts none off.
+			const series = Array.from({ length: 70 }, (_, index) => `key${index}`);
+			const row: Record<string, string | number> = { day: "Mon" };
+			for (const [index, key] of series.entries()) {
+				row[key] = index + 1;
+			}
+			const chart = (maxRows: number) => (
+				<div
+					style={{
+						width: 600,
+						height: 160,
+						overflow: "clip",
+						transform: `scale(${scale})`,
+						transformOrigin: "left top",
+					}}
+				>
+					<CanvasBarChartRoot
+						data={[row]}
+						xKey="day"
+						stacked
+						animate={false}
+						aria-label="Many series in a card"
+					>
+						{series.map((key) => (
+							<BarChart.Bar key={key} dataKey={key} label={key} color="blue" />
+						))}
+						<BarChart.Tooltip maxRows={maxRows} style={tooltipStyle} />
+					</CanvasBarChartRoot>
+				</div>
+			);
+			// Why a first cap of one row: that readout fits, so a fit kept from it
+			// would let the uncapped readout spill out of the card.
+			const { container, rerender } = render(chart(1));
+			const canvas = await findChartCanvas(container);
+			await waitForPlot(canvas);
+			const overlay = overlayOf(container);
+			const tooltip = await findTooltip(container, overlay);
+			// Why an intersection ratio: a box keeps its full rect when an ancestor
+			// clips it, but the ratio counts only the part the clip leaves visible.
+			const visibleRatio = (element: Element): Promise<number> =>
+				new Promise((resolve) => {
+					const observer = new IntersectionObserver(([entry]) => {
+						observer.disconnect();
+						resolve(entry?.intersectionRatio ?? 0);
+					});
+					observer.observe(element);
+				});
+			const hoverCenter = (): void => {
+				const plot = overlay.getBoundingClientRect();
+				hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
+			};
+			await waitFor(() => {
+				hoverCenter();
+				expect(tooltip.textContent).toContain("+69 more");
+			});
+			rerender(chart(Number.POSITIVE_INFINITY));
+			// Why the text inside the wait: the readout can clear between hovers.
+			let text = "";
+			await waitFor(async () => {
+				hoverCenter();
+				text = tooltip.textContent ?? "";
+				expect(text).toMatch(/\+\d+ more/);
+				expect(await visibleRatio(tooltip)).toBeGreaterThan(0.99);
+				const count = tooltip.querySelector(".grid")?.lastElementChild;
+				expect(count?.textContent).toMatch(/\+\d+ more/);
+				expect(await visibleRatio(count ?? tooltip)).toBeGreaterThan(0.99);
+			});
+			// The largest value reads first, and the smallest folds into the count.
+			expect(text).toContain("key69");
+			expect(text).not.toContain("key0");
+			expect(text).not.toContain("+69 more");
+			// The same readout fits the same plot, whatever its scale: a plot of
+			// 160px less the label and the count holds a few rows.
+			const shown = 70 - Number(/\+(\d+) more/.exec(text)?.[1]);
+			expect(shown).toBeGreaterThanOrEqual(3);
+		},
+	);
+
+	test("a lower cap and a return to the first cap fit the readout again", async () => {
+		// Why a tall label on the first day only: its readout fits fewer rows,
+		// and that fit must not come back for the second day.
+		const days = ["Mon", "Tue"].map((day) => ({ day, a: 4, b: 3, c: 2, d: 1 }));
+		const chart = (activeIndex: number, maxRows: number) => (
 			<div style={{ width: 600, height: 160 }}>
 				<CanvasBarChartRoot
-					data={[row]}
+					data={days}
 					xKey="day"
-					stacked
 					animate={false}
-					aria-label="Many series"
+					activeIndex={activeIndex}
+					aria-label="Four series"
 				>
-					{series.map((key) => (
+					{["a", "b", "c", "d"].map((key) => (
 						<BarChart.Bar key={key} dataKey={key} label={key} color="blue" />
+					))}
+					<BarChart.Tooltip
+						maxRows={maxRows}
+						labelFormat={(day) =>
+							day === "Mon" ? (
+								<span style={{ display: "block", height: 100 }}>Mon</span>
+							) : (
+								String(day)
+							)
+						}
+					/>
+				</CanvasBarChartRoot>
+			</div>
+		);
+		const { container, rerender } = render(chart(0, 8));
+		await waitForPlot(await findChartCanvas(container));
+		const tooltip = (): string =>
+			container.querySelector('[data-slot="bar-chart-tooltip"]')?.textContent ?? "";
+		await waitFor(() => expect(tooltip()).toMatch(/Mon.*\+\d+ more/));
+		rerender(chart(1, 2));
+		await waitFor(() => expect(tooltip()).toMatch(/Tue.*\+2 more/));
+		rerender(chart(1, 8));
+		await waitFor(() => expect(tooltip()).toBe("Tuea4b3c2d1"));
+	});
+
+	test("a long label wraps inside the chart, so a scrolling parent shows no scrollbar", async () => {
+		// Why a parent that scrolls on x: a readout wider than the chart adds a
+		// scrollbar, which takes plot height and changes the fit, in a loop.
+		const label = "x".repeat(90);
+		// Why the compiled CSS: the width limit lives in the tooltip's classes.
+		const css = document.createElement("style");
+		css.textContent = await commands.tailwindCss("./tooltip.tsx");
+		document.head.append(css);
+		onTestFinished(() => css.remove());
+		const { container } = render(
+			<div style={{ width: 320, height: 194, overflowX: "auto", overflowY: "hidden" }}>
+				<CanvasBarChartRoot
+					data={[{ day: "Mon", a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8 }]}
+					xKey="day"
+					animate={false}
+					activeIndex={0}
+					aria-label="A long label"
+					style={{ width: "100%", height: "100%" }}
+				>
+					{["a", "b", "c", "d", "e", "f", "g", "h"].map((key) => (
+						<BarChart.Bar key={key} dataKey={key} label={key === "a" ? label : key} color="blue" />
 					))}
 				</CanvasBarChartRoot>
 			</div>,
 		);
-		const canvas = await findChartCanvas(container);
-		await waitForPlot(canvas);
-		const overlay = overlayOf(container);
-		const tooltip = await findTooltip(container, overlay);
-
-		// Re-hover inside the poll: the first pointer event can race the first
-		// layout commit, and the engine repositions again once its size observer
-		// measures the readout. React renders the rows during the event itself
-		// while the engine positions on an animation frame, so wait for the
-		// transform. Without it the readout still sits at its unpositioned
-		// origin, which is the very place this test expects to find it.
-		await waitFor(() => {
-			const plot = overlay.getBoundingClientRect();
-			hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
-			expect(tooltip.style.transform).not.toBe("");
-			const readout = tooltip.getBoundingClientRect();
-			expect(readout.height).toBeGreaterThan(plot.height);
-			expect(readout.top).toBeCloseTo(plot.top, 1);
+		await waitForPlot(await findChartCanvas(container));
+		const parent = container.firstElementChild;
+		const tooltip = await waitFor(() => {
+			const element = container.querySelector('[data-slot="bar-chart-tooltip"]');
+			expect(element?.textContent).toContain("Mon");
+			return element;
 		});
+		expect(parent?.scrollWidth).toBe(parent?.clientWidth);
+		expect(tooltip?.getBoundingClientRect().right).toBeLessThanOrEqual(
+			parent?.getBoundingClientRect().right ?? 0,
+		);
 	});
 
 	test("a readout that fits stays inside the plot box", async () => {

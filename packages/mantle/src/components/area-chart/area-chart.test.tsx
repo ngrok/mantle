@@ -318,45 +318,6 @@ describe("AreaChart keyboard interaction", () => {
 	});
 });
 
-describe("AreaChart stacked tooltip order", () => {
-	test("stacked charts list the top-of-stack series first in the tooltip", async () => {
-		const user = userEvent.setup();
-		render(
-			<AreaChart.Root data={data} xKey="date" stacked aria-label="Traffic by protocol">
-				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
-				<AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
-				<AreaChart.Tooltip />
-			</AreaChart.Root>,
-		);
-		await user.tab();
-		await user.keyboard("{ArrowRight}");
-		const tooltip = document.querySelector('[data-slot="area-chart-tooltip"]');
-		const text = tooltip?.textContent ?? "";
-		expect(text).toContain("TCP");
-		expect(text).toContain("HTTP");
-		// TCP is composed second, so it sits on top of the stack and reads first.
-		expect(text.indexOf("TCP")).toBeLessThan(text.indexOf("HTTP"));
-	});
-
-	test("unstacked charts keep registration order in the tooltip", async () => {
-		const user = userEvent.setup();
-		render(
-			<AreaChart.Root data={data} xKey="date" aria-label="Traffic by protocol">
-				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
-				<AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
-				<AreaChart.Tooltip />
-			</AreaChart.Root>,
-		);
-		await user.tab();
-		await user.keyboard("{ArrowRight}");
-		const tooltip = document.querySelector('[data-slot="area-chart-tooltip"]');
-		const text = tooltip?.textContent ?? "";
-		expect(text).toContain("HTTP");
-		expect(text).toContain("TCP");
-		expect(text.indexOf("HTTP")).toBeLessThan(text.indexOf("TCP"));
-	});
-});
-
 describe("AreaChart.Tooltip customization", () => {
 	test("valueFormat, labelFormat, and footer customize the readout", async () => {
 		const user = userEvent.setup();

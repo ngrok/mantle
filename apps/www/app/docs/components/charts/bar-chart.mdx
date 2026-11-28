@@ -94,7 +94,7 @@ function GroupedBarChartExample() {
 
 ## Stacked bars
 
-Add `stacked` to the Root to stack the composed series instead of grouping them. Bars stack from the baseline up in registration order: series that mount together register in composition order, so the first `BarChart.Bar` sits on the baseline and the last on top. A `Bar` that mounts later stacks on top of every series already registered, whatever its position in the JSX, and a `dataKey` that unmounts and returns resumes its original position. Reordering the parts of a mounted chart does not restack it: the position sticks to the `dataKey`, which is what keeps a series from jumping when you rename its `label`. The tooltip leads with the column's total, then lists the far end of the stack first, so a vertical chart reads top-down and a horizontal one reads from the far end back to the baseline.
+Add `stacked` to the Root to stack the composed series instead of grouping them. Bars stack from the baseline up in registration order: series that mount together register in composition order, so the first `BarChart.Bar` sits on the baseline and the last on top. A `Bar` that mounts later stacks on top of every series already registered, whatever its position in the JSX, and a `dataKey` that unmounts and returns resumes its original position. Reordering the parts of a mounted chart does not restack it: the position sticks to the `dataKey`, which is what keeps a series from jumping when you rename its `label`. The tooltip leads with the column's total, then lists the series by value, largest first.
 
 <Example name="components/charts/bar-chart/stacked-bars" title="Bar Chart stacked bars example">
 
@@ -1570,13 +1570,14 @@ The `HoverSnapshot` passed to `footer` and `children` describes the active categ
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded to the tooltip element the Root owns) except `children`, plus:
 
-| Prop           | Type                                                    | Default  | Description                                                             |
-| -------------- | ------------------------------------------------------- | -------- | ----------------------------------------------------------------------- |
-| `labelFormat?` | `(value: string \| number \| Date) => ReactNode`        |          | Format the x/label row of the readout.                                  |
-| `valueFormat?` | `(value: number, dataKey: string) => ReactNode`         |          | Format each series value.                                               |
-| `indicator?`   | `"line" \| "none"`                                      | `"line"` | The per-series color key: a short stroke (default) or nothing.          |
-| `footer?`      | `ReactNode \| ((snapshot: HoverSnapshot) => ReactNode)` |          | Extra content appended below the series rows (e.g. a "view logs" hint). |
-| `children?`    | `(snapshot: HoverSnapshot) => ReactNode`                |          | Replace the entire readout.                                             |
+| Prop           | Type                                                    | Default  | Description                                                                                                                                                                     |
+| -------------- | ------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `labelFormat?` | `(value: string \| number \| Date) => ReactNode`        |          | Format the x/label row of the readout.                                                                                                                                          |
+| `valueFormat?` | `(value: number, dataKey: string) => ReactNode`         |          | Format each series value.                                                                                                                                                       |
+| `indicator?`   | `"line" \| "none"`                                      | `"line"` | The per-series color key: a short stroke (default) or nothing.                                                                                                                  |
+| `footer?`      | `ReactNode \| ((snapshot: HoverSnapshot) => ReactNode)` |          | Extra content appended below the series rows (e.g. a "view logs" hint).                                                                                                         |
+| `maxRows?`     | `number`                                                | `8`      | The most series rows the readout shows, largest value first. The rest fold into a "+N more" row, and only the rows that fit the plot show. Not applied to a `children` readout. |
+| `children?`    | `(snapshot: HoverSnapshot) => ReactNode`                |          | Replace the entire readout.                                                                                                                                                     |
 
 **Data attributes**
 

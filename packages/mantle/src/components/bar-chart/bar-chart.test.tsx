@@ -322,7 +322,7 @@ describe("BarChart keyboard interaction", () => {
 		expect(tooltip?.textContent).toContain("January");
 	});
 
-	test("a stacked chart's readout leads with the column total, then the series from the top down", async () => {
+	test("a stacked chart's readout leads with the column total, then the series by value, largest first", async () => {
 		const user = userEvent.setup();
 		renderChart({ stacked: true });
 		await user.tab();
@@ -331,8 +331,36 @@ describe("BarChart keyboard interaction", () => {
 		const rows = [...(tooltip?.querySelectorAll(".grid > div") ?? [])].map(
 			(row) => row.textContent,
 		);
-		expect(rows).toEqual(["Total266", "Mobile80", "Desktop186"]);
+		// Desktop is drawn below Mobile, but its larger value reads first.
+		expect(rows).toEqual(["Total266", "Desktop186", "Mobile80"]);
 	});
+
+	// Why a fraction, a negative, and NaN: the rows shown and the count must agree for any number.
+	test.each([
+		{ maxRows: 1, rows: ["Total266", "Desktop186", "+1 more"] },
+		{ maxRows: 1.5, rows: ["Total266", "Desktop186", "+1 more"] },
+		{ maxRows: -1, rows: ["Total266", "+2 more"] },
+		{ maxRows: Number.NaN, rows: ["Total266", "+2 more"] },
+	])(
+		"maxRows={$maxRows} keeps the largest series and folds the rest into a count",
+		async ({ maxRows, rows: expected }) => {
+			const user = userEvent.setup();
+			render(
+				<BarChart.Root data={data} xKey="month" stacked aria-label="Visitors by month">
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+					<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
+					<BarChart.Tooltip maxRows={maxRows} />
+				</BarChart.Root>,
+			);
+			await user.tab();
+			await user.keyboard("{ArrowRight}");
+			const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+			const rows = [...(tooltip?.querySelectorAll(".grid > div") ?? [])].map(
+				(row) => row.textContent,
+			);
+			expect(rows).toEqual(expected);
+		},
+	);
 
 	test("an unstacked chart's readout has no total", async () => {
 		const user = userEvent.setup();
