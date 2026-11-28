@@ -346,10 +346,17 @@ const useDescriptionSeries = ({
 		let last: string | null = null;
 		const write = () => {
 			const snapshot = store.getSnapshot();
-			const scale = yScaleOf(snapshot);
-			const text = `${describeSeries(snapshot.series.map((series) => series.label))}${
-				scale == null ? "" : ` The y axis uses a ${scale} scale.`
-			}`;
+			const { yAxes } = snapshot;
+			// Why the side on a chart with a right axis: the two axes can scale apart.
+			const scales = (["left", "right"] as const)
+				.map((side) => {
+					const name = yAxes[side]?.scale?.name;
+					return name == null
+						? ""
+						: ` The ${yAxes.right == null ? "" : `${side} `}y axis uses a ${name} scale.`;
+				})
+				.join("");
+			const text = `${describeSeries(snapshot.series.map((series) => series.label))}${scales}`;
 			if (text !== last) {
 				last = text;
 				target.textContent = text;

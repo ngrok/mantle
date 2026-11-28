@@ -1447,6 +1447,7 @@ class ChartEngine {
 				specs.some(
 					(spec) =>
 						(spec.yAxis === side || previousSides.get(spec.dataKey) === side) &&
+						previousSides.has(spec.dataKey) &&
 						previousSides.get(spec.dataKey) !== spec.yAxis &&
 						(previousPlots[side] != null || this.#plots[side] != null),
 				),
@@ -2611,12 +2612,12 @@ class ChartEngine {
 			const position =
 				reference.yAxis === "right" ? y * yCos.right.k + yCos.right.b : valuePosition(y);
 			// Why `NaN`: a scale can have no place for a value, as a log axis has none for 0.
-			// Why the half pixel: a log projection of a fixed end lands a hair outside the plot.
+			// Why the tolerance: a log projection of a fixed end lands a hair outside the plot.
 			const outOfRange =
 				Number.isNaN(position) ||
 				(horizontal
-					? position < plot.left - 0.5 || position > plot.left + plot.width + 0.5
-					: position < plot.top - 0.5 || position > plot.top + plot.height + 0.5);
+					? position < plot.left - 1e-6 || position > plot.left + plot.width + 1e-6
+					: position < plot.top - 1e-6 || position > plot.top + plot.height + 1e-6);
 			if (outOfRange) {
 				continue;
 			}

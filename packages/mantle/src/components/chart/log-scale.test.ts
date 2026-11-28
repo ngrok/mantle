@@ -58,14 +58,22 @@ describe("logScale ticks", () => {
 	};
 
 	test("gives linear ticks inside one decade, with no limit too", () => {
-		expect(labels([2, 8], [2, 8], 5)).toEqual(["2", "4", "6"]);
-		expect(labels([2, 8], [2, 8], Number.POSITIVE_INFINITY).length).toBeGreaterThan(1);
+		expect(labels([2, 8], [2, 8], 5)).toEqual(["2", "4", "6", "8"]);
+		expect(labels([2, 8], [2, 8], Number.POSITIVE_INFINITY)).toContain("8");
 	});
 
 	test("keeps adjacent labels inside one decade distinct", () => {
 		const texts = labels([1000, 1001], [1000, 1001], 5);
 		expect(texts.length).toBeGreaterThan(1);
 		expect(new Set(texts).size).toBe(texts.length);
+	});
+
+	test("keeps integer data on integer ticks inside one decade", () => {
+		expect(labels([2, 3], [2, 3], 5)).toEqual(["2", "3"]);
+	});
+
+	test("gives a lone tick the precision of the domain span", () => {
+		expect(labels([], [1.001, 1.003], 1)).toEqual(["1.002"]);
 	});
 
 	test("writes extreme powers of ten as exponents", () => {

@@ -164,8 +164,8 @@ type YAxisBaseProps = {
 	 * `defaultLabel` and needs no precision of its own. The chart compares the
 	 * function by identity, so a new function paints the chart again. The React
 	 * Compiler in your build keeps an inline function stable. Without it, define
-	 * the function outside the component. Under `logScale` the ticks are powers
-	 * of ten, `step` is `0`, and `defaultLabel` is compact, such as `1K` or `1M`.
+	 * the function outside the component. Under `logScale` a power-of-ten tick
+	 * gets a `step` of `0` and a compact `defaultLabel`, such as `1K` or `1M`.
 	 */
 	tickFormat?: (value: number, context: YTickContext) => string;
 	/**

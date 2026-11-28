@@ -3005,6 +3005,34 @@ describe("ChartEngine log y axis", () => {
 		expect(texts).toContain("SLO");
 	});
 
+	test("leaves out a reference line just past a fixed linear maximum", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [20, 60].map((a, x) => ({ x, a })),
+			size: { width: 400, height: 200 },
+		});
+		mount.store.registerYAxis("left", {
+			tickFormat: undefined,
+			tickCount: undefined,
+			domain: [0, 100],
+		});
+		mount.store.registerReferenceLine("over", {
+			y: 100.2,
+			label: "Over limit",
+			color: undefined,
+			yAxis: "left",
+		});
+		mount.engine.flushIngest();
+		mount.engine.commitNow();
+
+		const texts = [...mount.elements.plot.querySelectorAll("svg text")].map(
+			(text) => text.textContent,
+		);
+		expect(texts).not.toContain("Over limit");
+	});
+
 	test("a log axis on a stacked chart throws", () => {
 		expect(() => {
 			const mount = mountEngine({

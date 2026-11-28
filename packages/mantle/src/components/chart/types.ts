@@ -212,7 +212,7 @@ type YTickContext = {
 	defaultLabel: string;
 	/**
 	 * The distance between adjacent ticks, or `0` when the axis has one tick.
-	 * A log axis has no even step, so its `step` is `0`.
+	 * A power of ten on a log axis has no even step, so its `step` is `0`.
 	 */
 	step: number;
 };

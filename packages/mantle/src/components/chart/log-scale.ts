@@ -89,11 +89,13 @@ const logScale: YScale = {
 	plot: (columns, fixed) => {
 		let min = Number.POSITIVE_INFINITY;
 		let max = 0;
+		let integer = true;
 		for (const column of columns) {
 			for (const value of column) {
 				if (value > 0) {
 					min = Math.min(min, value);
 					max = Math.max(max, value);
+					integer &&= Number.isInteger(value);
 				}
 			}
 		}
@@ -106,13 +108,22 @@ const logScale: YScale = {
 			domain: [0, hi - lo],
 			toPlot,
 			ticks: (domain, limit, format) => {
-				const range: [number, number] = [10 ** (domain[0] + lo), 10 ** (domain[1] + lo)];
+				// Why the precision: `10 ** Math.log10(8)` is 7.999999999999999, which drops the 8 tick.
+				const raw = (end: number) => Number((10 ** (end + lo)).toPrecision(12));
+				const range: [number, number] = [raw(domain[0]), raw(domain[1])];
 				const powers = logTicks([domain[0] + lo, domain[1] + lo], limit);
 				// Why linear ticks inside one decade: a power of ten or none is too few.
 				// Why a count of at most 5: a horizontal axis has no limit but its width.
-				const values = powers ?? linearTicksAtMost(range, limit, { count: Math.min(limit, 5) });
+				const values =
+					powers ??
+					linearTicksAtMost(range, limit, {
+						count: Math.min(limit, 5),
+						integer: integer && max > 0,
+					});
 				// Why a `step` of 0 for powers: they have no even step.
 				const step = powers == null && values.length > 1 ? (values[1] ?? 0) - (values[0] ?? 0) : 0;
+				// Why the span for one linear tick: `1.002` must not round to `1`.
+				const precision = powers == null && values.length === 1 ? range[1] - range[0] : step;
 				return values.map((value) => {
 					// Why exponents at the ends: compact notation writes every leading zero
 					// of `1e-100`, and a label that long takes the whole plot width.
@@ -120,8 +131,8 @@ const logScale: YScale = {
 					let defaultLabel = value.toExponential();
 					if (value >= 1e-3 && value < 1e15) {
 						defaultLabel =
-							step > 0
-								? formatNumber(value, { maximumFractionDigits: tickFractionDigits(step) })
+							precision > 0
+								? formatNumber(value, { maximumFractionDigits: tickFractionDigits(precision) })
 								: (compact ??= new Intl.NumberFormat(undefined, {
 										notation: "compact",
 										maximumSignificantDigits: 3,
