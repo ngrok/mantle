@@ -46,7 +46,9 @@ import * as AreaChartParts from "./area-chart-parts.js";
  * AreaChart.Root
  * ├── AreaChart.Grid
  * ├── AreaChart.XAxis
+ * │   └── AreaChart.AxisTitle
  * ├── AreaChart.YAxis
+ * │   └── AreaChart.AxisTitle
  * ├── AreaChart.Area (one per series)
  * ├── AreaChart.ReferenceLine
  * ├── AreaChart.Tooltip
@@ -89,6 +91,7 @@ export {
 export type {
 	//,
 	AreaChartAreaProps,
+	AreaChartAxisTitleProps,
 	AreaChartCopyButtonProps,
 	AreaChartGridProps,
 	AreaChartLegendProps,

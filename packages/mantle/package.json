@@ -605,7 +605,7 @@
 		"oxc-parser": "catalog:",
 		"oxc-transform-react": "catalog:",
 		"playwright": "catalog:",
-		"postcss": "8.5.33",
+		"postcss": "8.5.34",
 		"react": "catalog:",
 		"react-dom": "catalog:",
 		"tailwind-merge": "3.7.1",

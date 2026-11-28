@@ -28,6 +28,24 @@ export function LatencyExample() {
 	);
 }
 
+export function AxisTitlesLineChartExample() {
+	return (
+		<LineChart.Root data={latencyData} xKey="time" aria-label="Request latency by percentile">
+			<LineChart.Grid />
+			<LineChart.XAxis>
+				<LineChart.AxisTitle>Time of request</LineChart.AxisTitle>
+			</LineChart.XAxis>
+			<LineChart.YAxis tickFormat={(value) => `${value}ms`}>
+				<LineChart.AxisTitle>Latency</LineChart.AxisTitle>
+			</LineChart.YAxis>
+			<LineChart.Line dataKey="p50" label="p50" color="blue" />
+			<LineChart.Line dataKey="p99" label="p99" color="emerald" />
+			<LineChart.Tooltip valueFormat={(value) => `${value}ms`} />
+			<LineChart.Legend />
+		</LineChart.Root>
+	);
+}
+
 export function CopyMarkdownExample() {
 	return (
 		<LineChart.Root data={latencyData} xKey="time" aria-label="Request latency, copyable">
@@ -406,6 +424,15 @@ export function ReferenceLinesExample() {
 	return (
 		<PreviewCanvas>
 			<ReferenceLineExample />
+		</PreviewCanvas>
+	);
+}
+
+/** The "Axis titles" example on the Line Chart docs page. */
+export function AxisTitlesExample() {
+	return (
+		<PreviewCanvas>
+			<AxisTitlesLineChartExample />
 		</PreviewCanvas>
 	);
 }

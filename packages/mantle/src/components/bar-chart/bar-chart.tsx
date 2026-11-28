@@ -1,5 +1,7 @@
 "use client";
 
+import { ChartAxisTitlePrimitive } from "../chart/axis-title.js";
+import type { AxisTitlePrimitiveProps } from "../chart/axis-title.js";
 import type { ChartAccessibilityProps, ChartMode } from "../chart/context.js";
 import { ChartCopyButtonPrimitive } from "../chart/copy-button.js";
 import type { CopyButtonPrimitiveProps } from "../chart/copy-button.js";
@@ -329,6 +331,45 @@ const XAxis = (props: BarChartXAxisProps) => useXAxisPrimitive("BarChart.XAxis",
 const YAxis = (props: BarChartYAxisProps) => useYAxisPrimitive("BarChart.YAxis", props);
 
 /**
+ * Props for {@link BarChart.AxisTitle}.
+ */
+type BarChartAxisTitleProps = AxisTitlePrimitiveProps;
+
+/**
+ * Names the axis it sits in, as HTML text beside the plot. Compose it inside
+ * `BarChart.XAxis` or `BarChart.YAxis`. An x title sits under the plot and also heads
+ * the x column of the sr-only data table. A y title reads bottom to top on
+ * the left, and top to bottom beside a right axis. The title is one line, and
+ * it truncates with an ellipsis, so keep it short. On horizontal bars, the x
+ * title sits on the left and the y title sits under the plot.
+ *
+ * Renders a `div`; `asChild` swaps the element.
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"bar-chart-axis-title"` | Targets the title. |
+ * | `data-axis` | `"x"` \| `"y"` | The axis the title names: `"y"` for a left or a right axis. |
+ *
+ * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartaxistitle
+ *
+ * @example
+ * ```tsx
+ * <BarChart.Root data={data} xKey="day" aria-label="Requests by day">
+ *   <BarChart.XAxis>
+ *     <BarChart.AxisTitle>day</BarChart.AxisTitle>
+ *   </BarChart.XAxis>
+ *   <BarChart.YAxis>
+ *     <BarChart.AxisTitle>value</BarChart.AxisTitle>
+ *   </BarChart.YAxis>
+ *   <BarChart.Bar dataKey="requests" label="Requests" color="blue" />
+ * </BarChart.Root>
+ * ```
+ */
+const AxisTitle = (props: BarChartAxisTitleProps) => (
+	<ChartAxisTitlePrimitive partName="BarChart.AxisTitle" slotName="bar-chart" {...props} />
+);
+
+/**
  * A dashed marker at the value `y`, such as an SLO threshold, a budget, or a
  * limit (renderless; the chart paints it). It crosses the value axis: a horizontal
  * line for vertical bars, a vertical line for horizontal bars.
@@ -511,6 +552,7 @@ const List = (props: BarChartListProps) => (
 
 export type {
 	//,
+	BarChartAxisTitleProps,
 	BarChartBarProps,
 	BarChartCopyButtonProps,
 	BarChartEmptySlotProps,
@@ -532,6 +574,7 @@ export {
 	Grid,
 	XAxis,
 	YAxis,
+	AxisTitle,
 	ReferenceLine,
 	EmptySlot,
 	Tooltip,
