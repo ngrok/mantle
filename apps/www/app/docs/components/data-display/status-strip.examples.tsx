@@ -1,3 +1,4 @@
+import { DescriptionList } from "@ngrok/mantle/description-list";
 import { StatusStrip } from "@ngrok/mantle/status-strip";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
@@ -186,7 +187,7 @@ function fillClass(share: number | null) {
 export function ThresholdColorsExample() {
 	return (
 		<PreviewCanvas className="flex-col items-stretch">
-			<StatusStrip.Root aria-label="In stock 77% of the 13 days with a reading; 4 days under half">
+			<StatusStrip.Root aria-label="In stock 77% of the 13 days with a reading; 3 days under half, 1 sold out">
 				{thresholdDays.map((share, day) => (
 					<StatusStrip.Segment
 						// oxlint-disable-next-line react/no-array-index-key -- Why: each day is a fixed position in the window, so its index is its identity.
@@ -228,12 +229,12 @@ const gpus = [
 export function InAListExample() {
 	return (
 		<PreviewCanvas className="flex-col items-stretch">
-			<ul className="divide-separator w-full divide-y">
+			<DescriptionList.Root className="w-full">
 				{gpus.map((gpu) => (
-					<li key={gpu.name} className="flex items-center gap-4 py-3">
-						<span className="text-strong w-16 font-medium">{gpu.name}</span>
-						<span className="flex-1">
-							<span className="text-body block text-sm">{gpu.summary}</span>
+					<DescriptionList.Item key={gpu.name}>
+						<DescriptionList.Label>{gpu.name}</DescriptionList.Label>
+						<DescriptionList.Value>
+							<span className="block font-sans">{gpu.summary}</span>
 							<StatusStrip.Root aria-hidden className="mt-1 h-4 auto-cols-1.5 gap-0.5">
 								{gpu.days.map((share, day) => (
 									<StatusStrip.Segment
@@ -243,10 +244,10 @@ export function InAListExample() {
 									/>
 								))}
 							</StatusStrip.Root>
-						</span>
-					</li>
+						</DescriptionList.Value>
+					</DescriptionList.Item>
 				))}
-			</ul>
+			</DescriptionList.Root>
 		</PreviewCanvas>
 	);
 }
@@ -260,11 +261,9 @@ const weekHours = Array.from({ length: 168 }, (_, hour) =>
 export function ManySegmentsExample() {
 	return (
 		<PreviewCanvas className="flex-col items-stretch">
-			<p className="text-body text-sm" id="hours-in-stock">
-				$1.35 at Hyperstack was in stock 71% of the last 7 days
-			</p>
+			<p className="text-body text-sm">$1.35 at Hyperstack was in stock 71% of the last 7 days</p>
 			<StatusStrip.Root
-				aria-labelledby="hours-in-stock"
+				aria-hidden
 				className="mt-2 h-8 [--status-strip-fill:var(--color-success-600)]"
 			>
 				{weekHours.map((inStock, hour) => (

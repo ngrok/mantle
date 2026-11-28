@@ -1651,7 +1651,8 @@ MARK: UTILITIES
  * The paint of `StatusStrip.Segment`, by its `data-share`. Why a utility: a strip
  * holds a segment for each hour or day, and a page holds many strips, so the
  * class on each segment must be short.
- * - Above 0, the fill grows from 35% at a small share to 100% at 1.
+ * - Above 0, the fill grows from 35% at a small share to 100% at 1. Only a
+ *   share between 0 and 1 sets `--_status-strip-value`, so 1 is the fallback.
  * - At 0, the segment fills with the track color.
  * - With no data, it is empty between a top line and a bottom line. Side lines
  *   fill a segment 2px wide, and it then reads as 0.
@@ -1664,17 +1665,21 @@ MARK: UTILITIES
 		forced-color-adjust: none;
 		background-color: color-mix(
 			in oklab,
-			var(--status-strip-fill, var(--color-accent-600)) calc(35% + 65% * var(--_status-strip-value)),
+			var(--status-strip-fill, var(--color-accent-600))
+				calc(35% + 65% * var(--_status-strip-value, 1)),
 			transparent
 		);
 	}
 
-	:where(&[data-share="none"]) {
+	/* Why no `:where()`: 0 and no data must not read as a full segment, so a plain `bg-*` does not repaint them. A `data-[share=*]:` class does. */
+	&[data-share="none"] {
 		background-color: var(--status-strip-track, var(--color-gray-300));
 	}
 
-	:where(&[data-share="no-data"]) {
-		border-block: 1px solid var(--status-strip-track, var(--color-gray-300));
+	&[data-share="no-data"] {
+		border-color: var(--status-strip-track, var(--color-gray-300));
+		border-block-width: 1px;
+		border-block-style: solid;
 		background-color: transparent;
 	}
 }

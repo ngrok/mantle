@@ -106,7 +106,10 @@ describe("StatusStrip paint", () => {
 		render(
 			<StatusStrip.Root
 				aria-hidden
-				style={$cssProperties({ "--status-strip-fill": "rgb(0, 0, 255)" })}
+				style={$cssProperties({
+					"--status-strip-fill": "rgb(0, 0, 255)",
+					"--status-strip-track": "rgb(255, 0, 0)",
+				})}
 			>
 				<StatusStrip.Segment value={1} data-testid="default" />
 				<StatusStrip.Segment
@@ -115,6 +118,12 @@ describe("StatusStrip paint", () => {
 					style={$cssProperties({ "--status-strip-fill": "rgb(255, 0, 0)" })}
 				/>
 				<StatusStrip.Segment value={1} data-testid="class" className="bg-[rgb(0,128,0)]" />
+				<StatusStrip.Segment value={0} data-testid="class-none" className="bg-[rgb(0,128,0)]" />
+				<StatusStrip.Segment
+					value={null}
+					data-testid="class-no-data"
+					className="bg-[rgb(0,128,0)]"
+				/>
 			</StatusStrip.Root>,
 		);
 		expect(getComputedStyle(screen.getByTestId("default")).backgroundColor).toBe(mixedFill(100));
@@ -122,6 +131,13 @@ describe("StatusStrip paint", () => {
 			mixedFill(100, "rgb(255, 0, 0)"),
 		);
 		expect(getComputedStyle(screen.getByTestId("class")).backgroundColor).toBe("rgb(0, 128, 0)");
+		// A plain class must not make 0 or no data read as a full segment.
+		expect(getComputedStyle(screen.getByTestId("class-none")).backgroundColor).toBe(
+			"rgb(255, 0, 0)",
+		);
+		expect(getComputedStyle(screen.getByTestId("class-no-data")).backgroundColor).toBe(
+			"rgba(0, 0, 0, 0)",
+		);
 	});
 
 	test("forced colors keep each share's paint", async () => {

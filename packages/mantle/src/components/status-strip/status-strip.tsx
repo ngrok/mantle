@@ -165,7 +165,9 @@ type StatusStripShare = "no-data" | "none" | "some" | "all";
  * from 0 to 1, such as `undefined`, a string, or `NaN` from a division by 0.
  */
 function shareOf(value: number | null): StatusStripShare {
-	const message = `StatusStrip.Segment value must be a number from 0 to 1, or null for no data. Received ${String(value)}.`;
+	// Why a function: a page renders many segments, so the message is built only when it throws.
+	const message = () =>
+		`StatusStrip.Segment value must be a number from 0 to 1, or null for no data. Received ${String(value)}.`;
 	// Why `=== undefined`: a missing value is a caller bug, and only `null` means no data.
 	invariant(value !== undefined, message);
 	if (value == null) {
@@ -250,7 +252,10 @@ function Segment({
 			data-slot={joinDataSlot(dataSlot, "status-strip-segment")}
 			// Why one utility: a page holds many strips of many segments, so the paint is in `status-strip-segment` in mantle.css.
 			className={cx("status-strip-segment", className)}
-			style={$cssProperties({ "--_status-strip-value": value ?? 0, ...style })}
+			// Why only for "some": the utility paints 0, 1, and no data without the value, so most segments carry no style.
+			style={
+				share === "some" ? $cssProperties({ "--_status-strip-value": value ?? 0, ...style }) : style
+			}
 		>
 			{asChild && isValidElement<Record<string, unknown>>(children)
 				? // Why clone: `Slot` lets the child's props win, and `data-share` must match `value`.
