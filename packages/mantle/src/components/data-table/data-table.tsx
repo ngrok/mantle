@@ -1393,8 +1393,11 @@ function EmptyRow({ "data-slot": dataSlot, children, ...props }: DataTableEmptyR
 				{/* Why sticky: a table wider than its scroll container would center
 				    the content in the full scroll width, off screen.
 				    `keepEmptyRowInView` sets the real inset and cap. The classes are
-				    the server-rendered guess, for the default `p-3` cell. */}
-				<div ref={contentRef} className="sticky inset-s-3 max-w-[calc(100vw-1.5rem)]">
+				    the server-rendered guess, for the default `p-3` cell: `100cqw`
+				    is the nearest container's width, else the viewport's. Why not
+				    a container on the scroll wrapper: inline-size containment gives
+				    the table no intrinsic width, so it collapses in an `auto` track. */}
+				<div ref={contentRef} className="sticky inset-s-3 max-w-[calc(100cqw-1.5rem)]">
 					{children}
 				</div>
 			</Table.Cell>
