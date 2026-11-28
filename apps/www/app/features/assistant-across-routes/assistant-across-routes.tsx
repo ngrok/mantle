@@ -86,10 +86,20 @@ function AssistantContentCard({
 	onAssistantPage: boolean;
 	children: ReactNode;
 }) {
+	const { open } = useSidePanel();
+
 	return (
 		<ViewTransition
 			key={onAssistantPage ? "assistant" : "page"}
 			name={onAssistantPage ? assistantViewTransitionName : undefined}
+			// Why: a product page holds still under the moving card, and the
+			// assistant's page fades over it when no open panel takes its place.
+			enter={onAssistantPage ? "app-layout-card-alone" : "app-layout-card-under"}
+			exit={onAssistantPage ? "app-layout-card-alone" : "app-layout-card-under"}
+			// Why: a closed panel still mounts with the same name, so React pairs it
+			// with this card and runs a share, not an exit. A closed panel has no
+			// box to morph into, so the card fades alone.
+			share={onAssistantPage && !open ? "app-layout-card-alone" : undefined}
 			update="none"
 		>
 			<AppLayout.Content>{children}</AppLayout.Content>

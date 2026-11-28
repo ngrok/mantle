@@ -2803,6 +2803,50 @@ pre[data-slot~="code-block-code"] .te {
 	border-radius: var(--radius-xl, 0.75rem);
 }
 
+/*
+ * The card that moves is a layer over the page. It paints above every other
+ * group and casts the floating panel's shadow while it moves, so the reader
+ * sees it slide over the content, not push it aside.
+ */
+@media (prefers-reduced-motion: no-preference) {
+	::view-transition-group(*.app-layout-card) {
+		z-index: 1;
+		box-shadow: var(--shadow-lg);
+	}
+}
+
+/*
+ * The page under the moving card. An app gives a page card this class for the
+ * crossing (React: `enter` and `exit` on its `<ViewTransition>`), and the page
+ * holds still and opaque beneath the card until the card covers it or leaves
+ * it. It does not fade, so nothing shows through the layer above it.
+ */
+::view-transition-group(*.app-layout-card-under) {
+	z-index: 0;
+}
+
+::view-transition-old(*.app-layout-card-under),
+::view-transition-new(*.app-layout-card-under) {
+	animation: none;
+	mix-blend-mode: normal;
+}
+
+/*
+ * A card that enters or leaves with no card to morph into, such as a page
+ * that opens no panel. It fades over the page beneath it in 300ms. Why its own
+ * class: the class replaces `app-layout-card`, so no frame, edge, or shadow
+ * stays behind while it fades.
+ */
+::view-transition-group(*.app-layout-card-alone) {
+	z-index: 1;
+}
+
+::view-transition-old(*.app-layout-card-alone),
+::view-transition-new(*.app-layout-card-alone) {
+	animation-duration: 300ms;
+	animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
 ::view-transition-old(*.app-layout-card),
 ::view-transition-new(*.app-layout-card) {
 	width: auto;
@@ -2897,8 +2941,15 @@ pre[data-slot~="code-block-code"] .te {
 		animation: none;
 	}
 
-	::view-transition-old(*.app-layout-card) {
+	::view-transition-old(*.app-layout-card),
+	::view-transition-old(*.app-layout-card-alone) {
 		opacity: 0;
+	}
+
+	::view-transition-group(*.app-layout-card-alone),
+	::view-transition-old(*.app-layout-card-alone),
+	::view-transition-new(*.app-layout-card-alone) {
+		animation: none;
 	}
 }
 
