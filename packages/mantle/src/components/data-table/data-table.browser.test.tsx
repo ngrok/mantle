@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { type ComponentProps, useMemo } from "react";
+import { type ComponentProps, type ReactNode, useMemo } from "react";
 import invariant from "tiny-invariant";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
@@ -456,26 +456,29 @@ const wideColumns = columnHelper.columns(
 	),
 );
 
-function WideEmptyHarness() {
+function WideEmptyHarness({ children, className }: { children: ReactNode; className?: string }) {
 	const table = useTable({ features, data: [], columns: wideColumns });
 	return (
 		<div style={{ width: 300 }}>
 			<DataTable.Root table={table}>
 				<DataTable.Head />
 				<DataTable.Body>
-					<DataTable.EmptyRow>
-						<Empty.Root>
-							<Empty.Title>No data</Empty.Title>
-						</Empty.Root>
-					</DataTable.EmptyRow>
+					<DataTable.EmptyRow className={className}>{children}</DataTable.EmptyRow>
 				</DataTable.Body>
 			</DataTable.Root>
 		</div>
 	);
 }
 
+/** The table's scroll container: the parent of the `<table>`. */
+function getScroller() {
+	const scroller = screen.getByRole("table").parentElement;
+	invariant(scroller, "expected the table's scroll container");
+	return scroller;
+}
+
 // Why browser mode: the centering depends on real layout, sticky positioning,
-// and the width `Table.Root` measures in its `ResizeObserver`.
+// and the width a `ResizeObserver` reports.
 describe("DataTable.EmptyRow (browser): a table wider than its container", () => {
 	let styleElement: HTMLStyleElement;
 
@@ -483,6 +486,7 @@ describe("DataTable.EmptyRow (browser): a table wider than its container", () =>
 		styleElement = document.createElement("style");
 		styleElement.textContent = [
 			"*, ::before, ::after { box-sizing: border-box; }",
+			".no-cell-padding > td { padding: 0; }",
 			await commands.tailwindCss(["./data-table.tsx", "../table/table.tsx", "../empty/empty.tsx"]),
 		].join("\n");
 		document.head.appendChild(styleElement);
@@ -492,21 +496,75 @@ describe("DataTable.EmptyRow (browser): a table wider than its container", () =>
 		styleElement.remove();
 	});
 
-	test("centers the empty state in the visible width, not in the scroll width", async () => {
-		render(<WideEmptyHarness />);
-		const title = screen.getByText("No data");
-		const scroller = screen.getByRole("table").parentElement;
-		invariant(scroller, "expected the table's scroll container");
+	test("centers the empty state in the visible width at each scroll position", async () => {
+		const errors: string[] = [];
+		const onError = (event: ErrorEvent) => errors.push(event.message);
+		window.addEventListener("error", onError);
+		// Why a long title: it wraps when capped, which changes the scroller's height.
+		const title =
+			"No results match the current filters. Try a different name or change the date range.";
+		render(
+			<WideEmptyHarness>
+				<Empty.Root>
+					<Empty.Title>{title}</Empty.Title>
+				</Empty.Root>
+			</WideEmptyHarness>,
+		);
+		const titleElement = screen.getByText(title);
+		const scroller = getScroller();
 		// Guard: the table must overflow, or the test cannot tell the two centers apart.
 		expect(scroller.scrollWidth).toBeGreaterThan(scroller.clientWidth + 100);
 
 		const centerOf = (rect: DOMRect) => rect.left + rect.width / 2;
-		await expect
-			.poll(() =>
-				Math.abs(
-					centerOf(title.getBoundingClientRect()) - centerOf(scroller.getBoundingClientRect()),
-				),
-			)
-			.toBeLessThan(2);
+		const offCenter = () =>
+			Math.abs(
+				centerOf(titleElement.getBoundingClientRect()) - centerOf(scroller.getBoundingClientRect()),
+			);
+		await expect.poll(offCenter).toBeLessThan(2);
+
+		scroller.scrollLeft = scroller.scrollWidth - scroller.clientWidth;
+		expect(scroller.scrollLeft).toBeGreaterThan(100);
+		await expect.poll(offCenter).toBeLessThan(2);
+
+		await new Promise((resolve) => {
+			requestAnimationFrame(() => requestAnimationFrame(resolve));
+		});
+		window.removeEventListener("error", onError);
+		expect(errors).toEqual([]);
+	});
+
+	test("lets content wider than the view scroll with the table, so its end stays reachable", async () => {
+		render(
+			<WideEmptyHarness>
+				<div style={{ display: "flex" }}>
+					<span style={{ minWidth: 420, flexShrink: 0 }}>Wide</span>
+					<button type="button">Retry</button>
+				</div>
+			</WideEmptyHarness>,
+		);
+		const scroller = getScroller();
+		const button = screen.getByRole("button", { name: "Retry" });
+		// Why two frames: the cap must have had every chance to apply first.
+		await new Promise((resolve) => {
+			requestAnimationFrame(() => requestAnimationFrame(resolve));
+		});
+
+		scroller.scrollLeft = scroller.scrollWidth - scroller.clientWidth;
+		expect(button.getBoundingClientRect().right).toBeLessThanOrEqual(
+			scroller.getBoundingClientRect().right,
+		);
+	});
+
+	test("sticks at the cell's own padding, not a fixed inset", () => {
+		render(<WideEmptyHarness className="no-cell-padding">No results.</WideEmptyHarness>);
+		const scroller = getScroller();
+		const range = document.createRange();
+		range.selectNodeContents(screen.getByText("No results."));
+
+		scroller.scrollLeft = 200;
+		expect(range.getBoundingClientRect().left).toBeCloseTo(
+			scroller.getBoundingClientRect().left,
+			0,
+		);
 	});
 });

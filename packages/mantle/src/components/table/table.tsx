@@ -1020,9 +1020,6 @@ function useHorizontalOverflowObserver<T extends HTMLElement>() {
 		// there costs nothing. Observer callbacks run before paint, so `flushSync`
 		// lands the new attributes in the first painted frame.
 		const resizeObserver = new ResizeObserver(() => {
-			// Why: `DataTable.EmptyRow` caps its content to the visible width, so a
-			// wide table centers the empty state in view, not in the scroll width.
-			element.style.setProperty("--_table-viewport-width", `${element.clientWidth}px`);
 			flushSync(checkState);
 		});
 		resizeObserver.observe(element);

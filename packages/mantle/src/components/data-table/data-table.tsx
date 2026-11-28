@@ -50,6 +50,7 @@ import {
 } from "react";
 import invariant from "tiny-invariant";
 import type { SelfClosingWithAsChild } from "../../types/as-child.js";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -1383,20 +1384,82 @@ function EmptyRow({ "data-slot": dataSlot, children, ...props }: DataTableEmptyR
 		table_getVisibleLeafColumns,
 	).length;
 
+	const contentRef = useRef<HTMLDivElement>(null);
+	useIsomorphicLayoutEffect(() => keepEmptyRowInView(contentRef.current), []);
+
 	return (
 		<Table.Row data-slot={joinDataSlot(dataSlot, "data-table-empty-row")} {...props}>
 			<Table.Cell colSpan={numberOfColumns} width="wrap">
-				{/* Why sticky and the cap: a table wider than its scroll container
-				    would center the content in the full scroll width, off screen.
-				    `--_table-viewport-width` comes from `Table.Root`; the 1.5rem is
-				    the cell's inline padding. Until it is set, the calc is invalid
-				    and `max-width` falls back to `none`. */}
-				<div className="sticky inset-s-3 max-w-[calc(var(--_table-viewport-width)-1.5rem)]">
+				{/* Why sticky: a table wider than its scroll container would center
+				    the content in the full scroll width, off screen.
+				    `keepEmptyRowInView` sets the real inset and cap. The classes are
+				    the server-rendered guess, for the default `p-3` cell. */}
+				<div ref={contentRef} className="sticky inset-s-3 max-w-[calc(100vw-1.5rem)]">
 					{children}
 				</div>
 			</Table.Cell>
 		</Table.Row>
 	);
+}
+
+/**
+ * Keeps the content of a `DataTable.EmptyRow` in the visible part of a table
+ * that scrolls sideways: it caps the content to the scroll container's width
+ * less the cell's inline padding, and sticks it at the start padding.
+ * Returns the cleanup for the effect that calls it.
+ *
+ * @private
+ */
+function keepEmptyRowInView(content: HTMLDivElement | null) {
+	const cell = content?.parentElement;
+	const scroller = content?.closest("table")?.parentElement;
+	if (content == null || cell == null || scroller == null) {
+		return;
+	}
+
+	let width = scroller.clientWidth;
+	let frameId = 0;
+
+	const update = () => {
+		frameId = 0;
+		const style = getComputedStyle(cell);
+		const start = Number.parseFloat(style.paddingInlineStart) || 0;
+		const end = Number.parseFloat(style.paddingInlineEnd) || 0;
+		content.style.position = "";
+		content.style.insetInlineStart = `${start}px`;
+		content.style.maxWidth = `${width - start - end}px`;
+		// Why: content wider than the view stays stuck with its end out of reach.
+		// Let it scroll with the table instead, as it did before the cap.
+		if (content.scrollWidth > content.clientWidth) {
+			content.style.position = "static";
+			content.style.maxWidth = "";
+		}
+	};
+
+	// Why the first update runs here: the layout effect lands it before paint.
+	update();
+	// Why the guard: jsdom has no ResizeObserver, and a consumer's test runs there.
+	if (typeof ResizeObserver === "undefined") {
+		return;
+	}
+
+	const observer = new ResizeObserver(() => {
+		if (scroller.clientWidth === width) {
+			return;
+		}
+		width = scroller.clientWidth;
+		// Why a frame: the update changes the scroller's height. Inside this
+		// callback, that change raises the ResizeObserver loop error.
+		if (frameId === 0) {
+			frameId = requestAnimationFrame(update);
+		}
+	});
+	observer.observe(scroller);
+
+	return () => {
+		cancelAnimationFrame(frameId);
+		observer.disconnect();
+	};
 }
 
 /**
