@@ -38,7 +38,8 @@ type SeriesPrimitiveProps = {
 
 /**
  * Register a series (renderless). The public series parts (`BarChart.Bar`,
- * `LineChart.Line`, `AreaChart.Area`) wrap this with their mark fixed.
+ * `LineChart.Line`, `AreaChart.Area`) wrap this with their mark fixed. A line
+ * or an area composes in a bar chart too, over the bars.
  */
 const useSeriesPrimitive = (
 	partName: string,
@@ -46,10 +47,13 @@ const useSeriesPrimitive = (
 	props: SeriesPrimitiveProps,
 ): null => {
 	const context = useChartContext(partName);
+	// A Root owns the x axis, and each series draws its own mark on it. A bar
+	// needs a slot for each category, and a point needs a scatter plot's axes.
+	// A line or an area draws on any category or continuous x axis.
 	invariant(
-		context.kind === mark,
+		mark === "bar" || mark === "scatter" ? context.kind === mark : context.kind !== "scatter",
 		() =>
-			`${partName} cannot be composed inside ${context.componentName}.Root. Compose ${context.componentName} series parts instead.`,
+			`${partName} cannot be composed inside ${context.componentName}.Root.${mark === "bar" ? " A bar needs a slot for each category, which only BarChart.Root has." : ""}`,
 	);
 	const {
 		dataKey,

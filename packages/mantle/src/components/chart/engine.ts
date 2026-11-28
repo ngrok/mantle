@@ -178,6 +178,12 @@ const BAND_GAP_STEPS = [
 /** A series with no boundaries: the fallback for an index past the spec list. */
 const EMPTY_SEGMENTS = { lower: null, upper: new Float64Array(0), progress: 1 } as const;
 
+/**
+ * How near, in CSS pixels, a pointer comes to a line's value on a bar chart
+ * to select the line over the bars under it.
+ */
+const MARK_HIT_SLOP = 8;
+
 /** The gap between the segments of a stack, in CSS pixels. */
 const STACK_GAP = 1;
 
@@ -1304,7 +1310,17 @@ class ChartEngine {
 		// otherwise strand the marker on the pre-ingest projection.
 		this.#activeScreen = null;
 
-		this.#stack = this.#options.stacked ? computeStackBoundaries(this.#columns) : null;
+		// Why a `NaN` column for another mark: it joins no pile, so a line over
+		// stacked bars draws at its own values and moves no segment.
+		this.#stack = this.#options.stacked
+			? computeStackBoundaries(
+					specs.map((spec, index) =>
+						spec.mark === this.#kind
+							? (this.#columns[index] ?? new Float64Array(0))
+							: new Float64Array(count).fill(Number.NaN),
+					),
+				)
+			: null;
 
 		this.#decimated =
 			this.#kind !== "scatter" &&
@@ -1412,7 +1428,7 @@ class ChartEngine {
 			// Above the limit the prune below drops a tween the series held under it.
 			// Why none on a world map: its view paints the columns, so a tween would
 			// only repaint frames that change nothing.
-			if (holdsValueTweens && this.#stack != null) {
+			if (holdsValueTweens && this.#stack != null && this.#stacks(spec)) {
 				retargetBuffer(
 					`${spec.dataKey}:lower`,
 					this.#stack.lower[seriesIndex] ?? new Float64Array(0),
@@ -1425,7 +1441,7 @@ class ChartEngine {
 				);
 			} else if (holdsValueTweens && this.#scatter?.kind !== "geo") {
 				retargetBuffer(
-					spec.dataKey,
+					`${spec.dataKey}:value`,
 					this.#columns[seriesIndex] ?? new Float64Array(0),
 					hadPrevious,
 				);
@@ -1508,9 +1524,12 @@ class ChartEngine {
 		let min: number;
 		let max: number;
 		if (this.#stack != null) {
-			min = Math.min(0, this.#stack.min);
-			max = Math.max(0, this.#stack.max);
-		} else if (this.#kind === "line" || this.#kind === "scatter") {
+			// Why the raw extent too: a series that joins no pile draws at its own
+			// values. A raw value in a pile never passes its pile's end, so the
+			// raw extent widens the domain only for those series.
+			min = Math.min(0, this.#stack.min, this.#valueMin);
+			max = Math.max(0, this.#stack.max, this.#valueMax);
+		} else if (!this.#zeroAnchored()) {
 			min = this.#valueMin;
 			max = this.#valueMax;
 		} else {
@@ -1536,10 +1555,7 @@ class ChartEngine {
 				typeof maxOverride === "number" ? maxOverride : max * BAR_HEADROOM || (min < 0 ? 0 : 1),
 			];
 		}
-		// Bars and areas measure length from zero, so both document an axis minimum
-		// fixed at the baseline. A line or a scatter may float its domain.
-		const zeroAnchored = this.#kind === "bar" || this.#kind === "area";
-		const niced = zeroAnchored
+		const niced = this.#zeroAnchored()
 			? niceZeroAnchoredDomain([min, max], Y_TICK_COUNT)
 			: niceDomain([min, max], Y_TICK_COUNT);
 		// Never let niceness move an explicit override or re-cross a zero baseline.
@@ -1567,6 +1583,28 @@ class ChartEngine {
 			return niceDomain([first, last], Y_TICK_COUNT);
 		}
 		return [first, last];
+	}
+
+	/**
+	 * Whether the y domain keeps zero. Bars and areas measure length from the
+	 * baseline, so a bar or an area Root, and any chart that draws one, fixes
+	 * the axis minimum there. A chart of lines or points may float its domain.
+	 */
+	#zeroAnchored(): boolean {
+		return (
+			this.#kind === "bar" ||
+			this.#kind === "area" ||
+			this.#store.seriesSpecs().some((spec) => spec.mark === "area")
+		);
+	}
+
+	/**
+	 * Whether a series joins the stack. A Root stacks its own mark: bars in a
+	 * bar chart, areas in an area chart. A line never stacks, and a mark of
+	 * another family draws at its own values over the piles.
+	 */
+	#stacks(spec: Pick<SeriesSpec, "mark">): boolean {
+		return this.#stack != null && spec.mark === this.#kind;
 	}
 
 	#is3d(): boolean {
@@ -2172,16 +2210,18 @@ class ChartEngine {
 				ctx.beginPath();
 				ctx.rect(plot.left, plot.top, plot.width, plot.height + 1);
 				ctx.clip();
-				if (this.#kind === "bar") {
-					if (horizontal) {
-						this.#paintHorizontalBars(ctx, specs);
-					} else {
+				// Fills sit under strokes: areas, then bars, then lines, whatever
+				// order the series register in.
+				if (this.#kind === "scatter") {
+					frame.labels = this.#scatter?.paint(ctx) ?? null;
+				} else if (horizontal) {
+					this.#paintHorizontalBars(ctx, specs);
+				} else {
+					this.#paintLinesOrAreas(ctx, specs, yCo, "area");
+					if (this.#kind === "bar") {
 						this.#paintBars(ctx, specs, yCo);
 					}
-				} else if (this.#kind === "scatter") {
-					frame.labels = this.#scatter?.paint(ctx) ?? null;
-				} else {
-					this.#paintLinesOrAreas(ctx, specs, yCo);
+					this.#paintLinesOrAreas(ctx, specs, yCo, "line");
 				}
 				ctx.restore();
 			},
@@ -2361,7 +2401,9 @@ class ChartEngine {
 		boundary: "value" | "lower" | "upper",
 		seriesIndex: number,
 	): Float64Array {
-		const key = boundary === "value" ? series.dataKey : `${series.dataKey}:${boundary}`;
+		// Why a suffix on every key: a key may hold `:`, so a bare `count:upper`
+		// line would read the `count` bar's boundary. One suffix each cannot collide.
+		const key = `${series.dataKey}:${boundary}`;
 		// Never feed tween frames into the decimated path: decimated columns are
 		// cached by (x domain, width), which doesn't change while values tween, so
 		// the first frame's columns would be cached and painted forever.
@@ -2421,7 +2463,7 @@ class ChartEngine {
 	 * Each bar series' boundaries and the enter progress still to apply. A
 	 * stacked chart that is still entering re-stacks its revealed shares, so
 	 * each column grows as one bar; its segments then carry no progress of
-	 * their own.
+	 * their own. `#paintBars` skips a series of another mark.
 	 */
 	#barSegments(
 		specs: readonly SeriesSpec[],
@@ -2436,7 +2478,12 @@ class ChartEngine {
 		}
 		const lower = specs.map((spec, seriesIndex) => this.#paintedValues(spec, "lower", seriesIndex));
 		const upper = specs.map((spec, seriesIndex) => this.#paintedValues(spec, "upper", seriesIndex));
-		if (progresses.every((progress) => progress >= 1)) {
+		// Why bars alone: a line that enters leaves the piles where they are.
+		if (
+			progresses.every(
+				(progress, seriesIndex) => progress >= 1 || specs[seriesIndex]?.mark !== "bar",
+			)
+		) {
 			return specs.map((_, seriesIndex) => ({
 				lower: lower[seriesIndex] ?? null,
 				upper: upper[seriesIndex] ?? new Float64Array(0),
@@ -2507,7 +2554,11 @@ class ChartEngine {
 			return;
 		}
 		const stacked = this.#stack != null;
-		const groupCount = stacked ? 1 : specs.length;
+		// A line or an area takes no group slot. A chart whose bars all left
+		// keeps one, so a composed empty slot still has a width.
+		const groupCount = stacked
+			? 1
+			: Math.max(1, specs.filter((spec) => spec.mark === "bar").length);
 		const gap = barGap({ bandwidth: layout.bandwidth, groupCount });
 		const slotWidth = (layout.bandwidth - gap * (groupCount - 1)) / groupCount;
 		const barWidth = barThickness({ step: layout.step, slot: slotWidth });
@@ -2521,7 +2572,13 @@ class ChartEngine {
 			baseline: toPixel(0),
 			horizontal: false,
 		});
+		// The group slot of each bar series: a line or an area takes none.
+		let slot = -1;
 		specs.forEach((spec, seriesIndex) => {
+			if (spec.mark !== "bar") {
+				return;
+			}
+			slot += 1;
 			const { lower, upper, progress } = segments[seriesIndex] ?? EMPTY_SEGMENTS;
 			let count = 0;
 			for (let index = 0; index < this.#rowCount; index++) {
@@ -2534,7 +2591,7 @@ class ChartEngine {
 					? bandStart(layout, index) + (layout.bandwidth - barWidth) / 2
 					: bandStart(layout, index) +
 						(layout.bandwidth - (slotWidth * groupCount + gap * (groupCount - 1))) / 2 +
-						seriesIndex * (slotWidth + gap) +
+						slot * (slotWidth + gap) +
 						(slotWidth - barWidth) / 2;
 				const edges = stackedSegmentEdges({
 					lower: lowerValue,
@@ -2653,7 +2710,12 @@ class ChartEngine {
 		}
 		emptySlot.paint(ctx, {
 			...slots,
-			segments,
+			// A row where a line or an area has a value is a reading, not an empty slot.
+			segments: specs.map((spec, seriesIndex) =>
+				spec.mark === "bar"
+					? (segments[seriesIndex] ?? EMPTY_SEGMENTS)
+					: { upper: this.#columnOf(spec.dataKey) ?? EMPTY_SEGMENTS.upper },
+			),
 			layout,
 			plot: this.#plot,
 			rowCount: this.#rowCount,
@@ -2666,10 +2728,12 @@ class ChartEngine {
 		});
 	}
 
+	/** Paint the series of one mark, `"line"` or `"area"`, and skip the rest. */
 	#paintLinesOrAreas(
 		ctx: PaintContext,
 		specs: readonly SeriesSpec[],
 		yCo: { k: number; b: number },
+		mark: "line" | "area",
 	): void {
 		const colors = this.#colors;
 		if (colors == null || this.#rowCount === 0) {
@@ -2681,6 +2745,9 @@ class ChartEngine {
 			layout != null ? bandCenter(layout, index) : (this.#xs[index] ?? 0) * xCo.k + xCo.b;
 
 		specs.forEach((spec, seriesIndex) => {
+			if (spec.mark !== mark) {
+				return;
+			}
 			const color = colors.series.get(spec.dataKey) ?? "currentColor";
 			const reveal = easeOutStrong(this.#enterProgress(spec.dataKey));
 			ctx.save();
@@ -2694,9 +2761,9 @@ class ChartEngine {
 				ctx.restore();
 				return;
 			}
-			const isArea = spec.mark === "area";
-			const upper = this.#paintedValues(spec, this.#stack != null ? "upper" : "value", seriesIndex);
-			const lower = this.#stack != null ? this.#paintedValues(spec, "lower", seriesIndex) : null;
+			const stacks = this.#stacks(spec);
+			const upper = this.#paintedValues(spec, stacks ? "upper" : "value", seriesIndex);
+			const lower = stacks ? this.#paintedValues(spec, "lower", seriesIndex) : null;
 			const definedAt = (index: number): boolean => !Number.isNaN(upper[index] ?? Number.NaN);
 			// connectNulls joins across gaps by drawing only the finite indexes;
 			// without it, NaN indexes stay in the list and defined() breaks the path.
@@ -2704,7 +2771,7 @@ class ChartEngine {
 				? this.#definedIndexes(upper)
 				: this.#allIndexesUpTo(this.#rowCount);
 			const yAt = (index: number): number => (upper[index] ?? 0) * yCo.k + yCo.b;
-			if (isArea) {
+			if (mark === "area") {
 				const y0At =
 					lower == null
 						? (): number => 0 * yCo.k + yCo.b
@@ -2746,19 +2813,19 @@ class ChartEngine {
 		const columnCount = Math.max(1, Math.round(this.#plot.width * this.#dpr));
 		const columnToX = (column: number): number => this.#plot.left + (column + 0.5) / this.#dpr;
 		if (spec.mark === "area") {
+			const stacks = this.#stacks(spec);
 			const upper = this.#decimatedFor(
 				`${spec.dataKey}:upper`,
-				this.#paintedValues(spec, this.#stack != null ? "upper" : "value", seriesIndex),
+				this.#paintedValues(spec, stacks ? "upper" : "value", seriesIndex),
 				columnCount,
 			);
-			const lower =
-				this.#stack != null
-					? this.#decimatedFor(
-							`${spec.dataKey}:lower`,
-							this.#paintedValues(spec, "lower", seriesIndex),
-							columnCount,
-						)
-					: null;
+			const lower = stacks
+				? this.#decimatedFor(
+						`${spec.dataKey}:lower`,
+						this.#paintedValues(spec, "lower", seriesIndex),
+						columnCount,
+					)
+				: null;
 			if (lower == null) {
 				let zero = this.#zeroColumns;
 				if (zero?.columnCount !== columnCount) {
@@ -2786,7 +2853,7 @@ class ChartEngine {
 			return;
 		}
 		const columns = this.#decimatedFor(
-			spec.dataKey,
+			`${spec.dataKey}:value`,
 			this.#paintedValues(spec, "value", seriesIndex),
 			columnCount,
 		);
@@ -2911,59 +2978,84 @@ class ChartEngine {
 	#nearestSeries(index: number, cssX: number, cssY: number): string | null {
 		const specs = this.#store.seriesSpecs();
 		const horizontal = this.#horizontalBars();
-		// Grouped bars: the pointer's slot within the band names the series. The
-		// slots stack along the band's axis: y when horizontal, x otherwise.
-		const layout = this.#bandLayout;
-		if (this.#kind === "bar" && this.#stack == null && layout != null && specs.length > 1) {
-			const withinBand = (horizontal ? cssY : cssX) - bandStart(layout, index);
-			const slot = Math.floor((withinBand / Math.max(1, layout.bandwidth)) * specs.length);
-			return specs[Math.min(specs.length - 1, Math.max(0, slot))]?.dataKey ?? null;
-		}
+		const isBar = this.#kind === "bar";
 		const { k, b } = horizontal ? this.#valueCoefficients() : this.#yCoefficients();
 		const pointerAlongValue = horizontal ? cssX : cssY;
-		// Stacked bars: a segment is a filled span, not a boundary, so the segment
-		// CONTAINING the pointer names the series. Nearest-boundary would hand the
-		// half of every segment nearer the baseline to the series below it.
-		const stack = this.#stack;
-		if (this.#kind === "bar" && stack != null) {
-			for (let seriesIndex = 0; seriesIndex < specs.length; seriesIndex++) {
-				const lower = stack.lower[seriesIndex]?.[index] ?? Number.NaN;
-				const upper = stack.upper[seriesIndex]?.[index] ?? Number.NaN;
-				if (Number.isNaN(lower) || Number.isNaN(upper) || lower === upper) {
-					continue;
+		/**
+		 * Where a series paints at this index, in CSS pixels along the value
+		 * axis (x when horizontal, y otherwise). Why the painted values: a click
+		 * lands on the mark a reader sees, mid-tween too. Why the column index: it
+		 * holds until the next ingest, while the registrations can change first.
+		 */
+		const pixel = (spec: SeriesSpec, boundary: "value" | "lower" | "upper"): number =>
+			(this.#paintedValues(spec, boundary, this.#columnIndex.get(spec.dataKey) ?? -1)[index] ??
+				Number.NaN) *
+				k +
+			b;
+		/**
+		 * The series of `marks` whose painted value sits nearest the pointer,
+		 * within `limit` pixels. Stacked marks paint at their cumulative boundary,
+		 * so it measures the boundary: raw values would hand everything to the
+		 * largest series. A gap reads `NaN`, which is never nearer.
+		 */
+		const nearest = (marks: (spec: SeriesSpec) => boolean, limit: number): string | null => {
+			let found: string | null = null;
+			let best = limit;
+			for (const spec of specs) {
+				const distance = Math.abs(
+					pixel(spec, this.#stacks(spec) ? "upper" : "value") - pointerAlongValue,
+				);
+				if (marks(spec) && distance < best) {
+					best = distance;
+					found = spec.dataKey;
 				}
-				const lowerPixel = lower * k + b;
-				const upperPixel = upper * k + b;
-				if (
-					pointerAlongValue >= Math.min(lowerPixel, upperPixel) &&
-					pointerAlongValue <= Math.max(lowerPixel, upperPixel)
-				) {
-					return specs[seriesIndex]?.dataKey ?? null;
-				}
+			}
+			return found;
+		};
+		// A line paints over the areas and the bars, so it takes a pointer near
+		// its value first, where its entrance has drawn it.
+		const onLine = nearest(
+			(spec) =>
+				spec.mark === "line" &&
+				cssX <=
+					this.#plot.left + this.#plot.width * easeOutStrong(this.#enterProgress(spec.dataKey)),
+			MARK_HIT_SLOP,
+		);
+		if (onLine != null || !isBar) {
+			return onLine ?? nearest(() => true, Number.POSITIVE_INFINITY);
+		}
+		// Bars: a bar is a filled span, not a boundary, so the bar CONTAINING the
+		// pointer names the series: a stacked segment, or a bar from the
+		// baseline. Grouped bars side by side: only the pointer's slot within the
+		// band can contain it. The slots run along the band's axis.
+		const layout = this.#bandLayout;
+		let bars = specs.filter((spec) => spec.mark === "bar");
+		const grouped = this.#stack == null && layout != null && bars.length > 1;
+		if (grouped) {
+			const withinBand = (horizontal ? cssY : cssX) - bandStart(layout, index);
+			const slot = Math.floor((withinBand / Math.max(1, layout.bandwidth)) * bars.length);
+			const at = Math.min(bars.length - 1, Math.max(0, slot));
+			bars = bars.slice(at, at + 1);
+		}
+		for (const spec of bars) {
+			const stacks = this.#stacks(spec);
+			const lowerPixel = stacks ? pixel(spec, "lower") : b;
+			const upperPixel = pixel(spec, stacks ? "upper" : "value");
+			if (
+				pointerAlongValue >= Math.min(lowerPixel, upperPixel) &&
+				pointerAlongValue <= Math.max(lowerPixel, upperPixel) &&
+				lowerPixel !== upperPixel
+			) {
+				return spec.dataKey;
 			}
 		}
-		// Otherwise pick the series whose painted value sits nearest the pointer
-		// along the value axis (x when horizontal, y otherwise). The mark IS the
-		// boundary for a line or an area, and a pointer clear of a stack still
-		// names the segment it is closest to.
-		let nearest: string | null = null;
-		let bestDistance = Number.POSITIVE_INFINITY;
-		specs.forEach((spec, seriesIndex) => {
-			// Stacked marks paint at their cumulative boundary, so hit-test the
-			// boundary: raw values would misattribute everything to the largest series.
-			const values =
-				this.#stack == null ? this.#columnOf(spec.dataKey) : this.#stack.upper[seriesIndex];
-			const value = values?.[index] ?? Number.NaN;
-			if (Number.isNaN(value)) {
-				return;
-			}
-			const distance = Math.abs(value * k + b - pointerAlongValue);
-			if (distance < bestDistance) {
-				bestDistance = distance;
-				nearest = spec.dataKey;
-			}
-		});
-		return nearest;
+		// Otherwise the nearest bar or area names it: a pointer clear of a stack
+		// names the segment it is closest to. Grouped bars with no area keep the
+		// slot's bar, wherever the pointer sits in it.
+		if (grouped && !specs.some((spec) => spec.mark === "area")) {
+			return bars[0]?.dataKey ?? null;
+		}
+		return nearest((spec) => spec.mark === "area" || bars.includes(spec), Number.POSITIVE_INFINITY);
 	}
 
 	/**
@@ -3067,8 +3159,18 @@ class ChartEngine {
 			points.every((point) => point.value == null)
 		) {
 			snapshot.emptySlotLabel = emptySlotLabel;
-		} else if (this.#options.stacked && points.length > 1) {
-			snapshot.total = points.reduce((sum, point) => sum + (point.value ?? 0), 0);
+		} else {
+			// The total is the pile's: a line or an area over it adds nothing.
+			const piled = meta.filter((series) => this.#stacks(series));
+			if (piled.length > 1) {
+				// Why from the far end: the snapshot lists its points that way, so the
+				// float sum stays what it was before a line could join the chart.
+				snapshot.total = piled.reduceRight(
+					// Why `||`: a gap reads `NaN`, which adds nothing to the pile.
+					(sum, series) => sum + (this.#columnOf(series.dataKey)?.[index] || 0),
+					0,
+				);
+			}
 		}
 		if (this.#is3d()) {
 			const zValue = this.#zs[index] ?? Number.NaN;
@@ -3090,10 +3192,15 @@ class ChartEngine {
 		const { crosshair, band, markers } = hover;
 		const isBar = this.#kind === "bar";
 		const isScatter = this.#kind === "scatter";
+		// The overlay syncs on every hover frame, so read the store's cached
+		// paint-order list instead of re-sorting the registrations per sync.
+		const meta = this.#store.getSnapshot().series;
+		// A line or an area wears a hover dot. A bar is its own mark and wears none.
+		const dotted = meta.filter((series) => series.mark !== "bar");
 
 		crosshair.style.opacity = visible && !isBar && !isScatter ? "1" : "0";
 		band.style.opacity = visible && isBar ? "1" : "0";
-		markers.style.opacity = visible && !isBar ? "1" : "0";
+		markers.style.opacity = visible && dotted.length > 0 ? "1" : "0";
 		if (tooltip != null) {
 			tooltip.style.opacity = visible ? "1" : "0";
 		}
@@ -3123,7 +3230,6 @@ class ChartEngine {
 			const radius = this.#scatter?.radiusAt?.(index) ?? MARKER_RADIUS;
 			const dot = markers.children[0];
 			if (dot instanceof HTMLElement) {
-				const meta = this.#store.getSnapshot().series;
 				const active =
 					this.#activeSeriesKey == null
 						? meta.find((series) => {
@@ -3176,41 +3282,39 @@ class ChartEngine {
 		} else {
 			crosshair.style.transform = `translate(${xPx}px, ${plot.top}px)`;
 			crosshair.style.height = `${plot.height}px`;
-
-			// One marker dot per series, synced imperatively. The overlay syncs on
-			// every hover frame, so read the store's cached paint-order list instead
-			// of re-sorting the registrations per sync.
-			const meta = this.#store.getSnapshot().series;
-			while (markers.children.length > meta.length) {
-				markers.lastElementChild?.remove();
-			}
-			while (markers.children.length < meta.length) {
-				markers.appendChild(createMarkerDot(markers.ownerDocument));
-			}
-			const yCo = this.#yCoefficients();
-			meta.forEach((series, seriesIndex) => {
-				const dot = markers.children[seriesIndex];
-				if (!(dot instanceof HTMLElement)) {
-					return;
-				}
-				// Visibility follows the RAW value (a null row hides the dot even if
-				// the stack carries a boundary through the gap); position follows the
-				// PAINTED value (the stacked upper boundary when stacking), so the
-				// dot sits on its series' drawn line, never at the unstacked height.
-				const raw = this.#columnOf(series.dataKey)?.[index] ?? Number.NaN;
-				const painted =
-					this.#paintedValues(series, this.#stack != null ? "upper" : "value", seriesIndex)[
-						index
-					] ?? Number.NaN;
-				if (Number.isNaN(raw) || Number.isNaN(painted)) {
-					dot.style.opacity = "0";
-					return;
-				}
-				dot.style.opacity = "1";
-				styleMarkerDot(dot, series.shape, series.color);
-				dot.style.transform = `translate(${xPx}px, ${painted * yCo.k + yCo.b}px)`;
-			});
 		}
+
+		// One marker dot per line or area series, synced imperatively: on a bar
+		// chart it sits on the line over the band.
+		while (markers.children.length > dotted.length) {
+			markers.lastElementChild?.remove();
+		}
+		while (markers.children.length < dotted.length) {
+			markers.appendChild(createMarkerDot(markers.ownerDocument));
+		}
+		const yCo = this.#yCoefficients();
+		dotted.forEach((series, dotIndex) => {
+			const dot = markers.children[dotIndex];
+			const seriesIndex = this.#columnIndex.get(series.dataKey) ?? -1;
+			if (!(dot instanceof HTMLElement)) {
+				return;
+			}
+			// Visibility follows the RAW value (a null row hides the dot even if
+			// the stack carries a boundary through the gap); position follows the
+			// PAINTED value (the stacked upper boundary when stacking), so the
+			// dot sits on its series' drawn line, never at the unstacked height.
+			const raw = this.#columnOf(series.dataKey)?.[index] ?? Number.NaN;
+			const painted =
+				this.#paintedValues(series, this.#stacks(series) ? "upper" : "value", seriesIndex)[index] ??
+				Number.NaN;
+			if (Number.isNaN(raw) || Number.isNaN(painted)) {
+				dot.style.opacity = "0";
+				return;
+			}
+			dot.style.opacity = "1";
+			styleMarkerDot(dot, series.shape, series.color);
+			dot.style.transform = `translate(${xPx}px, ${painted * yCo.k + yCo.b}px)`;
+		});
 
 		if (isBar && horizontal && this.#bandLayout != null) {
 			// Anchor beside the hovered row: track the pointer along the value axis,

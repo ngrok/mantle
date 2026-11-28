@@ -183,8 +183,9 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
  * `bar-chart-crosshair`,
  * `bar-chart-hover-band`, `bar-chart-markers`, `bar-chart-tooltip`,
  * `bar-chart-description`, and, once focus lands inside the chart,
- * `bar-chart-data-table`. A bar chart shows the band and never the crosshair
- * or the markers. The surface and the three layers are engine-owned: absent
+ * `bar-chart-data-table`. A bar chart shows the band and never the crosshair.
+ * The markers hold one hover dot for each composed `LineChart.Line` or
+ * `AreaChart.Area`, and stay empty on a chart of bars alone. The surface and the three layers are engine-owned: absent
  * from server HTML and from a dormant chart. The surface arrives at activation (near the viewport, on
  * focus, or before print), and the layers arrive on the first hover or
  * keyboard step. A static or decorative chart
@@ -239,6 +240,11 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
  * order, so a `Bar` that mounts later stacks on top whatever its position in
  * the JSX. `texture` adds a pattern fill as a redundant identity encoding
  * alongside color, worn by the bars and the series' legend key alike.
+ *
+ * To draw a trend over the bars, such as a running total, compose a
+ * `LineChart.Line` or an `AreaChart.Area` in the same Root. It runs through
+ * each category's center on the shared y axis, takes no bar slot, and never
+ * joins a stack. Vertical bars only.
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartbar
  *

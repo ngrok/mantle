@@ -3,6 +3,7 @@ import { BarChart, type BarChartBarProps } from "@ngrok/mantle/bar-chart";
 import { Button } from "@ngrok/mantle/button";
 import { Card } from "@ngrok/mantle/card";
 import { Empty } from "@ngrok/mantle/empty";
+import { LineChart } from "@ngrok/mantle/line-chart";
 import { useEffect, useState } from "react";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
@@ -103,6 +104,32 @@ export function DivergingBarChartExample() {
 			 * texture keeps them apart for a reader who cannot tell rose from amber.
 			 */}
 			<BarChart.Bar dataKey="suspended" label="Suspended" color="warning" texture="hatch" />
+			<BarChart.Tooltip />
+			<BarChart.Legend />
+		</BarChart.Root>
+	);
+}
+
+export const weeklyLines = [
+	{ week: "Apr 20", added: 17_074, deleted: -5_434, total: 11_640 },
+	{ week: "Apr 27", added: 14_759, deleted: -5_739, total: 20_660 },
+	{ week: "May 4", added: 5_732, deleted: -1_344, total: 25_048 },
+	{ week: "May 11", added: 9_520, deleted: -4_151, total: 30_417 },
+	{ week: "May 18", added: 14_675, deleted: -2_791, total: 42_301 },
+	{ week: "May 25", added: 12_927, deleted: -1_073, total: 54_155 },
+];
+
+export const compact = new Intl.NumberFormat("en-US", { notation: "compact" });
+
+export function LineOverBarsBarChartExample() {
+	return (
+		<BarChart.Root data={weeklyLines} xKey="week" stacked aria-label="Lines of code by week">
+			<BarChart.Grid />
+			<BarChart.XAxis />
+			<BarChart.YAxis tickFormat={(value) => compact.format(value)} />
+			<BarChart.Bar dataKey="added" label="Added" color="success" />
+			<BarChart.Bar dataKey="deleted" label="Deleted" color="danger" />
+			<LineChart.Line dataKey="total" label="Total lines" color="amber" curve="monotone" markers />
 			<BarChart.Tooltip />
 			<BarChart.Legend />
 		</BarChart.Root>
@@ -898,6 +925,15 @@ export function DivergingStacksExample() {
 	return (
 		<PreviewCanvas>
 			<DivergingBarChartExample />
+		</PreviewCanvas>
+	);
+}
+
+/** The "A line over the bars" example on the Bar Chart docs page. */
+export function LineOverBarsExample() {
+	return (
+		<PreviewCanvas>
+			<LineOverBarsBarChartExample />
 		</PreviewCanvas>
 	);
 }

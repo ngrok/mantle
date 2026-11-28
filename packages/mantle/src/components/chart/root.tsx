@@ -708,6 +708,15 @@ const ChartRootPrimitive = ({
 	// activates the chart. The signature skips the pass when nothing changed.
 	const validatedRef = useRef<{ data: readonly ChartDatum[]; signature: string } | null>(null);
 	useLayoutEffect(() => {
+		// Why here: this effect sees every series the commit registers and the
+		// orientation it renders. Horizontal bars run their categories down the
+		// y axis, so a line or an area has no x axis to run along.
+		invariant(
+			kind !== "bar" ||
+				orientation === "vertical" ||
+				store.seriesSpecs().every((spec) => spec.mark === "bar"),
+			`A line or an area cannot be composed inside BarChart.Root with orientation="horizontal". Draw it over vertical bars.`,
+		);
 		const engine = engineRef.current;
 		if (engine != null) {
 			engine.flushIngest();

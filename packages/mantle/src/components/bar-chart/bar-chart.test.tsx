@@ -7,6 +7,8 @@ import { createRef } from "react";
 import invariant from "tiny-invariant";
 import { describe, expect, test, vi } from "vitest";
 import { engageChart } from "../../test-utils/engage-chart.js";
+import * as AreaChart from "../area-chart/area-chart-parts.js";
+import * as LineChart from "../line-chart/line-chart-parts.js";
 import * as BarChart from "./bar-chart-parts.js";
 
 // Keep the shared fixture under 4 rows: happy-dom never delivers a plot size,
@@ -1009,3 +1011,89 @@ export function typeLevelContracts(isPlaceholder: boolean) {
 		</>
 	);
 }
+
+describe("BarChart with a line or an area over the bars", () => {
+	const weeks = [
+		{ week: "Apr 20", added: 17, removed: -5, total: 12 },
+		{ week: "Apr 27", added: 15, removed: -6, total: 21 },
+		{ week: "May 4", added: 6, removed: -1, total: 26 },
+	];
+	const renderWeeks = (extraRootProps: Record<string, unknown> = {}) =>
+		render(
+			<BarChart.Root
+				data={weeks}
+				xKey="week"
+				stacked
+				aria-label="Lines by week"
+				{...extraRootProps}
+			>
+				<BarChart.Bar dataKey="added" label="Added" color="green" />
+				<BarChart.Bar dataKey="removed" label="Deleted" color="red" />
+				<LineChart.Line dataKey="total" label="Total lines" color="amber" markers />
+				<BarChart.Tooltip />
+				<BarChart.Legend />
+			</BarChart.Root>,
+		);
+
+	test("the readout totals the stacked bars alone, and lists the line among the series", async () => {
+		const user = userEvent.setup();
+		renderWeeks();
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+		const rows = [...(tooltip?.querySelectorAll(".grid > div") ?? [])].map(
+			(row) => row.textContent,
+		);
+		// Why 12: 17 + -5. A total that added the line would read 24.
+		expect(rows).toEqual(["Total12", "Added17", "Total lines12", "Deleted-5"]);
+	});
+
+	test("the data table holds a column for the line", () => {
+		renderWeeks();
+		engageChart();
+		expect(screen.getByRole("columnheader", { name: "Total lines" })).toBeInTheDocument();
+		expect(screen.getByRole("cell", { name: "26" })).toBeInTheDocument();
+	});
+
+	test("the legend keys the line with a stroke and the bars with squares", () => {
+		const { container } = renderWeeks();
+		const legend = container.querySelector('[data-slot="bar-chart-legend"]');
+		expect(legend?.textContent).toContain("Total lines");
+		// Bar keys carry their texture; the line key carries its point shape.
+		expect(legend?.querySelectorAll("[data-texture]")).toHaveLength(2);
+		expect(legend?.querySelectorAll("[data-shape]")).toHaveLength(1);
+	});
+
+	test("an area composes inside BarChart.Root", () => {
+		render(
+			<BarChart.Root data={weeks} xKey="week" aria-label="Lines by week">
+				<BarChart.Bar dataKey="added" label="Added" color="green" />
+				<AreaChart.Area dataKey="total" label="Total lines" color="amber" />
+				<BarChart.Legend />
+			</BarChart.Root>,
+		);
+		expect(screen.getByRole("application", { name: "Lines by week" })).toBeInTheDocument();
+	});
+
+	test("a rerender that turns horizontal bars vertical and adds a line in one commit renders", () => {
+		const view = render(
+			<BarChart.Root data={weeks} xKey="week" orientation="horizontal" aria-label="Lines by week">
+				<BarChart.Bar dataKey="added" label="Added" color="green" />
+			</BarChart.Root>,
+		);
+		view.rerender(
+			<BarChart.Root data={weeks} xKey="week" aria-label="Lines by week">
+				<BarChart.Bar dataKey="added" label="Added" color="green" />
+				<LineChart.Line dataKey="total" label="Total lines" color="amber" />
+			</BarChart.Root>,
+		);
+		expect(screen.getByRole("application", { name: "Lines by week" })).toBeInTheDocument();
+	});
+
+	test("a line inside horizontal bars throws, and says why", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() => renderWeeks({ orientation: "horizontal" })).toThrow(
+			/A line or an area cannot be composed inside BarChart\.Root with orientation="horizontal"/,
+		);
+	});
+});

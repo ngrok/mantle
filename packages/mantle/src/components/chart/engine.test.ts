@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import invariant from "tiny-invariant";
 import { WORLD_LAND } from "../world-map/world-land.js";
 import { createCanvasBackend } from "./canvas-backend.js";
 import type { ScatterViewFactory } from "./scatter-engine.js";
@@ -6,6 +7,7 @@ import { createScatterView } from "./scatter-engine.js";
 import { createColorResolver } from "./canvas-colors.js";
 import { CHART_CHROME_CSS } from "./colors.js";
 import { decimateColumns } from "./decimate.js";
+import { paintEmptySlots } from "./empty-slot.js";
 import { createSvgBackend } from "./svg-backend.js";
 import type { EngineElements, HoverLayers } from "./engine.js";
 import { ChartEngine } from "./engine.js";
@@ -2223,5 +2225,254 @@ describe("ChartEngine per-datum tweens", () => {
 
 		// Why one frame: the new array asks for one paint, and a tween to equal values paints that frame again.
 		expect(frames.settle()).toBe(1);
+	});
+});
+
+describe("ChartEngine series of more than one mark", () => {
+	const weeks = [
+		{ x: "Apr 20", added: 17, removed: -5, total: 12 },
+		{ x: "Apr 27", added: 15, removed: -6, total: 21 },
+		{ x: "May 4", added: 6, removed: -1, total: 26 },
+	];
+	const bars = [
+		makeSeries("added", "bar", { color: "emerald" }),
+		makeSeries("removed", "bar", { color: "pink" }),
+	];
+	const mountWeeks = (
+		series: readonly SeriesSpec[],
+		options: Partial<ChartOptions> = {},
+	): Mounted =>
+		mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series,
+			rows: weeks,
+			options: { xScale: "band", yDomain: [-10, 30], ...options },
+		});
+	/** Paint each chart to rest, and return its paths. */
+	const paintAll = (...mounts: Mounted[]): string[][] => {
+		frames.settle();
+		return mounts.map((mount) => paintedPaths(mount));
+	};
+	let frames: ReturnType<typeof installFrameClock>;
+
+	test("a line over stacked bars draws at its own values, after the bars", () => {
+		frames = installFrameClock();
+		const [mixed = [], barsAlone = [], lineAlone = []] = paintAll(
+			mountWeeks([...bars, makeSeries("total", "line", { color: "amber" })], { stacked: true }),
+			mountWeeks(bars, { stacked: true }),
+			mountWeeks([makeSeries("total", "line", { color: "amber" })], { stacked: true }),
+		);
+		expect(lineAlone).toHaveLength(1);
+
+		// Why equal paths: a line that joined the pile would move up by the
+		// added bar, and the bars would not change.
+		expect(mixed.at(-1)).toBe(lineAlone.at(-1));
+		expect(mixed.slice(0, barsAlone.length)).toEqual(barsAlone);
+	});
+
+	test("a line beside grouped bars takes no group slot", () => {
+		frames = installFrameClock();
+		const [mixed = [], barsAlone = []] = paintAll(
+			mountWeeks([...bars, makeSeries("total", "line", { color: "amber" })]),
+			mountWeeks(bars),
+		);
+		expect(barsAlone).toHaveLength(2);
+
+		// Why equal paths: with a third slot for the line, each bar would narrow.
+		expect(mixed.slice(0, barsAlone.length)).toEqual(barsAlone);
+	});
+
+	test("an area over bars paints under them", () => {
+		const area = makeSeries("total", "area", { color: "amber" });
+		frames = installFrameClock();
+		const [mixed = [], areaAlone = []] = paintAll(mountWeeks([...bars, area]), mountWeeks([area]));
+		expect(areaAlone.length).toBeGreaterThan(0);
+
+		expect(mixed[0]).toBe(areaAlone[0]);
+	});
+
+	test("a bar chart whose only series is a line outlines an empty slot at a finite width", () => {
+		frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: [makeSeries("total", "line", { color: "amber" })],
+			rows: [
+				{ x: "Apr 20", total: 12 },
+				{ x: "Apr 27", total: null },
+			],
+			options: { xScale: "band", yDomain: [0, 30] },
+		});
+		mount.store.registerEmptySlot({ label: "No reading", paint: paintEmptySlots });
+		mount.engine.commitNow();
+		frames.settle();
+		const paths = paintedPaths(mount);
+		// Why: with zero bar slots, the slot width divides by zero.
+		expect(paths.length).toBeGreaterThan(1);
+		expect(paths.join(" ")).not.toMatch(/NaN|Infinity/);
+	});
+
+	test("a pointer on a bar over an area's edge selects the bar", async () => {
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: [
+				makeSeries("under", "area", { color: "amber" }),
+				makeSeries("bar", "bar", { color: "emerald" }),
+			],
+			rows: [
+				{ x: "GET", under: 25, bar: 85 },
+				{ x: "POST", under: 25, bar: 85 },
+			],
+			options: { xScale: "band", yDomain: [0, 100] },
+		});
+		const [dot] = await activateFirstDatum(mount);
+		invariant(dot != null, "expected the area's hover dot");
+		const edge = dotPosition(dot);
+		mount.engine.setCallbacks({ onDatumActivate, onActiveIndexChange: null });
+		// Why: the bar paints over the area, so a click on the bar is the bar's.
+		mount.engine.handleActivate(edge.x - 4, edge.y);
+
+		expect(onDatumActivate).toHaveBeenLastCalledWith(expect.objectContaining({ dataKey: "bar" }));
+	});
+
+	test("a pointer on an area's edge above grouped bars selects the area", async () => {
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: [
+				makeSeries("b", "bar", { color: "emerald" }),
+				makeSeries("a", "bar", { color: "pink" }),
+				makeSeries("c", "area", { color: "amber" }),
+			],
+			rows: [
+				{ x: "GET", b: 20, a: 10, c: 80 },
+				{ x: "POST", b: 20, a: 10, c: 80 },
+			],
+			options: { xScale: "band", yDomain: [0, 100] },
+		});
+		const [dot] = await activateFirstDatum(mount);
+		invariant(dot != null, "expected the area's hover dot");
+		const edge = dotPosition(dot);
+		mount.engine.setCallbacks({ onDatumActivate, onActiveIndexChange: null });
+		// Why: the grouped bars end far below the area's edge, so no bar contains the pointer.
+		mount.engine.handleActivate(edge.x + 4, edge.y);
+
+		expect(onDatumActivate).toHaveBeenLastCalledWith(expect.objectContaining({ dataKey: "c" }));
+	});
+
+	test("a line its entrance has not drawn yet leaves a click to the bar", () => {
+		frames = installFrameClock();
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: [makeSeries("bar", "bar", { color: "emerald" })],
+			rows: [
+				{ x: "GET", bar: 90, line: 60 },
+				{ x: "POST", bar: 90, line: 60 },
+				{ x: "PUT", bar: 90, line: 60 },
+			],
+			options: { xScale: "band", yDomain: [0, 100], animate: true },
+		});
+		frames.settle();
+		mount.store.registerSeries(makeSeries("line", "line", { color: "amber" }));
+		mount.engine.flushIngest();
+		frames.step();
+		mount.engine.setCallbacks({ onDatumActivate, onActiveIndexChange: null });
+		// Why the last band at the line's value: one frame into its sweep, the line ends near the left edge.
+		mount.engine.handleActivate(340, 80);
+
+		expect(onDatumActivate).toHaveBeenLastCalledWith(expect.objectContaining({ dataKey: "bar" }));
+	});
+
+	test("a line whose key ends in a boundary name leaves the stacked bar's height alone", () => {
+		frames = installFrameClock();
+		const rows = [
+			{ x: "GET", count: 2, "count:upper": 8 },
+			{ x: "POST", count: 2, "count:upper": 8 },
+		];
+		const bar = makeSeries("count", "bar", { color: "emerald" });
+		const [mixed = [], barAlone = []] = paintAll(
+			mountEngine({
+				kind: "bar",
+				backend: createSvgBackend,
+				series: [bar, makeSeries("count:upper", "line", { color: "amber" })],
+				rows,
+				options: { xScale: "band", yDomain: [0, 10], stacked: true },
+			}),
+			mountEngine({
+				kind: "bar",
+				backend: createSvgBackend,
+				series: [bar],
+				rows,
+				options: { xScale: "band", yDomain: [0, 10], stacked: true },
+			}),
+		);
+
+		expect(mixed[0]).toBe(barAlone[0]);
+	});
+
+	test("a line that enters leaves a stacked bar's glide where it is", () => {
+		frames = installFrameClock();
+		const first = [{ x: "GET", a: 40, b: 50 }];
+		const next = [{ x: "GET", a: -40, b: 50, line: 1 }];
+		const mountGlide = () =>
+			mountEngine({
+				kind: "bar",
+				backend: createSvgBackend,
+				series: [
+					makeSeries("a", "bar", { color: "emerald" }),
+					makeSeries("b", "bar", { color: "pink" }),
+				],
+				rows: first,
+				options: { xScale: "band", yDomain: [-100, 100], stacked: true, animate: true },
+			});
+		const withLine = mountGlide();
+		const without = mountGlide();
+		frames.settle();
+		withLine.store.registerSeries(makeSeries("line", "line", { color: "amber" }));
+		withLine.engine.setRows(next);
+		withLine.engine.flushIngest();
+		without.engine.setRows(next);
+		without.engine.flushIngest();
+		frames.step();
+
+		// Why the first frame: a stack rebuilt from in-flight boundaries jumps there.
+		expect(paintedPaths(withLine).slice(0, 2)).toEqual(paintedPaths(without).slice(0, 2));
+	});
+
+	test("the value axis holds a line that runs far above the stacked bars", async () => {
+		const mount = mountWeeks([...bars, makeSeries("total", "line", { color: "amber" })], {
+			stacked: true,
+			yDomain: ["auto", "auto"],
+		});
+		mount.engine.handleKeyDown("End");
+		await vi.waitFor(() => {
+			expect(hoverOf(mount).markers.children).toHaveLength(1);
+		});
+		const [dot] = hoverOf(mount).markers.children;
+		invariant(dot != null, "expected the line's hover dot");
+		// Why inside the plot: a domain of the stack alone tops out at 17, and
+		// the line's 26 would land above the plot's top edge.
+		expect(dotPosition(dot).y).toBeGreaterThanOrEqual(0);
+	});
+
+	test("a pointer near the line selects the line, and a pointer on a bar selects the bar", async () => {
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		const mount = mountWeeks([...bars, makeSeries("total", "line", { color: "amber" })]);
+		const [dot] = await activateFirstDatum(mount);
+		invariant(dot != null, "expected the line's hover dot");
+		const line = dotPosition(dot);
+		mount.engine.setCallbacks({ onDatumActivate, onActiveIndexChange: null });
+		// The dot sits on the line at the band center, between the two bars, so
+		// 15 px left of it is on the added bar. 30 px below the line is clear of it.
+		mount.engine.handleActivate(line.x - 15, line.y + 3);
+		mount.engine.handleActivate(line.x - 15, line.y + 30);
+
+		expect(onDatumActivate.mock.calls.map(([event]) => event.dataKey)).toEqual(["total", "added"]);
 	});
 });
