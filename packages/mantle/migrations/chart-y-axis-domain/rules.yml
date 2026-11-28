@@ -236,6 +236,19 @@ utils:
                   has:
                     kind: string
                     regex: ^["']left["']$
+  # A `YAxis` read outside a JSX tag name, such as `const Axis = C.YAxis`. The
+  # rules cannot follow the alias to the axis it renders, so they leave the
+  # file's Roots for a person.
+  aliased-yaxis:
+    kind: member_expression
+    matches: chart-yaxis-name
+    not:
+      inside:
+        field: name
+        any:
+          - kind: jsx_self_closing_element
+          - kind: jsx_opening_element
+          - kind: jsx_closing_element
   # A YAxis name anywhere but a direct, self-closing child of a chart Root: in
   # a fragment, under an expression, or with a closing tag. Such an axis can
   # win registration without the range, so its Root stays for a person.
@@ -297,6 +310,13 @@ utils:
           has:
             stopBy: end
             matches: stray-yaxis-name
+      - not:
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              stopBy: end
+              matches: aliased-yaxis
     has:
       field: open_tag
       kind: jsx_opening_element
@@ -561,6 +581,19 @@ utils:
                   has:
                     kind: string
                     regex: ^["']left["']$
+  # A `YAxis` read outside a JSX tag name, such as `const Axis = C.YAxis`. The
+  # rules cannot follow the alias to the axis it renders, so they leave the
+  # file's Roots for a person.
+  aliased-yaxis:
+    kind: member_expression
+    matches: chart-yaxis-name
+    not:
+      inside:
+        field: name
+        any:
+          - kind: jsx_self_closing_element
+          - kind: jsx_opening_element
+          - kind: jsx_closing_element
   # A YAxis name anywhere but a direct, self-closing child of a chart Root: in
   # a fragment, under an expression, or with a closing tag. Such an axis can
   # win registration without the range, so its Root stays for a person.
@@ -608,37 +641,47 @@ rule:
     regex: ^yDomain$
   inside:
     kind: jsx_opening_element
-    has:
-      field: name
-      matches: chart-root-name
-    # Why no spread: the copy rule leaves a Root with a spread alone.
-    not:
-      has:
-        kind: jsx_expression
-    # Why the YAxis guard: a Root with no YAxis child that takes the range keeps
-    # yDomain, so the type checker names the call site to finish by hand.
-    inside:
-      kind: jsx_element
-      # Why no YAxis in an expression: it can mount after the direct one and
-      # win registration, so the copy rule leaves that Root alone.
-      not:
-        any:
-          - has:
-              stopBy: end
-              kind: jsx_expression
-              has:
-                stopBy: end
-                kind: member_expression
-                matches: chart-yaxis-name
-          - has:
-              matches: blocking-yaxis
-          - has:
-              stopBy: end
-              matches: stray-yaxis-name
-      # Why a direct child: the copy rule moves the range only there.
-      has:
-        matches: copy-target-tag
-        has:
+    # Why `all`: it runs in order, so the Root's name binds $CHART before the
+    # guards below read it.
+    all:
+      - has:
           field: name
-          matches: chart-yaxis-name
+          matches: chart-root-name
+      # Why no spread: the copy rule leaves a Root with a spread alone.
+      - not:
+          has:
+            kind: jsx_expression
+      # Why the YAxis guard: a Root with no YAxis child that takes the range
+      # keeps yDomain, so the type checker names the call site to finish by hand.
+      - inside:
+          kind: jsx_element
+          all:
+            # Why a direct child: the copy rule moves the range only there.
+            - has:
+                matches: copy-target-tag
+                has:
+                  field: name
+                  matches: chart-yaxis-name
+            # Why no YAxis in an expression: it can mount after the direct one
+            # and win registration, so the copy rule leaves that Root alone.
+            - not:
+                any:
+                  - has:
+                      stopBy: end
+                      kind: jsx_expression
+                      has:
+                        stopBy: end
+                        kind: member_expression
+                        matches: chart-yaxis-name
+                  - has:
+                      matches: blocking-yaxis
+                  - has:
+                      stopBy: end
+                      matches: stray-yaxis-name
+                  - inside:
+                      stopBy: end
+                      kind: program
+                      has:
+                        stopBy: end
+                        matches: aliased-yaxis
 fix: ""
