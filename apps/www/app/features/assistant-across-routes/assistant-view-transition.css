@@ -129,4 +129,13 @@
 	::view-transition-old(assistant-close) {
 		opacity: 0;
 	}
+
+	/*
+	 * The browser's own 250ms root crossfade still runs here, and the page takes
+	 * no clicks until the transition ends. Cut it too, so the switch is a cut.
+	 */
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation: none;
+	}
 }

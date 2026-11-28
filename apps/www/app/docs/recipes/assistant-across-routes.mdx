@@ -287,7 +287,9 @@ Three parts make the panel read as a layer over the page:
   `enter` and `exit`. `mantle.css` keeps that card opaque, unmoving, and below the layer, so nothing shows
   through the panel and nothing slides beside it.
 - **A lone card fades.** On the assistant's route the card gets `app-layout-card-alone`, so when it leaves with
-  the panel closed, it fades over the page with no frame or shadow behind it.
+  the panel closed, it fades over the page with no frame or shadow behind it. A closed panel still mounts with
+  the card's name, so React pairs the two and runs a share, not an exit: the card sets `share` to the same class
+  while the panel is closed.
 
 Under `prefers-reduced-motion: reduce` all of it is a cut. Keep every name in this recipe when you copy it.
 `transition-contract.test.ts` in this repo fails when the recipe drops one, and the mantle test
@@ -446,6 +448,15 @@ The pieces need one stylesheet. Import it after `mantle.css`:
 	::view-transition-old(assistant-close) {
 		opacity: 0;
 	}
+
+	/*
+	 * The browser's own 250ms root crossfade still runs here, and the page takes
+	 * no clicks until the transition ends. Cut it too, so the switch is a cut.
+	 */
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation: none;
+	}
 }
 ```
 
@@ -587,6 +598,8 @@ function AssistantContentCard({
 	onAssistantPage: boolean;
 	children: ReactNode;
 }) {
+	const { open } = useSidePanel();
+
 	return (
 		<ViewTransition
 			key={onAssistantPage ? "assistant" : "page"}
@@ -595,6 +608,10 @@ function AssistantContentCard({
 			// assistant's page fades over it when no open panel takes its place.
 			enter={onAssistantPage ? "app-layout-card-alone" : "app-layout-card-under"}
 			exit={onAssistantPage ? "app-layout-card-alone" : "app-layout-card-under"}
+			// Why: a closed panel still mounts with the same name, so React pairs it
+			// with this card and runs a share, not an exit. A closed panel has no
+			// box to morph into, so the card fades alone.
+			share={onAssistantPage && !open ? "app-layout-card-alone" : undefined}
 			update="none"
 		>
 			<AppLayout.Content>{children}</AppLayout.Content>

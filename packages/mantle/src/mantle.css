@@ -2947,6 +2947,7 @@ pre[data-slot~="code-block-code"] .te {
 	}
 
 	::view-transition-group(*.app-layout-card-alone),
+	::view-transition-old(*.app-layout-card-alone),
 	::view-transition-new(*.app-layout-card-alone) {
 		animation: none;
 	}

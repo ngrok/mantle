@@ -26,6 +26,29 @@ function rulesFor(css: string, selector: string): string {
 	return bodies.join("\n");
 }
 
+/** The rules inside every `prefers-reduced-motion: reduce` block, and no others. */
+function reducedMotionRules(css: string): string {
+	const blocks: Array<string> = [];
+	let from = css.indexOf("prefers-reduced-motion: reduce");
+	while (from !== -1) {
+		const open = css.indexOf("{", from);
+		let depth = 1;
+		let end = open + 1;
+		while (depth > 0 && end < css.length) {
+			if (css[end] === "{") {
+				depth++;
+			}
+			if (css[end] === "}") {
+				depth--;
+			}
+			end++;
+		}
+		blocks.push(css.slice(open + 1, end - 1));
+		from = css.indexOf("prefers-reduced-motion: reduce", end);
+	}
+	return blocks.join("\n");
+}
+
 describe("app-layout-card morph", () => {
 	test("the moving card paints above the page with a shadow", async () => {
 		const group = rulesFor(await buildMantleCss(), "::view-transition-group(*.app-layout-card)");
@@ -47,9 +70,16 @@ describe("app-layout-card morph", () => {
 	});
 
 	test("reduced motion cuts the morph", async () => {
-		const css = await buildMantleCss();
-		const reduced = css.slice(css.indexOf("prefers-reduced-motion: reduce"));
+		const reduced = reducedMotionRules(await buildMantleCss());
 
+		for (const pseudo of ["group", "old", "new"]) {
+			expect(rulesFor(reduced, `::view-transition-${pseudo}(*.app-layout-card)`)).toContain(
+				"animation: none",
+			);
+			expect(rulesFor(reduced, `::view-transition-${pseudo}(*.app-layout-card-alone)`)).toContain(
+				"animation: none",
+			);
+		}
 		expect(rulesFor(reduced, "::view-transition-old(*.app-layout-card)")).toContain("opacity: 0");
 	});
 });
