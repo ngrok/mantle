@@ -2339,6 +2339,73 @@ describe("ChartEngine right y axis", () => {
 		expect(right.map((label) => label.y)).toEqual(left.map((label) => label.y));
 	});
 
+	test("a right axis that carries only a reference line takes its domain", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("small", "line")],
+			rows,
+			yDomain: ["auto", "auto"],
+			rightYDomain: [0, 1000],
+		});
+		mount.engine.commitNow();
+
+		// Why: with no right-axis series, the right axis still labels its own
+		// fixed range instead of a 0–1 fallback.
+		expect(
+			labels(mount, "start")
+				.map((label) => label.text)
+				.at(-1),
+		).toBe("1,000");
+	});
+
+	test("an aligned right axis keeps its tick count and whole numbers", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("small", "line"), makeSeries("big", "line", { yAxis: "right" })],
+			rows: [0, 1, 2, 3, 4].map((x) => ({ x, small: x * 2.5, big: x })),
+			yDomain: [0, 10],
+			rightYDomain: [0, 5],
+		});
+		mount.store.registerYAxis("right", { tickFormat: undefined, tickCount: 2, domain: [0, 5] });
+		mount.engine.commitNow();
+		const right = labels(mount, "start").map((label) => label.text);
+
+		// Why: the left ticks 0, 2, 4, … map to 0, 1, 2, … on the right, more than
+		// `tickCount={2}` allows; with the left at 0, 5, 10 they would map to 2.5.
+		expect(right.length).toBeLessThanOrEqual(2);
+		expect(right.every((text) => !text.includes("."))).toBe(true);
+	});
+
+	test("an aligned right label rides its left grid line mid-glide", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("small", "line"), makeSeries("big", "line", { yAxis: "right" })],
+			rows,
+			yDomain: ["auto", "auto"],
+			rightYDomain: ["auto", "auto"],
+			options: { animate: true },
+		});
+		frames.settle();
+		mount.engine.setRows(rows.map((row) => ({ ...row, small: row.small * 4 })));
+		mount.engine.flushIngest();
+		frames.step();
+		frames.step();
+		mount.engine.commitNow();
+		const left = labels(mount, "end").map((label) => label.y);
+		const right = labels(mount, "start").filter((label) =>
+			["0", "250", "500", "750"].includes(label.text),
+		);
+
+		// Why these: the left axis now steps by 5 to 15, so the right steps by
+		// 250. Each of its labels sits on a left grid line while the domains move.
+		expect(right).toHaveLength(4);
+		expect(right.every((label) => left.includes(label.y))).toBe(true);
+	});
+
 	test("a pointer on a right-axis bar selects the bar, not the area under it", async () => {
 		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
 		const mount = mountEngine({

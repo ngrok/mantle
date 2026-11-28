@@ -469,10 +469,13 @@ const alignedDomain = (options: {
 			continue;
 		}
 		// The second axis's value at `tick`, a whole multiple of its step.
-		const base =
-			fixed[0] == null
-				? Math.floor((min - below * secondStep) / secondStep + 1e-9) * secondStep
-				: fixed[0] - below * secondStep;
+		let base = Math.floor((min - below * secondStep) / secondStep + 1e-9) * secondStep;
+		if (fixed[0] != null) {
+			base = fixed[0] - below * secondStep;
+		} else if (fixed[1] != null) {
+			// Why the top: a fixed maximum is an end the step must land on.
+			base = fixed[1] - above * secondStep;
+		}
 		const multiple = base / secondStep;
 		if (Math.abs(multiple - Math.round(multiple)) > 1e-9) {
 			continue;
@@ -480,7 +483,7 @@ const alignedDomain = (options: {
 		const bottom = fixed[0] ?? base + below * secondStep;
 		const top = base + above * secondStep;
 		const tolerance = secondStep * 1e-9;
-		if (top < max - tolerance) {
+		if (top < max - tolerance || bottom > min + tolerance) {
 			continue;
 		}
 		if (fixed[1] != null && Math.abs(top - fixed[1]) > tolerance) {

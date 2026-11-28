@@ -1083,6 +1083,30 @@ describe("BarChart with a line or an area over the bars", () => {
 		);
 	});
 
+	test("a right-axis reference line inside horizontal bars throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<BarChart.Root data={weeks} xKey="week" orientation="horizontal" aria-label="Lines by week">
+					<BarChart.Bar dataKey="added" label="Added" color="green" />
+					<BarChart.ReferenceLine y={10} yAxis="right" />
+				</BarChart.Root>,
+			),
+		).toThrow(/yAxis="right"/);
+	});
+
+	test("another family's YAxis that lifts the zero baseline throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<BarChart.Root data={weeks} xKey="week" aria-label="Lines by week">
+					<LineChart.YAxis domain={[90, 100]} />
+					<BarChart.Bar dataKey="added" label="Added" color="green" />
+				</BarChart.Root>,
+			),
+		).toThrow("BarChart.Root draws from zero, so each YAxis domain inside it starts at 0.");
+	});
+
 	test("a stacked bar on the right axis throws", () => {
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>

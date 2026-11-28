@@ -131,7 +131,36 @@ describe("LineChart.Root", () => {
 					<LineChart.Line dataKey="p99" label="p99" color="emerald" yAxis="right" />
 				</LineChart.Root>,
 			),
-		).toThrow('A series with yAxis="right" needs a YAxis with side="right" inside LineChart.Root.');
+		).toThrow('A part with yAxis="right" needs a YAxis with side="right" inside LineChart.Root.');
+	});
+
+	test("removing the right axis under a right-axis line throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		const TwoAxes = ({ right }: { right: boolean }) => (
+			<LineChart.Root data={data} xKey="time" aria-label="Latency">
+				<LineChart.YAxis />
+				{right && <LineChart.YAxis side="right" />}
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.Line dataKey="p99" label="p99" color="emerald" yAxis="right" />
+			</LineChart.Root>
+		);
+		const { rerender } = render(<TwoAxes right />);
+		expect(() => rerender(<TwoAxes right={false} />)).toThrow(
+			'A part with yAxis="right" needs a YAxis with side="right" inside LineChart.Root.',
+		);
+	});
+
+	test("a right-axis reference line without a right axis throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<LineChart.Root data={data} xKey="time" aria-label="Latency">
+					<LineChart.YAxis />
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
+					<LineChart.ReferenceLine y={500} yAxis="right" />
+				</LineChart.Root>,
+			),
+		).toThrow('A part with yAxis="right" needs a YAxis with side="right" inside LineChart.Root.');
 	});
 
 	test("the legend lists the left axis's keys first, then the right axis's", () => {

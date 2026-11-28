@@ -8,6 +8,7 @@ type Point = { day: string; value: number; total: number };
 
 declare const rows: Point[];
 declare const ceiling: number;
+declare const showAxis: boolean;
 declare const formatPercent: (value: number) => string;
 
 export const Line = (
@@ -48,11 +49,49 @@ export const Aliased = (
 	</Trend.Root>
 );
 
-// Negative cases: a Root with no YAxis keeps yDomain for the type checker,
-// another library's chart stays, and a shadowed name stays.
+// Two axes: the Root's range moves to the left axis only.
+export const TwoAxes = (
+	<LineChart.Root data={rows} xKey="day" yDomain={[0, 100]}>
+		<LineChart.YAxis side="left" />
+		<LineChart.YAxis side="right" />
+		<LineChart.Line dataKey="value" color="blue" />
+		<LineChart.Line dataKey="total" color="amber" yAxis="right" />
+	</LineChart.Root>
+);
+
+// Negative cases: a Root with no YAxis keeps yDomain for the type checker, a
+// YAxis that has a domain stays for a person to merge, a YAxis under a
+// condition or in a nested Root stays, another library's chart stays, and a
+// shadowed name stays.
 export const NoAxis = (
 	<LineChart.Root data={rows} xKey="day" yDomain={[0, 100]}>
 		<LineChart.Line dataKey="value" color="blue" />
+	</LineChart.Root>
+);
+
+export const Partial = (
+	<LineChart.Root data={rows} xKey="day" yDomain={[0, 100]}>
+		<LineChart.YAxis domain={[0, 50]} />
+		<LineChart.Line dataKey="value" color="blue" />
+	</LineChart.Root>
+);
+
+export const Conditional = (
+	<LineChart.Root data={rows} xKey="day" yDomain={[0, 100]}>
+		{showAxis && <LineChart.YAxis />}
+		<LineChart.Line dataKey="value" color="blue" />
+	</LineChart.Root>
+);
+
+export const Nested = (
+	<LineChart.Root data={rows} xKey="day" yDomain={[0, 100]}>
+		<LineChart.Line dataKey="value" color="blue" />
+		<div>
+			<LineChart.Root data={rows} xKey="day">
+				<LineChart.YAxis />
+				<LineChart.Line dataKey="value" color="blue" />
+			</LineChart.Root>
+		</div>
 	</LineChart.Root>
 );
 

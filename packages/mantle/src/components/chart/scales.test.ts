@@ -406,6 +406,27 @@ describe("alignedDomain", () => {
 		expect(alignedDomain({ ...left, extent: [0, 70], fixed: [0, 73], integer: false })).toBeNull();
 	});
 
+	test("lands a fixed maximum on the top tick", () => {
+		// Why: a base from the data minimum (71) puts the top at 110 or 121; the
+		// ceiling at 100 with a step of 10 covers 71–80 from 50.
+		expect(alignedDomain({ ...left, extent: [71, 80], fixed: [null, 100], integer: true })).toEqual(
+			[50, 100],
+		);
+	});
+
+	test("keeps zero on top for negative-only bars", () => {
+		expect(
+			alignedDomain({
+				domain: [-100, 0],
+				tick: -100,
+				step: 20,
+				extent: [-15, -2],
+				fixed: [null, 0],
+				integer: true,
+			}),
+		).toEqual([-25, 0]);
+	});
+
 	test("keeps a whole step for whole-number data", () => {
 		// 2 / 5 = 0.4, so fractional data would step by 0.5.
 		expect(

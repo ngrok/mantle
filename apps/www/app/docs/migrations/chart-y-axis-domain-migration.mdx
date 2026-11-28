@@ -23,18 +23,21 @@ In a project that installs `@ngrok/mantle`:
 npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/chart-y-axis-domain.yml --update-all <path>
 ```
 
-The rules apply steps 2 and 3. On the four chart Roots, they copy the `yDomain` value onto the nearest `YAxis` of the same chart as `domain`, then delete `yDomain` from the Root. A Root with no `YAxis` keeps `yDomain`, so the type checker names it, and step 4 stays manual: adding an axis changes what the chart draws, which is a design call. The rules read a part through its import from `@ngrok/mantle/<chart>`, under its own name or an alias. A part that reaches the file through a local re-export or a destructured namespace stays manual. A function that binds a chart's name to a parameter or a local shadows the import, so the rules leave that function alone. The codemod can run again: a migrated Root has no `yDomain` to match. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+The rules apply steps 2 and 3. On the four chart Roots, they copy the `yDomain` value onto the left `YAxis` of the same chart as `domain`, then delete `yDomain` from the Root. A `YAxis side="right"` keeps its own range. The rules move the range only onto a `YAxis` that is a direct child of the Root. A Root whose left `YAxis` sits under a condition, a callback, or another element, or already has a `domain`, keeps `yDomain`, so the type checker names it, and step 4 stays manual: adding an axis changes what the chart draws, which is a design call. The rules read a part through its import from `@ngrok/mantle/<chart>`, under its own name or an alias. A part that reaches the file through a local re-export or a destructured namespace stays manual. A function that binds a chart's name to a parameter or a local shadows the import, so the rules leave that function alone. The codemod can run again: a migrated Root has no `yDomain` to match. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
 
 ---
 
 ## You are an agent migrating a codebase. Do this:
 
 1. Find every chart Root with the `yDomain` prop: `LineChart.Root`, `BarChart.Root`, `AreaChart.Root`, and `ScatterPlot.Root` from `@ngrok/mantle`. Search for `yDomain`, and for a renamed import of the same part (`import { LineChart as Trend }`).
-2. For each Root with a `YAxis` part of the same chart (`LineChart.YAxis` inside `LineChart.Root`), add `domain={…}` to that `YAxis` with the exact `yDomain` value. Keep a dynamic value as it is: `yDomain={chartDomain(stats)}` becomes `domain={chartDomain(stats)}`.
+2. For each Root with a left `YAxis` part of the same chart (`LineChart.YAxis` inside `LineChart.Root`, with no `side` or `side="left"`), add `domain={…}` to that `YAxis` with the exact `yDomain` value. Leave a `YAxis side="right"` alone. When the left `YAxis` already has a `domain`, keep the one the chart needs and delete the other. Keep a dynamic value as it is: `yDomain={chartDomain(stats)}` becomes `domain={chartDomain(stats)}`.
 3. Delete `yDomain` from the Root.
 4. For each Root with `yDomain` and no `YAxis`, add `<LineChart.YAxis domain={…} />` (with the chart's own namespace) as a child of the Root, and delete `yDomain`. The axis then draws its tick labels in a gutter on the left. A chart with no axis, such as a sparkline, can no longer fix its range: remove the domain, or ask whether the chart needs an axis.
 5. Leave `BarChart.Root` and `AreaChart.Root` types alone: their `YAxis` `domain` keeps the zero minimum (`[0, number | "auto"]`) that the Root's `yDomain` had.
-6. After editing, run the project's formatter, linter, type checker, and tests.
+6. In tests:
+   - A test that renders a chart Root with `yDomain` moves the value to the `YAxis`, the same as steps 2 to 4: `<LineChart.Root yDomain={[0, 100]}>` becomes `<LineChart.YAxis domain={[0, 100]} />`.
+   - A test that queries text in a chart with the SVG renderer and gets a new `YAxis` in step 4 can find the axis's tick labels too. Scope the query to the element it reads: `screen.getByText("100")` becomes `within(tooltip).getByText("100")`.
+7. After editing, run the project's formatter, linter, type checker, and tests.
 
 > **Why on the axis?** A chart can draw a left and a right y axis, and each one has its own range. With the range on the Root, a second axis needed a second Root prop, and a reader had to learn which side each prop set. With the range on the `YAxis` part, each axis reads one place: the part that draws it.
 
@@ -106,4 +109,4 @@ import { LineChart as Trend } from "@ngrok/mantle/line-chart";
 
 ## How to verify
 
-Run the type checker: a Root that still has `yDomain` fails to compile, so a clean run means every Root is migrated. Then run the project's formatter, linter, and tests.
+Run the type checker: a Root that still has `yDomain` fails to compile, so a clean run means every Root is migrated. Then run the project's formatter, linter, and tests, and fix the tests as the `In tests:` step says.

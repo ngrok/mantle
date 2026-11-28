@@ -208,6 +208,29 @@ utils:
                   has:
                     field: name
                     pattern: $CHART
+  # A YAxis tag that takes the Root's range: self-closing, no `domain` yet,
+  # and the left side. A right axis keeps a range of its own, and a tag that
+  # already has a `domain` stays for a person to merge.
+  copy-target-tag:
+    kind: jsx_self_closing_element
+    all:
+      - not:
+          has:
+            kind: jsx_attribute
+            has:
+              kind: property_identifier
+              regex: ^domain$
+      - not:
+          has:
+            kind: jsx_attribute
+            all:
+              - has:
+                  kind: property_identifier
+                  regex: ^side$
+              - not:
+                  has:
+                    kind: string
+                    regex: ^["']left["']$
   # A chart Root element whose `yDomain` value binds to $DOMAIN.
   root-with-domain:
     kind: jsx_element
@@ -226,23 +249,13 @@ utils:
 rule:
   kind: member_expression
   matches: chart-yaxis-name
-  any:
-    - inside:
-        field: name
-        kind: jsx_self_closing_element
-    - inside:
-        field: name
-        kind: jsx_opening_element
-  # Why the nearest Root: the YAxis reads the domain of the Root it is in.
   inside:
-    stopBy:
-      kind: jsx_element
-      has:
-        field: open_tag
-        has:
-          field: name
-          matches: chart-root-name
-    matches: root-with-domain
+    field: name
+    matches: copy-target-tag
+    # Why a direct child: an axis under a condition, a callback, or a nested
+    # Root would change when the range applies or which names it reads.
+    inside:
+      matches: root-with-domain
 fix: $CHART.YAxis domain={$DOMAIN}
 ---
 id: chart-root-y-domain
@@ -452,6 +465,29 @@ utils:
                   has:
                     field: name
                     pattern: $CHART
+  # A YAxis tag that takes the Root's range: self-closing, no `domain` yet,
+  # and the left side. A right axis keeps a range of its own, and a tag that
+  # already has a `domain` stays for a person to merge.
+  copy-target-tag:
+    kind: jsx_self_closing_element
+    all:
+      - not:
+          has:
+            kind: jsx_attribute
+            has:
+              kind: property_identifier
+              regex: ^domain$
+      - not:
+          has:
+            kind: jsx_attribute
+            all:
+              - has:
+                  kind: property_identifier
+                  regex: ^side$
+              - not:
+                  has:
+                    kind: string
+                    regex: ^["']left["']$
 rule:
   kind: jsx_attribute
   has:
@@ -462,12 +498,14 @@ rule:
     has:
       field: name
       matches: chart-root-name
-    # Why the YAxis guard: a Root with no YAxis keeps yDomain, so the type
-    # checker names the call site that needs a YAxis by hand.
+    # Why the YAxis guard: a Root with no YAxis child that takes the range keeps
+    # yDomain, so the type checker names the call site to finish by hand.
     inside:
       kind: jsx_element
+      # Why a direct child: the copy rule moves the range only there.
       has:
-        stopBy: end
-        kind: member_expression
-        matches: chart-yaxis-name
+        matches: copy-target-tag
+        has:
+          field: name
+          matches: chart-yaxis-name
 fix: ""

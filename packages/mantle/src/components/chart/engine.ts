@@ -306,6 +306,8 @@ class ChartEngine {
 	 */
 	#xHasTimeOfDay = false;
 	#pendingIngest = false;
+	/** A part registered or left since the last commit, so the y axes need a check. */
+	#pendingAxisCheck = false;
 	/** One column per series, in `seriesSpecs()` order as of the last ingest. */
 	#columns: Float64Array[] = [];
 	/** The column of each `dataKey`, for the reads that start from a key. */
@@ -334,6 +336,8 @@ class ChartEngine {
 	 * target domains. `null` when the right axis keeps ticks of its own.
 	 */
 	#rightAlign: { k: number; b: number } | null = null;
+	/** The last y target domains, so a re-aim knows whether any mark moves. */
+	#yTargetKey = "";
 	#xTween = new ChaseTween({ speed: 0.2 });
 	#valueTweens = new Map<string, ValueTween>();
 	#revealTweens = new Map<string, ValueTween>();
@@ -518,6 +522,9 @@ class ChartEngine {
 			this.#schedule();
 		};
 		this.#store.onPresentationChange = () => {
+			// Why defer the check: a part that swaps mid-commit unregisters before
+			// its replacement registers. `#commit` checks once the commit settles.
+			this.#pendingAxisCheck = true;
 			// Why re-aim: a bar chart's domain depends on whether an axis or a grid
 			// draws ticks. Aiming at an unchanged target does nothing.
 			this.#aimYDomain();
@@ -876,23 +883,32 @@ class ChartEngine {
 		if (!this.#hasIngested) {
 			return;
 		}
-		// Why drop the hover pixel: a new domain moves every mark, as a resize does.
-		this.#activeScreen = null;
-		this.#aimYDomains(this.#tweenDuration() === 0 ? null : performance.now());
+		// Why drop the hover pixel only on a move: a new domain moves every mark,
+		// as a resize does, but another part's registration moves none.
+		if (this.#aimYDomains(this.#tweenDuration() === 0 ? null : performance.now())) {
+			this.#activeScreen = null;
+		}
 	}
 
 	/**
 	 * Move each value tween to its target: a chase from `now`, or a jump when
 	 * `now` is `null`. The right target follows the left one.
 	 */
-	#aimYDomains(now: number | null): void {
+	#aimYDomains(now: number | null): boolean {
 		const left = this.#targetYDomain("left");
 		const right = this.#targetRightDomain(left);
+		const key = `${left.join()}|${right?.join() ?? ""}`;
+		const moved = key !== this.#yTargetKey;
+		this.#yTargetKey = key;
 		for (const [tween, target] of [
 			[this.#yTweens.left, left],
 			[this.#yTweens.right, right],
 		] as const) {
 			if (target == null) {
+				// Why stop: a chase with no axis to draw would keep scheduling paints.
+				if (tween.active) {
+					tween.jump(tween.values());
+				}
 				continue;
 			}
 			if (now == null) {
@@ -901,6 +917,7 @@ class ChartEngine {
 				tween.aim(target, now);
 			}
 		}
+		return moved;
 	}
 
 	setCallbacks(callbacks: EngineCallbacks): void {
@@ -1338,6 +1355,7 @@ class ChartEngine {
 			kind: this.#kind,
 			stacked: this.#options.stacked,
 			threeD: this.#is3d(),
+			horizontal: this.#horizontalBars(),
 		});
 		this.#zs = ingested.zs;
 		this.#zDomain = ingested.zExtent == null ? [0, 1] : niceDomain(ingested.zExtent, Y_TICK_COUNT);
@@ -1642,13 +1660,17 @@ class ChartEngine {
 	}
 
 	/**
-	 * The right target domain, `null` when no series reads the right axis. It
+	 * The right target domain, `null` when no part reads or draws the right axis. It
 	 * puts a round value on each left tick when it can, so one set of grid
 	 * lines reads on both sides; otherwise it nices on its own.
 	 */
 	#targetRightDomain(left: [number, number]): [number, number] | null {
 		this.#rightAlign = null;
-		if (!this.#store.seriesSpecs().some((spec) => spec.yAxis === "right")) {
+		// Why the axis too: a right axis can carry only reference lines.
+		if (
+			this.#store.getSnapshot().yAxes.right == null &&
+			!this.#store.seriesSpecs().some((spec) => spec.yAxis === "right")
+		) {
 			return null;
 		}
 		const own = this.#targetYDomain("right");
@@ -1667,8 +1689,16 @@ class ChartEngine {
 		}
 		const [minOverride, maxOverride] = this.#fixedEnds("right");
 		const zeroAnchored = this.#zeroAnchored("right");
-		// Why zero for a zero-anchored axis: its bars or areas grow from the baseline.
-		const baseline = zeroAnchored && extent.min >= 0 ? 0 : null;
+		const fixed: [number | null, number | null] = [
+			typeof minOverride === "number" ? minOverride : null,
+			typeof maxOverride === "number" ? maxOverride : null,
+		];
+		// Why zero: bars or areas grow from the baseline, so zero stays an end.
+		if (zeroAnchored && fixed[0] == null && extent.min >= 0) {
+			fixed[0] = 0;
+		} else if (zeroAnchored && fixed[1] == null && extent.max <= 0) {
+			fixed[1] = 0;
+		}
 		const aligned = alignedDomain({
 			domain: left,
 			tick: first,
@@ -1676,10 +1706,7 @@ class ChartEngine {
 			extent: zeroAnchored
 				? [Math.min(0, extent.min), Math.max(0, extent.max)]
 				: [extent.min, extent.max],
-			fixed: [
-				typeof minOverride === "number" ? minOverride : baseline,
-				typeof maxOverride === "number" ? maxOverride : null,
-			],
+			fixed,
 			integer: extent.integers,
 		});
 		if (aligned == null) {
@@ -1798,6 +1825,18 @@ class ChartEngine {
 			return;
 		}
 		this.flushIngest();
+		if (this.#pendingAxisCheck) {
+			// Why here too: a part deep in consumer state can drop the right YAxis
+			// without a Root commit.
+			this.#pendingAxisCheck = false;
+			this.#store.assertYAxes({
+				root: this.#names.root,
+				kind: this.#kind,
+				stacked: this.#options.stacked,
+				threeD: this.#is3d(),
+				horizontal: this.#horizontalBars(),
+			});
+		}
 		if (this.#needsPaint && !this.#inView && !this.#printing) {
 			// Why layout without paint: a dormant chart can show a controlled
 			// active index, and the overlay below positions its markers from the
@@ -1977,6 +2016,21 @@ class ChartEngine {
 			});
 	}
 
+	/**
+	 * The pixel of a right tick. An aligned tick rides its left grid line, so it
+	 * stays there while the two domains glide at their own pace; both land on
+	 * the same pixel once they settle.
+	 */
+	#rightLabelPosition(value: number, yCos: YCoefficients): number {
+		const align = this.#rightAlign;
+		// Why only the current ticks: a label that fades out came from the old
+		// alignment, so it glides with the right domain instead.
+		if (align == null || !this.#yTickMemos.right?.ticks.some((tick) => tick.value === value)) {
+			return value * yCos.right.k + yCos.right.b;
+		}
+		return ((value - align.b) / align.k) * yCos.left.k + yCos.left.b;
+	}
+
 	#yCoefficients(side: YAxisSide = "left"): { k: number; b: number } {
 		const domain = this.#yTweens[side].values();
 		return linearCoefficients(
@@ -2040,10 +2094,18 @@ class ChartEngine {
 		if (memo != null && memo.key === key && memo.format === format && memo.source === source) {
 			return memo.ticks;
 		}
+		const aligned =
+			align == null || source == null ? [] : source.map((tick) => tick.value * align.k + align.b);
+		const alignedStep = Math.abs((aligned[1] ?? 0) - (aligned[0] ?? 0));
+		// Why a fallback: a thinned left grid can map to more labels than the
+		// right axis allows, or to fractions on a count axis.
 		const ticks =
-			align == null || source == null
-				? linearTicksAtMost([domain[0] ?? 0, domain[1] ?? 1], limit, { count, integer })
-				: source.map((tick) => tick.value * align.k + align.b);
+			aligned.length > 0 &&
+			aligned.length <= limit &&
+			(!integer ||
+				aligned.every((value) => Math.abs(value - Math.round(value)) <= alignedStep * 1e-9))
+				? aligned
+				: linearTicksAtMost([domain[0] ?? 0, domain[1] ?? 1], limit, { count, integer });
 		const step = ticks.length > 1 ? Math.abs((ticks[1] ?? 0) - (ticks[0] ?? 0)) : 0;
 		// Precision follows the tick step, so small-magnitude domains (error
 		// rates) never collapse neighboring labels into identical "0"s. A single
@@ -2415,7 +2477,7 @@ class ChartEngine {
 		const xLabels = horizontal ? valueLabels : categoryLabels;
 		const yLabels = horizontal ? categoryLabels : valueLabels;
 		const rightLabels = [...this.#rightLabelFade.entries()].map(([key, entry]) => ({
-			position: key * yCos.right.k + yCos.right.b,
+			position: this.#rightLabelPosition(key, yCos),
 			text: entry.text,
 			alpha: entry.alpha,
 		}));
@@ -2477,11 +2539,14 @@ class ChartEngine {
 	): Array<{ key: number; text: string }> {
 		const ticks = this.#yTicks(side);
 		if (!this.#horizontalBars()) {
-			const valueCo = this.#yCoefficients(side);
+			const yCos = { left: this.#yCoefficients("left"), right: this.#yCoefficients("right") };
 			const desired: Array<{ key: number; text: string }> = [];
 			let previous = Number.NaN;
 			for (const tick of ticks) {
-				const position = tick.value * valueCo.k + valueCo.b;
+				const position =
+					side === "right"
+						? this.#rightLabelPosition(tick.value, yCos)
+						: tick.value * yCos.left.k + yCos.left.b;
 				if (Math.abs(position - previous) < AXIS_FONT_SIZE + 2) {
 					continue;
 				}

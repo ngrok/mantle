@@ -705,29 +705,20 @@ const ChartRootPrimitive = ({
 				store.seriesSpecs().every((spec) => spec.mark === "bar"),
 			`A line or an area cannot be composed inside BarChart.Root with orientation="horizontal". Draw it over vertical bars.`,
 		);
-		// Why no right axis: horizontal bars run their values along the bottom, so no
-		// value axis has a right side.
-		invariant(
-			kind !== "bar" || orientation === "vertical" || store.getSnapshot().yAxes.right == null,
-			'BarChart.YAxis side="right" cannot be composed inside BarChart.Root with orientation="horizontal". Draw it over vertical bars.',
-		);
-		invariant(
-			kind !== "bar" ||
-				orientation === "vertical" ||
-				store.seriesSpecs().every((spec) => spec.yAxis === "left"),
-			'yAxis="right" cannot be set inside BarChart.Root with orientation="horizontal". Draw it over vertical bars.',
-		);
-		const engine = engineRef.current;
-		if (engine != null) {
-			engine.flushIngest();
-			return;
-		}
+		// Why every commit: removing a right YAxis starts no ingest, so the
+		// engine's ingest check would miss it.
 		store.assertYAxes({
 			root: names.root,
 			kind,
 			stacked,
 			threeD: kind === "scatter" && zKey != null,
+			horizontal: kind === "bar" && orientation === "horizontal",
 		});
+		const engine = engineRef.current;
+		if (engine != null) {
+			engine.flushIngest();
+			return;
+		}
 		const dataKeys = store.seriesSpecs().map((spec) => spec.dataKey);
 		// Why JSON: a key may hold any character, so a joined string can collide.
 		const signature = JSON.stringify([xKey, resolvedXScale, zKey ?? null, sizeKey, dataKeys]);

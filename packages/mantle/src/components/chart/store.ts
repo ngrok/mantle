@@ -222,26 +222,58 @@ class ChartStore {
 	}
 
 	/**
-	 * Throw when a right-axis series cannot read a right axis: no `YAxis` with
-	 * `side="right"`, no left-axis series beside it, a 3D plot, or a mark that
-	 * would join the left axis's stack. The ingest and a dormant Root's commit
-	 * both check it, once every part has registered.
+	 * Throw when the y axes and the parts that read them do not fit: a bar or
+	 * area Root's `YAxis` that does not start at zero; a right axis, series, or
+	 * reference line on horizontal bars; a right-axis part with no `YAxis
+	 * side="right"`; or a right-axis series with no left-axis series beside it,
+	 * in a 3D plot, or in the left axis's stack. The Root's commit, the engine's
+	 * ingest, and the engine's commit all check it, once every part has
+	 * registered.
 	 */
 	assertYAxes(options: {
 		root: string;
 		kind: SeriesMark;
 		stacked: boolean;
 		threeD: boolean;
+		horizontal: boolean;
 	}): void {
+		const { root, kind, stacked, threeD, horizontal } = options;
+		if (kind === "bar" || kind === "area") {
+			// Why at runtime too: the types hold only for the family's own YAxis,
+			// and a minimum above zero would cut every bar or area short.
+			for (const axis of [this.#yAxes.left, this.#yAxes.right]) {
+				const min = axis?.domain?.[0];
+				invariant(
+					typeof min !== "number" || min <= 0,
+					() => `${root} draws from zero, so each YAxis domain inside it starts at 0.`,
+				);
+			}
+		}
 		const specs = this.seriesSpecs();
-		if (!specs.some((spec) => spec.yAxis === "right")) {
+		const rightSeries = specs.some((spec) => spec.yAxis === "right");
+		const rightLine = [...this.#referenceLines.values()].some(({ spec }) => spec.yAxis === "right");
+		if (horizontal) {
+			// Why: horizontal bars run their values along the bottom, so no value
+			// axis has a right side.
+			invariant(
+				this.#yAxes.right == null,
+				'BarChart.YAxis side="right" cannot be composed inside BarChart.Root with orientation="horizontal". Draw it over vertical bars.',
+			);
+			invariant(
+				!rightSeries && !rightLine,
+				'yAxis="right" cannot be set inside BarChart.Root with orientation="horizontal". Draw it over vertical bars.',
+			);
+		}
+		if (!rightSeries && !rightLine) {
 			return;
 		}
-		const { root, kind, stacked, threeD } = options;
 		invariant(
 			this.#yAxes.right != null,
-			() => `A series with yAxis="right" needs a YAxis with side="right" inside ${root}.`,
+			() => `A part with yAxis="right" needs a YAxis with side="right" inside ${root}.`,
 		);
+		if (!rightSeries) {
+			return;
+		}
 		invariant(
 			specs.some((spec) => spec.yAxis === "left"),
 			() =>
