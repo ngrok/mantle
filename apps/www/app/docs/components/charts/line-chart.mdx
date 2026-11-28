@@ -271,7 +271,7 @@ function TwoYAxesLineChartExample() {
 
 Compose `LineChart.AxisTitle` inside an axis to name it. The title is HTML text, not paint, so a screen reader and a search engine read it. The x axis's title also heads the x column of the screen-reader data table. The y title reads bottom to top beside the left axis, and top to bottom beside a right axis. A title in each axis of [Two y axes](#two-y-axes) names both scales.
 
-Keep a title short. It stays on one line and truncates with an ellipsis; set `className="whitespace-normal"` to let it wrap. The chart places each title in its own cell, so the order of the parts doesn't move it.
+Keep a title short. It stays on one line and truncates with an ellipsis; set `className="whitespace-normal"` to let it wrap. The chart places each title in its own cell, so the order of the parts doesn't move it. To hide a titled chart at some widths, use `max-md:hidden` and not `hidden md:flex`: an explicit display such as `flex` wins over the title's grid.
 
 <Example name="components/charts/line-chart/axis-titles" title="Line Chart axis titles example">
 

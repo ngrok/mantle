@@ -1230,6 +1230,30 @@ describe("LineChart.AxisTitle", () => {
 		expect(screen.getByRole("columnheader", { name: "Time" })).toBeInTheDocument();
 	});
 
+	test("an override that unmounts on its own hands the header back to the title still mounted", () => {
+		let hide = () => {};
+		const Override = () => {
+			const [shown, setShown] = useState(true);
+			hide = () => setShown(false);
+			return shown && <LineChart.AxisTitle>Date</LineChart.AxisTitle>;
+		};
+		render(
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.XAxis>
+					<>
+						<LineChart.AxisTitle>Time</LineChart.AxisTitle>
+						<Override />
+					</>
+				</LineChart.XAxis>
+			</LineChart.Root>,
+		);
+		engageChart();
+		expect(screen.getByRole("columnheader", { name: "Date" })).toBeInTheDocument();
+		act(() => hide());
+		expect(screen.getByRole("columnheader", { name: "Time" })).toBeInTheDocument();
+	});
+
 	test("throws outside an axis", () => {
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>

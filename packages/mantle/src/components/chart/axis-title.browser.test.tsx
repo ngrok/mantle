@@ -209,6 +209,44 @@ describe("an axis title", () => {
 		expect(rect(container, '[data-testid="right"]').left).toBe(rtlPlot.right);
 	});
 
+	test("a long side title stays in the plot's height, and an untitled chart nested inside keeps its flex column", () => {
+		const { container } = render(
+			<div style={{ width: 320 }} dir="rtl">
+				<LineChart.Root
+					data={rows}
+					xKey="day"
+					animate={false}
+					aria-label="Requests"
+					className="items-center"
+					dir="ltr"
+				>
+					<LineChart.Line dataKey="requests" label="Requests" color="blue" />
+					<LineChart.XAxis />
+					<LineChart.YAxis>
+						<LineChart.AxisTitle data-testid="left">
+							Median response latency in milliseconds, across every region
+						</LineChart.AxisTitle>
+					</LineChart.YAxis>
+					<div data-testid="nest" className="absolute size-20">
+						<LineChart.Root data={rows} xKey="day" animate={false} aria-label="Inner">
+							<LineChart.Line dataKey="requests" label="Requests" color="blue" />
+						</LineChart.Root>
+					</div>
+				</LineChart.Root>
+			</div>,
+		);
+		const plot = rect(container, '[data-slot="line-chart-plot"]');
+		const left = rect(container, '[data-testid="left"]');
+		// The Root is LTR inside an RTL page, so the title stays on the left.
+		expect(left.right).toBe(plot.left);
+		expect(left.top).toBeGreaterThanOrEqual(plot.top);
+		expect(left.bottom).toBeLessThanOrEqual(plot.bottom);
+		const inner = container.querySelector<HTMLElement>(
+			'[data-testid="nest"] [data-slot="line-chart"]',
+		);
+		expect(inner == null ? null : getComputedStyle(inner).display).toBe("flex");
+	});
+
 	test("a chart with no title keeps its flex column", () => {
 		const { container } = render(
 			<LineChart.Root data={rows} xKey="day" animate={false} aria-label="Requests">

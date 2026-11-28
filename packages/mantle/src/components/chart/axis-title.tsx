@@ -32,13 +32,15 @@ type AxisTitlePrimitiveProps = ComponentProps<"div"> &
  * The cell each edge takes in the Root's grid. Why the pixel margins on a side
  * title: they match the plot's 8px top padding and its bottom band (24px under
  * a bottom axis, else 8px), so the title centers on the inner plot with no
- * measurement. Why `rtl:`: grid columns follow the text direction, and the
- * engine paints each axis on its physical edge.
+ * measurement. Why the Root's direction: it numbers the grid columns, and the
+ * engine paints each axis on its physical edge. Why `self-stretch`: the
+ * title must fill its cell to truncate, whatever the Root aligns.
  */
 const EDGE_CLASSES = {
 	bottom: "col-2 row-2 text-center",
-	left: "col-1 row-1 mt-[8px] rotate-180 text-center [writing-mode:vertical-rl] rtl:col-3",
-	right: "col-3 row-1 mt-[8px] text-center [writing-mode:vertical-rl] rtl:col-1",
+	left: "col-1 row-1 mt-[8px] rotate-180 self-stretch text-center [writing-mode:vertical-rl] [:dir(rtl)>&]:col-3",
+	right:
+		"col-3 row-1 mt-[8px] self-stretch text-center [writing-mode:vertical-rl] [:dir(rtl)>&]:col-1",
 } as const;
 
 /**
@@ -110,11 +112,9 @@ const ChartAxisTitlePrimitive = ({
 			data-axis={axis === "x" ? "x" : "y"}
 			className={cx(
 				"text-muted truncate text-xs",
-				// Why the parent selectors: a title turns its Root into a grid, so a
-				// chart with no title matches none of these rules. The plot is the
-				// Root's first child and fills its cell; every other in-flow part
-				// spans the grid below it, and a docked part keeps the Root's box.
-				"[*:has(>&)]:[--_chart-display:grid] [*:has(>&)]:grid-cols-[auto_minmax(0,1fr)_auto] [*:has(>&)]:grid-rows-[minmax(0,1fr)] [*:has(>&)>:first-child]:col-2 [*:has(>&)>:first-child]:row-1 [*:has(>&)>:first-child]:self-stretch [:where(*:has(>&))>:not(:where(.absolute))]:col-span-full",
+				// Why the parent selectors: a title turns its Root into a grid, and a
+				// chart with no title matches none of these rules, nested charts included.
+				"[*:has(>&)]:[--_chart-display:grid] [*:has(>&)]:grid-cols-[auto_minmax(0,1fr)_auto] [*:has(>&)]:grid-rows-[minmax(0,1fr)] [*:has(>&)>:first-child]:col-2 [*:has(>&)>:first-child]:row-1 [*:has(>&)>:first-child]:self-stretch [:where(*:has(>&))>:not(:where(.absolute))]:col-span-full [:where(*:has(>&)_*)]:[--_chart-display:flex]",
 				EDGE_CLASSES[edge],
 				edge !== "bottom" && (bottomAxis ? "mb-[24px]" : "mb-[8px]"),
 				className,

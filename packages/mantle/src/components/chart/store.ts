@@ -142,8 +142,8 @@ class ChartStore {
 	#referenceLineSequenceById = new Map<string, number>();
 	#emptySlot: EmptySlotSpec | null = null;
 	#tooltip: TooltipConfig | null = null;
-	/** The x title's text and the `AxisTitle` that set it, so a cleanup clears only its own. */
-	#xTitle: { owner: string; text: string } | null = null;
+	/** Each mounted x title's text by its `AxisTitle`, so a survivor takes over when the winner unmounts. */
+	#xTitles = new Map<string, string>();
 	#hover: HoverSnapshot | null = null;
 	#hoverEver = false;
 	#readoutSpace = 0;
@@ -428,23 +428,31 @@ class ChartStore {
 
 	/**
 	 * Set the x title's text, or clear it with `null`. An equal text is a no-op,
-	 * so an `AxisTitle` can call it after each commit. A clear from another
-	 * owner keeps the current title: last registration wins.
+	 * so an `AxisTitle` can call it after each commit. The last mounted title
+	 * wins, and a clear hands the header to the title mounted before it.
 	 */
 	setXTitle(owner: string, text: string | null): void {
-		const current = this.#xTitle;
+		const before = this.#xTitleText();
 		if (text == null) {
-			if (current?.owner !== owner) {
-				return;
-			}
-			this.#xTitle = null;
-		} else {
-			if (current?.owner === owner && current.text === text) {
-				return;
-			}
-			this.#xTitle = { owner, text };
+			this.#xTitles.delete(owner);
+		} else if (this.#xTitles.get(owner) !== text) {
+			// Why delete first: an owner that mounts later wins, and a Map keeps
+			// insertion order, so the last entry is the winner.
+			this.#xTitles.delete(owner);
+			this.#xTitles.set(owner, text);
 		}
-		this.#publishRegistrations("title");
+		if (this.#xTitleText() !== before) {
+			this.#publishRegistrations("title");
+		}
+	}
+
+	/** The text of the last mounted x title, `null` when none is mounted. */
+	#xTitleText(): string | null {
+		let text: string | null = null;
+		for (const value of this.#xTitles.values()) {
+			text = value;
+		}
+		return text;
 	}
 
 	/** Engine-side: publish the current hover/keyboard snapshot (or clear it). */
@@ -498,7 +506,7 @@ class ChartStore {
 			emptySlot: this.#emptySlot,
 			tooltip: this.#tooltip,
 			orientation: this.#orientation,
-			xTitle: this.#xTitle?.text ?? null,
+			xTitle: this.#xTitleText(),
 		};
 		this.#emit();
 		if (change === "series") {
