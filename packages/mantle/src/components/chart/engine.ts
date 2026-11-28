@@ -1678,13 +1678,15 @@ class ChartEngine {
 		const extent = this.#extents.right;
 		const leftCount = this.#store.getSnapshot().yAxes.left?.tickCount;
 		// Why the fitted count: the right ticks must land on the grid the plot
-		// draws. Before the first layout the plot has no height to fit.
-		const fit =
-			this.#plot.height > 0
-				? Math.max(2, Math.floor(this.#plot.height / Y_TICK_SPACING))
-				: Number.POSITIVE_INFINITY;
-		const ticks = linearTicksAtMost(left, Math.min(leftCount ?? Number.POSITIVE_INFINITY, fit), {
-			count: leftCount ?? Y_TICK_COUNT,
+		// draws. Before the first layout the plot has no height, so the chart's
+		// height stands in, and the default count when that is unknown too.
+		const height = this.#plot.height > 0 ? this.#plot.height : this.#cssHeight;
+		const fit = height > 0 ? Math.max(2, Math.floor(height / Y_TICK_SPACING)) : Y_TICK_COUNT + 1;
+		// Why the bound: a huge or infinite `tickCount` would build a tick list of
+		// that size to read its first two ticks.
+		const limit = Math.min(leftCount ?? Number.POSITIVE_INFINITY, fit);
+		const ticks = linearTicksAtMost(left, limit, {
+			count: Math.min(leftCount ?? Y_TICK_COUNT, limit),
 			integer: this.#extents.left.integers,
 		});
 		const first = ticks[0];

@@ -236,19 +236,46 @@ utils:
                   has:
                     kind: string
                     regex: ^["']left["']$
+  # A direct YAxis child that keeps the codemod away from its Root: one with a
+  # spread, or a left one that already has a `domain`. It can win registration
+  # without the range the Root fixed.
+  blocking-yaxis:
+    kind: jsx_self_closing_element
+    has:
+      field: name
+      matches: chart-yaxis-name
+    not:
+      matches: copy-target-tag
+    any:
+      - has:
+          kind: jsx_expression
+      - not:
+          has:
+            kind: jsx_attribute
+            all:
+              - has:
+                  kind: property_identifier
+                  regex: ^side$
+              - has:
+                  kind: string
+                  regex: ^["']right["']$
   # A chart Root element whose `yDomain` value binds to $DOMAIN, with no YAxis
   # under a condition or a callback: such an axis can mount after the direct one
   # and win registration without the range.
   root-with-domain:
     kind: jsx_element
-    not:
-      has:
-        stopBy: end
-        kind: jsx_expression
-        has:
-          stopBy: end
-          kind: member_expression
-          matches: chart-yaxis-name
+    all:
+      - not:
+          has:
+            stopBy: end
+            kind: jsx_expression
+            has:
+              stopBy: end
+              kind: member_expression
+              matches: chart-yaxis-name
+      - not:
+          has:
+            matches: blocking-yaxis
     has:
       field: open_tag
       kind: jsx_opening_element
@@ -513,6 +540,29 @@ utils:
                   has:
                     kind: string
                     regex: ^["']left["']$
+  # A direct YAxis child that keeps the codemod away from its Root: one with a
+  # spread, or a left one that already has a `domain`. It can win registration
+  # without the range the Root fixed.
+  blocking-yaxis:
+    kind: jsx_self_closing_element
+    has:
+      field: name
+      matches: chart-yaxis-name
+    not:
+      matches: copy-target-tag
+    any:
+      - has:
+          kind: jsx_expression
+      - not:
+          has:
+            kind: jsx_attribute
+            all:
+              - has:
+                  kind: property_identifier
+                  regex: ^side$
+              - has:
+                  kind: string
+                  regex: ^["']right["']$
 rule:
   kind: jsx_attribute
   has:
@@ -534,13 +584,16 @@ rule:
       # Why no YAxis in an expression: it can mount after the direct one and
       # win registration, so the copy rule leaves that Root alone.
       not:
-        has:
-          stopBy: end
-          kind: jsx_expression
-          has:
-            stopBy: end
-            kind: member_expression
-            matches: chart-yaxis-name
+        any:
+          - has:
+              stopBy: end
+              kind: jsx_expression
+              has:
+                stopBy: end
+                kind: member_expression
+                matches: chart-yaxis-name
+          - has:
+              matches: blocking-yaxis
       # Why a direct child: the copy rule moves the range only there.
       has:
         matches: copy-target-tag

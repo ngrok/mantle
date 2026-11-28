@@ -166,6 +166,21 @@ describe("LineChart.Root", () => {
 		);
 	});
 
+	test("an override right axis that unmounts hands the side back", () => {
+		const Chart = ({ compact }: { compact: boolean }) => (
+			<LineChart.Root data={data} xKey="time" aria-label="Latency">
+				<LineChart.YAxis />
+				<LineChart.YAxis side="right" />
+				{compact && <LineChart.YAxis side="right" tickCount={2} />}
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.Line dataKey="p99" label="p99" color="emerald" yAxis="right" />
+			</LineChart.Root>
+		);
+		const { rerender } = render(<Chart compact />);
+		rerender(<Chart compact={false} />);
+		expect(screen.getByRole("application", { name: "Latency" })).toBeInTheDocument();
+	});
+
 	test("a right-axis reference line without a right axis throws", () => {
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>

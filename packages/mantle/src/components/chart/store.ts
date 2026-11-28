@@ -128,6 +128,8 @@ class ChartStore {
 	#orientation: BarOrientation = "vertical";
 	#xAxis: XAxisSpec | null = null;
 	#yAxes: Record<YAxisSide, YAxisSpec | null> = { left: null, right: null };
+	/** Every mounted `YAxis` of each side, in registration order; the last one draws. */
+	#yAxisStacks: Record<YAxisSide, YAxisSpec[]> = { left: [], right: [] };
 	#referenceLines = new Map<string, { spec: ReferenceLineSpec; sequence: number }>();
 	#referenceLineSequenceById = new Map<string, number>();
 	#emptySlot: EmptySlotSpec | null = null;
@@ -338,12 +340,18 @@ class ChartStore {
 	}
 
 	registerYAxis(side: YAxisSide, spec: YAxisSpec): () => void {
+		const stack = this.#yAxisStacks[side];
+		stack.push(spec);
 		// Why a new object: a published snapshot holds the old one.
 		this.#yAxes = { ...this.#yAxes, [side]: spec };
 		this.#publishRegistrations();
 		return () => {
-			if (this.#yAxes[side] === spec) {
-				this.#yAxes = { ...this.#yAxes, [side]: null };
+			stack.splice(stack.indexOf(spec), 1);
+			// Why the stack: an override that unmounts hands the side back to the
+			// axis still mounted, instead of leaving the side with none.
+			const current = stack.at(-1) ?? null;
+			if (this.#yAxes[side] !== current) {
+				this.#yAxes = { ...this.#yAxes, [side]: current };
 				this.#publishRegistrations();
 			}
 		};
