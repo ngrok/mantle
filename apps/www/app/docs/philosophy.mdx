@@ -36,6 +36,30 @@ lives in the
 [north star doc](https://github.com/ngrok/mantle/blob/main/docs/north-star.md), which
 every contributor and every agent reads before the first edit.
 
+## The right path is the easy one
+
+People and agents take the path that asks the least of them. Rico Mariani called the
+answer to that the [pit of success](https://learn.microsoft.com/en-us/archive/blogs/brada/the-pit-of-success):
+build the platform so developers fall into doing the right thing. Jeff Atwood made the
+phrase widely known in
+[Falling Into The Pit of Success](https://blog.codinghorror.com/falling-into-the-pit-of-success/):
+"a well-designed system makes it easy to do the right things and annoying (but not
+impossible) to do the wrong things."
+
+So Mantle puts the right choice closest to hand, for you and for the agent that writes
+code with you:
+
+- The default is the right choice, so a part with no props renders correct and accessible.
+- The right part is the first one you find: its docs page, its JSDoc example, the mantle
+  skill, and the [MCP](/for-ai-agents) `find` tool with its aliases all lead to it before a
+  near miss.
+- The wrong path meets friction: a type that can't express it, an error in development
+  that names the fix, or a finding from the MCP `check` tool.
+
+The friction makes a wrong path harder, not impossible. `asChild` and `className` stay
+open, so you never fork a part to get around it. When you keep reaching for a workaround,
+that's on Mantle to fix.
+
 ## Semantic HTML, then everything else
 
 The right HTML element is always the starting point. A [Button](/components/actions/button)

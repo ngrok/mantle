@@ -8,6 +8,8 @@ The goals have no order. They work together: a change that meets six goals and f
 
 Choose a design by what the consumer and the user get, not by what is easy to build or to migrate. The number of call sites that a change must move is never a reason to keep a worse API.
 
+People and agents take the path that asks the least of them, so make the right path that one. The default is the right choice, the right part is the easiest to find in the docs, the MCP skill, and `find`, and the wrong path meets a type error, a dev error, or a lint rule ([fall into the pit of success](./principles/fall-into-the-pit-of-success.md)).
+
 ## How to use the goals
 
 - **Before you design:** for each goal, ask what the change does to it. Choose the design that meets all seven. The [principles](./principles/README.md) are the methods that get you there.
@@ -40,7 +42,7 @@ Each component owns the keyboard and ARIA contract that its name promises. It wo
 
 A component does what a consumer expects from its name, its props, and its JSDoc. A default is safe and matches the browser, or the ecosystem where that is safer. One component answers one intent, and one job has one way to do it. A consumer who knows one mantle component can predict the others. An upgrade never changes the behavior of an app with no word in the changeset, and a breaking change gets a `minor` bump ([VERSIONING.md](../VERSIONING.md)).
 
-- **Served by:** [follow the platform](./principles/follow-the-platform.md), [experience first](./principles/experience-first.md), [composition over configuration](./principles/composition-over-configuration.md), [migrate callers, then delete](./principles/migrate-callers-then-delete.md), [derive, don't sync](./principles/derive-dont-sync.md), and [make illegal states unrepresentable](./principles/make-illegal-states-unrepresentable.md).
+- **Served by:** [follow the platform](./principles/follow-the-platform.md), [experience first](./principles/experience-first.md), [fall into the pit of success](./principles/fall-into-the-pit-of-success.md), [composition over configuration](./principles/composition-over-configuration.md), [migrate callers, then delete](./principles/migrate-callers-then-delete.md), [derive, don't sync](./principles/derive-dont-sync.md), and [make illegal states unrepresentable](./principles/make-illegal-states-unrepresentable.md).
 - **Signs you missed it:** two props that do one job, a prop whose name does not read as the DOM or ARIA that it sets, a default that differs from the browser and the ecosystem with no reason, or a breaking change with a `patch` bump.
 
 ## Fast
@@ -62,7 +64,7 @@ A claim of speed needs a measurement of the base and of the branch.
 
 The user gets a UI that answers at once, moves only to explain a change, and looks right in each theme. The consumer gets a component that works on the first try from its JSDoc example, a `className` that always wins, and an error that names the bad prop and the fix. A behavior with one right answer is built in: the app sets no prop, and the user changes it by an action that mantle keeps as their preference. The agent gets a docs example that runs as it is.
 
-- **Served by:** [experience first](./principles/experience-first.md), [build the behavior in](./principles/build-the-behavior-in.md), and [minimize reader load](./principles/minimize-reader-load.md).
+- **Served by:** [experience first](./principles/experience-first.md), [fall into the pit of success](./principles/fall-into-the-pit-of-success.md), [build the behavior in](./principles/build-the-behavior-in.md), and [minimize reader load](./principles/minimize-reader-load.md).
 - **Signs you missed it:** a step that each app must remember, a prop that an app must set for the layout to hold, a recipe that each app copies to get a behavior, a silent failure, motion that explains nothing, or an example that does not run.
 
 ## Clean
