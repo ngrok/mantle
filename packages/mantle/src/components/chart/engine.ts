@@ -2441,7 +2441,17 @@ class ChartEngine {
 			if (horizontal) {
 				drawVerticalBaseline(ctx, { plot, color: colors.chrome.baseline, x: valuePosition(0) });
 			} else {
-				drawBaseline(ctx, { plot, color: colors.chrome.baseline, y: yCos[this.#barSide()].b });
+				// Why a line for each side: bars grow from their own axis's zero, and
+				// the two zeros differ when the axes hold values of both signs.
+				const rightBars = specs.some((spec) => spec.mark === "bar" && spec.yAxis === "right");
+				const leftBars =
+					!rightBars || specs.some((spec) => spec.mark === "bar" && spec.yAxis === "left");
+				if (leftBars) {
+					drawBaseline(ctx, { plot, color: colors.chrome.baseline, y: yCos.left.b });
+				}
+				if (rightBars && (!leftBars || yCos.right.b !== yCos.left.b)) {
+					drawBaseline(ctx, { plot, color: colors.chrome.baseline, y: yCos.right.b });
+				}
 			}
 		}
 

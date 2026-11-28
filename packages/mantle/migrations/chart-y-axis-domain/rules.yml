@@ -39,6 +39,7 @@ utils:
           - inside: { kind: rest_pattern }
           - inside: { kind: arrow_function, field: parameter }
           - inside: { kind: catch_clause, field: parameter }
+          - inside: { kind: for_in_statement, field: left }
       - kind: type_identifier
         inside: { kind: class_declaration, field: name }
   # A function declaration opens a scope, so the search above stops at it and
@@ -235,9 +236,19 @@ utils:
                   has:
                     kind: string
                     regex: ^["']left["']$
-  # A chart Root element whose `yDomain` value binds to $DOMAIN.
+  # A chart Root element whose `yDomain` value binds to $DOMAIN, with no YAxis
+  # under a condition or a callback: such an axis can mount after the direct one
+  # and win registration without the range.
   root-with-domain:
     kind: jsx_element
+    not:
+      has:
+        stopBy: end
+        kind: jsx_expression
+        has:
+          stopBy: end
+          kind: member_expression
+          matches: chart-yaxis-name
     has:
       field: open_tag
       kind: jsx_opening_element
@@ -305,6 +316,7 @@ utils:
           - inside: { kind: rest_pattern }
           - inside: { kind: arrow_function, field: parameter }
           - inside: { kind: catch_clause, field: parameter }
+          - inside: { kind: for_in_statement, field: left }
       - kind: type_identifier
         inside: { kind: class_declaration, field: name }
   # A function declaration opens a scope, so the search above stops at it and
@@ -519,6 +531,16 @@ rule:
     # yDomain, so the type checker names the call site to finish by hand.
     inside:
       kind: jsx_element
+      # Why no YAxis in an expression: it can mount after the direct one and
+      # win registration, so the copy rule leaves that Root alone.
+      not:
+        has:
+          stopBy: end
+          kind: jsx_expression
+          has:
+            stopBy: end
+            kind: member_expression
+            matches: chart-yaxis-name
       # Why a direct child: the copy rule moves the range only there.
       has:
         matches: copy-target-tag

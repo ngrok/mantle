@@ -62,8 +62,9 @@ export const TwoAxes = (
 
 // Negative cases: a Root with no YAxis keeps yDomain for the type checker, a
 // YAxis that has a domain stays for a person to merge, a YAxis under a
-// condition or in a nested Root stays, a Root with a spread stays, another
-// library's chart stays, and a shadowed name stays.
+// condition or in a nested Root stays, a Root with a second YAxis under a
+// condition stays, a Root with a spread stays, another library's chart stays,
+// and a name shadowed by a parameter or a loop binding stays.
 export const NoAxis = (
 	<LineChart.Root data={rows} xKey="day" yDomain={[0, 100]}>
 		<LineChart.Line dataKey="value" color="blue" />
@@ -80,6 +81,14 @@ export const Partial = (
 export const Conditional = (
 	<LineChart.Root data={rows} xKey="day" yDomain={[0, 100]}>
 		{showAxis && <LineChart.YAxis />}
+		<LineChart.Line dataKey="value" color="blue" />
+	</LineChart.Root>
+);
+
+export const SecondAxis = (
+	<LineChart.Root data={rows} xKey="day" yDomain={[0, 100]}>
+		<LineChart.YAxis />
+		{showAxis && <LineChart.YAxis tickCount={2} />}
 		<LineChart.Line dataKey="value" color="blue" />
 	</LineChart.Root>
 );
@@ -115,4 +124,15 @@ export function Shadowed({ LineChart }: { LineChart: typeof Chart }) {
 			<LineChart.YAxis />
 		</LineChart.Root>
 	);
+}
+
+export function Looped() {
+	for (const LineChart of [Chart]) {
+		return (
+			<LineChart.Root data={rows} yDomain={[0, 100]}>
+				<LineChart.YAxis />
+			</LineChart.Root>
+		);
+	}
+	return null;
 }

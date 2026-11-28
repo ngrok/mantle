@@ -243,8 +243,8 @@ class ChartStore {
 	}
 
 	/**
-	 * Throw when the y axes and the parts that read them do not fit: a bar or
-	 * area Root's `YAxis` that does not start at zero; a right axis, series, or
+	 * Throw when the y axes and the parts that read them do not fit: a `YAxis`
+	 * domain that leaves out zero under a bar or an area; a right axis, series, or
 	 * reference line on horizontal bars; a right-axis part with no `YAxis
 	 * side="right"`; or a right-axis series with no left-axis series beside it,
 	 * in a 3D plot, or in the left axis's stack. The Root's commit, the engine's
@@ -259,18 +259,21 @@ class ChartStore {
 		horizontal: boolean;
 	}): void {
 		const { root, kind, stacked, threeD, horizontal } = options;
-		if (kind === "bar" || kind === "area") {
-			// Why at runtime too: the types hold only for the family's own YAxis,
-			// and a domain that leaves out zero cuts every bar or area short.
-			for (const axis of [this.#yAxes.left, this.#yAxes.right]) {
-				const [min, max] = axis?.domain ?? [];
-				invariant(
-					(typeof min !== "number" || min <= 0) && (typeof max !== "number" || max >= 0),
-					() => `${root} draws from zero, so each YAxis domain inside it includes 0.`,
-				);
-			}
-		}
 		const specs = this.seriesSpecs();
+		// Why at runtime too: the types hold only for the family's own YAxis, and
+		// a domain that leaves out zero cuts every bar or area on that side short.
+		for (const side of ["left", "right"] as const) {
+			const anchored =
+				kind === "bar" ||
+				kind === "area" ||
+				specs.some((spec) => spec.yAxis === side && (spec.mark === "bar" || spec.mark === "area"));
+			const [min, max] = this.#yAxes[side]?.domain ?? [];
+			invariant(
+				!anchored ||
+					((typeof min !== "number" || min <= 0) && (typeof max !== "number" || max >= 0)),
+				() => `A bar or an area inside ${root} draws from zero, so its YAxis domain includes 0.`,
+			);
+		}
 		const rightSeries = specs.some((spec) => spec.yAxis === "right");
 		const rightLine = [...this.#referenceLines.values()].some(({ spec }) => spec.yAxis === "right");
 		if (horizontal) {

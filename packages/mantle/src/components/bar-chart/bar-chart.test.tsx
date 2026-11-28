@@ -1132,7 +1132,9 @@ describe("BarChart with a line or an area over the bars", () => {
 					<BarChart.Bar dataKey="added" label="Added" color="green" />
 				</BarChart.Root>,
 			),
-		).toThrow("BarChart.Root draws from zero, so each YAxis domain inside it includes 0.");
+		).toThrow(
+			"A bar or an area inside BarChart.Root draws from zero, so its YAxis domain includes 0.",
+		);
 	});
 
 	test("another family's YAxis that leaves out zero below throws", () => {
@@ -1144,7 +1146,9 @@ describe("BarChart with a line or an area over the bars", () => {
 					<BarChart.Bar dataKey="removed" label="Deleted" color="red" />
 				</BarChart.Root>,
 			),
-		).toThrow("BarChart.Root draws from zero, so each YAxis domain inside it includes 0.");
+		).toThrow(
+			"A bar or an area inside BarChart.Root draws from zero, so its YAxis domain includes 0.",
+		);
 	});
 
 	test("a stacked bar on the right axis throws", () => {

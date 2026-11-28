@@ -150,6 +150,22 @@ describe("LineChart.Root", () => {
 		);
 	});
 
+	test("a right-axis area under a domain that leaves out zero throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<LineChart.Root data={data} xKey="time" aria-label="Latency">
+					<LineChart.YAxis />
+					<LineChart.YAxis side="right" domain={[90, 100]} />
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
+					<AreaChart.Area dataKey="p99" label="p99" color="emerald" yAxis="right" />
+				</LineChart.Root>,
+			),
+		).toThrow(
+			"A bar or an area inside LineChart.Root draws from zero, so its YAxis domain includes 0.",
+		);
+	});
+
 	test("a right-axis reference line without a right axis throws", () => {
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>
