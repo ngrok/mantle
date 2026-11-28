@@ -8,14 +8,14 @@ Make the right path the one that takes the least effort. The default is the righ
 
 **How:**
 
-- **The default is right.** A consumer who sets no prop gets the correct and accessible result ([build the behavior in](./build-the-behavior-in.md)).
-- **The right part is the easiest to find.** The docs page, the JSDoc example, the MCP skill, and `find` with its aliases all lead to it before a near miss.
-- **The wrong path meets friction.** A type cannot express it ([make illegal states unrepresentable](./make-illegal-states-unrepresentable.md)). A wrong use at runtime throws a dev error that names the fix. A recurring mistake gets a lint rule ([encode lessons in structure](./encode-lessons-in-structure.md)).
-- **The friction is small.** A wrong path is hard, not impossible. An escape hatch such as `asChild` or `className` stays, so nobody forks a part to get around it.
+- **The default is right.** When a behavior has one right answer, the consumer sets no prop for it ([build the behavior in](./build-the-behavior-in.md)). A required prop is for content that mantle cannot infer, such as `IconButton`'s `label`, or for a product choice.
+- **The right part is the easiest to find.** The docs page, the JSDoc example, the agent skill, and the MCP `find` tool with its aliases lead to it before a near miss. A miss is a bug: record it in the `find` golden queries and fix the data.
+- **The wrong path meets friction.** A type cannot express it ([make illegal states unrepresentable](./make-illegal-states-unrepresentable.md)). A misuse that mantle can detect at runtime, such as a part outside its `Root`, throws an `invariant` that names the fix. A recurring mistake gets a check: a lint rule, a type, or a test ([encode lessons in structure](./encode-lessons-in-structure.md)).
+- **The friction is for misuse, not for customization.** Where a part supports `asChild` or `className`, a consumer changes what it renders or how it looks with no fork.
 
 **Signs you missed it:**
 
-- A correct use that needs a prop, a wrapper, or a step that each app must remember.
+- A correct use that needs a wrapper, a step, or a prop for a behavior with one right answer.
 - A query for a need that `find` answers with a near miss or a hand-rolled recipe.
 - A docs example that teaches a workaround, so callers copy it.
 - A misuse that compiles, renders, and fails with no error.

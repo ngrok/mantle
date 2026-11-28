@@ -8,7 +8,7 @@ The goals have no order. They work together: a change that meets six goals and f
 
 Choose a design by what the consumer and the user get, not by what is easy to build or to migrate. The number of call sites that a change must move is never a reason to keep a worse API.
 
-People and agents take the path that asks the least of them, so make the right path that one. The default is the right choice, the right part is the easiest to find in the docs, the MCP skill, and `find`, and the wrong path meets a type error, a dev error, or a lint rule ([fall into the pit of success](./principles/fall-into-the-pit-of-success.md)).
+People and agents take the path that asks the least of them, so make the right path that one. The default is the right choice, the right part is the easiest to find in the docs, the agent skill, and the MCP `find` tool, and the wrong path meets a type error, an `invariant`, or a lint rule ([fall into the pit of success](./principles/fall-into-the-pit-of-success.md)).
 
 ## How to use the goals
 

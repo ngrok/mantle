@@ -47,18 +47,20 @@ phrase widely known in
 impossible) to do the wrong things."
 
 So Mantle puts the right choice closest to hand, for you and for the agent that writes
-code with you:
+code with you. It:
 
-- The default is the right choice, so a part with no props renders correct and accessible.
-- The right part is the first one you find: its docs page, its JSDoc example, the mantle
-  skill, and the [MCP](/for-ai-agents) `find` tool with its aliases all lead to it before a
-  near miss.
-- The wrong path meets friction: a type that can't express it, an error in development
-  that names the fix, or a finding from the MCP `check` tool.
+- Builds in each behavior that has one right answer. A part asks only for what it can't
+  infer, such as an [IconButton](/components/actions/icon-button)'s `label`.
+- Points its docs pages, JSDoc examples, agent skill, and
+  [Model Context Protocol (MCP)](/for-ai-agents) `find` tool at the right part before a
+  near miss. Golden queries track each miss until it's fixed.
+- Meets a wrong path with friction: a type that can't express it, an error in development
+  that names the fix (such as a part outside its `Root`), or a finding from the MCP `check`
+  tool.
 
-The friction makes a wrong path harder, not impossible. `asChild` and `className` stay
-open, so you never fork a part to get around it. When you keep reaching for a workaround,
-that's on Mantle to fix.
+Friction is for misuse, not customization. Where a part supports `asChild` and
+`className`, you change what it renders or how it looks without a fork. If you keep
+reaching for a workaround, that's on Mantle to fix.
 
 ## Semantic HTML, then everything else
 

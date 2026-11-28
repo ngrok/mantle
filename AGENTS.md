@@ -4,11 +4,11 @@ Read each `AGENTS.md` in the directories from the repo root down to the file you
 
 ngrok's UI library and design system: native HTML, React, TypeScript, and Tailwind CSS, in a pnpm and Turborepo monorepo.
 
-This file follows the [AGENTS.md standard](https://agents.md) and is canonical for every harness. It routes you to the rules a task needs, and the files it links to are active instructions. Edit it, not its `CLAUDE.md` symlinks.
+This file follows the [AGENTS.md standard](https://agents.md) and is canonical for every harness. It routes you to the rules a task needs, and the files it links to are active instructions. Edit the `AGENTS.md` beside each `CLAUDE.md` symlink.
 
 ## North star
 
-Each change meets all seven goals, for humans and agents alike. They have no order, and a change that fails one is not done. [docs/north-star.md](./docs/north-star.md) defines each goal, the principles that serve it, and the rule for a trade-off. Make the right path the easy one, and the wrong one hard.
+Each change meets all seven goals, for humans and agents alike. They have no order, and a change that fails one is not done. [docs/north-star.md](./docs/north-star.md) defines each goal, the principles that serve it, and the rule for a trade-off. Make the right path the easy one.
 
 - **Correct:** right in each theme, on the server and after hydration, at each width, and for each input. Never trade it.
 - **Accessible:** the keyboard and ARIA contract that the name promises, with no work at the call site.
@@ -54,7 +54,7 @@ They are the methods that meet the [north star](#north-star). Each one has a fil
 - [Build the behavior in](./docs/principles/build-the-behavior-in.md) (code): a prop needs a named product use case.
 - [Minimize reader load](./docs/principles/minimize-reader-load.md) (code, prose): code and prose that read in one pass.
 - [Experience first](./docs/principles/experience-first.md) (code, prose): judge a change at the call site and in the changelog.
-- [Fall into the pit of success](./docs/principles/fall-into-the-pit-of-success.md) (code, prose): the right path is the easy one.
+- [Fall into the pit of success](./docs/principles/fall-into-the-pit-of-success.md) (code, prose): easy right path, friction on the wrong one.
 - [Make illegal states unrepresentable](./docs/principles/make-illegal-states-unrepresentable.md) (code): contracts in types.
 - [Pure core, effects at the edges](./docs/principles/pure-core-effects-at-the-edges.md) (code): pure functions, thin bindings.
 - [Derive, don't sync](./docs/principles/derive-dont-sync.md) (code): compute values; do not copy them into state.
