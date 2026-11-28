@@ -2978,79 +2978,80 @@ class ChartEngine {
 		const { k, b } = horizontal ? this.#valueCoefficients() : this.#yCoefficients();
 		const pointerAlongValue = horizontal ? cssX : cssY;
 		/**
-		 * The series of `marks` whose painted value sits nearest the pointer
-		 * along the value axis (x when horizontal, y otherwise), within `limit`
-		 * pixels. Stacked marks paint at their cumulative boundary, so it
-		 * measures the boundary: raw values would hand everything to the
+		 * Where a series paints at this index, in CSS pixels along the value
+		 * axis (x when horizontal, y otherwise). Why the painted values: a click
+		 * lands on the mark a reader sees, mid-tween too. Why the column index: it
+		 * holds until the next ingest, while the registrations can change first.
+		 */
+		const pixel = (spec: SeriesSpec, boundary: "value" | "lower" | "upper"): number =>
+			(this.#paintedValues(spec, boundary, this.#columnIndex.get(spec.dataKey) ?? -1)[index] ??
+				Number.NaN) *
+				k +
+			b;
+		/**
+		 * The series of `marks` whose painted value sits nearest the pointer,
+		 * within `limit` pixels. Stacked marks paint at their cumulative boundary,
+		 * so it measures the boundary: raw values would hand everything to the
 		 * largest series. A gap reads `NaN`, which is never nearer.
 		 */
 		const nearest = (marks: (spec: SeriesSpec) => boolean, limit: number): string | null => {
 			let found: string | null = null;
 			let best = limit;
-			specs.forEach((spec, seriesIndex) => {
-				// Why the painted values: a click lands on the mark a reader sees, mid-tween too.
-				const values = this.#paintedValues(
-					spec,
-					this.#stacks(spec) ? "upper" : "value",
-					seriesIndex,
+			for (const spec of specs) {
+				const distance = Math.abs(
+					pixel(spec, this.#stacks(spec) ? "upper" : "value") - pointerAlongValue,
 				);
-				const distance = Math.abs((values?.[index] ?? Number.NaN) * k + b - pointerAlongValue);
 				if (marks(spec) && distance < best) {
 					best = distance;
 					found = spec.dataKey;
 				}
-			});
+			}
 			return found;
 		};
-		// A line draws over the bars, so it takes a pointer near its value
-		// first. Everywhere else the bars take it, and an area under them takes
-		// only a pointer nearer its edge than any bar's.
-		const overBars = isBar ? nearest((spec) => spec.mark === "line", MARK_HIT_SLOP) : null;
-		if (overBars != null) {
-			return overBars;
-		}
-		// Grouped bars: the pointer's slot within the band names the series. The
-		// slots stack along the band's axis: y when horizontal, x otherwise.
-		const layout = this.#bandLayout;
-		const bars = specs.filter((spec) => spec.mark === "bar");
-		if (isBar && this.#stack == null && layout != null && bars.length > 1) {
-			const withinBand = (horizontal ? cssY : cssX) - bandStart(layout, index);
-			const slot = Math.floor((withinBand / Math.max(1, layout.bandwidth)) * bars.length);
-			return bars[Math.min(bars.length - 1, Math.max(0, slot))]?.dataKey ?? null;
+		// A line paints over the areas and the bars, so it takes a pointer near
+		// its value first, where its entrance has drawn it.
+		const onLine = nearest(
+			(spec) =>
+				spec.mark === "line" &&
+				cssX <=
+					this.#plot.left + this.#plot.width * easeOutStrong(this.#enterProgress(spec.dataKey)),
+			MARK_HIT_SLOP,
+		);
+		if (onLine != null || !isBar) {
+			return onLine ?? nearest(() => true, Number.POSITIVE_INFINITY);
 		}
 		// Bars: a bar is a filled span, not a boundary, so the bar CONTAINING the
-		// pointer names the series: a stacked segment, or an unstacked bar from
-		// the baseline. Nearest-boundary would hand the half of every segment
-		// nearer the baseline to the series below it, and a bar to the area
-		// under it.
-		const stack = this.#stack;
-		if (isBar) {
-			for (let seriesIndex = 0; seriesIndex < specs.length; seriesIndex++) {
-				const spec = specs[seriesIndex];
-				if (spec?.mark !== "bar") {
-					continue;
-				}
-				const lower = stack == null ? 0 : (stack.lower[seriesIndex]?.[index] ?? Number.NaN);
-				const upper =
-					(stack == null ? this.#columnOf(spec.dataKey) : stack.upper[seriesIndex])?.[index] ??
-					Number.NaN;
-				if (Number.isNaN(lower) || Number.isNaN(upper) || lower === upper) {
-					continue;
-				}
-				const lowerPixel = lower * k + b;
-				const upperPixel = upper * k + b;
-				if (
-					pointerAlongValue >= Math.min(lowerPixel, upperPixel) &&
-					pointerAlongValue <= Math.max(lowerPixel, upperPixel)
-				) {
-					return spec.dataKey;
-				}
+		// pointer names the series: a stacked segment, or a bar from the
+		// baseline. Grouped bars side by side: only the pointer's slot within the
+		// band can contain it. The slots run along the band's axis.
+		const layout = this.#bandLayout;
+		let bars = specs.filter((spec) => spec.mark === "bar");
+		const grouped = this.#stack == null && layout != null && bars.length > 1;
+		if (grouped) {
+			const withinBand = (horizontal ? cssY : cssX) - bandStart(layout, index);
+			const slot = Math.floor((withinBand / Math.max(1, layout.bandwidth)) * bars.length);
+			const at = Math.min(bars.length - 1, Math.max(0, slot));
+			bars = bars.slice(at, at + 1);
+		}
+		for (const spec of bars) {
+			const stacks = this.#stacks(spec);
+			const lowerPixel = stacks ? pixel(spec, "lower") : b;
+			const upperPixel = pixel(spec, stacks ? "upper" : "value");
+			if (
+				pointerAlongValue >= Math.min(lowerPixel, upperPixel) &&
+				pointerAlongValue <= Math.max(lowerPixel, upperPixel) &&
+				lowerPixel !== upperPixel
+			) {
+				return spec.dataKey;
 			}
 		}
-		// Otherwise the nearest series names it: the mark IS the boundary for a
-		// line or an area, and a pointer clear of a stack still names the
-		// segment it is closest to.
-		return nearest((spec) => !isBar || spec.mark !== "line", Number.POSITIVE_INFINITY);
+		// Otherwise the nearest bar or area names it: a pointer clear of a stack
+		// names the segment it is closest to. Grouped bars with no area keep the
+		// slot's bar, wherever the pointer sits in it.
+		if (grouped && !specs.some((spec) => spec.mark === "area")) {
+			return bars[0]?.dataKey ?? null;
+		}
+		return nearest((spec) => spec.mark === "area" || bars.includes(spec), Number.POSITIVE_INFINITY);
 	}
 
 	/**
