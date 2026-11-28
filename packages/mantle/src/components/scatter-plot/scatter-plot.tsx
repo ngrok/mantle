@@ -353,8 +353,8 @@ type ScatterPlotAxisTitleProps = AxisTitlePrimitiveProps;
  * `ScatterPlot.XAxis` or `ScatterPlot.YAxis`. An x title sits under the plot and also heads
  * the x column of the sr-only data table. A y title reads bottom to top on
  * the left, and top to bottom beside a right axis. The title is one line, and
- * it truncates with an ellipsis, so keep it short. A 3D plot draws no axes and
- * no titles.
+ * it truncates with an ellipsis, so keep it short. A 3D plot labels
+ * its own frame from the data keys, so it shows no title.
  *
  * Renders a `div`; `asChild` swaps the element.
  *

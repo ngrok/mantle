@@ -1,6 +1,7 @@
 "use client";
 
 import { render } from "@testing-library/react";
+import invariant from "tiny-invariant";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { commands } from "vitest/browser";
 import * as BarChart from "../bar-chart/bar-chart-parts.js";
@@ -22,6 +23,9 @@ beforeAll(async () => {
 	styleElement.textContent = [
 		await commands.tailwindCss("./root.tsx"),
 		await commands.tailwindCss("./legend.tsx"),
+		await commands.tailwindCss("./copy-button.tsx"),
+		// The consumer classes the tests pass, such as `hidden` and `p-4`.
+		await commands.tailwindCss("./axis-title.browser.test.tsx"),
 		await commands.tailwindCss("./axis-title.tsx"),
 	].join("\n");
 	document.head.appendChild(styleElement);
@@ -143,6 +147,66 @@ describe("an axis title", () => {
 		expect([root.width, root.height]).toEqual([short.width, short.height]);
 		expect(rect(container, '[data-testid="x"]').height).toBe(shortX.height);
 		expect(rect(container, '[data-testid="y"]').width).toBe(shortY.width);
+	});
+
+	test("a side title spans the inner plot when no axis runs along the bottom", () => {
+		const { container } = render(
+			<div style={{ width: 480 }}>
+				<LineChart.Root data={rows} xKey="day" animate={false} aria-label="Requests">
+					<LineChart.Line dataKey="requests" label="Requests" color="blue" />
+					<LineChart.YAxis>
+						<LineChart.AxisTitle data-testid="left">Requests</LineChart.AxisTitle>
+					</LineChart.YAxis>
+				</LineChart.Root>
+			</div>,
+		);
+		const plot = rect(container, '[data-slot="line-chart-plot"]');
+		const left = rect(container, '[data-testid="left"]');
+		expect([left.top, left.bottom]).toEqual([plot.top + 8, plot.bottom - 8]);
+	});
+
+	test("a consumer's hidden and items-center still apply, and RTL keeps each title by its axis", () => {
+		const chart = (className: string, dir?: "rtl") => (
+			<div style={{ width: 480 }} dir={dir}>
+				<LineChart.Root
+					data={rows}
+					xKey="day"
+					animate={false}
+					aria-label="Requests"
+					className={className}
+				>
+					<LineChart.Line dataKey="requests" label="Requests" color="blue" />
+					<LineChart.Line dataKey="errors" label="Errors" color="red" yAxis="right" />
+					<LineChart.XAxis />
+					<LineChart.YAxis>
+						<LineChart.AxisTitle data-testid="left">Requests</LineChart.AxisTitle>
+					</LineChart.YAxis>
+					<LineChart.YAxis side="right">
+						<LineChart.AxisTitle data-testid="right">Errors</LineChart.AxisTitle>
+					</LineChart.YAxis>
+					<LineChart.CopyButton data-testid="copy" className="absolute top-0 right-0" />
+				</LineChart.Root>
+			</div>
+		);
+		const { container, rerender } = render(chart("hidden"));
+		const root = () => {
+			const element = container.querySelector<HTMLElement>('[data-slot="line-chart"]');
+			invariant(element != null, "The Root renders.");
+			return element;
+		};
+		expect(getComputedStyle(root()).display).toBe("none");
+		rerender(chart("items-center p-4"));
+		const plot = rect(container, '[data-slot="line-chart-plot"]');
+		expect(plot.height).toBeGreaterThan(100);
+		// A docked part keeps the Root's padding box, not a grid cell.
+		expect(rect(container, '[data-testid="copy"]').right).toBeCloseTo(
+			root().getBoundingClientRect().right,
+			1,
+		);
+		rerender(chart("", "rtl"));
+		const rtlPlot = rect(container, '[data-slot="line-chart-plot"]');
+		expect(rect(container, '[data-testid="left"]').right).toBe(rtlPlot.left);
+		expect(rect(container, '[data-testid="right"]').left).toBe(rtlPlot.right);
 	});
 
 	test("a chart with no title keeps its flex column", () => {

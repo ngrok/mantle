@@ -1,6 +1,9 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import type { Root } from "react-dom/client";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { userEvent } from "@testing-library/user-event";
-import type { FocusEvent } from "react";
+import type { ComponentProps, FocusEvent } from "react";
 import { createRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { engageChart } from "../../test-utils/engage-chart.js";
@@ -1140,6 +1143,91 @@ describe("LineChart.AxisTitle", () => {
 			["DIV", "x", "Time"],
 			["H3", "y", "Errors"],
 		]);
+	});
+
+	test("the table header reads the title's text, not a copy of its controls or props", () => {
+		// An asChild target spreads the props it gets, as `Slot` requires.
+		const Label = ({ text, ...props }: ComponentProps<"span"> & { text: string }) => (
+			<span {...props}>{text}</span>
+		);
+		const chart = (title: string) => (
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.XAxis>
+					<LineChart.AxisTitle asChild>
+						<Label text={title} />
+					</LineChart.AxisTitle>
+				</LineChart.XAxis>
+				<LineChart.YAxis>
+					<LineChart.AxisTitle>
+						Latency <button type="button">Switch units</button>
+					</LineChart.AxisTitle>
+				</LineChart.YAxis>
+			</LineChart.Root>
+		);
+		const { rerender } = render(chart("Time"));
+		engageChart();
+		expect(screen.getByRole("columnheader", { name: "Time" })).toBeInTheDocument();
+		// The y title's button stays the one control; the table copies no title.
+		expect(screen.getAllByRole("button", { name: "Switch units" })).toHaveLength(1);
+		rerender(chart("When"));
+		expect(screen.getByRole("columnheader", { name: "When" })).toBeInTheDocument();
+	});
+
+	test("the server renders each 2D title and no 3D title, and hydrates with no mismatch", () => {
+		const chart = (
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.XAxis>
+					<LineChart.AxisTitle>Time</LineChart.AxisTitle>
+				</LineChart.XAxis>
+				<LineChart.YAxis>
+					<LineChart.AxisTitle>Latency</LineChart.AxisTitle>
+				</LineChart.YAxis>
+			</LineChart.Root>
+		);
+		const html = renderToString(chart);
+		const container = document.createElement("div");
+		container.innerHTML = html;
+		const titles = [...container.querySelectorAll("[data-axis]")];
+		expect(titles.map((title) => [title.getAttribute("data-axis"), title.textContent])).toEqual([
+			["x", "Time"],
+			["y", "Latency"],
+		]);
+		// Why the class: the server reserves the tick band, so the title does not move.
+		expect(titles[1]?.className).toContain("mb-[24px]");
+		document.body.append(container);
+		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		const onRecoverableError = vi.fn<(error: unknown) => void>();
+		let root: Root | undefined;
+		act(() => {
+			root = hydrateRoot(container, chart, { onRecoverableError });
+		});
+		expect(onRecoverableError).toHaveBeenCalledTimes(0);
+		expect(consoleError).toHaveBeenCalledTimes(0);
+		act(() => {
+			root?.unmount();
+		});
+		container.remove();
+	});
+
+	test("removing the winning x title hands the header to the title still mounted", () => {
+		const chart = (both: boolean) => (
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.XAxis>
+					<>
+						<LineChart.AxisTitle key="time">Time</LineChart.AxisTitle>
+						{both && <LineChart.AxisTitle key="date">Date</LineChart.AxisTitle>}
+					</>
+				</LineChart.XAxis>
+			</LineChart.Root>
+		);
+		const { rerender } = render(chart(true));
+		engageChart();
+		expect(screen.getByRole("columnheader", { name: "Date" })).toBeInTheDocument();
+		rerender(chart(false));
+		expect(screen.getByRole("columnheader", { name: "Time" })).toBeInTheDocument();
 	});
 
 	test("throws outside an axis", () => {

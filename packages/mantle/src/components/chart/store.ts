@@ -88,8 +88,8 @@ type StoreSnapshot = {
 	tooltip: TooltipConfig | null;
 	/** The bar direction the Root registered (DOM consumers: legend texture keys). */
 	orientation: BarOrientation;
-	/** The content of the x axis's `AxisTitle`, which heads the data table's x column. `null` when none is composed. */
-	xTitle: ReactNode;
+	/** The text of the x axis's `AxisTitle`, which heads the data table's x column. `null` when none is composed. */
+	xTitle: string | null;
 };
 
 /**
@@ -142,8 +142,8 @@ class ChartStore {
 	#referenceLineSequenceById = new Map<string, number>();
 	#emptySlot: EmptySlotSpec | null = null;
 	#tooltip: TooltipConfig | null = null;
-	/** Boxed, so a cleanup can tell its own registration from an equal string that replaced it. */
-	#xTitle: { title: ReactNode } | null = null;
+	/** The x title's text and the `AxisTitle` that set it, so a cleanup clears only its own. */
+	#xTitle: { owner: string; text: string } | null = null;
 	#hover: HoverSnapshot | null = null;
 	#hoverEver = false;
 	#readoutSpace = 0;
@@ -426,17 +426,25 @@ class ChartStore {
 		};
 	}
 
-	registerXTitle(title: ReactNode): () => void {
-		// Singleton part: last registration wins.
-		const entry = { title };
-		this.#xTitle = entry;
-		this.#publishRegistrations("title");
-		return () => {
-			if (this.#xTitle === entry) {
-				this.#xTitle = null;
-				this.#publishRegistrations("title");
+	/**
+	 * Set the x title's text, or clear it with `null`. An equal text is a no-op,
+	 * so an `AxisTitle` can call it after each commit. A clear from another
+	 * owner keeps the current title: last registration wins.
+	 */
+	setXTitle(owner: string, text: string | null): void {
+		const current = this.#xTitle;
+		if (text == null) {
+			if (current?.owner !== owner) {
+				return;
 			}
-		};
+			this.#xTitle = null;
+		} else {
+			if (current?.owner === owner && current.text === text) {
+				return;
+			}
+			this.#xTitle = { owner, text };
+		}
+		this.#publishRegistrations("title");
 	}
 
 	/** Engine-side: publish the current hover/keyboard snapshot (or clear it). */
@@ -490,7 +498,7 @@ class ChartStore {
 			emptySlot: this.#emptySlot,
 			tooltip: this.#tooltip,
 			orientation: this.#orientation,
-			xTitle: this.#xTitle?.title ?? null,
+			xTitle: this.#xTitle?.text ?? null,
 		};
 		this.#emit();
 		if (change === "series") {

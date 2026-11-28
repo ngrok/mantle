@@ -225,7 +225,7 @@ type ChartContextValue = {
 	store: ChartStore;
 	/** The bar direction the Root renders, read at render time by an axis title. */
 	orientation: BarOrientation;
-	/** Whether the plot is a 3D scatter, which draws no axes and so no axis titles. */
+	/** Whether the plot is a 3D scatter, which labels its own frame and shows no axis title. */
 	threeD: boolean;
 	engineRef: { current: ChartEngine | null };
 	/**

@@ -1,9 +1,10 @@
 "use client";
 
-import type { ComponentProps, ReactNode } from "react";
-import { isValidElement, useContext, useLayoutEffect } from "react";
+import type { ComponentProps } from "react";
+import { useContext, useId, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -28,14 +29,16 @@ type AxisTitlePrimitiveProps = ComponentProps<"div"> &
 	};
 
 /**
- * The cell each edge takes in the Root's grid. Why the `mt-2 mb-6` on a side
- * title: they match the plot's 8px top padding and its 24px tick band, so the
- * title centers on the inner plot with no measurement and never moves.
+ * The cell each edge takes in the Root's grid. Why the pixel margins on a side
+ * title: they match the plot's 8px top padding and its bottom band (24px under
+ * a bottom axis, else 8px), so the title centers on the inner plot with no
+ * measurement. Why `rtl:`: grid columns follow the text direction, and the
+ * engine paints each axis on its physical edge.
  */
 const EDGE_CLASSES = {
 	bottom: "col-2 row-2 text-center",
-	left: "col-1 row-1 mt-2 mb-6 rotate-180 text-center [writing-mode:vertical-rl]",
-	right: "col-3 row-1 mt-2 mb-6 text-center [writing-mode:vertical-rl]",
+	left: "col-1 row-1 mt-[8px] rotate-180 text-center [writing-mode:vertical-rl] rtl:col-3",
+	right: "col-3 row-1 mt-[8px] text-center [writing-mode:vertical-rl] rtl:col-1",
 } as const;
 
 /**
@@ -60,6 +63,7 @@ const ChartAxisTitlePrimitive = ({
 	asChild = false,
 	children,
 	className,
+	ref,
 	"data-slot": dataSlot,
 	...props
 }: AxisTitlePrimitiveProps & { partName: string; slotName: string }) => {
@@ -71,21 +75,34 @@ const ChartAxisTitlePrimitive = ({
 			`${partName} must be composed inside ${context.componentName}.XAxis or ${context.componentName}.YAxis. It names the axis it sits in.`,
 	);
 	const { store, threeD } = context;
-	// Why the child's children: with `asChild`, the element is the wrapper, and
-	// the table header takes only the text inside it.
-	const title: ReactNode =
-		asChild && isValidElement<{ children?: ReactNode }>(children)
-			? children.props.children
-			: children;
-	useLayoutEffect(
-		() => (axis === "x" && !threeD ? store.registerXTitle(title) : undefined),
-		[store, axis, threeD, title],
+	const id = useId();
+	const titleRef = useRef<HTMLDivElement | null>(null);
+	const composedRef = useComposedRefs(titleRef, ref);
+	// Why the rendered text and no dependencies: the table header reads the text
+	// the title shows, whatever `asChild` element renders it, and never a copy of
+	// a control inside it. An equal text is a no-op in the store.
+	useLayoutEffect(() => {
+		if (axis === "x") {
+			store.setXTitle(id, titleRef.current?.textContent?.trim() || null);
+		}
+	});
+	useLayoutEffect(() => () => store.setXTitle(id, null), [store, id]);
+	// Why a server snapshot of `true`: most charts compose both axes, so the
+	// server reserves the tick band, and only a chart with no bottom axis moves.
+	const horizontal = context.orientation === "horizontal";
+	const bottomAxis = useSyncExternalStore(
+		store.subscribe,
+		() => {
+			const snapshot = store.getSnapshot();
+			return (horizontal ? snapshot.yAxes.left : snapshot.xAxis) != null;
+		},
+		() => true,
 	);
-	// A 3D plot draws no axes, so it names none.
+	// A 3D plot labels its own frame from the data keys, so it shows no title.
 	if (threeD) {
 		return null;
 	}
-	const edge = edgeOf(axis, context.orientation === "horizontal");
+	const edge = edgeOf(axis, horizontal);
 	const Component = asChild ? Slot : "div";
 	return (
 		<Component
@@ -94,12 +111,15 @@ const ChartAxisTitlePrimitive = ({
 			className={cx(
 				"text-muted truncate text-xs",
 				// Why the parent selectors: a title turns its Root into a grid, so a
-				// chart with no title ships none of these rules. The plot is the Root's
-				// first child, and every other part spans the grid below it.
-				"[*:has(>&)]:grid [*:has(>&)]:grid-cols-[auto_minmax(0,1fr)_auto] [*:has(>&)]:grid-rows-[minmax(0,1fr)] [*:has(>&)>:first-child]:col-2 [*:has(>&)>:first-child]:row-1 [:where(*:has(>&))>*]:col-span-full",
+				// chart with no title matches none of these rules. The plot is the
+				// Root's first child and fills its cell; every other in-flow part
+				// spans the grid below it, and a docked part keeps the Root's box.
+				"[*:has(>&)]:[--_chart-display:grid] [*:has(>&)]:grid-cols-[auto_minmax(0,1fr)_auto] [*:has(>&)]:grid-rows-[minmax(0,1fr)] [*:has(>&)>:first-child]:col-2 [*:has(>&)>:first-child]:row-1 [*:has(>&)>:first-child]:self-stretch [:where(*:has(>&))>:not(:where(.absolute))]:col-span-full",
 				EDGE_CLASSES[edge],
+				edge !== "bottom" && (bottomAxis ? "mb-[24px]" : "mb-[8px]"),
 				className,
 			)}
+			ref={composedRef}
 			{...props}
 		>
 			{children}
