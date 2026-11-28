@@ -4,6 +4,7 @@
  * @see https://mantle.ngrok.com/components/charts/line-chart
  */
 
+import { logScale } from "../chart/log-scale.js";
 import * as LineChartParts from "./line-chart-parts.js";
 /**
  * A line chart for trends over a continuous x, time above
@@ -84,6 +85,7 @@ const LineChart = LineChartParts;
 export {
 	//,
 	LineChart,
+	logScale,
 };
 export type {
 	//,

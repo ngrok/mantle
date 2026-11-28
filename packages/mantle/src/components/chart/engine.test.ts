@@ -1,3 +1,4 @@
+import { logScale } from "./log-scale.js";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import invariant from "tiny-invariant";
 import { WORLD_LAND } from "../world-map/world-land.js";
@@ -2735,5 +2736,314 @@ describe("ChartEngine series of more than one mark", () => {
 		mount.engine.handleActivate(line.x - 15, line.y + 30);
 
 		expect(onDatumActivate.mock.calls.map(([event]) => event.dataKey)).toEqual(["total", "added"]);
+	});
+});
+
+describe("ChartEngine log y axis", () => {
+	/** Register a left `YAxis` with a log scale, as a re-render with `scale="log"` does. */
+	const setLog = (mount: Pick<Mounted, "store">, domain?: YDomain): void => {
+		mount.store.registerYAxis("left", {
+			tickFormat: undefined,
+			tickCount: undefined,
+			domain,
+			scale: logScale,
+		});
+	};
+	/** The y of each vertex of the first painted path, top to bottom of the plot. */
+	const vertexYs = (mount: Pick<Mounted, "elements">): number[] =>
+		[...(paintedPaths(mount)[0] ?? "").matchAll(/[ML]\s*[-\d.e]+[ ,]([-\d.e]+)/g)].map((match) =>
+			Number(match[1]),
+		);
+	const leftLabels = (mount: Mounted): string[] =>
+		[...mount.elements.plot.querySelectorAll("svg text")]
+			.filter(
+				(text) =>
+					text instanceof SVGElement && text.style.getPropertyValue("text-anchor") === "end",
+			)
+			.map((text) => text.textContent ?? "");
+
+	test("spaces each power of ten evenly and labels the decades", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [1, 10, 100, 1000].map((a, x) => ({ x, a })),
+			size: { width: 400, height: 300 },
+		});
+		setLog(mount);
+		mount.engine.commitNow();
+		const ys = vertexYs(mount);
+
+		// Why: on a linear axis 1, 10, and 100 sit near the bottom, 900 apart from 1000.
+		expect(ys).toHaveLength(4);
+		const gaps = ys.slice(1).map((y, index) => (ys[index] ?? 0) - y);
+		for (const gap of gaps) {
+			expect(gap).toBeCloseTo(gaps[0] ?? 0, 6);
+		}
+		// Why 0.1: the floor sits one decade below the smallest value, so it keeps a length.
+		expect(leftLabels(mount)).toEqual(["0.1", "1", "10", "100", "1K"]);
+	});
+
+	test("draws no mark for a value at or below zero, and the readout keeps it", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [5, 0, 50, -3, 500].map((a, x) => ({ x, a })),
+		});
+		setLog(mount);
+		mount.engine.commitNow();
+
+		// Why: 0 and -3 break the line into three single points, so no segment joins them.
+		expect((paintedPaths(mount)[0] ?? "").match(/L/g) ?? []).toHaveLength(0);
+		mount.engine.handleKeyDown("Home");
+		mount.engine.handleKeyDown("ArrowRight");
+		expect(mount.store.getSnapshot().hover?.points[0]?.value).toBe(0);
+	});
+
+	test("keeps a positive domain end and fits a zero minimum to the data", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [30, 4000].map((a, x) => ({ x, a })),
+			size: { width: 400, height: 300 },
+		});
+		setLog(mount, [0, 100_000]);
+		mount.engine.commitNow();
+
+		// Why: the auto minimum is a full decade below 30, and the fixed maximum holds.
+		expect(leftLabels(mount)).toEqual(["1", "10", "100", "1K", "10K", "100K"]);
+	});
+
+	test("a switch back to linear paints the raw values again", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [1, 10, 100, 1000].map((a, x) => ({ x, a })),
+			size: { width: 400, height: 300 },
+		});
+		setLog(mount);
+		mount.engine.commitNow();
+		mount.store.registerYAxis("left", {
+			tickFormat: undefined,
+			tickCount: undefined,
+			domain: undefined,
+		});
+		mount.engine.flushIngest();
+		mount.engine.commitNow();
+		const ys = vertexYs(mount);
+
+		// Why: linear 1 → 10 is 9 units and 100 → 1000 is 900, so the gaps differ 100 times.
+		const low = (ys[0] ?? 0) - (ys[1] ?? 0);
+		const high = (ys[2] ?? 0) - (ys[3] ?? 0);
+		expect(high / low).toBeCloseTo(100, 0);
+		expect(leftLabels(mount)).not.toContain("1K");
+	});
+
+	const linearAxis = (mount: Pick<Mounted, "store">): void => {
+		mount.store.registerYAxis("left", {
+			tickFormat: undefined,
+			tickCount: undefined,
+			domain: undefined,
+		});
+	};
+	const decades = [1, 10, 100, 1000].map((a, x) => ({ x, a }));
+	const mountLine = () =>
+		mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: decades,
+			size: { width: 400, height: 300 },
+			options: { animate: true },
+		});
+
+	test("a switch to linear glides each mark from its log height and settles on the linear one", () => {
+		const frames = installFrameClock();
+		const mount = mountLine();
+		setLog(mount);
+		mount.engine.markSeen();
+		frames.settle();
+		const logYs = vertexYs(mount);
+		linearAxis(mount);
+		mount.engine.flushIngest();
+		frames.step();
+		const firstFrame = vertexYs(mount);
+		const count = frames.settle();
+		const target = mountLine();
+		target.engine.commitNow();
+
+		// Why: a jump would paint the linear heights on the first frame; a glide
+		// from the wrong start would leave the first frame far from both.
+		expect(firstFrame).not.toEqual(vertexYs(target));
+		expect(Math.abs((firstFrame[0] ?? 0) - (logYs[0] ?? 0))).toBeLessThan(
+			Math.abs((firstFrame[0] ?? 0) - (vertexYs(target)[0] ?? 0)),
+		);
+		// Why a count: the glide is a motion, so it must end.
+		expect(count).toBeGreaterThan(1);
+		expect(vertexYs(mount).map(Math.round)).toEqual(vertexYs(target).map(Math.round));
+	});
+
+	test("under reduced motion a switch to linear jumps to the linear heights", () => {
+		vi.stubGlobal(
+			"matchMedia",
+			(query: string) =>
+				({
+					matches: query === REDUCED_MOTION_QUERY,
+					media: query,
+					addEventListener: () => {},
+					removeEventListener: () => {},
+				}) as unknown as MediaQueryList,
+		);
+		const mount = mountLine();
+		setLog(mount);
+		mount.engine.markSeen();
+		mount.engine.commitNow();
+		linearAxis(mount);
+		mount.engine.flushIngest();
+		mount.engine.commitNow();
+		const target = mountLine();
+		target.engine.commitNow();
+
+		expect(vertexYs(mount)).toEqual(vertexYs(target));
+	});
+
+	test("a zero bar on a log axis is a reading, not an empty slot", () => {
+		const paths = (value: number | null): number => {
+			const mount = mountEngine({
+				kind: "bar",
+				backend: createSvgBackend,
+				series: [makeSeries("a", "bar")],
+				rows: [
+					{ x: "a", a: 100 },
+					{ x: "b", a: value },
+				],
+				options: { xScale: "band" },
+			});
+			setLog(mount);
+			mount.store.registerEmptySlot({ label: "No reading", paint: paintEmptySlots });
+			mount.engine.flushIngest();
+			mount.engine.commitNow();
+			return paintedPaths(mount).length;
+		};
+
+		// Why: a missing row paints the outline; a 0 has no bar and no outline.
+		expect(paths(0)).toBeLessThan(paths(null));
+	});
+
+	test("a horizontal log axis with no tick count paints its decades", () => {
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "bar")],
+			rows: [
+				{ x: "a", a: 5 },
+				{ x: "b", a: 5000 },
+			],
+			options: { xScale: "band", orientation: "horizontal" },
+		});
+		setLog(mount);
+		mount.engine.flushIngest();
+		mount.engine.commitNow();
+		const texts = [...mount.elements.plot.querySelectorAll("svg text")].map(
+			(text) => text.textContent,
+		);
+
+		// Why: an unbounded tick count once gave a stride of 0, and the loop never ended.
+		expect(texts).toEqual(expect.arrayContaining(["1", "10", "100", "1K", "10K"]));
+	});
+
+	test("an append that lowers the automatic floor keeps unchanged readings in place", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [100, 100, 100].map((a, x) => ({ x, a })),
+			size: { width: 400, height: 300 },
+			options: { animate: true },
+		});
+		setLog(mount);
+		mount.engine.markSeen();
+		frames.settle();
+		const settled = vertexYs(mount);
+		mount.engine.setRows([100, 100, 1].map((a, x) => ({ x, a })));
+		mount.engine.flushIngest();
+		frames.step();
+
+		// Why: 1 moves the floor from 10 to 0.1, and the readings at 100 stay at
+		// the top; a domain that glides from the old floor painted them far above it.
+		expect(vertexYs(mount)[0]).toBeCloseTo(settled[0] ?? 0, 3);
+		frames.settle();
+		expect(vertexYs(mount)[0]).toBeCloseTo(settled[0] ?? 0, 3);
+	});
+
+	test("draws a reference line at a fixed log maximum", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [1, 26].map((a, x) => ({ x, a })),
+			size: { width: 400, height: 200 },
+		});
+		setLog(mount, [1, 26]);
+		mount.store.registerReferenceLine("slo", {
+			y: 26,
+			label: "SLO",
+			color: undefined,
+			yAxis: "left",
+		});
+		mount.engine.flushIngest();
+		mount.engine.commitNow();
+
+		// Why: the projection of 26 lands a hair above the plot top, which a strict cull drops.
+		const texts = [...mount.elements.plot.querySelectorAll("svg text")].map(
+			(text) => text.textContent,
+		);
+		expect(texts).toContain("SLO");
+	});
+
+	test("leaves out a reference line just past a fixed linear maximum", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [20, 60].map((a, x) => ({ x, a })),
+			size: { width: 400, height: 200 },
+		});
+		mount.store.registerYAxis("left", {
+			tickFormat: undefined,
+			tickCount: undefined,
+			domain: [0, 100],
+		});
+		mount.store.registerReferenceLine("over", {
+			y: 100.2,
+			label: "Over limit",
+			color: undefined,
+			yAxis: "left",
+		});
+		mount.engine.flushIngest();
+		mount.engine.commitNow();
+
+		const texts = [...mount.elements.plot.querySelectorAll("svg text")].map(
+			(text) => text.textContent,
+		);
+		expect(texts).not.toContain("Over limit");
+	});
+
+	test("a log axis on a stacked chart throws", () => {
+		expect(() => {
+			const mount = mountEngine({
+				kind: "bar",
+				backend: createSvgBackend,
+				series: [makeSeries("a", "bar")],
+				rows: [{ x: "a", a: 1 }],
+				options: { xScale: "band", stacked: true },
+			});
+			setLog(mount);
+			mount.engine.flushIngest();
+		}).toThrow(/YAxis scale only unstacked/);
 	});
 });

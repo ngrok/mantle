@@ -211,6 +211,47 @@ function ReferenceLineExample() {
 
 </Example>
 
+## Log scale
+
+When values span orders of magnitude, `scale={logScale}` on `LineChart.YAxis` spaces each power of ten evenly, so a tail of rare values reads beside the counts above it. The ticks are powers of ten with compact labels (`1K`, `1M`). A positive `domain` end is kept, and an `"auto"` end follows the data: the minimum is a power of ten at least one decade below the smallest positive value. A value at or below zero has no place on a log axis, so the line has a gap there; the tooltip, the data table, and the announcements still read the `0`. Switch `scale` to toggle the axis, and the lines glide to their new heights.
+
+Each axis takes its own scale, so a log left axis can sit beside a linear right one. The right axis then keeps ticks of its own instead of the left grid lines.
+
+<Example name="components/charts/line-chart/log-scale" title="Line Chart log scale example">
+
+```tsx
+import { LineChart, logScale } from "@ngrok/mantle/line-chart";
+
+const parameterTail = [
+	{ value: 1, llama: 48_000, mistral: 61_000 },
+	{ value: 2, llama: 2_100, mistral: 5_400 },
+	{ value: 4, llama: 130, mistral: 610 },
+	{ value: 8, llama: 9, mistral: 74 },
+	{ value: 16, llama: 0, mistral: 6 },
+	{ value: 32, llama: 0, mistral: 1 },
+];
+
+function LogScaleLineChartExample() {
+	return (
+		<LineChart.Root
+			data={parameterTail}
+			xKey="value"
+			aria-label="Parameters by magnitude, log scale"
+		>
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis scale={logScale} />
+			<LineChart.Line dataKey="llama" label="Llama" color="blue" markers />
+			<LineChart.Line dataKey="mistral" label="Mistral" color="emerald" markers />
+			<LineChart.Legend />
+			<LineChart.Tooltip />
+		</LineChart.Root>
+	);
+}
+```
+
+</Example>
+
 ## Two y axes
 
 Compose a second `LineChart.YAxis` with `side="right"` when one series runs far above the others, and set `yAxis="right"` on that series. Each axis has its own scale. The right axis puts a round value on each of the left axis's grid lines, so one grid reads on both sides. The legend lists the right axis's keys at its far end. `ReferenceLine` takes `yAxis` too.
@@ -652,6 +693,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `data-slot`    | `"line-chart-description"`                                                                          | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`.                                                                                                                                                                                                 |
 | `data-slot`    | `"line-chart-data-table"`                                                                           | The `sr-only` data table. Mounts once focus lands inside the chart (`data-engaged` appears) and stays. Interactive charts only.                                                                                                                                                                                                                                                                                                   |
 | `data-engaged` | present once engaged                                                                                | On the Root. Appears once focus lands inside the chart, and never goes away. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only.                                                                                                                                                                                                                                              |
+| `data-y-scale` | `"log"` or absent                                                                                   | On the Root. Present while a `YAxis` on either side has `scale={logScale}`. Absent on a linear chart.                                                                                                                                                                                                                                                                                                                             |
 | `data-slot`    | `"chart-active-point"`                                                                              | One hover dot inside the markers layer. Also carries `data-shape`.                                                                                                                                                                                                                                                                                                                                                                |
 | `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | On each hover dot, naming the glyph its series wears: the `shape` it set, else `"circle"`. The dot clips itself to that glyph, so target this only to restyle a dot.                                                                                                                                                                                                                                                              |
 | `data-value`   | a number                                                                                            | On each cell of the `sr-only` data table that shows a finite number, and on a numeric x row header. The raw number. A missing value has none.                                                                                                                                                                                                                                                                                     |
@@ -698,7 +740,8 @@ Value tick labels along the left of the plot (renderless; the chart paints it). 
 | `tickFormat?` | `(value: number, context: { defaultLabel: string; step: number }) => string` | thousands-separated | Format a tick label. The second argument carries the tick `step` and the `defaultLabel` the axis paints without a formatter, so a formatter can add a unit to `defaultLabel` and keep its precision. The chart compares the function by identity, so a new function paints the chart again. With the React Compiler in your build, an inline function stays stable; without it, define the function outside the component. |
 | `tickCount?`  | `number`                                                                     | `5`                 | Maximum tick count. When omitted, the axis aims for about 5 ticks. The axis can render fewer: ticks land on human-friendly steps, a vertical axis keeps about 28px for each tick, and a label that would overlap its neighbor is skipped. Integer-valued data never renders fractional ticks.                                                                                                                              |
 | `side?`       | `"left" \| "right"`                                                          | `"left"`            | The edge the axis paints on. A series or a reference line with `yAxis="right"` reads the right axis's scale, and the right axis puts a round value on each left grid line when its `domain` allows it. See [Two y axes](/components/charts/line-chart#two-y-axes).                                                                                                                                                         |
-| `domain?`     | `[number \| "auto", number \| "auto"]`                                       | `["auto", "auto"]`  | Fix either end of the axis's domain. An `"auto"` end follows the data.                                                                                                                                                                                                                                                                                                                                                     |
+| `domain?`     | `[number \| "auto", number \| "auto"]`                                       | `["auto", "auto"]`  | Fix either end of the axis's domain. An `"auto"` end follows the data. With `scale={logScale}`, an end at or below zero follows the data too.                                                                                                                                                                                                                                                                              |
+| `scale?`      | `"linear" \| logScale`                                                       | `"linear"`          | How values map to height. `logScale`, imported from this module, spaces each power of ten evenly and ticks at powers of ten. A value at or below zero has no mark, and the tooltip and the data table keep its value. On a stacked chart, only a right axis takes it. See [Log scale](/components/charts/line-chart#log-scale).                                                                                            |
 | `children?`   | `ReactElement`                                                               |                     | The axis's [`LineChart.AxisTitle`](#linechartaxistitle).                                                                                                                                                                                                                                                                                                                                                                   |
 
 ### LineChart.AxisTitle

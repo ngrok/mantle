@@ -11,6 +11,7 @@ import { createIntersectionObserverStub } from "../../test-utils/mock-intersecti
 import * as AreaChart from "../area-chart/area-chart-parts.js";
 import * as BarChart from "../bar-chart/bar-chart-parts.js";
 import type { ChartDatumEvent } from "./line-chart.js";
+import { logScale } from "../chart/log-scale.js";
 import * as LineChart from "./line-chart-parts.js";
 
 // Keep the fixture under 4 rows: happy-dom never delivers a plot size, and a
@@ -209,6 +210,20 @@ describe("LineChart.Root", () => {
 		);
 		const legend = document.querySelector('[data-slot="line-chart-legend"]');
 		expect([...(legend?.children ?? [])].map((key) => key.textContent)).toEqual(["p50", "p99"]);
+	});
+
+	test("the description names the side of a log axis on a two-axis chart", () => {
+		render(
+			<LineChart.Root data={data} xKey="time" aria-label="Latency">
+				<LineChart.YAxis />
+				<LineChart.YAxis side="right" scale={logScale} />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.Line dataKey="p99" label="p99" color="emerald" yAxis="right" />
+			</LineChart.Root>,
+		);
+		expect(screen.getByRole("application", { name: "Latency" })).toHaveAccessibleDescription(
+			/Series: p50, p99\. The right y axis uses a log scale\./,
+		);
 	});
 
 	test("the overlay is described by the summary and the keys", () => {

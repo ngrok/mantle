@@ -14,6 +14,7 @@ import type {
 	XValue,
 	YAxisSide,
 	YDomain,
+	YScale,
 	YTickContext,
 } from "./types.js";
 import { ChartAxisContext, useChartContext } from "./context.js";
@@ -157,7 +158,7 @@ const useXAxisPrimitive = (partName: string, props: XAxisPrimitiveProps): ReactE
 	return createElement(ChartAxisContext.Provider, { value: "x" }, children);
 };
 
-type YAxisPrimitiveProps<TDomain extends YDomain = YDomain> = {
+type YAxisBaseProps = {
 	/**
 	 * The edge the axis paints on: `"left"` (the default) or `"right"`. A series
 	 * or a reference line with `yAxis="right"` reads the right axis's scale.
@@ -165,23 +166,14 @@ type YAxisPrimitiveProps<TDomain extends YDomain = YDomain> = {
 	 */
 	side?: YAxisSide;
 	/**
-	 * Fix either end of the axis's domain; an `"auto"` end follows the data.
-	 * Ticks still land on round steps inside a fixed domain.
-	 *
-	 * @example
-	 * ```tsx
-	 * <LineChart.YAxis domain={[0, "auto"]} />
-	 * ```
-	 */
-	domain?: TDomain;
-	/**
 	 * Format a tick label. Defaults to thousands-separated numbers. The second
 	 * argument carries the tick `step` and the `defaultLabel`, whose precision
 	 * follows the step. A formatter that adds a unit can decorate
 	 * `defaultLabel` and needs no precision of its own. The chart compares the
 	 * function by identity, so a new function paints the chart again. The React
 	 * Compiler in your build keeps an inline function stable. Without it, define
-	 * the function outside the component.
+	 * the function outside the component. Under `logScale` a power-of-ten tick
+	 * gets a `step` of `0` and a compact `defaultLabel`, such as `1K` or `1M`.
 	 */
 	tickFormat?: (value: number, context: YTickContext) => string;
 	/**
@@ -201,9 +193,62 @@ type YAxisPrimitiveProps<TDomain extends YDomain = YDomain> = {
 	children?: ReactElement | false | null;
 };
 
+/**
+ * The props of a family's `YAxis`. `TDomain` is the domain the linear scale
+ * takes. A `YScale` such as `logScale` takes any domain, because its lowest
+ * value is the bottom of the plot, not zero. A family without `TLog` takes no
+ * `YScale`.
+ */
+type YAxisPrimitiveProps<
+	TDomain extends YDomain = YDomain,
+	TLog extends boolean = true,
+> = YAxisBaseProps &
+	(
+		| {
+				/**
+				 * How values map to height. `"linear"` (the default) spaces values
+				 * evenly. `logScale`, imported from the chart's module, spaces each
+				 * power of ten evenly. Only a chart that imports it ships its code.
+				 */
+				scale?: "linear";
+				/**
+				 * Fix either end of the axis's domain; an `"auto"` end follows the data.
+				 * Ticks still land on round steps inside a fixed domain.
+				 *
+				 * @example
+				 * ```tsx
+				 * <LineChart.YAxis domain={[0, "auto"]} />
+				 * ```
+				 */
+				domain?: TDomain;
+		  }
+		| (TLog extends true
+				? {
+						/**
+						 * How values map to height: `logScale`, imported from the chart's
+						 * module, spaces each power of ten evenly. A value at or below zero
+						 * has no mark, and a `domain` end at or below zero follows the data.
+						 */
+						scale: YScale;
+						/**
+						 * Fix either end of the scaled axis. A positive end is kept. An
+						 * `"auto"` end, or one at or below zero, follows the data: the
+						 * minimum is a power of ten at least one decade below the smallest
+						 * positive value.
+						 *
+						 * @example
+						 * ```tsx
+						 * <BarChart.YAxis scale={logScale} domain={[0, maxCount]} />
+						 * ```
+						 */
+						domain?: YDomain;
+					}
+				: never)
+	);
+
 const useYAxisPrimitive = (partName: string, props: YAxisPrimitiveProps): ReactElement => {
 	const context = useChartContext(partName);
-	const { side = "left", tickFormat, tickCount, domain, children } = props;
+	const { side = "left", tickFormat, tickCount, domain, scale = "linear", children } = props;
 	// Why the ends and not the tuple: an inline `domain` is a new array on each
 	// render, and a new spec re-aims the domain.
 	const min = domain?.[0];
@@ -213,10 +258,16 @@ const useYAxisPrimitive = (partName: string, props: YAxisPrimitiveProps): ReactE
 		() =>
 			context.store.registerYAxis(
 				side,
-				{ tickFormat, tickCount, domain: min == null || max == null ? undefined : [min, max] },
+				{
+					tickFormat,
+					tickCount,
+					domain: min == null || max == null ? undefined : [min, max],
+					// Why `undefined`: the engine scales only an axis that has a `YScale`.
+					scale: scale === "linear" ? undefined : scale,
+				},
 				id,
 			),
-		[context.store, side, tickFormat, tickCount, min, max, id],
+		[context.store, side, tickFormat, tickCount, min, max, scale, id],
 	);
 	return createElement(ChartAxisContext.Provider, { value: side }, children);
 };

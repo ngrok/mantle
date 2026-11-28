@@ -103,8 +103,14 @@ function resolveImport(from: string, specifier: string): string | undefined {
 const notRendered: Record<string, Record<string, Record<string, string>>> = {
 	"area-chart": { "chart/legend.tsx": { "data-texture": "The swatch of a bar series only." } },
 	"line-chart": { "chart/legend.tsx": { "data-texture": "The swatch of a bar series only." } },
-	"scatter-plot": { "chart/legend.tsx": { "data-texture": "The swatch of a bar series only." } },
-	"world-map": { "chart/legend.tsx": { "data-texture": "The swatch of a bar series only." } },
+	"scatter-plot": {
+		"chart/legend.tsx": { "data-texture": "The swatch of a bar series only." },
+		"chart/root.tsx": { "data-y-scale": "A log YAxis, which a scatter plot throws on." },
+	},
+	"world-map": {
+		"chart/legend.tsx": { "data-texture": "The swatch of a bar series only." },
+		"chart/root.tsx": { "data-y-scale": "A log YAxis, which a world map has no part for." },
+	},
 	"bar-chart": {
 		"chart/legend.tsx": { "data-shape": "The swatch of a non-bar series only." },
 		"chart/engine.ts": { "data-shape": "The hover dot, which a bar chart never shows." },

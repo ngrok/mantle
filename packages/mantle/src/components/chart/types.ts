@@ -210,7 +210,10 @@ type YTickContext = {
 	 * follows `step`, or the domain span when the axis has one tick.
 	 */
 	defaultLabel: string;
-	/** The distance between adjacent ticks, or `0` when the axis has one tick. */
+	/**
+	 * The distance between adjacent ticks, or `0` when the axis has one tick.
+	 * A power of ten on a log axis has no even step, so its `step` is `0`.
+	 */
 	step: number;
 };
 
@@ -232,6 +235,39 @@ type YAxisSpec = {
 	tickCount: number | undefined;
 	/** The fixed ends of the side's domain; an `"auto"` end follows the data. */
 	domain: YDomain | undefined;
+	/** The scale that maps values before the linear paint; none for a linear axis. */
+	scale?: YScale;
+};
+
+/**
+ * A y scale other than linear, such as `logScale`. It maps each value to a
+ * painted unit, which the chart then paints on a linear axis. The chart
+ * imports no scale, so one that a chart never uses ships no code.
+ */
+type YScale = {
+	/** The value of the Root's `data-y-scale`, and the word the description reads. */
+	name: string;
+	/** Map one axis's columns and its fixed ends to painted units. */
+	plot: (columns: readonly Float64Array[], fixed: YDomain) => YScalePlot;
+};
+
+/** One axis's values in the painted units of a {@link YScale}. */
+type YScalePlot = {
+	/** Each column in painted units; `NaN` where a value has no place. */
+	columns: Float64Array[];
+	/** The target domain in painted units. */
+	domain: [number, number];
+	/** One value in painted units; `NaN` when it has no place. */
+	toPlot: (value: number) => number;
+	/**
+	 * At most `max` ticks over a painted domain: each tick's place in painted
+	 * units and its label, from `format` when the axis has one.
+	 */
+	ticks: (
+		domain: readonly [number, number],
+		max: number,
+		format: ((value: number, context: YTickContext) => string) | undefined,
+	) => Array<{ value: number; text: string }>;
 };
 
 /**
@@ -358,6 +394,8 @@ export type {
 	XValue,
 	YAxisSide,
 	YAxisSpec,
+	YScale,
+	YScalePlot,
 	YDomain,
 	YTickContext,
 };

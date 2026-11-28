@@ -32,6 +32,7 @@ import type {
 	PointShape,
 	SeriesColor,
 	YAxisSide,
+	YDomain,
 } from "../chart/types.js";
 import { createCanvasBackend } from "../chart/canvas-backend.js";
 import { createScatterView, preloadScatter3d } from "../chart/scatter-engine.js";
@@ -154,7 +155,7 @@ type ScatterPlotXAxisProps = XAxisPrimitiveProps;
 /**
  * Props for {@link ScatterPlot.YAxis}.
  */
-type ScatterPlotYAxisProps = YAxisPrimitiveProps;
+type ScatterPlotYAxisProps = YAxisPrimitiveProps<YDomain, false>;
 
 /**
  * Props for {@link ScatterPlot.ReferenceLine}.

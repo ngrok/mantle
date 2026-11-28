@@ -4,6 +4,7 @@
  * @see https://mantle.ngrok.com/components/charts/area-chart
  */
 
+import { logScale } from "../chart/log-scale.js";
 import * as AreaChartParts from "./area-chart-parts.js";
 /**
  * An area chart for showing how values (and, when stacked, a
@@ -85,6 +86,7 @@ const AreaChart = AreaChartParts;
 export {
 	//,
 	AreaChart,
+	logScale,
 };
 export type {
 	//,

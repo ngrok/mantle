@@ -1,9 +1,10 @@
 import { Badge } from "@ngrok/mantle/badge";
-import { BarChart, type BarChartBarProps } from "@ngrok/mantle/bar-chart";
+import { BarChart, type BarChartBarProps, logScale } from "@ngrok/mantle/bar-chart";
 import { Button } from "@ngrok/mantle/button";
 import { Card } from "@ngrok/mantle/card";
 import { Empty } from "@ngrok/mantle/empty";
 import { LineChart } from "@ngrok/mantle/line-chart";
+import { SegmentedControl } from "@ngrok/mantle/segmented-control";
 import { useEffect, useState } from "react";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
@@ -708,6 +709,37 @@ export function IntegerCountsBarChartExample() {
 	);
 }
 
+export const requestsByEndpoint = [
+	{ endpoint: "/v1/chat", requests: 2_300_000 },
+	{ endpoint: "/v1/embed", requests: 410_000 },
+	{ endpoint: "/v1/files", requests: 8_200 },
+	{ endpoint: "/v1/audit", requests: 340 },
+	{ endpoint: "/v1/admin", requests: 12 },
+];
+
+export function LogScaleBarChartExample() {
+	const [scale, setScale] = useState<"linear" | "log">("log");
+	return (
+		<div className="w-full space-y-3">
+			<SegmentedControl.Root
+				aria-label="Y-axis scale"
+				value={scale}
+				onValueChange={(value) => setScale(value === "linear" ? "linear" : "log")}
+			>
+				<SegmentedControl.Item value="linear">Linear</SegmentedControl.Item>
+				<SegmentedControl.Item value="log">Log</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<BarChart.Root data={requestsByEndpoint} xKey="endpoint" aria-label="Requests by endpoint">
+				<BarChart.Grid />
+				<BarChart.XAxis />
+				<BarChart.YAxis scale={scale === "log" ? logScale : "linear"} domain={[0, "auto"]} />
+				<BarChart.Bar dataKey="requests" label="Requests" color="blue" />
+				<BarChart.Tooltip />
+			</BarChart.Root>
+		</div>
+	);
+}
+
 export function ReferenceLineBarChartExample() {
 	return (
 		<BarChart.Root data={monthlyVisitors} xKey="month" aria-label="Visitors by month">
@@ -1032,6 +1064,15 @@ export function IntegerCountsExample() {
 	return (
 		<PreviewCanvas>
 			<IntegerCountsBarChartExample />
+		</PreviewCanvas>
+	);
+}
+
+/** The "Log scale" example on the Bar Chart docs page. */
+export function LogScaleExample() {
+	return (
+		<PreviewCanvas>
+			<LogScaleBarChartExample />
 		</PreviewCanvas>
 	);
 }
