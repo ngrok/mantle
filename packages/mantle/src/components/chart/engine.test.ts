@@ -2955,6 +2955,56 @@ describe("ChartEngine log y axis", () => {
 		expect(texts).toEqual(expect.arrayContaining(["1", "10", "100", "1K", "10K"]));
 	});
 
+	test("an append that lowers the automatic floor keeps unchanged readings in place", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [100, 100, 100].map((a, x) => ({ x, a })),
+			size: { width: 400, height: 300 },
+			options: { animate: true },
+		});
+		setLog(mount);
+		mount.engine.markSeen();
+		frames.settle();
+		const settled = vertexYs(mount);
+		mount.engine.setRows([100, 100, 1].map((a, x) => ({ x, a })));
+		mount.engine.flushIngest();
+		frames.step();
+
+		// Why: 1 moves the floor from 10 to 0.1, and the readings at 100 stay at
+		// the top; a domain that glides from the old floor painted them far above it.
+		expect(vertexYs(mount)[0]).toBeCloseTo(settled[0] ?? 0, 3);
+		frames.settle();
+		expect(vertexYs(mount)[0]).toBeCloseTo(settled[0] ?? 0, 3);
+	});
+
+	test("draws a reference line at a fixed log maximum", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [1, 26].map((a, x) => ({ x, a })),
+			size: { width: 400, height: 200 },
+		});
+		setLog(mount, [1, 26]);
+		mount.store.registerReferenceLine("slo", {
+			y: 26,
+			label: "SLO",
+			color: undefined,
+			yAxis: "left",
+		});
+		mount.engine.flushIngest();
+		mount.engine.commitNow();
+
+		// Why: the projection of 26 lands a hair above the plot top, which a strict cull drops.
+		const texts = [...mount.elements.plot.querySelectorAll("svg text")].map(
+			(text) => text.textContent,
+		);
+		expect(texts).toContain("SLO");
+	});
+
 	test("a log axis on a stacked chart throws", () => {
 		expect(() => {
 			const mount = mountEngine({

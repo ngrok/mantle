@@ -1,3 +1,4 @@
+import { formatNumber, tickFractionDigits } from "./format.js";
 import { linearTicksAtMost } from "./scales.js";
 import type { YDomain, YScale } from "./types.js";
 
@@ -37,26 +38,27 @@ const logDomain = (
 
 /**
  * The tick values of a log axis over the exponent domain `[lo, hi]`: powers of
- * ten, at most `max` of them, with every decade or every nth decade. A domain
- * that holds fewer than two powers of ten gets linear ticks instead.
+ * ten, at most `max` of them, with every decade or every nth decade. `null`
+ * when the domain holds fewer than two powers of ten.
  *
  * @example
  * ```ts
  * logTicks([0, 4], 5); // [1, 10, 100, 1000, 10000]
  * logTicks([0, 12], 4); // [1, 10000, 100000000, 1000000000000]
+ * logTicks([0.3, 0.9], 5); // null
  * ```
  */
-const logTicks = (domain: readonly [number, number], max: number): number[] => {
-	if (!(max >= 1)) {
-		return [];
-	}
+const logTicks = (domain: readonly [number, number], max: number): number[] | null => {
 	// Why the tolerance: an end such as `log10(1000)` can land a hair off 3.
 	// Why the clamp: `1e-324` is 0 and `1e309` is Infinity, which have no place.
 	const first = Math.max(-323, Math.ceil(domain[0] - 1e-9));
 	const last = Math.min(308, Math.floor(domain[1] + 1e-9));
 	const count = last - first + 1;
 	if (count < 2) {
-		return linearTicksAtMost([10 ** domain[0], 10 ** domain[1]], max);
+		return null;
+	}
+	if (!(max >= 1)) {
+		return [];
 	}
 	// Why `max(1, …)`: an unbounded `max`, as on horizontal bars, gives a stride of 0.
 	const every = Math.max(1, Math.ceil(count / Math.floor(max)));
@@ -103,18 +105,34 @@ const logScale: YScale = {
 			columns: columns.map((column) => column.map(toPlot)),
 			domain: [0, hi - lo],
 			toPlot,
-			ticks: (domain, limit, format) =>
-				logTicks([domain[0] + lo, domain[1] + lo], limit).map((value) => {
-					const defaultLabel = (compact ??= new Intl.NumberFormat(undefined, {
-						notation: "compact",
-						maximumSignificantDigits: 3,
-					})).format(value);
+			ticks: (domain, limit, format) => {
+				const range: [number, number] = [10 ** (domain[0] + lo), 10 ** (domain[1] + lo)];
+				const powers = logTicks([domain[0] + lo, domain[1] + lo], limit);
+				// Why linear ticks inside one decade: a power of ten or none is too few.
+				// Why a count of at most 5: a horizontal axis has no limit but its width.
+				const values = powers ?? linearTicksAtMost(range, limit, { count: Math.min(limit, 5) });
+				// Why a `step` of 0 for powers: they have no even step.
+				const step = powers == null && values.length > 1 ? (values[1] ?? 0) - (values[0] ?? 0) : 0;
+				return values.map((value) => {
+					// Why exponents at the ends: compact notation writes every leading zero
+					// of `1e-100`, and a label that long takes the whole plot width.
+					// Why the step's digits: `1K` would label 1,000 and 1,000.5 alike.
+					let defaultLabel = value.toExponential();
+					if (value >= 1e-3 && value < 1e15) {
+						defaultLabel =
+							step > 0
+								? formatNumber(value, { maximumFractionDigits: tickFractionDigits(step) })
+								: (compact ??= new Intl.NumberFormat(undefined, {
+										notation: "compact",
+										maximumSignificantDigits: 3,
+									})).format(value);
+					}
 					return {
 						value: toPlot(value),
-						// Why a `step` of 0: a log axis has no even step.
-						text: format == null ? defaultLabel : format(value, { defaultLabel, step: 0 }),
+						text: format == null ? defaultLabel : format(value, { defaultLabel, step }),
 					};
-				}),
+				});
+			},
 		};
 	},
 };

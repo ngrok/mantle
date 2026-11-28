@@ -323,7 +323,11 @@ class ChartEngine {
 	/** Each axis's values under its `YScale`; `null` on a linear axis. */
 	#plots: Record<YAxisSide, YScalePlot | null> = { left: null, right: null };
 	/** The scale inputs the last ingest read, so a change plots the columns again. */
-	#scaleKey = "";
+	#scaleKey = "|";
+	/** The axis side of each series at the last ingest, so a series that moves glides from its old side. */
+	#seriesSides = new Map<string, YAxisSide>();
+	/** Whether a part changed since the last flush, so the flush compares the scale inputs. */
+	#pendingScaleCheck = false;
 	/**
 	 * The value extent of each y axis's series. `integers` holds when every
 	 * finite value is an integer: integer-count data (requests, errors) never
@@ -538,10 +542,9 @@ class ChartEngine {
 			// Why defer the check: a part that swaps mid-commit unregisters before
 			// its replacement registers. `#commit` checks once the commit settles.
 			this.#pendingAxisCheck = true;
-			// Why an ingest: a scaled axis paints columns built from its scale and its domain.
-			if (this.#scaleInputs() !== this.#scaleKey) {
-				this.#pendingIngest = true;
-			}
+			// Why at the flush: a scaled axis paints columns built from its scale and
+			// its domain, and an axis that swaps mid-commit changes neither.
+			this.#pendingScaleCheck = true;
 			// Why re-aim: a bar chart's domain depends on whether an axis or a grid
 			// draws ticks. Aiming at an unchanged target does nothing.
 			this.#aimYDomain();
@@ -963,6 +966,10 @@ class ChartEngine {
 	 * that re-rendered without the Root).
 	 */
 	flushIngest(): void {
+		if (this.#pendingScaleCheck) {
+			this.#pendingScaleCheck = false;
+			this.#pendingIngest ||= this.#scaleInputs() !== this.#scaleKey;
+		}
 		if (!this.#pendingIngest || this.#destroyed) {
 			return;
 		}
@@ -1287,20 +1294,20 @@ class ChartEngine {
 		const previousXs = this.#xs;
 		const previousXValues = this.#xValues;
 		const scaleKey = this.#scaleInputs();
-		const rescaled = scaleKey !== this.#scaleKey;
+		const previousKey = this.#scaleKey;
+		const previousKeys = previousKey.split("|");
 		this.#scaleKey = scaleKey;
-		// Why the old maps: a new scale moves each mark, so it glides from where
-		// it painted under the old one.
+		const previousPlots = { ...this.#plots };
+		const previousSides = this.#seriesSides;
+		this.#seriesSides = new Map(specs.map((spec) => [spec.dataKey, spec.yAxis]));
+		// Why the old maps: a new scale, or a log floor that new data moves, moves
+		// each mark, so it glides from where it painted before.
 		const before =
-			rescaled && this.#hasIngested && this.#tweenDuration() > 0
+			this.#hasIngested &&
+			this.#tweenDuration() > 0 &&
+			(scaleKey !== previousKey || previousPlots.left != null || previousPlots.right != null)
 				? { left: this.#valueScale("left"), right: this.#valueScale("right") }
 				: null;
-		if (rescaled) {
-			// Why: a fading label is keyed by its painted value, which a new scale
-			// moves; the old labels would slide to the wrong height as they fade.
-			this.#yLabelFade.clear();
-			this.#rightLabelFade.clear();
-		}
 		const ingested = ingestRows({
 			rows,
 			xKey: this.#options.xKey,
@@ -1432,8 +1439,28 @@ class ChartEngine {
 			}
 		}
 
-		if (before != null) {
-			this.#remapScale(specs, before);
+		// Why `toPlot(1)`: it is the plot's origin, which an automatic log floor moves with the data.
+		const moved = (["left", "right"] as const).map(
+			(side, index) =>
+				scaleKey.split("|")[index] !== previousKeys[index] ||
+				previousPlots[side]?.toPlot(1) !== this.#plots[side]?.toPlot(1) ||
+				specs.some(
+					(spec) =>
+						(spec.yAxis === side || previousSides.get(spec.dataKey) === side) &&
+						previousSides.get(spec.dataKey) !== spec.yAxis &&
+						(previousPlots[side] != null || this.#plots[side] != null),
+				),
+		);
+		// Why: a fading label is keyed by its painted value, which a moved scale
+		// shifts; the old labels would slide to the wrong height as they fade.
+		if (moved[0]) {
+			this.#yLabelFade.clear();
+		}
+		if (moved[1]) {
+			this.#rightLabelFade.clear();
+		}
+		if (before != null && (moved[0] || moved[1])) {
+			this.#remapScale(specs, before, previousSides);
 		}
 		this.#retargetTweens(specs, previousColumnIndex, sameXVector);
 
@@ -1740,11 +1767,16 @@ class ChartEngine {
 	 * glide to their new places, and the axis labels never read a domain that
 	 * is part linear and part log.
 	 */
-	#remapScale(specs: readonly SeriesSpec[], before: Record<YAxisSide, LinearCoefficients>): void {
+	#remapScale(
+		specs: readonly SeriesSpec[],
+		before: Record<YAxisSide, LinearCoefficients>,
+		sides: ReadonlyMap<string, YAxisSide>,
+	): void {
 		this.#aimYDomains(null);
 		for (const spec of specs) {
 			const tween = this.#valueTweens.get(`${spec.dataKey}:value`);
-			const from = before[spec.yAxis];
+			// Why the old side: a series that moves paints in its old side's units.
+			const from = before[sides.get(spec.dataKey) ?? spec.yAxis];
 			const to = this.#valueScale(spec.yAxis);
 			if (tween != null && to.k !== 0) {
 				const start = tween.values().map((value) => (value * from.k + from.b - to.b) / to.k);
@@ -2579,11 +2611,12 @@ class ChartEngine {
 			const position =
 				reference.yAxis === "right" ? y * yCos.right.k + yCos.right.b : valuePosition(y);
 			// Why `NaN`: a scale can have no place for a value, as a log axis has none for 0.
+			// Why the half pixel: a log projection of a fixed end lands a hair outside the plot.
 			const outOfRange =
 				Number.isNaN(position) ||
 				(horizontal
-					? position < plot.left || position > plot.left + plot.width
-					: position < plot.top || position > plot.top + plot.height);
+					? position < plot.left - 0.5 || position > plot.left + plot.width + 0.5
+					: position < plot.top - 0.5 || position > plot.top + plot.height + 0.5);
 			if (outOfRange) {
 				continue;
 			}

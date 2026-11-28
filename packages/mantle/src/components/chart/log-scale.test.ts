@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { logDomain, logTicks } from "./log-scale.js";
+import { logDomain, logScale, logTicks } from "./log-scale.js";
+import type { YDomain } from "./types.js";
 
 describe("logDomain", () => {
 	test("puts the floor a full decade below the smallest value and the top at the next decade", () => {
@@ -34,8 +35,8 @@ describe("logTicks", () => {
 		expect(logTicks([0, 12], 4)).toEqual([1, 1e4, 1e8, 1e12]);
 	});
 
-	test("falls back to linear ticks inside one decade", () => {
-		expect(logTicks([Math.log10(2), Math.log10(8)], 5)).toEqual([2, 4, 6]);
+	test("returns null inside one decade", () => {
+		expect(logTicks([Math.log10(2), Math.log10(8)], 5)).toBeNull();
 	});
 
 	test("returns no tick for a limit below one, and decades for an unbounded one", () => {
@@ -44,8 +45,32 @@ describe("logTicks", () => {
 	});
 
 	test("keeps every tick finite and positive at the ends of the number range", () => {
-		const ticks = logTicks([-330, 310], 4);
+		const ticks = logTicks([-330, 310], 4) ?? [];
 		expect(ticks.length).toBeGreaterThan(1);
 		expect(ticks.every((value) => value > 0 && Number.isFinite(value))).toBe(true);
+	});
+});
+
+describe("logScale ticks", () => {
+	const labels = (values: number[], fixed: YDomain, limit: number) => {
+		const plot = logScale.plot([Float64Array.from(values)], fixed);
+		return plot.ticks(plot.domain, limit, undefined).map((tick) => tick.text);
+	};
+
+	test("gives linear ticks inside one decade, with no limit too", () => {
+		expect(labels([2, 8], [2, 8], 5)).toEqual(["2", "4", "6"]);
+		expect(labels([2, 8], [2, 8], Number.POSITIVE_INFINITY).length).toBeGreaterThan(1);
+	});
+
+	test("keeps adjacent labels inside one decade distinct", () => {
+		const texts = labels([1000, 1001], [1000, 1001], 5);
+		expect(texts.length).toBeGreaterThan(1);
+		expect(new Set(texts).size).toBe(texts.length);
+	});
+
+	test("writes extreme powers of ten as exponents", () => {
+		const texts = labels([1e-100, 1], ["auto", "auto"], 4);
+		expect(texts[0]).toBe("1e-101");
+		expect(texts.every((text) => text.length <= 6)).toBe(true);
 	});
 });
