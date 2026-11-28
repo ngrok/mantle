@@ -214,6 +214,10 @@ utils:
   copy-target-tag:
     kind: jsx_self_closing_element
     all:
+      # Why no spread: a spread can set `side` or `domain` the rule cannot read.
+      - not:
+          has:
+            kind: jsx_expression
       - not:
           has:
             kind: jsx_attribute
@@ -241,6 +245,11 @@ utils:
         - has:
             field: name
             matches: chart-root-name
+        # Why no spread: a spread can override `yDomain` with a value the rule
+        # cannot read.
+        - not:
+            has:
+              kind: jsx_expression
         - has:
             kind: jsx_attribute
             pattern:
@@ -471,6 +480,10 @@ utils:
   copy-target-tag:
     kind: jsx_self_closing_element
     all:
+      # Why no spread: a spread can set `side` or `domain` the rule cannot read.
+      - not:
+          has:
+            kind: jsx_expression
       - not:
           has:
             kind: jsx_attribute
@@ -498,6 +511,10 @@ rule:
     has:
       field: name
       matches: chart-root-name
+    # Why no spread: the copy rule leaves a Root with a spread alone.
+    not:
+      has:
+        kind: jsx_expression
     # Why the YAxis guard: a Root with no YAxis child that takes the range keeps
     # yDomain, so the type checker names the call site to finish by hand.
     inside:

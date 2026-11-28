@@ -9,6 +9,7 @@ type Point = { day: string; value: number; total: number };
 declare const rows: Point[];
 declare const ceiling: number;
 declare const showAxis: boolean;
+declare const opts: { yDomain?: [number, number] };
 declare const formatPercent: (value: number) => string;
 
 export const Line = (
@@ -61,8 +62,8 @@ export const TwoAxes = (
 
 // Negative cases: a Root with no YAxis keeps yDomain for the type checker, a
 // YAxis that has a domain stays for a person to merge, a YAxis under a
-// condition or in a nested Root stays, another library's chart stays, and a
-// shadowed name stays.
+// condition or in a nested Root stays, a Root with a spread stays, another
+// library's chart stays, and a shadowed name stays.
 export const NoAxis = (
 	<LineChart.Root data={rows} xKey="day" yDomain={[0, 100]}>
 		<LineChart.Line dataKey="value" color="blue" />
@@ -79,6 +80,13 @@ export const Partial = (
 export const Conditional = (
 	<LineChart.Root data={rows} xKey="day" yDomain={[0, 100]}>
 		{showAxis && <LineChart.YAxis />}
+		<LineChart.Line dataKey="value" color="blue" />
+	</LineChart.Root>
+);
+
+export const Spread = (
+	<LineChart.Root data={rows} xKey="day" yDomain={[0, 10]} {...opts}>
+		<LineChart.YAxis />
 		<LineChart.Line dataKey="value" color="blue" />
 	</LineChart.Root>
 );

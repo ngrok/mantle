@@ -1675,13 +1675,17 @@ class ChartEngine {
 		}
 		const own = this.#targetYDomain("right");
 		const extent = this.#extents.right;
-		const ticks = linearTicks(
-			left,
-			this.#store.getSnapshot().yAxes.left?.tickCount ?? Y_TICK_COUNT,
-			{
-				integer: this.#extents.left.integers,
-			},
-		);
+		const leftCount = this.#store.getSnapshot().yAxes.left?.tickCount;
+		// Why the fitted count: the right ticks must land on the grid the plot
+		// draws. Before the first layout the plot has no height to fit.
+		const fit =
+			this.#plot.height > 0
+				? Math.max(2, Math.floor(this.#plot.height / Y_TICK_SPACING))
+				: Number.POSITIVE_INFINITY;
+		const ticks = linearTicksAtMost(left, Math.min(leftCount ?? Number.POSITIVE_INFINITY, fit), {
+			count: leftCount ?? Y_TICK_COUNT,
+			integer: this.#extents.left.integers,
+		});
 		const first = ticks[0];
 		const second = ticks[1];
 		if (this.#rowCount === 0 || first == null || second == null) {
@@ -1723,6 +1727,11 @@ class ChartEngine {
 	 */
 	#stacks(spec: Pick<SeriesSpec, "mark" | "yAxis">): boolean {
 		return this.#stack != null && spec.mark === this.#kind && spec.yAxis === "left";
+	}
+
+	/** The y axis the bars grow on: the first bar's, else the left one. */
+	#barSide(): YAxisSide {
+		return this.#store.seriesSpecs().find((spec) => spec.mark === "bar")?.yAxis ?? "left";
 	}
 
 	#is3d(): boolean {
@@ -1851,8 +1860,14 @@ class ChartEngine {
 			const now = performance.now();
 			let animating = false;
 			const valueExtent = this.#horizontalBars() ? this.#plot.width : this.#plot.height;
-			for (const tween of [this.#yTweens.left, this.#yTweens.right]) {
-				animating = tween.tick(now, this.#settleDistance(tween, valueExtent)) || animating;
+			animating =
+				this.#yTweens.left.tick(now, this.#settleDistance(this.#yTweens.left, valueExtent)) ||
+				animating;
+			// Why the guard: a chart with one axis never aims the right chase.
+			if (this.#yTweens.right.active) {
+				animating =
+					this.#yTweens.right.tick(now, this.#settleDistance(this.#yTweens.right, valueExtent)) ||
+					animating;
 			}
 			animating =
 				this.#xTween.tick(now, this.#settleDistance(this.#xTween, this.#plot.width)) || animating;
@@ -1972,12 +1987,17 @@ class ChartEngine {
 			? gutter(() => (horizontal ? this.#xTicks() : this.#yTicks("left")))
 			: padding;
 		const right = rightAxis ? gutter(() => this.#yTicks("right")) : padding;
+		const previousPlot = this.#plot;
 		this.#plot = {
 			left,
 			top,
 			width: Math.max(0, this.#cssWidth - left - right),
 			height,
 		};
+		// Why drop the hover pixel: a gutter that changes width moves every mark.
+		if (previousPlot.left !== left || previousPlot.width !== this.#plot.width) {
+			this.#activeScreen = null;
+		}
 		// The category band lays out along whichever pixel axis carries categories:
 		// x when vertical, y when horizontal.
 		const bandRangeStart = horizontal ? this.#plot.top : this.#plot.left;
@@ -2014,21 +2034,6 @@ class ChartEngine {
 				columnCount: Math.max(1, Math.round(this.#plot.width * this.#dpr)),
 				wasDecimated: this.#decimated,
 			});
-	}
-
-	/**
-	 * The pixel of a right tick. An aligned tick rides its left grid line, so it
-	 * stays there while the two domains glide at their own pace; both land on
-	 * the same pixel once they settle.
-	 */
-	#rightLabelPosition(value: number, yCos: YCoefficients): number {
-		const align = this.#rightAlign;
-		// Why only the current ticks: a label that fades out came from the old
-		// alignment, so it glides with the right domain instead.
-		if (align == null || !this.#yTickMemos.right?.ticks.some((tick) => tick.value === value)) {
-			return value * yCos.right.k + yCos.right.b;
-		}
-		return ((value - align.b) / align.k) * yCos.left.k + yCos.left.b;
 	}
 
 	#yCoefficients(side: YAxisSide = "left"): { k: number; b: number } {
@@ -2097,11 +2102,14 @@ class ChartEngine {
 		const aligned =
 			align == null || source == null ? [] : source.map((tick) => tick.value * align.k + align.b);
 		const alignedStep = Math.abs((aligned[1] ?? 0) - (aligned[0] ?? 0));
+		const mantissa = alignedStep / 10 ** Math.floor(Math.log10(alignedStep));
 		// Why a fallback: a thinned left grid can map to more labels than the
-		// right axis allows, or to fractions on a count axis.
+		// right axis allows, to fractions on a count axis, or to a step such as
+		// 0.25 that the default label rounds.
 		const ticks =
-			aligned.length > 0 &&
+			aligned.length > 1 &&
 			aligned.length <= limit &&
+			[1, 2, 5, 10].some((nice) => Math.abs(mantissa - nice) < 1e-6) &&
 			(!integer ||
 				aligned.every((value) => Math.abs(value - Math.round(value)) <= alignedStep * 1e-9))
 				? aligned
@@ -2287,6 +2295,10 @@ class ChartEngine {
 		let labelsAnimating = advanceLabelFade(this.#xLabelFade, desiredXTicks, paintDt, instantLabels);
 		labelsAnimating =
 			advanceLabelFade(this.#yLabelFade, desiredYTicks, paintDt, instantLabels) || labelsAnimating;
+		if (!rightAxis) {
+			// Why clear: the gutter is gone, so a fade would paint off the plot.
+			this.#rightLabelFade.clear();
+		}
 		labelsAnimating =
 			advanceLabelFade(this.#rightLabelFade, desiredRightTicks, paintDt, instantLabels) ||
 			labelsAnimating;
@@ -2413,7 +2425,7 @@ class ChartEngine {
 			if (horizontal) {
 				drawVerticalBaseline(ctx, { plot, color: colors.chrome.baseline, x: valuePosition(0) });
 			} else {
-				drawBaseline(ctx, { plot, color: colors.chrome.baseline, y: valuePosition(0) });
+				drawBaseline(ctx, { plot, color: colors.chrome.baseline, y: yCos[this.#barSide()].b });
 			}
 		}
 
@@ -2477,7 +2489,7 @@ class ChartEngine {
 		const xLabels = horizontal ? valueLabels : categoryLabels;
 		const yLabels = horizontal ? categoryLabels : valueLabels;
 		const rightLabels = [...this.#rightLabelFade.entries()].map(([key, entry]) => ({
-			position: this.#rightLabelPosition(key, yCos),
+			position: key * yCos.right.k + yCos.right.b,
 			text: entry.text,
 			alpha: entry.alpha,
 		}));
@@ -2539,14 +2551,11 @@ class ChartEngine {
 	): Array<{ key: number; text: string }> {
 		const ticks = this.#yTicks(side);
 		if (!this.#horizontalBars()) {
-			const yCos = { left: this.#yCoefficients("left"), right: this.#yCoefficients("right") };
+			const valueCo = this.#yCoefficients(side);
 			const desired: Array<{ key: number; text: string }> = [];
 			let previous = Number.NaN;
 			for (const tick of ticks) {
-				const position =
-					side === "right"
-						? this.#rightLabelPosition(tick.value, yCos)
-						: tick.value * yCos.left.k + yCos.left.b;
+				const position = tick.value * valueCo.k + valueCo.b;
 				if (Math.abs(position - previous) < AXIS_FONT_SIZE + 2) {
 					continue;
 				}
@@ -2748,14 +2757,13 @@ class ChartEngine {
 			left: (value: number): number => value * yCos.left.k + yCos.left.b,
 			right: (value: number): number => value * yCos.right.k + yCos.right.b,
 		};
-		const toPixel = toPixels.left;
 		const stackGap = stacked ? STACK_GAP : 0;
 
 		const rects = this.#barRects;
 		const segments = this.#barSegments(specs);
 		this.#paintEmptySlots(ctx, specs, segments, {
 			across: (groupCount - 1) * (slotWidth + gap) + barWidth,
-			baseline: toPixel(0),
+			baseline: toPixels[this.#barSide()](0),
 			horizontal: false,
 		});
 		// The group slot of each bar series: a line or an area takes none.

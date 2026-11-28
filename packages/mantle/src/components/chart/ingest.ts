@@ -226,6 +226,11 @@ const ingestRows = (input: IngestInput): IngestResult => {
 		return values;
 	});
 
+	// Why: a right axis with no series, such as one that carries only reference
+	// lines, has no count data to keep its ticks whole.
+	if (extents.right.min > extents.right.max) {
+		extents.right.integers = false;
+	}
 	for (const extent of [extents.left, extents.right]) {
 		if (extent.min > extent.max) {
 			extent.min = 0;

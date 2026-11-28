@@ -2378,32 +2378,19 @@ describe("ChartEngine right y axis", () => {
 		expect(right.every((text) => !text.includes("."))).toBe(true);
 	});
 
-	test("an aligned right label rides its left grid line mid-glide", () => {
-		const frames = installFrameClock();
+	test("a reference-only right axis labels a range between whole numbers", () => {
 		const mount = mountEngine({
 			kind: "line",
 			backend: createSvgBackend,
-			series: [makeSeries("small", "line"), makeSeries("big", "line", { yAxis: "right" })],
+			series: [makeSeries("small", "line")],
 			rows,
-			yDomain: ["auto", "auto"],
-			rightYDomain: ["auto", "auto"],
-			options: { animate: true },
+			yDomain: [0, 10],
+			rightYDomain: [0.1, 0.9],
 		});
-		frames.settle();
-		mount.engine.setRows(rows.map((row) => ({ ...row, small: row.small * 4 })));
-		mount.engine.flushIngest();
-		frames.step();
-		frames.step();
 		mount.engine.commitNow();
-		const left = labels(mount, "end").map((label) => label.y);
-		const right = labels(mount, "start").filter((label) =>
-			["0", "250", "500", "750"].includes(label.text),
-		);
 
-		// Why these: the left axis now steps by 5 to 15, so the right steps by
-		// 250. Each of its labels sits on a left grid line while the domains move.
-		expect(right).toHaveLength(4);
-		expect(right.every((label) => left.includes(label.y))).toBe(true);
+		// Why: no right series holds counts, so its ticks may be fractions.
+		expect(labels(mount, "start").length).toBeGreaterThan(1);
 	});
 
 	test("a pointer on a right-axis bar selects the bar, not the area under it", async () => {

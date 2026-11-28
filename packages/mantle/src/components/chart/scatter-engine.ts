@@ -471,16 +471,21 @@ class ScatterView implements PointView {
 
 	/**
 	 * The screen position for a datum reached without a pointer (keyboard
-	 * stepping, a controlled `activeIndex`): the row's first populated series,
-	 * through the projection in 3D.
+	 * stepping, a controlled `activeIndex`, a reprojected hover): the active
+	 * series, else the row's first populated series, through the projection in
+	 * 3D.
 	 */
-	screenFor(index: number): { x: number; y: number } | null {
+	screenFor(index: number, seriesKey: string | null): { x: number; y: number } | null {
 		const host = this.#host;
 		if (host.is3d()) {
 			return this.#three?.screenFor(index) ?? null;
 		}
 		const xCo = host.xCoefficients();
-		for (const spec of host.specs()) {
+		const specs = host.specs();
+		// Why the active series first: a hover names one point, and the row's
+		// first point can sit on the other axis.
+		const active = specs.find((spec) => spec.dataKey === seriesKey);
+		for (const spec of active == null ? specs : [active, ...specs]) {
 			const value = host.columnOf(spec.dataKey)?.[index] ?? Number.NaN;
 			if (!Number.isNaN(value)) {
 				const yCo = host.yCoefficients(spec.yAxis);
