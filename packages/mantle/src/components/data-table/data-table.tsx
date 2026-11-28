@@ -50,6 +50,7 @@ import {
 } from "react";
 import invariant from "tiny-invariant";
 import type { SelfClosingWithAsChild } from "../../types/as-child.js";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -1383,13 +1384,100 @@ function EmptyRow({ "data-slot": dataSlot, children, ...props }: DataTableEmptyR
 		table_getVisibleLeafColumns,
 	).length;
 
+	const contentRef = useRef<HTMLDivElement>(null);
+	useIsomorphicLayoutEffect(() => keepEmptyRowInView(contentRef.current), []);
+
 	return (
 		<Table.Row data-slot={joinDataSlot(dataSlot, "data-table-empty-row")} {...props}>
 			<Table.Cell colSpan={numberOfColumns} width="wrap">
-				{children}
+				{/* Why sticky: a table wider than its scroll container would center
+				    the content in the full scroll width, off screen.
+				    `keepEmptyRowInView` sets the real inset and cap. The classes are
+				    the server-rendered guess, for the default `p-3` cell: `100cqw`
+				    is the nearest container's width, else the viewport's. Why not
+				    a container on the scroll wrapper: inline-size containment gives
+				    the table no intrinsic width, so it collapses in an `auto` track. */}
+				<div ref={contentRef} className="sticky inset-s-3 max-w-[calc(100cqw-1.5rem)]">
+					{children}
+				</div>
 			</Table.Cell>
 		</Table.Row>
 	);
+}
+
+/**
+ * Keeps the content of a `DataTable.EmptyRow` in view when the table is wider
+ * than its scroll container: it caps the content to the visible width, less the
+ * cell's inline padding, and sticks it at the start padding. A table that fits,
+ * or content that cannot fit in the cap, keeps the layout from before the stick.
+ * Returns the cleanup for the effect that calls it.
+ *
+ * @private
+ */
+function keepEmptyRowInView(content: HTMLDivElement | null) {
+	const cell = content?.parentElement;
+	const table = content?.closest("table");
+	const scroller = table?.parentElement;
+	if (content == null || cell == null || table == null || scroller == null) {
+		return;
+	}
+	const { style } = content;
+
+	let frameId = 0;
+	const update = () => {
+		frameId = 0;
+		style.position = "static";
+		style.maxWidth = "none";
+		// Why the natural layout: a table that only the empty content made wide
+		// fits its scroller, so it gets no cap, and a content-sized track can grow.
+		const overflows = scroller.scrollWidth > scroller.clientWidth;
+		if (!overflows) {
+			return;
+		}
+
+		const cellStyle = getComputedStyle(cell);
+		const start = Number.parseFloat(cellStyle.paddingInlineStart) || 0;
+		const end = Number.parseFloat(cellStyle.paddingInlineEnd) || 0;
+		const cap = scroller.clientWidth - start - end;
+		// Why min-content: content that cannot fit in the cap, on either side,
+		// stays static so that the table scroll reaches each part of it.
+		style.width = "min-content";
+		// Why `offsetWidth`: unlike a client rect, it ignores ancestor transforms,
+		// as `clientWidth` does.
+		const minWidth = content.offsetWidth;
+		style.width = "";
+		if (minWidth > cap) {
+			return;
+		}
+
+		style.position = "sticky";
+		style.insetInlineStart = `${start}px`;
+		style.maxWidth = `${cap}px`;
+	};
+
+	// Why the first update runs here: the layout effect lands it before paint.
+	update();
+	// Why the guard: jsdom has no ResizeObserver, and a consumer's test runs there.
+	if (typeof ResizeObserver === "undefined") {
+		return;
+	}
+
+	// Why each element: a new width, new columns, new padding, or new children
+	// can each change the result. Why a frame: the update resizes what this
+	// observes, and inside the callback that raises the ResizeObserver loop error.
+	const observer = new ResizeObserver(() => {
+		if (frameId === 0) {
+			frameId = requestAnimationFrame(update);
+		}
+	});
+	for (const element of [scroller, table, cell, content]) {
+		observer.observe(element);
+	}
+
+	return () => {
+		cancelAnimationFrame(frameId);
+		observer.disconnect();
+	};
 }
 
 /**
