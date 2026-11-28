@@ -24,6 +24,12 @@ export default function MigrationsPage() {
 				Each guide gets a number when it ships, and the list shows the newest guide first. A guide
 				that has not shipped yet shows Unreleased.
 			</p>
+			<p className="mb-4 leading-relaxed text-pretty text-body">
+				Each step that applies to your app is required unless the guide marks it optional. Do those
+				steps as the guide says, in the upgrade that ships the guide, and delete the app code that
+				the new version replaces. People and agents copy the code they find, so code on an old
+				pattern spreads.
+			</p>
 			<MigrationsList />
 		</div>
 	);

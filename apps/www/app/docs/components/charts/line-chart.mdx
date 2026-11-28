@@ -516,7 +516,7 @@ LineChart.Root
 └── LineChart.CopyButton
 ```
 
-The interaction layer ships with `Root`, and there is no part to add for it: a crosshair that snaps to the nearest x with an every-series tooltip, keyboard stepping, polite announcements, and a screen-reader description. The screen-reader data table mounts once the chart takes focus. If you remove a part, keyboard access to the data stays. Hover or focus the chart at the top of this page and use the arrow keys: the tooltip reads every series at the active x.
+The interaction layer ships with `Root`, and there is no part to add for it: a crosshair that snaps to the nearest x with a tooltip of the series values, keyboard stepping, polite announcements, and a screen-reader description. The screen-reader data table mounts once the chart takes focus. If you remove a part, keyboard access to the data stays. Hover or focus the chart at the top of this page and use the arrow keys: the tooltip reads the series at the active x, largest first, up to `maxRows`.
 
 Compose `LineChart.Legend` on every multi-series chart. Series identity must never rely on color alone.
 
@@ -678,13 +678,14 @@ The `footer` and `children` render props receive a `HoverSnapshot`: the active `
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded to the tooltip element the `Root` renders) except `children`, plus:
 
-| Prop           | Type                                                    | Default  | Description                                                             |
-| -------------- | ------------------------------------------------------- | -------- | ----------------------------------------------------------------------- |
-| `labelFormat?` | `(value: string \| number \| Date) => ReactNode`        |          | Format the x/label row of the readout.                                  |
-| `valueFormat?` | `(value: number, dataKey: string) => ReactNode`         |          | Format each series value.                                               |
-| `indicator?`   | `"line"` \| `"none"`                                    | `"line"` | The per-series color key: a short stroke or nothing.                    |
-| `footer?`      | `ReactNode \| ((snapshot: HoverSnapshot) => ReactNode)` |          | Extra content appended below the series rows (e.g. a "view logs" hint). |
-| `children?`    | `(snapshot: HoverSnapshot) => ReactNode`                |          | Replace the entire readout.                                             |
+| Prop           | Type                                                    | Default  | Description                                                                                                                                                                     |
+| -------------- | ------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `labelFormat?` | `(value: string \| number \| Date) => ReactNode`        |          | Format the x/label row of the readout.                                                                                                                                          |
+| `valueFormat?` | `(value: number, dataKey: string) => ReactNode`         |          | Format each series value.                                                                                                                                                       |
+| `indicator?`   | `"line"` \| `"none"`                                    | `"line"` | The per-series color key: a short stroke or nothing.                                                                                                                            |
+| `footer?`      | `ReactNode \| ((snapshot: HoverSnapshot) => ReactNode)` |          | Extra content appended below the series rows (e.g. a "view logs" hint).                                                                                                         |
+| `maxRows?`     | `number`                                                | `8`      | The most series rows the readout shows, largest value first. The rest fold into a "+N more" row, and only the rows that fit the plot show. Not applied to a `children` readout. |
+| `children?`    | `(snapshot: HoverSnapshot) => ReactNode`                |          | Replace the entire readout.                                                                                                                                                     |
 
 **Data attributes**
 

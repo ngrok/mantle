@@ -600,7 +600,7 @@ AreaChart.List
 
 With `stacked` on the Root, series stack from the baseline up in registration order. Areas that mount together register in composition order, so the first `Area` sits on the baseline and each later `Area` stacks on top of it. An `Area` that mounts later stacks on top of every series already registered, whatever its position in the JSX. A `dataKey` that unmounts and returns goes back to its original position.
 
-Reordering the parts of a mounted chart does not restack it. The position stays with the `dataKey`, so a series does not jump when you rename its `label`. The tooltip lists the top of the pile first, to match what a reader scans at the crosshair.
+Reordering the parts of a mounted chart does not restack it. The position stays with the `dataKey`, so a series does not jump when you rename its `label`. The tooltip lists the series by value, largest first.
 
 ## Fill, axes, and density
 
@@ -757,13 +757,14 @@ A `children` readout renders inside a `<div data-slot="area-chart-tooltip-label"
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded onto the tooltip element the Root renders) except `children`, plus:
 
-| Prop          | Type                                                  | Default  | Description                                                             |
-| ------------- | ----------------------------------------------------- | -------- | ----------------------------------------------------------------------- |
-| `labelFormat` | `(value: string \| number \| Date) => ReactNode`      |          | Format the x/label row of the readout.                                  |
-| `valueFormat` | `(value: number, dataKey: string) => ReactNode`       |          | Format each series value.                                               |
-| `indicator`   | `"line"` \| `"none"`                                  | `"line"` | The per-series color key: a short stroke or nothing.                    |
-| `footer`      | `ReactNode \| (snapshot: HoverSnapshot) => ReactNode` |          | Extra content appended below the series rows (e.g. a "view logs" hint). |
-| `children`    | `(snapshot: HoverSnapshot) => ReactNode`              |          | Replace the entire readout.                                             |
+| Prop          | Type                                                  | Default  | Description                                                                                                                                                                     |
+| ------------- | ----------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `labelFormat` | `(value: string \| number \| Date) => ReactNode`      |          | Format the x/label row of the readout.                                                                                                                                          |
+| `valueFormat` | `(value: number, dataKey: string) => ReactNode`       |          | Format each series value.                                                                                                                                                       |
+| `indicator`   | `"line"` \| `"none"`                                  | `"line"` | The per-series color key: a short stroke or nothing.                                                                                                                            |
+| `footer`      | `ReactNode \| (snapshot: HoverSnapshot) => ReactNode` |          | Extra content appended below the series rows (e.g. a "view logs" hint).                                                                                                         |
+| `maxRows`     | `number`                                              | `8`      | The most series rows the readout shows, largest value first. The rest fold into a "+N more" row, and only the rows that fit the plot show. Not applied to a `children` readout. |
+| `children`    | `(snapshot: HoverSnapshot) => ReactNode`              |          | Replace the entire readout.                                                                                                                                                     |
 
 The `HoverSnapshot` passed to `footer` and `children` describes the active x position: `{ index, xValue, datum, points, viaKeyboard }`, where `points` holds every series' value at that position. Stacked, the rows run from the top of the pile back to the baseline; unstacked, they follow registration order.
 

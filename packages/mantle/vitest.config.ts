@@ -133,7 +133,7 @@ const mantleCustomVariants = async (): Promise<string> => {
 const mantleUtilities = async (): Promise<string> => {
 	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
 	const rules = css.match(
-		/^@utility (?:focus-ring|theme-switcher-name|otp-input-overlay|scroll-cue-y|combobox-match-line)[^{]*\{[\s\S]*?^\}/gm,
+		/^@utility (?:focus-ring|theme-switcher-name|otp-input-overlay|scroll-cue-y|combobox-match-line|status-strip-segment)[^{]*\{[\s\S]*?^\}/gm,
 	);
 	if (rules == null) {
 		throw new Error("mantle.css holds no focus-ring or theme-switcher-name utilities.");

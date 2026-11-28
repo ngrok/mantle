@@ -44,6 +44,8 @@ type TooltipConfig = {
 	footer: ReactNode | ((snapshot: HoverSnapshot) => ReactNode) | undefined;
 	/** Replace the entire readout. */
 	children: ((snapshot: HoverSnapshot) => ReactNode) | undefined;
+	/** The most series rows the default readout shows. */
+	maxRows?: number;
 	/** Pass-through div props (className, ref, data-*, …) for the tooltip element. */
 	divProps: Omit<ComponentProps<"div">, "children">;
 };
@@ -132,6 +134,7 @@ class ChartStore {
 	#tooltip: TooltipConfig | null = null;
 	#hover: HoverSnapshot | null = null;
 	#hoverEver = false;
+	#readoutSpace = 0;
 
 	/** Whether the Root is decorative, so every mark paints the one neutral fill. */
 	get decorative(): boolean {
@@ -144,6 +147,24 @@ class ChartStore {
 	 */
 	get hoverEver(): boolean {
 		return this.#hoverEver;
+	}
+
+	/**
+	 * The height the readout can take, in CSS pixels: from the top of the plot
+	 * wrapper to the bottom of the plot. The readout shows only the rows that
+	 * fit in it. `0` before the first layout.
+	 */
+	get readoutSpace(): number {
+		return this.#readoutSpace;
+	}
+
+	/** Engine-side: publish the readout space after a layout, when it changes. */
+	setReadoutSpace(space: number): void {
+		if (space === this.#readoutSpace) {
+			return;
+		}
+		this.#readoutSpace = space;
+		this.#emit();
 	}
 
 	/** Engine hook: series registrations changed, so columnar data must re-ingest. */

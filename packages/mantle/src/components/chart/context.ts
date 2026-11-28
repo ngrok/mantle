@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentType } from "react";
+import type { ComponentType, Ref } from "react";
 import { createContext, useContext, useState, useSyncExternalStore } from "react";
 import invariant from "tiny-invariant";
 import type { ChartEngine } from "./engine.js";
@@ -305,8 +305,17 @@ const useShallowStable = <T extends object>(value: T): T => {
 type ChartReadout = {
 	/** The public names of the x and series keys, for error messages. */
 	keyNames: ChartKeyNames;
-	/** The default tooltip body, when the Tooltip part sets no `children`. */
-	Tooltip: ComponentType<{ hover: HoverSnapshot; config: TooltipConfig | null }>;
+	/**
+	 * The default tooltip body, when the Tooltip part sets no `children`. It
+	 * shows the first `shown` series rows in the grid at `rowsRef`, then a
+	 * "+N more" row for the rest.
+	 */
+	Tooltip: ComponentType<{
+		hover: HoverSnapshot;
+		config: TooltipConfig | null;
+		shown: number;
+		rowsRef: Ref<HTMLDivElement>;
+	}>;
 	/** What a keyboard step announces. */
 	announce: (hover: HoverSnapshot) => string;
 	/** The description's first sentence and the keyboard instructions. */
