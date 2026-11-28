@@ -109,4 +109,4 @@ import { LineChart as Trend } from "@ngrok/mantle/line-chart";
 
 ## How to verify
 
-Run the type checker: a Root that still has `yDomain` fails to compile, so a clean run means every Root is migrated. Then run the project's formatter, linter, and tests, and fix the tests as the `In tests:` step says.
+Run the type checker: a Root that still has `yDomain` fails to compile. The type checker does not see a `yDomain` inside an object you spread onto a Root (`{...chartProps}`), so search those objects for `yDomain` too. Then run the project's formatter, linter, and tests, and fix the tests as the `In tests:` step says.

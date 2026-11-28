@@ -261,12 +261,12 @@ class ChartStore {
 		const { root, kind, stacked, threeD, horizontal } = options;
 		if (kind === "bar" || kind === "area") {
 			// Why at runtime too: the types hold only for the family's own YAxis,
-			// and a minimum above zero would cut every bar or area short.
+			// and a domain that leaves out zero cuts every bar or area short.
 			for (const axis of [this.#yAxes.left, this.#yAxes.right]) {
-				const min = axis?.domain?.[0];
+				const [min, max] = axis?.domain ?? [];
 				invariant(
-					typeof min !== "number" || min <= 0,
-					() => `${root} draws from zero, so each YAxis domain inside it starts at 0.`,
+					(typeof min !== "number" || min <= 0) && (typeof max !== "number" || max >= 0),
+					() => `${root} draws from zero, so each YAxis domain inside it includes 0.`,
 				);
 			}
 		}

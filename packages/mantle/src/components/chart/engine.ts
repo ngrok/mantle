@@ -905,9 +905,10 @@ class ChartEngine {
 			[this.#yTweens.right, right],
 		] as const) {
 			if (target == null) {
-				// Why stop: a chase with no axis to draw would keep scheduling paints.
-				if (tween.active) {
-					tween.jump(tween.values());
+				// Why empty: a chase with no axis would keep scheduling paints, and a
+				// later right axis must start at its own domain, not this one's.
+				if (tween.values().length > 0) {
+					tween.jump([]);
 				}
 				continue;
 			}
@@ -1961,6 +1962,7 @@ class ChartEngine {
 		// gutter to a single label and clip wide category names off the left edge
 		// on the first paint (and permanently under reduced motion, where no
 		// follow-up frame re-lays-out).
+		const previousPlot = this.#plot;
 		this.#plot = {
 			left: padding,
 			top,
@@ -1987,7 +1989,6 @@ class ChartEngine {
 			? gutter(() => (horizontal ? this.#xTicks() : this.#yTicks("left")))
 			: padding;
 		const right = rightAxis ? gutter(() => this.#yTicks("right")) : padding;
-		const previousPlot = this.#plot;
 		this.#plot = {
 			left,
 			top,
@@ -2098,25 +2099,36 @@ class ChartEngine {
 		const limit = Math.min(tickCount ?? Number.POSITIVE_INFINITY, fit);
 		const count = tickCount ?? Y_TICK_COUNT;
 		const format = axis?.tickFormat;
-		const key = `${domain[0]}|${domain[1]}|${limit}|${count}|${integer}|${align?.k}|${align?.b}`;
+		// Why settled: the alignment maps to the target right domain, which a
+		// glide has not reached, so moving axes label their own current domain.
+		const settled = !this.#yTweens.left.active && !this.#yTweens.right.active;
+		const key = `${domain[0]}|${domain[1]}|${limit}|${count}|${integer}|${align?.k}|${align?.b}|${settled}`;
 		const memo = this.#yTickMemos[side];
 		if (memo != null && memo.key === key && memo.format === format && memo.source === source) {
 			return memo.ticks;
 		}
 		const aligned =
-			align == null || source == null ? [] : source.map((tick) => tick.value * align.k + align.b);
+			align == null || source == null || !settled
+				? []
+				: source.map((tick) => tick.value * align.k + align.b);
 		const alignedStep = Math.abs((aligned[1] ?? 0) - (aligned[0] ?? 0));
 		const mantissa = alignedStep / 10 ** Math.floor(Math.log10(alignedStep));
-		// Why a fallback: a thinned left grid can map to more labels than the
-		// right axis allows, to fractions on a count axis, or to a step such as
-		// 0.25 that the default label rounds.
+		// Why snap: the projection leaves float error, and `tickFormat` gets the value.
+		const snapped = aligned.map((value) =>
+			Number((Math.round(value / alignedStep) * alignedStep).toPrecision(12)),
+		);
+		// Why a fallback: a thinned or resized left grid can map to more labels
+		// than the right axis allows, to values off a round step, to fractions on a
+		// count axis, or to a step such as 0.25 that the default label rounds.
 		const ticks =
 			aligned.length > 1 &&
 			aligned.length <= limit &&
 			[1, 2, 5, 10].some((nice) => Math.abs(mantissa - nice) < 1e-6) &&
-			(!integer ||
-				aligned.every((value) => Math.abs(value - Math.round(value)) <= alignedStep * 1e-9))
-				? aligned
+			aligned.every(
+				(value, index) => Math.abs(value - (snapped[index] ?? Number.NaN)) <= alignedStep * 1e-6,
+			) &&
+			(!integer || snapped.every((value) => Number.isInteger(value)))
+				? snapped
 				: linearTicksAtMost([domain[0] ?? 0, domain[1] ?? 1], limit, { count, integer });
 		const step = ticks.length > 1 ? Math.abs((ticks[1] ?? 0) - (ticks[0] ?? 0)) : 0;
 		// Precision follows the tick step, so small-magnitude domains (error

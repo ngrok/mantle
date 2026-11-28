@@ -1132,7 +1132,19 @@ describe("BarChart with a line or an area over the bars", () => {
 					<BarChart.Bar dataKey="added" label="Added" color="green" />
 				</BarChart.Root>,
 			),
-		).toThrow("BarChart.Root draws from zero, so each YAxis domain inside it starts at 0.");
+		).toThrow("BarChart.Root draws from zero, so each YAxis domain inside it includes 0.");
+	});
+
+	test("another family's YAxis that leaves out zero below throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<BarChart.Root data={weeks} xKey="week" aria-label="Lines by week">
+					<LineChart.YAxis domain={["auto", -50]} />
+					<BarChart.Bar dataKey="removed" label="Deleted" color="red" />
+				</BarChart.Root>,
+			),
+		).toThrow("BarChart.Root draws from zero, so each YAxis domain inside it includes 0.");
 	});
 
 	test("a stacked bar on the right axis throws", () => {

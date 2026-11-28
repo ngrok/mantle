@@ -2378,6 +2378,59 @@ describe("ChartEngine right y axis", () => {
 		expect(right.every((text) => !text.includes("."))).toBe(true);
 	});
 
+	test("a resized right axis labels each tick at its own value", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("small", "line"), makeSeries("big", "line", { yAxis: "right" })],
+			rows: [0, 1].map((x) => ({ x, small: x * 10, big: 0.2 + x })),
+			yDomain: [0, 10],
+			rightYDomain: [0.2, 1.2],
+			size: { width: 400, height: 300 },
+		});
+		mount.store.registerYAxis("right", {
+			tickFormat: (value, { defaultLabel }) => `${value}=${defaultLabel}`,
+			tickCount: undefined,
+			domain: [0.2, 1.2],
+		});
+		deliverResize(mount, { width: 400, height: 80 });
+		mount.engine.commitNow();
+		const right = labels(mount, "start").map((label) => label.text.split("="));
+
+		// Why: a short plot thins the left grid to a step of 5, which maps to
+		// 0.2 and 1.2 on a step of 1; their default labels would read 0 and 1.
+		expect(right.length).toBeGreaterThan(1);
+		for (const [value, text] of right) {
+			expect(Number(text)).toBe(Number(value));
+		}
+	});
+
+	test("an aligned right axis hands tickFormat whole counts", () => {
+		const values: number[] = [];
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("small", "line"), makeSeries("big", "line", { yAxis: "right" })],
+			rows: [0, 1].map((x) => ({ x, small: 0.1 + x * 0.1, big: x * 10 })),
+			yDomain: [0.1, 0.2],
+			rightYDomain: [0, "auto"],
+		});
+		mount.store.registerYAxis("right", {
+			tickFormat: (value) => {
+				values.push(value);
+				return String(value);
+			},
+			tickCount: undefined,
+			domain: [0, "auto"],
+		});
+		mount.engine.commitNow();
+
+		// Why: a projection from 0.1-step left ticks leaves float error, such as
+		// 4.000000000000002.
+		expect(values.length).toBeGreaterThan(0);
+		expect(values.every((value) => Number.isInteger(value))).toBe(true);
+	});
+
 	test("a reference-only right axis labels a range between whole numbers", () => {
 		const mount = mountEngine({
 			kind: "line",

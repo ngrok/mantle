@@ -226,10 +226,13 @@ const ingestRows = (input: IngestInput): IngestResult => {
 		return values;
 	});
 
-	// Why: a right axis with no series, such as one that carries only reference
-	// lines, has no count data to keep its ticks whole.
-	if (extents.right.min > extents.right.max) {
-		extents.right.integers = false;
+	// Why: a side with no reading beside one with readings, such as a right axis
+	// that carries only reference lines, has no count data to keep its ticks
+	// whole. A chart with no reading at all keeps its whole ticks.
+	const emptyLeft = extents.left.min > extents.left.max;
+	const emptyRight = extents.right.min > extents.right.max;
+	if (emptyLeft !== emptyRight) {
+		(emptyLeft ? extents.left : extents.right).integers = false;
 	}
 	for (const extent of [extents.left, extents.right]) {
 		if (extent.min > extent.max) {
