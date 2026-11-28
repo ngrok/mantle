@@ -2486,6 +2486,59 @@ describe("ChartEngine series of more than one mark", () => {
 		expect(onDatumActivate).toHaveBeenLastCalledWith(expect.objectContaining({ dataKey: "bar" }));
 	});
 
+	test("a pointer on an area's edge above grouped bars selects the area", async () => {
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: [
+				makeSeries("b", "bar", { color: "emerald" }),
+				makeSeries("a", "bar", { color: "pink" }),
+				makeSeries("c", "area", { color: "amber" }),
+			],
+			rows: [
+				{ x: "GET", b: 20, a: 10, c: 80 },
+				{ x: "POST", b: 20, a: 10, c: 80 },
+			],
+			yDomain: [0, 100],
+			options: { xScale: "band" },
+		});
+		const [dot] = await activateFirstDatum(mount);
+		invariant(dot != null, "expected the area's hover dot");
+		const edge = dotPosition(dot);
+		mount.engine.setCallbacks({ onDatumActivate, onActiveIndexChange: null });
+		// Why: the grouped bars end far below the area's edge, so no bar contains the pointer.
+		mount.engine.handleActivate(edge.x + 4, edge.y);
+
+		expect(onDatumActivate).toHaveBeenLastCalledWith(expect.objectContaining({ dataKey: "c" }));
+	});
+
+	test("a line its entrance has not drawn yet leaves a click to the bar", () => {
+		frames = installFrameClock();
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: [makeSeries("bar", "bar", { color: "emerald" })],
+			rows: [
+				{ x: "GET", bar: 90, line: 60 },
+				{ x: "POST", bar: 90, line: 60 },
+				{ x: "PUT", bar: 90, line: 60 },
+			],
+			yDomain: [0, 100],
+			options: { xScale: "band", animate: true },
+		});
+		frames.settle();
+		mount.store.registerSeries(makeSeries("line", "line", { color: "amber" }));
+		mount.engine.flushIngest();
+		frames.step();
+		mount.engine.setCallbacks({ onDatumActivate, onActiveIndexChange: null });
+		// Why the last band at the line's value: one frame into its sweep, the line ends near the left edge.
+		mount.engine.handleActivate(340, 80);
+
+		expect(onDatumActivate).toHaveBeenLastCalledWith(expect.objectContaining({ dataKey: "bar" }));
+	});
+
 	test("a line whose key ends in a boundary name leaves the stacked bar's height alone", () => {
 		frames = installFrameClock();
 		const rows = [
