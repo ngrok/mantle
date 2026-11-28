@@ -1428,11 +1428,9 @@ function keepEmptyRowInView(content: HTMLDivElement | null) {
 		frameId = 0;
 		style.position = "static";
 		style.maxWidth = "none";
-		// Why `contain`: it measures the table without the empty content's width.
-		// The cap must not narrow a table that the content itself made wide.
-		style.contain = "inline-size";
-		const overflows = table.offsetWidth > scroller.clientWidth;
-		style.contain = "";
+		// Why the natural layout: a table that only the empty content made wide
+		// fits its scroller, so it gets no cap, and a content-sized track can grow.
+		const overflows = scroller.scrollWidth > scroller.clientWidth;
 		if (!overflows) {
 			return;
 		}
@@ -1444,7 +1442,9 @@ function keepEmptyRowInView(content: HTMLDivElement | null) {
 		// Why min-content: content that cannot fit in the cap, on either side,
 		// stays static so that the table scroll reaches each part of it.
 		style.width = "min-content";
-		const minWidth = content.getBoundingClientRect().width;
+		// Why `offsetWidth`: unlike a client rect, it ignores ancestor transforms,
+		// as `clientWidth` does.
+		const minWidth = content.offsetWidth;
 		style.width = "";
 		if (minWidth > cap) {
 			return;
