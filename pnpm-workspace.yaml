@@ -40,7 +40,7 @@ catalog:
   "@testing-library/react": "16.3.3"
   "@testing-library/user-event": "14.6.13"
   "@tsdown/css": "0.23.7"
-  "@types/node": "26.6.10"
+  "@types/node": "26.6.11"
   "@vitest/browser-playwright": "5.1.2"
   "happy-dom": "21.0.4"
   "jsdom": "31.0.1"
@@ -55,7 +55,7 @@ catalog:
   "tailwindcss": "4.3.5"
   "tsdown": "0.23.7"
   "typescript": "7.0.2"
-  "vite": "8.3.8"
+  "vite": "8.4.0"
 
 overrides:
   "@types/node": "catalog:"
