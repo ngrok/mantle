@@ -1,5 +1,35 @@
 # @ngrok/mantle
 
+## 0.100.0
+
+### Minor Changes
+
+- [#1996](https://github.com/ngrok/mantle/pull/1996) [`d3811c4`](https://github.com/ngrok/mantle/commit/d3811c45fae4fb611c55a3795ac145bb5946ff36) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add a right y axis to line, bar, area, and scatter charts. Compose a second `YAxis` with `side="right"` and set `yAxis="right"` on each series that reads it: `LineChart.Line`, `BarChart.Bar`, `AreaChart.Area`, `ScatterPlot.Point`, or a `LineChart.Line` drawn over bars. `ReferenceLine` takes `yAxis="right"` too. Each axis has its own scale. The right axis puts a round value on each left grid line when it can, so one set of grid lines reads on both sides. The legend lists the left axis's keys first and the right axis's keys at its far end. Labels show as you write them; put the side in a label when your readers need it.
+
+  A right-axis series or reference line throws without a `YAxis side="right"`. A right-axis series also throws without a series on the left axis, in a 3D scatter plot, or when it would join a stacked chart's pile. Horizontal bars take no right axis. A `YAxis` `domain` under a bar or an area throws when it leaves out zero.
+
+  Breaking: the chart Roots no longer take `yDomain`. Set `domain` on the `YAxis` part instead: `<LineChart.Root yDomain={[0, 100]}>` becomes `<LineChart.YAxis domain={[0, 100]} />`. Each axis sets its own range this way. `BarChart.YAxis` and `AreaChart.YAxis` keep the zero minimum (`[0, number | "auto"]`). A chart with no `YAxis` can no longer fix its range. To migrate, run the codemod: `npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/chart-y-axis-domain.yml --update-all <path>`. Migration guide: https://mantle.ngrok.com/migrations/chart-y-axis-domain-migration
+
+### Patch Changes
+
+- [#2004](https://github.com/ngrok/mantle/pull/2004) [`cbb108c`](https://github.com/ngrok/mantle/commit/cbb108c288ea6dd9cdb91175be80040722edd911) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The `app-layout-card` morph now reads as the panel sliding over the page. The moving card paints above the rest of the page and casts the floating panel's shadow while it moves. Add `app-layout-card-under` to a page card's `enter` and `exit` view transition classes to hold it still and opaque under the moving card, and `app-layout-card-alone` to a card that fades in or out with no card to morph into. Give `app-layout-card-alone` to any named card that can enter or leave with no pair, such as a page whose panel may be closed: CSS cannot tell a lone `app-layout-card` from a paired one, so without the class it keeps the frame and shadow until the transition ends. Reduced motion stays a cut.
+
+  The Assistant Across Routes recipe uses both classes, says why the transition is required, and has a test that fails when the recipe drops part of it.
+
+- [#2001](https://github.com/ngrok/mantle/pull/2001) [`e58c19b`](https://github.com/ngrok/mantle/commit/e58c19b082d3eafde1463d800f3c693c98afdf78) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `AxisTitle` to line, bar, area, and scatter charts. Compose it inside an axis to name that axis: `<LineChart.XAxis><LineChart.AxisTitle>Time of request</LineChart.AxisTitle></LineChart.XAxis>`. The title is HTML text, so screen readers and search engines read it. The x title sits under the plot, and it also heads the x column of the screen-reader data table in place of the `xKey`. A y title reads bottom to top on the left, and top to bottom beside a right axis. On horizontal bars, each title moves with its axis.
+
+  The title stays on one line and truncates with an ellipsis; set `className="whitespace-normal"` to let it wrap. The chart places each title in its own grid cell, so the order of the parts does not move it, and CSS sets its position before the chart paints. A chart with no title keeps its layout. A 3D scatter plot labels its own frame and shows no title. `XAxis` and `YAxis` now take an `AxisTitle` element as `children`. A consumer `hidden` class on the Root still hides a titled chart.
+
+- [#2003](https://github.com/ngrok/mantle/pull/2003) [`72771be`](https://github.com/ngrok/mantle/commit/72771be41ddb877e380089b9a0152cbefa31038c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add a log scale to the chart y axis. Import `logScale` from `@ngrok/mantle/bar-chart`, `@ngrok/mantle/line-chart`, or `@ngrok/mantle/area-chart`, and pass it to the `YAxis` `scale`: `<BarChart.YAxis scale={logScale} />`. The default is `"linear"`, and a chart that does not import `logScale` ships none of its code. A log axis spaces each power of ten evenly and ticks at powers of ten with compact labels (`1K`, `1M`). Each side takes its own scale, and a log side keeps ticks of its own instead of the left grid lines. A switch between scales glides the marks, and reduced motion jumps.
+
+  With `scale={logScale}`, `domain` takes `[number | "auto", number | "auto"]` on every family. A positive end is kept. An `"auto"` end, or one at or below zero, follows the data: the minimum is a power of ten at least one decade below the smallest positive value, so the smallest bar keeps a length. A value at or below zero has no mark; the tooltip, the data table, and the announcements still read it. The chart description tells a screen reader that the axis uses a log scale, and the Root gets `data-y-scale="log"`. A log axis throws on a scatter plot and on the left axis of a stacked chart, where the stack is; a right axis of a stacked chart takes it.
+
+- [#1994](https://github.com/ngrok/mantle/pull/1994) [`49a6ead`](https://github.com/ngrok/mantle/commit/49a6eadf3c06f30e9d7324b84a6a03b84ce53941) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Draw a line or an area over bars. Compose `LineChart.Line` or `AreaChart.Area` inside a vertical `BarChart.Root`: the series runs through each category's center on the shared y axis, takes no bar slot, and joins no stack. The tooltip, the keyboard announcements, the data table, the copy button, and the legend list it. A stacked total counts the bars alone. `AreaChart.Area` also composes inside `LineChart.Root`, and `LineChart.Line` inside `AreaChart.Root`. A bar inside a line or area chart still throws, and the error now says why.
+
+- [#2002](https://github.com/ngrok/mantle/pull/2002) [`441807f`](https://github.com/ngrok/mantle/commit/441807f5506325e92c5af4a672d99ece6283afdd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Build the design tokens with postcss 8.5.34. The published files do not change.
+
+- [#1999](https://github.com/ngrok/mantle/pull/1999) [`61e332e`](https://github.com/ngrok/mantle/commit/61e332eccd961acd8076b81d09d00dec32276a6e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Popover.Trigger` `openOnHover`: when a controlled parent closes a hover open by itself, the hover open now ends. The parent's next open moves focus into the content, and a hover on another trigger no longer closes it.
+
 ## 0.99.0
 
 ### Minor Changes
