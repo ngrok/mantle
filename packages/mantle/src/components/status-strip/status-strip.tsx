@@ -165,7 +165,9 @@ type StatusStripShare = "no-data" | "none" | "some" | "all";
  * from 0 to 1, such as `undefined`, a string, or `NaN` from a division by 0.
  */
 function shareOf(value: number | null): StatusStripShare {
-	const message = `StatusStrip.Segment value must be a number from 0 to 1, or null for no data. Received ${String(value)}.`;
+	// Why a function: a page renders many segments, so the message is built only when it throws.
+	const message = () =>
+		`StatusStrip.Segment value must be a number from 0 to 1, or null for no data. Received ${String(value)}.`;
 	// Why `=== undefined`: a missing value is a caller bug, and only `null` means no data.
 	invariant(value !== undefined, message);
 	if (value == null) {
@@ -209,8 +211,8 @@ type StatusStripSegmentProps = Omit<ComponentProps<"span">, "children"> &
  *
  * | CSS Variable           | Default                   | Description                                                  |
  * | ---------------------- | ------------------------- | ------------------------------------------------------------ |
- * | `--status-strip-fill`  | `var(--color-accent-600)` | Read, not owned: set it on `StatusStrip.Root`. The fill above 0. |
- * | `--status-strip-track` | `var(--color-gray-300)`   | Read, not owned: set it on `StatusStrip.Root`. The fill at 0, and the lines with no data. |
+ * | `--status-strip-fill`  | `var(--color-accent-600)` | The fill above 0. Set it on `StatusStrip.Root`, or on one segment for its own color, such as a threshold color. |
+ * | `--status-strip-track` | `var(--color-gray-300)`   | The fill at 0, and the lines with no data. Set it on `StatusStrip.Root`, or on one segment. |
  *
  * | Data Attribute | Value                                     | Description                                                            |
  * | -------------- | ----------------------------------------- | ---------------------------------------------------------------------- |
@@ -248,16 +250,12 @@ function Segment({
 			// Why after the spread: `data-share` drives the paint, so a forwarded value must not replace the reading.
 			data-share={share}
 			data-slot={joinDataSlot(dataSlot, "status-strip-segment")}
-			className={cx(
-				// Why `forced-color-adjust-none`: forced colors paint every background as the canvas, so each share looks the same.
-				"rounded-[1px] forced-color-adjust-none",
-				"bg-[color-mix(in_oklab,var(--status-strip-fill,var(--color-accent-600))_calc(35%_+_65%_*_var(--_status-strip-value)),transparent)]",
-				"data-[share=none]:bg-(--status-strip-track,var(--color-gray-300))",
-				// Why top and bottom only: side borders fill a segment 2px wide, and it then reads as 0.
-				"data-[share=no-data]:border-y data-[share=no-data]:border-(--status-strip-track,var(--color-gray-300)) data-[share=no-data]:bg-transparent",
-				className,
-			)}
-			style={$cssProperties({ "--_status-strip-value": value ?? 0, ...style })}
+			// Why one utility: a page holds many strips of many segments, so the paint is in `status-strip-segment` in mantle.css.
+			className={cx("status-strip-segment", className)}
+			// Why only for "some": the utility paints 0, 1, and no data without the value, so most segments carry no style.
+			style={
+				share === "some" ? $cssProperties({ "--_status-strip-value": value ?? 0, ...style }) : style
+			}
 		>
 			{asChild && isValidElement<Record<string, unknown>>(children)
 				? // Why clone: `Slot` lets the child's props win, and `data-share` must match `value`.

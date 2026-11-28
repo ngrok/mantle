@@ -133,17 +133,21 @@ describe("StatusStrip.Segment", () => {
 		expect(screen.getByTestId("segment")).toHaveAttribute("data-share", share);
 	});
 
-	test("writes its share to --_status-strip-value, and no data writes 0", () => {
+	test("writes only a share between 0 and 1 to --_status-strip-value, and keeps the consumer's style", () => {
 		render(
 			<StatusStrip.Root aria-hidden>
 				<StatusStrip.Segment value={0.25} data-testid="some" style={{ opacity: 0.5 }} />
+				<StatusStrip.Segment value={1} data-testid="all" style={{ opacity: 0.5 }} />
 				<StatusStrip.Segment value={null} data-testid="no-data" />
 			</StatusStrip.Root>,
 		);
 		const some = screen.getByTestId("some");
 		expect(some.style.getPropertyValue("--_status-strip-value")).toBe("0.25");
 		expect(some.style.opacity).toBe("0.5");
-		expect(screen.getByTestId("no-data").style.getPropertyValue("--_status-strip-value")).toBe("0");
+		const all = screen.getByTestId("all");
+		expect(all.style.getPropertyValue("--_status-strip-value")).toBe("");
+		expect(all.style.opacity).toBe("0.5");
+		expect(screen.getByTestId("no-data")).not.toHaveAttribute("style");
 	});
 
 	test.each([Number.NaN, -0.1, 1.1])("throws for value %s", (value) => {
