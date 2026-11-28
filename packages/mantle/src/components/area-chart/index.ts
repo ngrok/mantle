@@ -101,4 +101,3 @@ export type {
 	ChartDatumEvent,
 	ChartMode,
 } from "./area-chart.js";
-export type { YScale } from "../chart/types.js";

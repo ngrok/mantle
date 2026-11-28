@@ -99,4 +99,3 @@ export type {
 	ChartDatumEvent,
 	ChartMode,
 } from "./bar-chart.js";
-export type { YScale } from "../chart/types.js";

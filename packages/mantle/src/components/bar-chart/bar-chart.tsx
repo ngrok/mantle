@@ -203,7 +203,7 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
  * | `data-slot` | `"bar-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the category count, the first and last category, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`. |
  * | `data-slot` | `"bar-chart-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-engaged` appears) and stays. Interactive charts only. |
  * | `data-engaged` | present once engaged | On the Root. Appears once focus lands inside the chart, and never goes away. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only. |
- * | `data-y-scale` | `"log"` or absent | On the Root. Present while a `YAxis` on either side has `scale="log"`. Absent on a linear chart. |
+ * | `data-y-scale` | `"log"` or absent | On the Root. Present while a `YAxis` on either side has `scale={logScale}`. Absent on a linear chart. |
  * | `data-value` | a number | On each cell of the `sr-only` data table that shows a finite number, and on a numeric x row header. The raw number. A missing value has none. |
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartroot

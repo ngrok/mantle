@@ -100,4 +100,3 @@ export type {
 	LineChartXAxisProps,
 	LineChartYAxisProps,
 } from "./line-chart.js";
-export type { YScale } from "../chart/types.js";

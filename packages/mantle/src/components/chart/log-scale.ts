@@ -27,6 +27,10 @@ const logDomain = (
 	let hi = positive == null ? lo + 1 : Math.ceil(Math.log10(positive[1]));
 	if (typeof maxFixed === "number" && maxFixed > 0) {
 		hi = Math.log10(maxFixed);
+		// Why: a fixed maximum wins over an automatic minimum above it.
+		if (!(typeof minFixed === "number" && minFixed > 0) && lo >= hi) {
+			lo = Math.floor(hi) - 1;
+		}
 	}
 	return [lo, hi > lo ? hi : lo + 1];
 };
@@ -43,14 +47,19 @@ const logDomain = (
  * ```
  */
 const logTicks = (domain: readonly [number, number], max: number): number[] => {
+	if (!(max >= 1)) {
+		return [];
+	}
 	// Why the tolerance: an end such as `log10(1000)` can land a hair off 3.
-	const first = Math.ceil(domain[0] - 1e-9);
-	const last = Math.floor(domain[1] + 1e-9);
+	// Why the clamp: `1e-324` is 0 and `1e309` is Infinity, which have no place.
+	const first = Math.max(-323, Math.ceil(domain[0] - 1e-9));
+	const last = Math.min(308, Math.floor(domain[1] + 1e-9));
 	const count = last - first + 1;
 	if (count < 2) {
 		return linearTicksAtMost([10 ** domain[0], 10 ** domain[1]], max);
 	}
-	const every = Math.ceil(count / Math.max(1, Math.floor(max)));
+	// Why `max(1, …)`: an unbounded `max`, as on horizontal bars, gives a stride of 0.
+	const every = Math.max(1, Math.ceil(count / Math.floor(max)));
 	const ticks: number[] = [];
 	for (let exponent = first; exponent <= last; exponent += every) {
 		// Why the string: `10 ** -3` is 0.0010000000000000002, and `1e-3` is exact.

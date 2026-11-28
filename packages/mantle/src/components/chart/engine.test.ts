@@ -2842,6 +2842,119 @@ describe("ChartEngine log y axis", () => {
 		expect(leftLabels(mount)).not.toContain("1K");
 	});
 
+	const linearAxis = (mount: Pick<Mounted, "store">): void => {
+		mount.store.registerYAxis("left", {
+			tickFormat: undefined,
+			tickCount: undefined,
+			domain: undefined,
+		});
+	};
+	const decades = [1, 10, 100, 1000].map((a, x) => ({ x, a }));
+	const mountLine = () =>
+		mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: decades,
+			size: { width: 400, height: 300 },
+			options: { animate: true },
+		});
+
+	test("a switch to linear glides each mark from its log height and settles on the linear one", () => {
+		const frames = installFrameClock();
+		const mount = mountLine();
+		setLog(mount);
+		mount.engine.markSeen();
+		frames.settle();
+		const logYs = vertexYs(mount);
+		linearAxis(mount);
+		mount.engine.flushIngest();
+		frames.step();
+		const firstFrame = vertexYs(mount);
+		const count = frames.settle();
+		const target = mountLine();
+		target.engine.commitNow();
+
+		// Why: a jump would paint the linear heights on the first frame; a glide
+		// from the wrong start would leave the first frame far from both.
+		expect(firstFrame).not.toEqual(vertexYs(target));
+		expect(Math.abs((firstFrame[0] ?? 0) - (logYs[0] ?? 0))).toBeLessThan(
+			Math.abs((firstFrame[0] ?? 0) - (vertexYs(target)[0] ?? 0)),
+		);
+		// Why a count: the glide is a motion, so it must end.
+		expect(count).toBeGreaterThan(1);
+		expect(vertexYs(mount).map(Math.round)).toEqual(vertexYs(target).map(Math.round));
+	});
+
+	test("under reduced motion a switch to linear jumps to the linear heights", () => {
+		vi.stubGlobal(
+			"matchMedia",
+			(query: string) =>
+				({
+					matches: query === REDUCED_MOTION_QUERY,
+					media: query,
+					addEventListener: () => {},
+					removeEventListener: () => {},
+				}) as unknown as MediaQueryList,
+		);
+		const mount = mountLine();
+		setLog(mount);
+		mount.engine.markSeen();
+		mount.engine.commitNow();
+		linearAxis(mount);
+		mount.engine.flushIngest();
+		mount.engine.commitNow();
+		const target = mountLine();
+		target.engine.commitNow();
+
+		expect(vertexYs(mount)).toEqual(vertexYs(target));
+	});
+
+	test("a zero bar on a log axis is a reading, not an empty slot", () => {
+		const paths = (value: number | null): number => {
+			const mount = mountEngine({
+				kind: "bar",
+				backend: createSvgBackend,
+				series: [makeSeries("a", "bar")],
+				rows: [
+					{ x: "a", a: 100 },
+					{ x: "b", a: value },
+				],
+				options: { xScale: "band" },
+			});
+			setLog(mount);
+			mount.store.registerEmptySlot({ label: "No reading", paint: paintEmptySlots });
+			mount.engine.flushIngest();
+			mount.engine.commitNow();
+			return paintedPaths(mount).length;
+		};
+
+		// Why: a missing row paints the outline; a 0 has no bar and no outline.
+		expect(paths(0)).toBeLessThan(paths(null));
+	});
+
+	test("a horizontal log axis with no tick count paints its decades", () => {
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "bar")],
+			rows: [
+				{ x: "a", a: 5 },
+				{ x: "b", a: 5000 },
+			],
+			options: { xScale: "band", orientation: "horizontal" },
+		});
+		setLog(mount);
+		mount.engine.flushIngest();
+		mount.engine.commitNow();
+		const texts = [...mount.elements.plot.querySelectorAll("svg text")].map(
+			(text) => text.textContent,
+		);
+
+		// Why: an unbounded tick count once gave a stride of 0, and the loop never ended.
+		expect(texts).toEqual(expect.arrayContaining(["1", "10", "100", "1K", "10K"]));
+	});
+
 	test("a log axis on a stacked chart throws", () => {
 		expect(() => {
 			const mount = mountEngine({

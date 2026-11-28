@@ -3050,8 +3050,10 @@ class ChartEngine {
 		emptySlot.paint(ctx, {
 			...slots,
 			// A row where a line or an area has a value is a reading, not an empty slot.
+			// Why the raw column on a scaled axis: its plot holds `NaN` for a `0`,
+			// which is a reading.
 			segments: specs.map((spec, seriesIndex) =>
-				spec.mark === "bar"
+				spec.mark === "bar" && this.#plots[spec.yAxis] == null
 					? (segments[seriesIndex] ?? EMPTY_SEGMENTS)
 					: { upper: this.#columnOf(spec.dataKey) ?? EMPTY_SEGMENTS.upper },
 			),

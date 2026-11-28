@@ -13,7 +13,7 @@ A line chart for trends over a continuous x axis, time above all. Compose the gr
 <Example name="components/charts/line-chart/overview" title="Line Chart example">
 
 ```tsx
-import { LineChart, logScale } from "@ngrok/mantle/line-chart";
+import { LineChart } from "@ngrok/mantle/line-chart";
 
 const latencyStart = new Date("2026-07-18T10:00:00Z").getTime();
 const latencyPoint = (minute: number) => ({
@@ -60,7 +60,7 @@ String x values put the chart on a `"point"` scale: evenly spaced categorical po
 <Example name="components/charts/line-chart/curves-markers-and-shapes" title="Line Chart curves, markers, and shapes example">
 
 ```tsx
-import { LineChart, logScale } from "@ngrok/mantle/line-chart";
+import { LineChart } from "@ngrok/mantle/line-chart";
 
 const signupsData = [
 	{ day: "Mon", thisWeek: 42, lastWeek: 38 },
@@ -103,7 +103,7 @@ Rendering decimates each series to its min/max per pixel column, so series of 10
 <Example name="components/charts/line-chart/high-density-series" title="Line Chart high-density series example">
 
 ```tsx
-import { LineChart, logScale } from "@ngrok/mantle/line-chart";
+import { LineChart } from "@ngrok/mantle/line-chart";
 
 function seededWalk(count: number, seed: number) {
 	// Deterministic LCG (Numerical Recipes constants): renders identically
@@ -143,7 +143,7 @@ function HighDensityExample() {
 <Example name="components/charts/line-chart/gaps-and-connectnulls" title="Line Chart Gaps and connectNulls example">
 
 ```tsx
-import { LineChart, logScale } from "@ngrok/mantle/line-chart";
+import { LineChart } from "@ngrok/mantle/line-chart";
 
 const sensorData = [
 	{ hour: "00:00", roof: 21.1, lobby: 20.9 },
@@ -188,7 +188,7 @@ function GapsExample() {
 <Example name="components/charts/line-chart/reference-lines" title="Line Chart reference lines example">
 
 ```tsx
-import { LineChart, logScale } from "@ngrok/mantle/line-chart";
+import { LineChart } from "@ngrok/mantle/line-chart";
 
 const errorRateData = Array.from({ length: 24 }, (_, hour) => ({
 	time: new Date(Date.UTC(2026, 6, 17, hour)),
@@ -263,7 +263,7 @@ Two scales on one plot invite a false reading: where two lines cross means nothi
 <Example name="components/charts/line-chart/two-y-axes" title="Line Chart two y axes example">
 
 ```tsx
-import { LineChart, logScale } from "@ngrok/mantle/line-chart";
+import { LineChart } from "@ngrok/mantle/line-chart";
 
 const weeklyTokens = [
 	{ week: "Apr 20", uncached: 3_874_487, cached: 78_082_526, output: 606_678 },
@@ -315,7 +315,7 @@ The active position is controllable: pass `activeIndex` and `onActiveIndexChange
 <Example name="components/charts/line-chart/linked-charts" title="Line Chart linked charts example">
 
 ```tsx
-import { LineChart, logScale } from "@ngrok/mantle/line-chart";
+import { LineChart } from "@ngrok/mantle/line-chart";
 import { useState } from "react";
 
 const trafficStart = new Date("2026-07-18T10:00:00Z").getTime();
@@ -376,7 +376,7 @@ This demo appends one point every 150ms to a sliding 240-point window, dropping 
 <Example name="components/charts/line-chart/live-data" title="Line Chart live data example">
 
 ```tsx
-import { LineChart, logScale } from "@ngrok/mantle/line-chart";
+import { LineChart } from "@ngrok/mantle/line-chart";
 import { useEffect, useState } from "react";
 
 const liveStart = new Date("2026-07-18T12:00:00Z").getTime();
@@ -444,7 +444,7 @@ The button renders in flow where composed; `Root` is relatively positioned, so `
 <Example name="components/charts/line-chart/copy-as-markdown" title="Line Chart copy as markdown example">
 
 ```tsx
-import { LineChart, logScale } from "@ngrok/mantle/line-chart";
+import { LineChart } from "@ngrok/mantle/line-chart";
 
 <LineChart.Root data={latencyData} xKey="time" aria-label="Request latency, copyable">
 	<LineChart.Grid />
@@ -513,7 +513,7 @@ Reach for `mode="decorative"` over hand-rolled `inert` + CSS: it removes the int
 
 ```tsx
 import { Empty } from "@ngrok/mantle/empty";
-import { LineChart, logScale } from "@ngrok/mantle/line-chart";
+import { LineChart } from "@ngrok/mantle/line-chart";
 
 /** Synthetic line (a backdrop, not data), so no Math.random and no real values. */
 const placeholderLatency = [120, 138, 126, 152, 141, 168, 150, 162].map((value, index) => ({
@@ -698,7 +698,7 @@ Value tick labels along the left of the plot (renderless; the chart paints it). 
 | `tickCount?`  | `number`                                                                     | `5`                 | Maximum tick count. When omitted, the axis aims for about 5 ticks. The axis can render fewer: ticks land on human-friendly steps, a vertical axis keeps about 28px for each tick, and a label that would overlap its neighbor is skipped. Integer-valued data never renders fractional ticks.                                                                                                                              |
 | `side?`       | `"left" \| "right"`                                                          | `"left"`            | The edge the axis paints on. A series or a reference line with `yAxis="right"` reads the right axis's scale, and the right axis puts a round value on each left grid line when its `domain` allows it. See [Two y axes](/components/charts/line-chart#two-y-axes).                                                                                                                                                         |
 | `domain?`     | `[number \| "auto", number \| "auto"]`                                       | `["auto", "auto"]`  | Fix either end of the axis's domain. An `"auto"` end follows the data. With `scale={logScale}`, an end at or below zero follows the data too.                                                                                                                                                                                                                                                                              |
-| `scale?`      | `"linear" \| YScale`                                                         | `"linear"`          | How values map to height. `logScale`, imported from this module, spaces each power of ten evenly and ticks at powers of ten. A value at or below zero has no mark, and the tooltip and the data table keep its value. Takes no stacked chart. See [Log scale](/components/charts/line-chart#log-scale).                                                                                                                    |
+| `scale?`      | `"linear" \| logScale`                                                       | `"linear"`          | How values map to height. `logScale`, imported from this module, spaces each power of ten evenly and ticks at powers of ten. A value at or below zero has no mark, and the tooltip and the data table keep its value. Takes no stacked chart. See [Log scale](/components/charts/line-chart#log-scale).                                                                                                                    |
 
 ### LineChart.ReferenceLine
 
@@ -811,7 +811,7 @@ Below, this week paints the brand color through `color="blue"`. Last week wears 
 <Example name="components/charts/line-chart/restyle-a-color-for-one-chart" title="Line Chart restyle a color for one chart example">
 
 ```tsx
-import { LineChart, logScale } from "@ngrok/mantle/line-chart";
+import { LineChart } from "@ngrok/mantle/line-chart";
 
 const signupsData = [
 	{ day: "Mon", thisWeek: 42, lastWeek: 38 },
