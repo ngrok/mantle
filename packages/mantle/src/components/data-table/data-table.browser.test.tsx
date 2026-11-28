@@ -2,8 +2,9 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { type ComponentProps, useMemo } from "react";
 import invariant from "tiny-invariant";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { commands, userEvent } from "vitest/browser";
 import type { ButtonAppearance, ButtonIntent } from "../button/index.js";
+import * as Empty from "../empty/empty-parts.js";
 import * as DataTable from "./data-table-parts.js";
 import {
 	createColumnHelper,
@@ -442,5 +443,70 @@ describe("DataTable row motion (browser)", () => {
 		expect(screen.queryByText("b-1")).not.toBeInTheDocument();
 		expect(isSettled("tail")).toBe(true);
 		expect(shownTop("tail")).toBeCloseTo(endTop, 0);
+	});
+});
+
+const wideColumns = columnHelper.columns(
+	(["name", "email"] as const).map((key) =>
+		columnHelper.accessor(key, {
+			id: key,
+			header: () => <DataTable.Header style={{ minWidth: 400 }}>{key}</DataTable.Header>,
+			cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		}),
+	),
+);
+
+function WideEmptyHarness() {
+	const table = useTable({ features, data: [], columns: wideColumns });
+	return (
+		<div style={{ width: 300 }}>
+			<DataTable.Root table={table}>
+				<DataTable.Head />
+				<DataTable.Body>
+					<DataTable.EmptyRow>
+						<Empty.Root>
+							<Empty.Title>No data</Empty.Title>
+						</Empty.Root>
+					</DataTable.EmptyRow>
+				</DataTable.Body>
+			</DataTable.Root>
+		</div>
+	);
+}
+
+// Why browser mode: the centering depends on real layout, sticky positioning,
+// and the width `Table.Root` measures in its `ResizeObserver`.
+describe("DataTable.EmptyRow (browser): a table wider than its container", () => {
+	let styleElement: HTMLStyleElement;
+
+	beforeAll(async () => {
+		styleElement = document.createElement("style");
+		styleElement.textContent = [
+			"*, ::before, ::after { box-sizing: border-box; }",
+			await commands.tailwindCss(["./data-table.tsx", "../table/table.tsx", "../empty/empty.tsx"]),
+		].join("\n");
+		document.head.appendChild(styleElement);
+	});
+
+	afterAll(() => {
+		styleElement.remove();
+	});
+
+	test("centers the empty state in the visible width, not in the scroll width", async () => {
+		render(<WideEmptyHarness />);
+		const title = screen.getByText("No data");
+		const scroller = screen.getByRole("table").parentElement;
+		invariant(scroller, "expected the table's scroll container");
+		// Guard: the table must overflow, or the test cannot tell the two centers apart.
+		expect(scroller.scrollWidth).toBeGreaterThan(scroller.clientWidth + 100);
+
+		const centerOf = (rect: DOMRect) => rect.left + rect.width / 2;
+		await expect
+			.poll(() =>
+				Math.abs(
+					centerOf(title.getBoundingClientRect()) - centerOf(scroller.getBoundingClientRect()),
+				),
+			)
+			.toBeLessThan(2);
 	});
 });

@@ -1386,7 +1386,14 @@ function EmptyRow({ "data-slot": dataSlot, children, ...props }: DataTableEmptyR
 	return (
 		<Table.Row data-slot={joinDataSlot(dataSlot, "data-table-empty-row")} {...props}>
 			<Table.Cell colSpan={numberOfColumns} width="wrap">
-				{children}
+				{/* Why sticky and the cap: a table wider than its scroll container
+				    would center the content in the full scroll width, off screen.
+				    `--_table-viewport-width` comes from `Table.Root`; the 1.5rem is
+				    the cell's inline padding. Until it is set, the calc is invalid
+				    and `max-width` falls back to `none`. */}
+				<div className="sticky inset-s-3 max-w-[calc(var(--_table-viewport-width)-1.5rem)]">
+					{children}
+				</div>
 			</Table.Cell>
 		</Table.Row>
 	);
