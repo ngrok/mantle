@@ -42,6 +42,16 @@ import * as CodeBlockParts from "./code-block-parts.js";
  * │   └── CodeBlock.TabContent
  * │       └── CodeBlock.Code
  * └── CodeBlock.ExpanderButton
+ *
+ * # Diff
+ * CodeBlock.Root
+ * ├── CodeBlock.Header
+ * │   ├── CodeBlock.Icon
+ * │   └── CodeBlock.Title
+ * └── CodeBlock.Body
+ *     ├── CodeBlock.CopyButton
+ *     └── CodeBlock.Diff
+ *         └── CodeBlock.DiffCallout
  * ```
  *
  * @example
@@ -114,6 +124,11 @@ export type {
 	CodeLine,
 	CodeToken,
 } from "./line-tokenizer.js";
+
+export type {
+	//,
+	CodeBlockDiffLine,
+} from "./code-block-diff.js";
 
 export {
 	//,

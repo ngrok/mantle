@@ -13,6 +13,7 @@ import {
 	NestedFragmentInterpolationDemo,
 	DefaultOptionsDemo,
 	OverriddenOptionsDemo,
+	CodeBlockDiffDemo,
 } from "~/features/code-block-demos";
 
 /** The first example on the Code Block docs page. */
@@ -83,4 +84,9 @@ export function DefaultOptionsExample() {
 /** The "Overriding every option" example on the Code Block docs page. */
 export function OverridingEveryOptionExample() {
 	return <OverriddenOptionsDemo />;
+}
+
+/** The "Comparing two versions" example on the Code Block docs page. */
+export function ComparingTwoVersionsExample() {
+	return <CodeBlockDiffDemo />;
 }

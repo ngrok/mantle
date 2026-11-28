@@ -134,3 +134,28 @@ describe("JSON fold parity", () => {
 		},
 	);
 });
+
+test("sortKeys keeps a boxed primitive as its value", () => {
+	// oxlint-disable-next-line unicorn/new-for-builtins, no-new-wrappers -- Why: the boxed value is the input under test.
+	const value = { b: new Number(7), a: new String("ok") };
+	expect(jsonCodeBlockValue(value, { sortKeys: true }).code).toBe('{\n  "a": "ok",\n  "b": 7\n}');
+});
+
+// Why: TypeScript's ES2025 lib has no `JSON.rawJSON`, which each engine mantle supports ships.
+declare global {
+	interface JSON {
+		rawJSON(text: string): object;
+	}
+}
+
+test("sortKeys keeps raw JSON as its text", () => {
+	const value = { id: JSON.rawJSON("9007199254740993") };
+	expect(jsonCodeBlockValue(value, { sortKeys: true }).code).toBe('{\n  "id": 9007199254740993\n}');
+});
+
+test("sortKeys sorts a frozen record with no prototype and a rawJSON key", () => {
+	const value = Object.freeze(Object.assign(Object.create(null), { z: 1, rawJSON: "42", a: 2 }));
+	expect(jsonCodeBlockValue(value, { sortKeys: true }).code).toBe(
+		'{\n  "a": 2,\n  "rawJSON": "42",\n  "z": 1\n}',
+	);
+});

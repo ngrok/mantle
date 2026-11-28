@@ -270,6 +270,18 @@ function jsonToShikiHtml(code: string): string {
 }
 
 /**
+ * Whether a value is a `JSON.rawJSON()` result, which `JSON.stringify` writes
+ * as its text. A runtime with no `JSON.isRawJSON` has no such values.
+ */
+function isRawJson(value: object): boolean {
+	const isRawJSON: unknown = Reflect.get(JSON, "isRawJSON");
+	return typeof isRawJSON === "function" && Reflect.apply(isRawJSON, JSON, [value]) === true;
+}
+
+/** The tags of `new Number()`, `new String()`, and `new Boolean()`, which `JSON.stringify` writes as their values. */
+const BOXED_PRIMITIVE_TAGS = new Set(["[object Number]", "[object String]", "[object Boolean]"]);
+
+/**
  * `JSON.stringify` (2-space indent) that never throws: rendering a detail panel
  * must not crash on awkward values. Serializes `BigInt` as its decimal string
  * (JSON has no bigint), and collapses circular / repeated object references to
@@ -284,7 +296,7 @@ function jsonToShikiHtml(code: string): string {
  * `"[Circular]"` after its first occurrence. That trade keeps this a single,
  * allocation-light pass and is acceptable for a best-effort inspector panel.
  */
-function safeJsonStringify(value: unknown): string {
+function safeJsonStringify(value: unknown, { sortKeys }: { sortKeys: boolean }): string {
 	const seen = new WeakSet<object>();
 	try {
 		return (
@@ -299,6 +311,18 @@ function safeJsonStringify(value: unknown): string {
 							return "[Circular]";
 						}
 						seen.add(val);
+						// Why code-unit order and not `localeCompare`: the server and the browser can run in different locales, and the hydrated text must match.
+						// Why not a boxed primitive or raw JSON: `JSON.stringify` writes each as a value, and its entries would make it an object.
+						if (
+							sortKeys &&
+							!Array.isArray(val) &&
+							!BOXED_PRIMITIVE_TAGS.has(Object.prototype.toString.call(val)) &&
+							!isRawJson(val)
+						) {
+							return Object.fromEntries(
+								Object.entries(val).toSorted(([left], [right]) => (left < right ? -1 : 1)),
+							);
+						}
 					}
 					return val;
 				},
@@ -331,6 +355,14 @@ type JsonCodeBlockValueOptions = {
 	 * `true`; set `false` for a flat, non-collapsible panel.
 	 */
 	foldable?: boolean | undefined;
+	/**
+	 * Whether each object writes its keys in sorted order, by UTF-16 code unit.
+	 * Arrays keep their order. Keys that are array indexes, such as `"2"` and
+	 * `"10"`, come first in numeric order, as in each JavaScript object. Sort both values of a `CodeBlock.Diff`, so a
+	 * change in key order alone shows no change.
+	 * Defaults to `false`.
+	 */
+	sortKeys?: boolean | undefined;
 };
 
 /**
@@ -362,9 +394,9 @@ type JsonCodeBlockValueOptions = {
  */
 function jsonCodeBlockValue(
 	value: unknown,
-	{ showLineNumbers = false, foldable = true }: JsonCodeBlockValueOptions = {},
+	{ showLineNumbers = false, foldable = true, sortKeys = false }: JsonCodeBlockValueOptions = {},
 ): MantleCodeBlockValue {
-	const code = safeJsonStringify(value);
+	const code = safeJsonStringify(value, { sortKeys });
 	const preHtml = decorateHighlightedHtml({
 		html: jsonToShikiHtml(code),
 		foldableRanges: foldable ? computeJsonFoldRanges(code) : undefined,

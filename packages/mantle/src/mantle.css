@@ -2714,49 +2714,50 @@ pre[data-slot~="code-block-code"][data-syntax-highlighted]:not(
 		[data-lang="plain"],
 		[data-lang="plaintext"]
 	)
-	> code {
+	> code,
+[data-slot~="code-block-diff"] {
 	color: var(--shiki-foreground);
 }
-pre[data-slot~="code-block-code"] .tc {
+:is(pre[data-slot~="code-block-code"], [data-slot~="code-block-diff"]) .tc {
 	color: var(--shiki-token-comment);
 }
-pre[data-slot~="code-block-code"] .tn {
+:is(pre[data-slot~="code-block-code"], [data-slot~="code-block-diff"]) .tn {
 	color: var(--shiki-token-constant);
 }
-pre[data-slot~="code-block-code"] .ts {
+:is(pre[data-slot~="code-block-code"], [data-slot~="code-block-diff"]) .ts {
 	color: var(--shiki-token-string);
 }
-pre[data-slot~="code-block-code"] .tx {
+:is(pre[data-slot~="code-block-code"], [data-slot~="code-block-diff"]) .tx {
 	color: var(--shiki-token-string-expression);
 }
-pre[data-slot~="code-block-code"] .tk {
+:is(pre[data-slot~="code-block-code"], [data-slot~="code-block-diff"]) .tk {
 	color: var(--shiki-token-keyword);
 }
-pre[data-slot~="code-block-code"] .tf {
+:is(pre[data-slot~="code-block-code"], [data-slot~="code-block-diff"]) .tf {
 	color: var(--shiki-token-function);
 }
-pre[data-slot~="code-block-code"] .tp {
+:is(pre[data-slot~="code-block-code"], [data-slot~="code-block-diff"]) .tp {
 	color: var(--shiki-token-parameter);
 }
-pre[data-slot~="code-block-code"] .tu {
+:is(pre[data-slot~="code-block-code"], [data-slot~="code-block-diff"]) .tu {
 	color: var(--shiki-token-punctuation);
 }
-pre[data-slot~="code-block-code"] .tt {
+:is(pre[data-slot~="code-block-code"], [data-slot~="code-block-diff"]) .tt {
 	color: var(--shiki-token-type, var(--shiki-token-function));
 }
-pre[data-slot~="code-block-code"] .tv {
+:is(pre[data-slot~="code-block-code"], [data-slot~="code-block-diff"]) .tv {
 	color: var(--shiki-token-variable, var(--shiki-foreground));
 }
-pre[data-slot~="code-block-code"] .to {
+:is(pre[data-slot~="code-block-code"], [data-slot~="code-block-diff"]) .to {
 	color: var(--shiki-token-operator, var(--shiki-token-keyword));
 }
-pre[data-slot~="code-block-code"] .ta {
+:is(pre[data-slot~="code-block-code"], [data-slot~="code-block-diff"]) .ta {
 	color: var(--shiki-token-attribute, var(--shiki-token-constant));
 }
-pre[data-slot~="code-block-code"] .tr {
+:is(pre[data-slot~="code-block-code"], [data-slot~="code-block-diff"]) .tr {
 	color: var(--shiki-token-property, var(--shiki-token-function));
 }
-pre[data-slot~="code-block-code"] .te {
+:is(pre[data-slot~="code-block-code"], [data-slot~="code-block-diff"]) .te {
 	color: var(--shiki-token-escape, var(--shiki-token-constant));
 }
 

@@ -32,7 +32,17 @@ function tokenClassForColor(color: string): string | undefined {
 	return color === foregroundColor ? "" : tokenClassByColor.get(color);
 }
 
+const colorByTokenClass: ReadonlyMap<string, string> = new Map(
+	Array.from(tokenClassByColor, ([color, tokenClass]) => [tokenClass, color]),
+);
+
+/** Returns the color expression of a token class, or `undefined` for a class this module did not write. */
+function colorForTokenClass(tokenClass: string): string | undefined {
+	return colorByTokenClass.get(tokenClass);
+}
+
 export {
 	//,
+	colorForTokenClass,
 	tokenClassForColor,
 };

@@ -274,6 +274,8 @@ const Body = ({
 				// wrapper, so an insert in the code does not recheck it. This rule
 				// outranks the breathing room above on specificity.
 				"[&_:is([data-slot~=code-block-copy-button],:has(>[data-slot~=code-block-copy-button]))~*_.mantle-code-line:nth-child(-n+2)]:pr-14",
+				// The same reserve for the first two lines of the right pane of a `CodeBlock.Diff`, under the button.
+				"[&_:is([data-slot~=code-block-copy-button],:has(>[data-slot~=code-block-copy-button]))~*_[data-side=to]>[data-slot=code-block-diff-line]:nth-child(-n+2)]:pr-14",
 				className,
 			)}
 			ref={ref}
@@ -1413,6 +1415,10 @@ export {
 	//,
 	Root,
 	Body,
+	substitutePreVals,
+	substitutePreValsPlainText,
+	TokenView,
+	useCodeBlockContext,
 	Code,
 	CopyButton,
 	ExpanderButton,
