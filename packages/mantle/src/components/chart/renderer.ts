@@ -737,9 +737,11 @@ const drawAxisLabels = (
 		fontFamily: string;
 		xLabels: ReadonlyArray<{ position: number; text: string; alpha: number }>;
 		yLabels: ReadonlyArray<{ position: number; text: string; alpha: number }>;
+		/** The right axis's labels, left-aligned past the plot's right edge. */
+		rightLabels: ReadonlyArray<{ position: number; text: string; alpha: number }>;
 	},
 ): void => {
-	const { plot, color, fontFamily, xLabels, yLabels } = options;
+	const { plot, color, fontFamily, xLabels, yLabels, rightLabels } = options;
 	ctx.save();
 	ctx.font = `${AXIS_FONT_SIZE}px ${fontFamily}`;
 	ctx.fillStyle = color;
@@ -748,6 +750,11 @@ const drawAxisLabels = (
 	for (const label of yLabels) {
 		ctx.globalAlpha = label.alpha;
 		ctx.fillText(label.text, plot.left - 8, label.position);
+	}
+	ctx.textAlign = "left";
+	for (const label of rightLabels) {
+		ctx.globalAlpha = label.alpha;
+		ctx.fillText(label.text, plot.left + plot.width + 8, label.position);
 	}
 	ctx.textAlign = "center";
 	ctx.textBaseline = "top";

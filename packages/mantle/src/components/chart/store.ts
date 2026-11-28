@@ -1,14 +1,17 @@
 import type { ComponentProps, ReactNode } from "react";
+import invariant from "tiny-invariant";
 import type {
 	BarOrientation,
 	GridLines,
 	HoverSnapshot,
 	PointShape,
 	ReferenceLineSpec,
+	SeriesMark,
 	SeriesMeta,
 	SeriesSpec,
 	XAxisSpec,
 	XValue,
+	YAxisSide,
 	YAxisSpec,
 } from "./types.js";
 import type { EmptySlotPaintInput } from "./empty-slot.js";
@@ -75,8 +78,8 @@ type StoreSnapshot = {
 	grid: { lines: GridLines | undefined } | null;
 	/** X axis configuration, `null` when no XAxis part is composed. */
 	xAxis: XAxisSpec | null;
-	/** Y axis configuration, `null` when no YAxis part is composed. */
-	yAxis: YAxisSpec | null;
+	/** Each side's y axis configuration, `null` when no YAxis part names that side. */
+	yAxes: Readonly<Record<YAxisSide, YAxisSpec | null>>;
 	/** Reference lines in registration order. */
 	referenceLines: ReferenceLineSpec[];
 	/** The composed EmptySlot part's label and paint, `null` when none is composed. */
@@ -107,7 +110,7 @@ class ChartStore {
 		hover: null,
 		grid: null,
 		xAxis: null,
-		yAxis: null,
+		yAxes: { left: null, right: null },
 		referenceLines: [],
 		emptySlot: null,
 		tooltip: null,
@@ -124,7 +127,13 @@ class ChartStore {
 	#decorative = false;
 	#orientation: BarOrientation = "vertical";
 	#xAxis: XAxisSpec | null = null;
-	#yAxis: YAxisSpec | null = null;
+	#yAxes: Record<YAxisSide, YAxisSpec | null> = { left: null, right: null };
+	/** Every mounted `YAxis` of each side by part id, in first-mount order; the last one draws. */
+	#yAxisParts: Record<YAxisSide, Map<string, { spec: YAxisSpec; sequence: number }>> = {
+		left: new Map(),
+		right: new Map(),
+	};
+	#yAxisSequenceById = new Map<string, number>();
 	#referenceLines = new Map<string, { spec: ReferenceLineSpec; sequence: number }>();
 	#referenceLineSequenceById = new Map<string, number>();
 	#emptySlot: EmptySlotSpec | null = null;
@@ -239,6 +248,75 @@ class ChartStore {
 		this.#publishRegistrations();
 	}
 
+	/**
+	 * Throw when the y axes and the parts that read them do not fit: a `YAxis`
+	 * domain that leaves out zero under a bar or an area; a right axis, series, or
+	 * reference line on horizontal bars; a right-axis part with no `YAxis
+	 * side="right"`; or a right-axis series with no left-axis series beside it,
+	 * in a 3D plot, or in the left axis's stack. The Root's commit, the engine's
+	 * ingest, and the engine's commit all check it, once every part has
+	 * registered.
+	 */
+	assertYAxes(options: {
+		root: string;
+		kind: SeriesMark;
+		stacked: boolean;
+		threeD: boolean;
+		horizontal: boolean;
+	}): void {
+		const { root, kind, stacked, threeD, horizontal } = options;
+		const specs = this.seriesSpecs();
+		// Why at runtime too: the types hold only for the family's own YAxis, and
+		// a domain that leaves out zero cuts every bar or area on that side short.
+		for (const side of ["left", "right"] as const) {
+			const anchored =
+				kind === "bar" ||
+				kind === "area" ||
+				specs.some((spec) => spec.yAxis === side && (spec.mark === "bar" || spec.mark === "area"));
+			const [min, max] = this.#yAxes[side]?.domain ?? [];
+			invariant(
+				!anchored ||
+					((typeof min !== "number" || min <= 0) && (typeof max !== "number" || max >= 0)),
+				() => `A bar or an area inside ${root} draws from zero, so its YAxis domain includes 0.`,
+			);
+		}
+		const rightSeries = specs.some((spec) => spec.yAxis === "right");
+		const rightLine = [...this.#referenceLines.values()].some(({ spec }) => spec.yAxis === "right");
+		if (horizontal) {
+			// Why: horizontal bars run their values along the bottom, so no value
+			// axis has a right side.
+			invariant(
+				this.#yAxes.right == null,
+				'BarChart.YAxis side="right" cannot be composed inside BarChart.Root with orientation="horizontal". Draw it over vertical bars.',
+			);
+			invariant(
+				!rightSeries && !rightLine,
+				'yAxis="right" cannot be set inside BarChart.Root with orientation="horizontal". Draw it over vertical bars.',
+			);
+		}
+		if (!rightSeries && !rightLine) {
+			return;
+		}
+		invariant(
+			this.#yAxes.right != null,
+			() => `A part with yAxis="right" needs a YAxis with side="right" inside ${root}.`,
+		);
+		if (!rightSeries) {
+			return;
+		}
+		invariant(
+			specs.some((spec) => spec.yAxis === "left"),
+			() =>
+				`${root} has a series on its right axis and none on its left. Bind a chart's only y axis to the left.`,
+		);
+		invariant(!threeD, () => `yAxis="right" needs a 2D ${root}: a 3D plot has one value axis.`);
+		invariant(
+			!stacked || !specs.some((spec) => spec.mark === kind && spec.yAxis === "right"),
+			() =>
+				`${root} stacks the series on its left axis. Draw a right-axis series as a line, or remove \`stacked\`.`,
+		);
+	}
+
 	registerGrid(lines: GridLines | undefined): () => void {
 		// Singleton parts: last registration wins. Cleanup compares the exact
 		// registration object, never its value: an equal-valued duplicate part
@@ -265,15 +343,41 @@ class ChartStore {
 		};
 	}
 
-	registerYAxis(spec: YAxisSpec): () => void {
-		this.#yAxis = spec;
-		this.#publishRegistrations();
+	/**
+	 * Register one `YAxis` part. Each part keeps the order it first mounted in,
+	 * as a reference line does: a prop change re-registers it, and a fresh place
+	 * would let it take the side from an override mounted after it.
+	 */
+	registerYAxis(side: YAxisSide, spec: YAxisSpec, id: string = side): () => void {
+		const parts = this.#yAxisParts[side];
+		const sequence = this.#yAxisSequenceById.get(id) ?? this.#nextSequence++;
+		this.#yAxisSequenceById.set(id, sequence);
+		parts.set(id, { spec, sequence });
+		this.#publishYAxis(side);
 		return () => {
-			if (this.#yAxis === spec) {
-				this.#yAxis = null;
-				this.#publishRegistrations();
+			if (parts.get(id)?.spec === spec) {
+				// Why the survivor: an override that unmounts hands the side back to
+				// the axis still mounted, instead of leaving the side with none.
+				parts.delete(id);
+				this.#publishYAxis(side);
 			}
 		};
+	}
+
+	/** Publish the side's last-mounted `YAxis`, if it changed. */
+	#publishYAxis(side: YAxisSide): void {
+		let current: { spec: YAxisSpec; sequence: number } | null = null;
+		for (const part of this.#yAxisParts[side].values()) {
+			if (current == null || part.sequence > current.sequence) {
+				current = part;
+			}
+		}
+		const spec = current?.spec ?? null;
+		if (this.#yAxes[side] !== spec) {
+			// Why a new object: a published snapshot holds the old one.
+			this.#yAxes = { ...this.#yAxes, [side]: spec };
+			this.#publishRegistrations();
+		}
 	}
 
 	registerReferenceLine(id: string, spec: ReferenceLineSpec): () => void {
@@ -346,6 +450,7 @@ class ChartStore {
 				colorInput,
 				shape: spec.shape,
 				texture: spec.texture,
+				yAxis: spec.yAxis,
 			};
 		});
 	}
@@ -359,7 +464,7 @@ class ChartStore {
 			hover: this.#hover,
 			grid: this.#grid,
 			xAxis: this.#xAxis,
-			yAxis: this.#yAxis,
+			yAxes: this.#yAxes,
 			referenceLines: [...this.#referenceLines.values()]
 				.toSorted((a, b) => a.sequence - b.sequence)
 				.map((entry) => entry.spec),

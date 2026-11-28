@@ -230,7 +230,7 @@ function SubCentBarChartExample() {
 ## Diverging stacks
 
 Negative values pile downward from the zero baseline while positive values pile up, and each pile caps its own
-outer end. The axis grows below zero on its own: no `yDomain` override, because a bar chart's minimum is the
+outer end. The axis grows below zero on its own: no `domain` override, because a bar chart's minimum is the
 baseline, not the data floor. April is the month worth looking at: 62 endpoints added against 112 lost, so the
 net is negative and the two piles are visibly unequal. Series that carry good or bad meaning wear the functional
 colors: `success` for the endpoints added, `danger` and `warning` for the two kinds of loss.
@@ -278,11 +278,11 @@ function DivergingBarChartExample() {
 
 ## A line over the bars
 
-Compose a `LineChart.Line` inside `BarChart.Root` to draw a trend over the bars, such as a running total or a target. The line runs through the center of each category on the same y axis as the bars. It takes no bar slot, joins no stack, and draws on top of the bars, and the axis grows to hold its values. The tooltip, the keyboard announcements, the data table, and the copy button list it as one more series, and the legend keys it with a stroke. A stacked total counts the bars alone.
+Compose a `LineChart.Line` inside `BarChart.Root` to draw a trend over the bars, such as a running total or a target. The line runs through the center of each category. It takes no bar slot, joins no stack, and draws on top of the bars. It reads the same y axis as the bars unless you give it the right one, and its axis grows to hold its values. The tooltip, the keyboard announcements, the data table, and the copy button list it as one more series, and the legend keys it with a stroke. A stacked total counts the bars alone.
 
 An `AreaChart.Area` composes the same way and paints under the bars. Both need vertical bars: a horizontal bar chart runs its categories down the y axis, so it throws.
 
-Keep the line's values near the bars' scale. A running total that grows far past the weekly bars squeezes them flat on one shared axis.
+A running total grows far past the weekly bars, and on one shared axis it squeezes them flat. So this chart gives the line a right axis: a second `BarChart.YAxis` with `side="right"`, and `yAxis="right"` on the line. [Two y axes](/components/charts/line-chart#two-y-axes) covers how the two scales line up.
 
 <Example name="components/charts/bar-chart/line-over-bars" title="Bar Chart with a line over the bars example">
 
@@ -307,9 +307,17 @@ function LineOverBarsBarChartExample() {
 			<BarChart.Grid />
 			<BarChart.XAxis />
 			<BarChart.YAxis tickFormat={(value) => compact.format(value)} />
+			<BarChart.YAxis side="right" tickFormat={(value) => compact.format(value)} />
 			<BarChart.Bar dataKey="added" label="Added" color="success" />
 			<BarChart.Bar dataKey="deleted" label="Deleted" color="danger" />
-			<LineChart.Line dataKey="total" label="Total lines" color="amber" curve="monotone" markers />
+			<LineChart.Line
+				dataKey="total"
+				label="Total lines (right axis)"
+				color="amber"
+				curve="monotone"
+				markers
+				yAxis="right"
+			/>
 			<BarChart.Tooltip />
 			<BarChart.Legend />
 		</BarChart.Root>
@@ -1372,7 +1380,7 @@ Compose the parts of a `BarChart` together to build your own:
 BarChart.Root
 ├── BarChart.Grid
 ├── BarChart.XAxis
-├── BarChart.YAxis
+├── BarChart.YAxis (one for each side)
 ├── BarChart.Bar (one per series)
 ├── LineChart.Line or AreaChart.Area (optional, over vertical bars)
 ├── BarChart.ReferenceLine
@@ -1520,7 +1528,6 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `aria-label`           | `string`                                    |                 | The chart's accessible name. Exactly one of `aria-label` or `aria-labelledby` is required, enforced at the type level. Required unless `mode` is `\"decorative\"`, which forbids it.                                                                                                                                                                                                                                                           |
 | `aria-labelledby`      | `string`                                    |                 | ID of a visible title element that names the chart. Preferred when the chart sits under a heading, so no duplicated text can drift. Required unless `mode` is `\"decorative\"`, which forbids it.                                                                                                                                                                                                                                              |
 | `mode?`                | `"interactive" \| "static" \| "decorative"` | `"interactive"` | How much of the contract the Root exposes: explore it (`"interactive"`), glance at it with its values beside it (`"static"`: a named `role="img"`, no Tab stop, no tooltip, no table, `animate` off by default), or paint a placeholder (`"decorative"`: hidden from assistive technology, one neutral fill). The name props are required unless decorative, and the interaction props are allowed only when interactive. See [Modes](#modes). |
-| `yDomain?`             | `[0, number \| "auto"]`                     | `[0, "auto"]`   | Override the automatic y maximum. The minimum is always the zero baseline.                                                                                                                                                                                                                                                                                                                                                                     |
 | `stacked?`             | `boolean`                                   | `false`         | Stack the series from the baseline up in registration order. See [Stacked bars](#stacked-bars).                                                                                                                                                                                                                                                                                                                                                |
 | `orientation?`         | `"vertical" \| "horizontal"`                | `"vertical"`    | The direction the bars point (not an axis): `"vertical"` bars stand up from a bottom baseline (categories along x); `"horizontal"` bars run rightward from a left baseline (categories down y). See [Horizontal bars](#horizontal-bars).                                                                                                                                                                                                       |
 | `animate?`             | `boolean`                                   | `true`          | Animate enter/update transitions. When the chart first comes into view, the bars grow from the baseline one after another, in category order. `prefers-reduced-motion` always wins.                                                                                                                                                                                                                                                            |
@@ -1559,6 +1566,7 @@ A bar, or a whole stack, rounds both of its ends at 2px. Stacked segments sit 1p
 | `color`    | `SeriesColor`                                                                                                |           | The color the series paints: a mantle color name (the same `Color` that `Badge` takes), or any CSS color. Required. Prefer a per-theme `var(--token)` over a raw hex. See [Chart color tokens](#chart-color-tokens) and [Color and accessibility](#color-and-accessibility). |
 | `label?`   | `string`                                                                                                     | `dataKey` | Display name for the legend, tooltip, and data table.                                                                                                                                                                                                                        |
 | `texture?` | `"solid" \| "hatch" \| "hatch-reverse" \| "crosshatch" \| "perpendicular" \| "parallel" \| "grid" \| "dots"` | `"solid"` | The fill texture the bars and their legend key wear: a light tint of the series color under marks in the full color. A redundant identity encoding alongside color. See [Textures](#textures).                                                                               |
+| `yAxis?`   | `"left" \| "right"`                                                                                          | `"left"`  | The y axis whose scale places this series. A `"right"` series needs a `BarChart.YAxis` with `side="right"` and a series on the left axis beside it. In a stacked chart, a right-axis bar throws: the stack belongs to the left axis.                                         |
 
 ### BarChart.Grid
 
@@ -1585,16 +1593,19 @@ Value tick labels (renderless; the chart paints it): along the left for vertical
 | ------------- | ---------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tickFormat?` | `(value: number, context: { defaultLabel: string; step: number }) => string` | thousands-separated numbers | Format a tick label. The second argument carries the tick `step` and the `defaultLabel` the axis paints without a formatter, so a formatter can add a unit to `defaultLabel` and keep its precision. The chart compares the function by identity, so a new function paints the chart again. With the React Compiler in your build, an inline function stays stable; without it, define the function outside the component. |
 | `tickCount?`  | `number`                                                                     |                             | Maximum tick count. When omitted, the axis aims for about 5 ticks. The axis can render fewer: ticks land on human-friendly steps, a vertical axis keeps about 28px for each tick, and a label that would overlap its neighbor is skipped. Integer-valued data never renders fractional ticks.                                                                                                                              |
+| `side?`       | `"left" \| "right"`                                                          | `"left"`                    | The edge the axis paints on. A series or a reference line with `yAxis="right"` reads the right axis's scale, and the right axis puts a round value on each left grid line when its `domain` allows it. See [Two y axes](/components/charts/line-chart#two-y-axes). Horizontal bars take no right axis, so they throw.                                                                                                      |
+| `domain?`     | `[0, number \| "auto"]`                                                      | `[0, "auto"]`               | Fix the axis maximum. An `"auto"` maximum follows the data, and the minimum is always the zero baseline.                                                                                                                                                                                                                                                                                                                   |
 
 ### BarChart.ReferenceLine
 
 A dashed marker at the value `y`, such as an SLO threshold, a budget, or a limit (renderless; the chart paints it). It crosses the value axis: a horizontal line for vertical bars, a vertical line for horizontal bars. Accepts no `className` or DOM props.
 
-| Prop     | Type          | Default                 | Description                                       |
-| -------- | ------------- | ----------------------- | ------------------------------------------------- |
-| `y`      | `number`      |                         | The y value the line marks.                       |
-| `label?` | `string`      |                         | A short label painted above the line's right end. |
-| `color?` | `SeriesColor` | neutral reference color | Line color.                                       |
+| Prop     | Type                | Default                 | Description                                       |
+| -------- | ------------------- | ----------------------- | ------------------------------------------------- |
+| `y`      | `number`            |                         | The y value the line marks.                       |
+| `label?` | `string`            |                         | A short label painted above the line's right end. |
+| `color?` | `SeriesColor`       | neutral reference color | Line color.                                       |
+| `yAxis?` | `"left" \| "right"` | `"left"`                | The y axis whose scale places `y`.                |
 
 ### BarChart.EmptySlot
 

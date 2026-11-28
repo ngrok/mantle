@@ -1,0 +1,687 @@
+# Every rule binds the local name of a chart's import from its
+# `@ngrok/mantle/<chart>` subpath, so an aliased import matches and another
+# library's `yDomain` prop does not.
+id: chart-y-axis-domain
+language: tsx
+message: the YAxis part takes the domain that the chart Root took as yDomain
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+          - inside: { kind: for_in_statement, field: left }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  # The local name of a chart's import from its `@ngrok/mantle/<chart>`
+  # subpath, bound to $CHART: its own name or an alias.
+  chart-import:
+    kind: import_statement
+    any:
+      - all:
+          - has:
+              field: source
+              regex: ^["']@ngrok/mantle/line-chart["']$
+          - has:
+              stopBy: end
+              kind: import_specifier
+              has:
+                field: name
+                regex: ^LineChart$
+              any:
+                - kind: import_specifier
+                  has:
+                    field: alias
+                    pattern: $CHART
+                - kind: import_specifier
+                  not:
+                    has:
+                      field: alias
+                      kind: identifier
+                  has:
+                    field: name
+                    pattern: $CHART
+      - all:
+          - has:
+              field: source
+              regex: ^["']@ngrok/mantle/bar-chart["']$
+          - has:
+              stopBy: end
+              kind: import_specifier
+              has:
+                field: name
+                regex: ^BarChart$
+              any:
+                - kind: import_specifier
+                  has:
+                    field: alias
+                    pattern: $CHART
+                - kind: import_specifier
+                  not:
+                    has:
+                      field: alias
+                      kind: identifier
+                  has:
+                    field: name
+                    pattern: $CHART
+      - all:
+          - has:
+              field: source
+              regex: ^["']@ngrok/mantle/area-chart["']$
+          - has:
+              stopBy: end
+              kind: import_specifier
+              has:
+                field: name
+                regex: ^AreaChart$
+              any:
+                - kind: import_specifier
+                  has:
+                    field: alias
+                    pattern: $CHART
+                - kind: import_specifier
+                  not:
+                    has:
+                      field: alias
+                      kind: identifier
+                  has:
+                    field: name
+                    pattern: $CHART
+      - all:
+          - has:
+              field: source
+              regex: ^["']@ngrok/mantle/scatter-plot["']$
+          - has:
+              stopBy: end
+              kind: import_specifier
+              has:
+                field: name
+                regex: ^ScatterPlot$
+              any:
+                - kind: import_specifier
+                  has:
+                    field: alias
+                    pattern: $CHART
+                - kind: import_specifier
+                  not:
+                    has:
+                      field: alias
+                      kind: identifier
+                  has:
+                    field: name
+                    pattern: $CHART
+  # `$CHART.Root` as an element name, where $CHART reads the chart import and
+  # no local binding shadows it.
+  chart-root-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $CHART
+      - has:
+          field: property
+          regex: ^Root$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: chart-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $CHART
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $CHART
+  # `$CHART.YAxis` as an element name, where $CHART reads the chart import and
+  # no local binding shadows it.
+  chart-yaxis-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $CHART
+      - has:
+          field: property
+          regex: ^YAxis$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: chart-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $CHART
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $CHART
+  # A YAxis tag that takes the Root's range: self-closing, no `domain` yet,
+  # and the left side. A right axis keeps a range of its own, and a tag that
+  # already has a `domain` stays for a person to merge.
+  copy-target-tag:
+    kind: jsx_self_closing_element
+    all:
+      # Why no spread: a spread can set `side` or `domain` the rule cannot read.
+      - not:
+          has:
+            kind: jsx_expression
+      - not:
+          has:
+            kind: jsx_attribute
+            has:
+              kind: property_identifier
+              regex: ^domain$
+      - not:
+          has:
+            kind: jsx_attribute
+            all:
+              - has:
+                  kind: property_identifier
+                  regex: ^side$
+              - not:
+                  has:
+                    kind: string
+                    regex: ^["']left["']$
+  # A `YAxis` read outside a JSX tag name, such as `const Axis = C.YAxis`. The
+  # rules cannot follow the alias to the axis it renders, so they leave the
+  # file's Roots for a person.
+  aliased-yaxis:
+    kind: member_expression
+    matches: chart-yaxis-name
+    not:
+      inside:
+        field: name
+        any:
+          - kind: jsx_self_closing_element
+          - kind: jsx_opening_element
+          - kind: jsx_closing_element
+  # A YAxis name anywhere but a direct, self-closing child of a chart Root: in
+  # a fragment, under an expression, or with a closing tag. Such an axis can
+  # win registration without the range, so its Root stays for a person.
+  stray-yaxis-name:
+    kind: member_expression
+    matches: chart-yaxis-name
+    not:
+      inside:
+        field: name
+        kind: jsx_self_closing_element
+        inside:
+          kind: jsx_element
+          has:
+            field: open_tag
+            has:
+              field: name
+              matches: chart-root-name
+  # A direct YAxis child that keeps the codemod away from its Root: one with a
+  # spread, or a left one that already has a `domain`. It can win registration
+  # without the range the Root fixed.
+  blocking-yaxis:
+    kind: jsx_self_closing_element
+    has:
+      field: name
+      matches: chart-yaxis-name
+    not:
+      matches: copy-target-tag
+    any:
+      - has:
+          kind: jsx_expression
+      - not:
+          has:
+            kind: jsx_attribute
+            all:
+              - has:
+                  kind: property_identifier
+                  regex: ^side$
+              - has:
+                  kind: string
+                  regex: ^["']right["']$
+  # A chart Root element whose `yDomain` value binds to $DOMAIN, with no YAxis
+  # under a condition or a callback: such an axis can mount after the direct one
+  # and win registration without the range.
+  root-with-domain:
+    kind: jsx_element
+    all:
+      - not:
+          has:
+            stopBy: end
+            kind: jsx_expression
+            has:
+              stopBy: end
+              kind: member_expression
+              matches: chart-yaxis-name
+      - not:
+          has:
+            matches: blocking-yaxis
+      - not:
+          has:
+            stopBy: end
+            matches: stray-yaxis-name
+      - not:
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              stopBy: end
+              matches: aliased-yaxis
+    has:
+      field: open_tag
+      kind: jsx_opening_element
+      all:
+        - has:
+            field: name
+            matches: chart-root-name
+        # Why no spread: a spread can override `yDomain` with a value the rule
+        # cannot read.
+        - not:
+            has:
+              kind: jsx_expression
+        - has:
+            kind: jsx_attribute
+            pattern:
+              context: <X yDomain={$DOMAIN} />
+              selector: jsx_attribute
+rule:
+  kind: member_expression
+  matches: chart-yaxis-name
+  inside:
+    field: name
+    matches: copy-target-tag
+    # Why a direct child: an axis under a condition, a callback, or a nested
+    # Root would change when the range applies or which names it reads.
+    inside:
+      matches: root-with-domain
+fix: $CHART.YAxis domain={$DOMAIN}
+---
+id: chart-root-y-domain
+language: tsx
+message: the chart Root drops yDomain once its YAxis takes the domain
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+          - inside: { kind: for_in_statement, field: left }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  # The local name of a chart's import from its `@ngrok/mantle/<chart>`
+  # subpath, bound to $CHART: its own name or an alias.
+  chart-import:
+    kind: import_statement
+    any:
+      - all:
+          - has:
+              field: source
+              regex: ^["']@ngrok/mantle/line-chart["']$
+          - has:
+              stopBy: end
+              kind: import_specifier
+              has:
+                field: name
+                regex: ^LineChart$
+              any:
+                - kind: import_specifier
+                  has:
+                    field: alias
+                    pattern: $CHART
+                - kind: import_specifier
+                  not:
+                    has:
+                      field: alias
+                      kind: identifier
+                  has:
+                    field: name
+                    pattern: $CHART
+      - all:
+          - has:
+              field: source
+              regex: ^["']@ngrok/mantle/bar-chart["']$
+          - has:
+              stopBy: end
+              kind: import_specifier
+              has:
+                field: name
+                regex: ^BarChart$
+              any:
+                - kind: import_specifier
+                  has:
+                    field: alias
+                    pattern: $CHART
+                - kind: import_specifier
+                  not:
+                    has:
+                      field: alias
+                      kind: identifier
+                  has:
+                    field: name
+                    pattern: $CHART
+      - all:
+          - has:
+              field: source
+              regex: ^["']@ngrok/mantle/area-chart["']$
+          - has:
+              stopBy: end
+              kind: import_specifier
+              has:
+                field: name
+                regex: ^AreaChart$
+              any:
+                - kind: import_specifier
+                  has:
+                    field: alias
+                    pattern: $CHART
+                - kind: import_specifier
+                  not:
+                    has:
+                      field: alias
+                      kind: identifier
+                  has:
+                    field: name
+                    pattern: $CHART
+      - all:
+          - has:
+              field: source
+              regex: ^["']@ngrok/mantle/scatter-plot["']$
+          - has:
+              stopBy: end
+              kind: import_specifier
+              has:
+                field: name
+                regex: ^ScatterPlot$
+              any:
+                - kind: import_specifier
+                  has:
+                    field: alias
+                    pattern: $CHART
+                - kind: import_specifier
+                  not:
+                    has:
+                      field: alias
+                      kind: identifier
+                  has:
+                    field: name
+                    pattern: $CHART
+  # `$CHART.Root` as an element name, where $CHART reads the chart import and
+  # no local binding shadows it.
+  chart-root-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $CHART
+      - has:
+          field: property
+          regex: ^Root$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: chart-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $CHART
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $CHART
+  # `$CHART.YAxis` as an element name, where $CHART reads the chart import and
+  # no local binding shadows it.
+  chart-yaxis-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $CHART
+      - has:
+          field: property
+          regex: ^YAxis$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: chart-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $CHART
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $CHART
+  # A YAxis tag that takes the Root's range: self-closing, no `domain` yet,
+  # and the left side. A right axis keeps a range of its own, and a tag that
+  # already has a `domain` stays for a person to merge.
+  copy-target-tag:
+    kind: jsx_self_closing_element
+    all:
+      # Why no spread: a spread can set `side` or `domain` the rule cannot read.
+      - not:
+          has:
+            kind: jsx_expression
+      - not:
+          has:
+            kind: jsx_attribute
+            has:
+              kind: property_identifier
+              regex: ^domain$
+      - not:
+          has:
+            kind: jsx_attribute
+            all:
+              - has:
+                  kind: property_identifier
+                  regex: ^side$
+              - not:
+                  has:
+                    kind: string
+                    regex: ^["']left["']$
+  # A `YAxis` read outside a JSX tag name, such as `const Axis = C.YAxis`. The
+  # rules cannot follow the alias to the axis it renders, so they leave the
+  # file's Roots for a person.
+  aliased-yaxis:
+    kind: member_expression
+    matches: chart-yaxis-name
+    not:
+      inside:
+        field: name
+        any:
+          - kind: jsx_self_closing_element
+          - kind: jsx_opening_element
+          - kind: jsx_closing_element
+  # A YAxis name anywhere but a direct, self-closing child of a chart Root: in
+  # a fragment, under an expression, or with a closing tag. Such an axis can
+  # win registration without the range, so its Root stays for a person.
+  stray-yaxis-name:
+    kind: member_expression
+    matches: chart-yaxis-name
+    not:
+      inside:
+        field: name
+        kind: jsx_self_closing_element
+        inside:
+          kind: jsx_element
+          has:
+            field: open_tag
+            has:
+              field: name
+              matches: chart-root-name
+  # A direct YAxis child that keeps the codemod away from its Root: one with a
+  # spread, or a left one that already has a `domain`. It can win registration
+  # without the range the Root fixed.
+  blocking-yaxis:
+    kind: jsx_self_closing_element
+    has:
+      field: name
+      matches: chart-yaxis-name
+    not:
+      matches: copy-target-tag
+    any:
+      - has:
+          kind: jsx_expression
+      - not:
+          has:
+            kind: jsx_attribute
+            all:
+              - has:
+                  kind: property_identifier
+                  regex: ^side$
+              - has:
+                  kind: string
+                  regex: ^["']right["']$
+rule:
+  kind: jsx_attribute
+  has:
+    kind: property_identifier
+    regex: ^yDomain$
+  inside:
+    kind: jsx_opening_element
+    # Why `all`: it runs in order, so the Root's name binds $CHART before the
+    # guards below read it.
+    all:
+      - has:
+          field: name
+          matches: chart-root-name
+      # Why no spread: the copy rule leaves a Root with a spread alone.
+      - not:
+          has:
+            kind: jsx_expression
+      # Why the YAxis guard: a Root with no YAxis child that takes the range
+      # keeps yDomain, so the type checker names the call site to finish by hand.
+      - inside:
+          kind: jsx_element
+          all:
+            # Why a direct child: the copy rule moves the range only there.
+            - has:
+                matches: copy-target-tag
+                has:
+                  field: name
+                  matches: chart-yaxis-name
+            # Why no YAxis in an expression: it can mount after the direct one
+            # and win registration, so the copy rule leaves that Root alone.
+            - not:
+                any:
+                  - has:
+                      stopBy: end
+                      kind: jsx_expression
+                      has:
+                        stopBy: end
+                        kind: member_expression
+                        matches: chart-yaxis-name
+                  - has:
+                      matches: blocking-yaxis
+                  - has:
+                      stopBy: end
+                      matches: stray-yaxis-name
+                  - inside:
+                      stopBy: end
+                      kind: program
+                      has:
+                        stopBy: end
+                        matches: aliased-yaxis
+fix: ""

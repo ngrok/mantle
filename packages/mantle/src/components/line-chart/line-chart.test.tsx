@@ -121,6 +121,93 @@ describe("LineChart.Root", () => {
 		).toThrow(/LineChart\.Line dataKey "p95" does not match any key.*time, p50, p99/);
 	});
 
+	test("a right-axis line without a right axis throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<LineChart.Root data={data} xKey="time" aria-label="Latency">
+					<LineChart.YAxis />
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
+					<LineChart.Line dataKey="p99" label="p99" color="emerald" yAxis="right" />
+				</LineChart.Root>,
+			),
+		).toThrow('A part with yAxis="right" needs a YAxis with side="right" inside LineChart.Root.');
+	});
+
+	test("removing the right axis under a right-axis line throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		const TwoAxes = ({ right }: { right: boolean }) => (
+			<LineChart.Root data={data} xKey="time" aria-label="Latency">
+				<LineChart.YAxis />
+				{right && <LineChart.YAxis side="right" />}
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.Line dataKey="p99" label="p99" color="emerald" yAxis="right" />
+			</LineChart.Root>
+		);
+		const { rerender } = render(<TwoAxes right />);
+		expect(() => rerender(<TwoAxes right={false} />)).toThrow(
+			'A part with yAxis="right" needs a YAxis with side="right" inside LineChart.Root.',
+		);
+	});
+
+	test("a right-axis area under a domain that leaves out zero throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<LineChart.Root data={data} xKey="time" aria-label="Latency">
+					<LineChart.YAxis />
+					<LineChart.YAxis side="right" domain={[90, 100]} />
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
+					<AreaChart.Area dataKey="p99" label="p99" color="emerald" yAxis="right" />
+				</LineChart.Root>,
+			),
+		).toThrow(
+			"A bar or an area inside LineChart.Root draws from zero, so its YAxis domain includes 0.",
+		);
+	});
+
+	test("an override right axis that unmounts hands the side back", () => {
+		const Chart = ({ compact }: { compact: boolean }) => (
+			<LineChart.Root data={data} xKey="time" aria-label="Latency">
+				<LineChart.YAxis />
+				<LineChart.YAxis side="right" />
+				{compact && <LineChart.YAxis side="right" tickCount={2} />}
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.Line dataKey="p99" label="p99" color="emerald" yAxis="right" />
+			</LineChart.Root>
+		);
+		const { rerender } = render(<Chart compact />);
+		rerender(<Chart compact={false} />);
+		expect(screen.getByRole("application", { name: "Latency" })).toBeInTheDocument();
+	});
+
+	test("a right-axis reference line without a right axis throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<LineChart.Root data={data} xKey="time" aria-label="Latency">
+					<LineChart.YAxis />
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
+					<LineChart.ReferenceLine y={500} yAxis="right" />
+				</LineChart.Root>,
+			),
+		).toThrow('A part with yAxis="right" needs a YAxis with side="right" inside LineChart.Root.');
+	});
+
+	test("the legend lists the left axis's keys first, then the right axis's", () => {
+		render(
+			<LineChart.Root data={data} xKey="time" aria-label="Latency">
+				<LineChart.YAxis />
+				<LineChart.YAxis side="right" />
+				<LineChart.Line dataKey="p99" label="p99" color="emerald" yAxis="right" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.Legend />
+			</LineChart.Root>,
+		);
+		const legend = document.querySelector('[data-slot="line-chart-legend"]');
+		expect([...(legend?.children ?? [])].map((key) => key.textContent)).toEqual(["p50", "p99"]);
+	});
+
 	test("the overlay is described by the summary and the keys", () => {
 		const { container } = renderChart();
 		const overlay = screen.getByRole("application", { name: "Request latency" });

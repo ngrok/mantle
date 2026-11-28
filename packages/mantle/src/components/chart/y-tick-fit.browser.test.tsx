@@ -131,11 +131,10 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 						{ day: 2, ratio: 1.0002 },
 					]}
 					xKey="day"
-					yDomain={[1.0001, 1.0003]}
 					animate={false}
 					aria-label="Ratio"
 				>
-					<LineChart.YAxis />
+					<LineChart.YAxis domain={[1.0001, 1.0003]} />
 					<LineChart.Line dataKey="ratio" label="Ratio" color="blue" />
 				</CanvasLineChartRoot>
 			</div>,

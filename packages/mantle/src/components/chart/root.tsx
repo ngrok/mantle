@@ -33,7 +33,6 @@ import type {
 	ContinuousXScale,
 	SeriesMark,
 	XScaleKind,
-	YDomain,
 } from "./types.js";
 import { ChartAnnouncer, ChartDataTable, ChartDescription, ChartListAnnouncer } from "./a11y.js";
 import { ChartContext, useShallowStable } from "./context.js";
@@ -68,8 +67,6 @@ type ChartRootBaseProps = Omit<ComponentProps<"div">, "aria-label" | "aria-label
 		 * another way, set `aspect-auto` and a height: `className="aspect-auto h-52"`.
 		 */
 		className?: string;
-		/** Override the automatic y domain. */
-		yDomain?: YDomain;
 		/** Stack the series in registration order, from the baseline out (bar/area charts). */
 		stacked?: boolean;
 		/** Animate enter/update transitions. `prefers-reduced-motion` always wins. */
@@ -157,8 +154,6 @@ const detectXScale = (data: readonly ChartDatum[], xKey: string): ContinuousXSca
 	}
 	return "point";
 };
-
-const AUTO_Y_DOMAIN: YDomain = ["auto", "auto"];
 
 /**
  * The class strings of the engine-owned layers. They live here, not in
@@ -388,7 +383,6 @@ const ChartRootPrimitive = ({
 	xScale,
 	zKey,
 	dimensions = 3,
-	yDomain = AUTO_Y_DOMAIN,
 	stacked = false,
 	orientation = "vertical",
 	animate: animateProp,
@@ -501,7 +495,6 @@ const ChartRootPrimitive = ({
 		() =>
 			`${componentName}.Root requires numeric or Date x values: the "${xKey}" values are not numbers or dates, so they have no position on a continuous scatter axis.`,
 	);
-	const [yDomainMin, yDomainMax] = yDomain;
 
 	// One pass over the rows feeds the description (count and x range) and the
 	// date label granularity. Granularity is a property of the dataset, not the
@@ -519,7 +512,6 @@ const ChartRootPrimitive = ({
 		options: {
 			xKey,
 			xScale: resolvedXScale,
-			yDomain: [yDomainMin, yDomainMax],
 			zKey: zKey ?? null,
 			sizeKey,
 			dimensions,
@@ -535,7 +527,6 @@ const ChartRootPrimitive = ({
 			options: {
 				xKey,
 				xScale: resolvedXScale,
-				yDomain: [yDomainMin, yDomainMax],
 				zKey: zKey ?? null,
 				sizeKey,
 				dimensions,
@@ -634,7 +625,6 @@ const ChartRootPrimitive = ({
 		engineRef.current?.setOptions({
 			xKey,
 			xScale: resolvedXScale,
-			yDomain: [yDomainMin, yDomainMax],
 			zKey: zKey ?? null,
 			sizeKey,
 			dimensions,
@@ -653,8 +643,6 @@ const ChartRootPrimitive = ({
 		decorative,
 		xKey,
 		resolvedXScale,
-		yDomainMin,
-		yDomainMax,
 		zKey,
 		sizeKey,
 		dimensions,
@@ -717,6 +705,15 @@ const ChartRootPrimitive = ({
 				store.seriesSpecs().every((spec) => spec.mark === "bar"),
 			`A line or an area cannot be composed inside BarChart.Root with orientation="horizontal". Draw it over vertical bars.`,
 		);
+		// Why every commit: removing a right YAxis starts no ingest, so the
+		// engine's ingest check would miss it.
+		store.assertYAxes({
+			root: names.root,
+			kind,
+			stacked,
+			threeD: kind === "scatter" && zKey != null,
+			horizontal: kind === "bar" && orientation === "horizontal",
+		});
 		const engine = engineRef.current;
 		if (engine != null) {
 			engine.flushIngest();

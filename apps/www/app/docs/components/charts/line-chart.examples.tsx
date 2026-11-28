@@ -143,15 +143,10 @@ export const errorRateData = Array.from({ length: 24 }, (_, hour) => ({
 
 export function ReferenceLineExample() {
 	return (
-		<LineChart.Root
-			data={errorRateData}
-			xKey="time"
-			yDomain={[0, "auto"]}
-			aria-label="Error rate against the SLO"
-		>
+		<LineChart.Root data={errorRateData} xKey="time" aria-label="Error rate against the SLO">
 			<LineChart.Grid />
 			<LineChart.XAxis />
-			<LineChart.YAxis tickFormat={(value) => `${value}%`} />
+			<LineChart.YAxis domain={[0, "auto"]} tickFormat={(value) => `${value}%`} />
 			<LineChart.Line dataKey="errorRate" label="Error rate" color="danger" />
 			<LineChart.ReferenceLine y={1} label="SLO" />
 			<LineChart.Tooltip valueFormat={(value) => `${value}%`} />
@@ -222,6 +217,46 @@ export function livePoint(tick: number) {
 		p50: Math.round(120 + 12 * drift + 14 * wave + 5 * ripple),
 		p99: Math.round(470 + 45 * Math.sin(tick / 130 + 2) + 48 * wave + 20 * ripple),
 	};
+}
+
+export const weeklyTokens = [
+	{ week: "Apr 20", uncached: 3_874_487, cached: 78_082_526, output: 606_678 },
+	{ week: "Apr 27", uncached: 7_645_946, cached: 254_519_999, output: 726_881 },
+	{ week: "May 4", uncached: 2_885_324, cached: 121_050_752, output: 282_128 },
+	{ week: "May 11", uncached: 10_309_560, cached: 344_972_032, output: 827_846 },
+	{ week: "May 18", uncached: 15_866_022, cached: 637_270_656, output: 1_288_182 },
+	{ week: "May 25", uncached: 11_077_746, cached: 318_710_272, output: 892_938 },
+	{ week: "Jun 1", uncached: 33_380_099, cached: 837_972_608, output: 2_834_083 },
+	{ week: "Jun 8", uncached: 28_875_156, cached: 794_703_104, output: 2_407_530 },
+	{ week: "Jun 15", uncached: 104_155_857, cached: 2_196_467_968, output: 6_420_826 },
+];
+
+export const compactTokens = new Intl.NumberFormat("en-US", { notation: "compact" });
+
+export function TwoYAxesLineChartExample() {
+	return (
+		<LineChart.Root data={weeklyTokens} xKey="week" aria-label="LLM token consumption by week">
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis domain={[0, "auto"]} tickFormat={(value) => compactTokens.format(value)} />
+			<LineChart.YAxis
+				side="right"
+				domain={[0, "auto"]}
+				tickFormat={(value) => compactTokens.format(value)}
+			/>
+			<LineChart.Line dataKey="uncached" label="Uncached input" color="blue" />
+			<LineChart.Line dataKey="output" label="Output" color="amber" shape="square" />
+			<LineChart.Line
+				dataKey="cached"
+				label="Cached input (right axis)"
+				color="neutral"
+				shape="diamond"
+				yAxis="right"
+			/>
+			<LineChart.Tooltip />
+			<LineChart.Legend />
+		</LineChart.Root>
+	);
 }
 
 export function LiveLineExample() {
@@ -340,6 +375,15 @@ export function ReferenceLinesExample() {
 }
 
 /** The "Linked charts" example on the Line Chart docs page. */
+/** The "Two y axes" example on the Line Chart docs page. */
+export function TwoYAxesExample() {
+	return (
+		<PreviewCanvas>
+			<TwoYAxesLineChartExample />
+		</PreviewCanvas>
+	);
+}
+
 export function LinkedChartsExample() {
 	return (
 		<PreviewCanvas>

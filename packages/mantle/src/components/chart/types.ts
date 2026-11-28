@@ -133,6 +133,12 @@ type BarTexture =
 type BarOrientation = "vertical" | "horizontal";
 
 /**
+ * The y axis a series, a reference line, or a `YAxis` part binds to. Each side
+ * has its own scale: `"left"` (the default) and `"right"`.
+ */
+type YAxisSide = "left" | "right";
+
+/**
  * A registered series' configuration, captured from a series part
  * (`BarChart.Bar`, `LineChart.Line`, `AreaChart.Area`, `ScatterPlot.Point`).
  */
@@ -155,6 +161,8 @@ type SeriesSpec = {
 	shape: PointShape;
 	/** The fill texture (bar marks only). */
 	texture: BarTexture;
+	/** The y axis whose scale places the series' values. */
+	yAxis: YAxisSide;
 };
 
 /**
@@ -176,6 +184,8 @@ type SeriesMeta = {
 	shape: PointShape;
 	/** The fill texture the series wears (bar marks and their legend keys). */
 	texture: BarTexture;
+	/** The y axis the series binds to. The legend gathers right-axis keys at its end. */
+	yAxis: YAxisSide;
 };
 
 /**
@@ -220,6 +230,8 @@ type XAxisSpec = {
 type YAxisSpec = {
 	tickFormat: ((value: number, context: YTickContext) => string) | undefined;
 	tickCount: number | undefined;
+	/** The fixed ends of the side's domain; an `"auto"` end follows the data. */
+	domain: YDomain | undefined;
 };
 
 /**
@@ -227,6 +239,7 @@ type YAxisSpec = {
  */
 type ReferenceLineSpec = {
 	y: number;
+	yAxis: YAxisSide;
 	label: string | undefined;
 	color: SeriesColor | undefined;
 };
@@ -293,8 +306,9 @@ type ChartDatumEvent<TDatum extends ChartDatum = ChartDatum> = {
 };
 
 /**
- * The y domain for value axes. Bar and area charts anchor the baseline at
- * zero, so their minimum is fixed at `0`; line charts may override both ends.
+ * The domain of a y axis. Bar and area charts anchor the baseline at zero, so
+ * their minimum is fixed at `0`; line charts and scatter plots may set both
+ * ends.
  */
 type YDomain = [number | "auto", number | "auto"];
 
@@ -305,7 +319,6 @@ type YDomain = [number | "auto", number | "auto"];
 type ChartOptions = {
 	xKey: string;
 	xScale: XScaleKind;
-	yDomain: YDomain;
 	/** Bar charts only: the direction the bars run. */
 	orientation: BarOrientation;
 	/** Scatter plots only: the row key of the depth value; enables the 3D projection. */
@@ -343,6 +356,7 @@ export type {
 	XScaleKind,
 	XTickContext,
 	XValue,
+	YAxisSide,
 	YAxisSpec,
 	YDomain,
 	YTickContext,

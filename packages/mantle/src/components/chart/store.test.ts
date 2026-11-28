@@ -12,6 +12,7 @@ const makeSeries = (dataKey: string, overrides: Partial<SeriesSpec> = {}): Serie
 	connectNulls: false,
 	shape: "circle",
 	texture: "solid",
+	yAxis: "left",
 	...overrides,
 });
 
@@ -160,8 +161,12 @@ describe("ChartStore registrations", () => {
 		{
 			name: "yAxis",
 			register: (store: ChartStore, tickCount: number) =>
-				store.registerYAxis({ tickCount, tickFormat: undefined }),
-			read: (store: ChartStore) => store.getSnapshot().yAxis?.tickCount,
+				store.registerYAxis(
+					"left",
+					{ tickCount, tickFormat: undefined, domain: undefined },
+					`axis-${tickCount}`,
+				),
+			read: (store: ChartStore) => store.getSnapshot().yAxes.left?.tickCount,
 		},
 		{
 			name: "tooltip",
@@ -180,6 +185,18 @@ describe("ChartStore registrations", () => {
 			},
 		},
 	] as const;
+
+	test("a YAxis that re-registers keeps its place under a later one", () => {
+		const store = new ChartStore();
+		const axis = (tickCount: number) => ({ tickCount, tickFormat: undefined, domain: undefined });
+		const unregisterFirst = store.registerYAxis("right", axis(3), "first");
+		store.registerYAxis("right", axis(9), "override");
+		// A prop change on the first part: React cleans up, then registers again.
+		unregisterFirst();
+		store.registerYAxis("right", axis(4), "first");
+
+		expect(store.getSnapshot().yAxes.right?.tickCount).toBe(9);
+	});
 
 	for (const { name, register, read } of singletonRegistrations) {
 		test(`${name}: the last registration wins and a superseded one cannot clear it`, () => {
@@ -229,8 +246,13 @@ describe("ChartStore registrations", () => {
 
 	test("reference lines accumulate in registration order", () => {
 		const store = new ChartStore();
-		store.registerReferenceLine("one", { y: 10, label: "a", color: undefined });
-		store.registerReferenceLine("two", { y: 20, label: "b", color: undefined });
+		store.registerReferenceLine("one", {
+			y: 10,
+			label: "a",
+			color: undefined,
+			yAxis: "left",
+		});
+		store.registerReferenceLine("two", { y: 20, label: "b", color: undefined, yAxis: "left" });
 		expect(store.getSnapshot().referenceLines.map((line) => line.y)).toEqual([10, 20]);
 	});
 
@@ -240,10 +262,11 @@ describe("ChartStore registrations", () => {
 			y: 10,
 			label: "a",
 			color: undefined,
+			yAxis: "left",
 		});
-		store.registerReferenceLine("two", { y: 20, label: "b", color: undefined });
+		store.registerReferenceLine("two", { y: 20, label: "b", color: undefined, yAxis: "left" });
 		unregisterOne();
-		store.registerReferenceLine("one", { y: 15, label: "a", color: undefined });
+		store.registerReferenceLine("one", { y: 15, label: "a", color: undefined, yAxis: "left" });
 		expect(store.getSnapshot().referenceLines.map((line) => line.y)).toEqual([15, 20]);
 	});
 

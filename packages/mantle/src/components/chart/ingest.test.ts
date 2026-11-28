@@ -12,6 +12,7 @@ const series = (dataKey: string): SeriesSpec => ({
 	connectNulls: false,
 	shape: "circle",
 	texture: "solid",
+	yAxis: "left",
 });
 
 const ingest = (
@@ -60,8 +61,7 @@ test("a missing or non-finite value is a gap the extent skips", () => {
 	]);
 	expect([...(result.columns[0] ?? [])]).toEqual([2.5, -4, Number.NaN]);
 	expect([...(result.columns[1] ?? [])]).toEqual([Number.NaN, 8, 1]);
-	expect([result.valueMin, result.valueMax]).toEqual([-4, 8]);
-	expect(result.valuesAllIntegers).toBe(false);
+	expect(result.extents.left).toEqual({ min: -4, max: 8, integers: false });
 });
 
 test("a category axis keeps each x value and notices a time of day", () => {

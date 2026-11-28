@@ -15,7 +15,7 @@ import { GeoScene } from "./geo-view.js";
 import type { PaintBackendFactory } from "./paint-backend.js";
 import { ChartStore } from "./store.js";
 import { ChaseTween, PER_DATUM_TWEEN_LIMIT, ValueTween } from "./tween.js";
-import type { ChartDatumEvent, ChartOptions, SeriesMark, SeriesSpec } from "./types.js";
+import type { ChartDatumEvent, ChartOptions, SeriesMark, SeriesSpec, YDomain } from "./types.js";
 
 // Why a spied module: happy-dom has no 2D context, so no paint reaches the
 // canvas. `createColorResolver` runs once per color pass, and its call count is
@@ -83,13 +83,13 @@ const makeSeries = (
 	connectNulls: false,
 	shape: "circle",
 	texture: "solid",
+	yAxis: "left",
 	...overrides,
 });
 
 const baseOptions: ChartOptions = {
 	xKey: "x",
 	xScale: "linear",
-	yDomain: ["auto", "auto"],
 	orientation: "vertical",
 	zKey: null,
 	sizeKey: null,
@@ -147,6 +147,10 @@ const mountEngine = (config: {
 	series: readonly SeriesSpec[];
 	rows: readonly object[];
 	options?: Partial<ChartOptions>;
+	/** Fix the left axis's domain through a registered `YAxis`, which also draws it. */
+	yDomain?: YDomain;
+	/** Register a right `YAxis` with this domain before the first ingest. */
+	rightYDomain?: YDomain;
 	/** `null` leaves the plot unsized, as before the observer's first entry. */
 	size?: PlotSize | null;
 	/** The Root passes `false` and reports the real state through `setInView`. */
@@ -176,6 +180,16 @@ const mountEngine = (config: {
 		config.series.map((spec) => [spec.dataKey, store.registerSeries(spec)] as const),
 	);
 	const options: ChartOptions = { ...baseOptions, ...config.options };
+	if (config.yDomain != null) {
+		setYDomain({ store }, config.yDomain);
+	}
+	if (config.rightYDomain != null) {
+		store.registerYAxis("right", {
+			tickFormat: undefined,
+			tickCount: undefined,
+			domain: config.rightYDomain,
+		});
+	}
 	engine.setOptions(options);
 	engine.setRows(config.rows);
 	// oxlint-disable-next-line eqeqeq -- Why: `null` skips the resize; `undefined` takes the default size.
@@ -199,6 +213,11 @@ const mountEngine = (config: {
 	};
 	mounted.push(result);
 	return result;
+};
+
+/** Register a left `YAxis` that fixes the domain, as a re-render with a new `domain` does. */
+const setYDomain = (mount: Pick<Mounted, "store">, domain: YDomain): void => {
+	mount.store.registerYAxis("left", { tickFormat: undefined, tickCount: undefined, domain });
 };
 
 /**
@@ -383,7 +402,7 @@ describe("ChartEngine yDomain changes", () => {
 		const readsAfterIngest = reads;
 		expect(readsAfterIngest).toBeGreaterThan(0);
 
-		mount.engine.setOptions({ ...mount.options, yDomain: [0, 1000] });
+		setYDomain(mount, [0, 1000]);
 		mount.engine.flushIngest();
 
 		expect(reads).toBe(readsAfterIngest);
@@ -396,8 +415,8 @@ describe("ChartEngine yDomain changes", () => {
 			{ x: 2, a: 50 },
 		];
 		const series = [makeSeries("a", "line")];
-		const mount = mountEngine({ kind: "line", series, rows, options: { yDomain: [0, 100] } });
-		const reference = mountEngine({ kind: "line", series, rows, options: { yDomain: [0, 200] } });
+		const mount = mountEngine({ kind: "line", series, rows, yDomain: [0, 100] });
+		const reference = mountEngine({ kind: "line", series, rows, yDomain: [0, 200] });
 		const [dot] = await activateFirstDatum(mount);
 		const [expected] = await activateFirstDatum(reference);
 		if (dot == null || expected == null) {
@@ -406,7 +425,7 @@ describe("ChartEngine yDomain changes", () => {
 		const beforeY = dotPosition(dot).y;
 		expect(beforeY).not.toBe(dotPosition(expected).y);
 
-		mount.engine.setOptions({ ...mount.options, yDomain: [0, 200] });
+		setYDomain(mount, [0, 200]);
 
 		await vi.waitFor(() => {
 			expect(dotPosition(dot).y).toBe(dotPosition(expected).y);
@@ -420,12 +439,12 @@ describe("ChartEngine yDomain changes", () => {
 			{ x: 2, a: 50 },
 		];
 		const series = [makeSeries("a", "scatter")];
-		const mount = mountEngine({ kind: "scatter", series, rows, options: { yDomain: [0, 100] } });
+		const mount = mountEngine({ kind: "scatter", series, rows, yDomain: [0, 100] });
 		const reference = mountEngine({
 			kind: "scatter",
 			series,
 			rows,
-			options: { yDomain: [0, 200] },
+			yDomain: [0, 200],
 		});
 		const [dot] = await activateFirstDatum(mount);
 		const [expected] = await activateFirstDatum(reference);
@@ -441,7 +460,7 @@ describe("ChartEngine yDomain changes", () => {
 			expect(dotPosition(dot)).toEqual(pixel);
 		});
 
-		mount.engine.setOptions({ ...mount.options, yDomain: [0, 200] });
+		setYDomain(mount, [0, 200]);
 
 		await vi.waitFor(() => {
 			expect(dotPosition(dot).y).toBe(dotPosition(expected).y);
@@ -459,7 +478,8 @@ describe("ChartEngine hover sync", () => {
 			kind: "area",
 			series,
 			rows,
-			options: { stacked: true, yDomain: [0, 100] },
+			options: { stacked: true },
+			yDomain: [0, 100],
 		});
 		// The same three heights as unstacked values: 10, 10 + 20, 10 + 20 + 30.
 		const reference = mountEngine({
@@ -469,7 +489,7 @@ describe("ChartEngine hover sync", () => {
 				{ x: 0, low: 10, mid: 30, high: 60 },
 				{ x: 1, low: 10, mid: 30, high: 60 },
 			],
-			options: { yDomain: [0, 100] },
+			yDomain: [0, 100],
 		});
 		const dots = await activateFirstDatum(mount);
 		const expected = await activateFirstDatum(reference);
@@ -877,7 +897,8 @@ describe("ChartEngine enter reveals", () => {
 			backend: createSvgBackend,
 			series: [makeSeries("a", "bar")],
 			rows,
-			options: { xScale: "band", yDomain: [0, 100], animate: true },
+			options: { xScale: "band", animate: true },
+			yDomain: [0, 100],
 		});
 		for (let frame = 0; frame < 12; frame++) {
 			frames.step();
@@ -885,8 +906,9 @@ describe("ChartEngine enter reveals", () => {
 		mount.engine.setRows(rows.slice(0, 2));
 		mount.engine.flushIngest();
 		frames.step();
-		// A series paints as one path, with one subpath per bar.
-		expect(paintedPaths(mount).join("").match(/M/g)).toHaveLength(2);
+		// A series paints as one path, with one subpath per bar. The last path is
+		// the baseline that the `YAxis` draws.
+		expect(paintedPaths(mount).slice(0, -1).join("").match(/M/g)).toHaveLength(2);
 	});
 });
 
@@ -1002,10 +1024,11 @@ describe("ChartEngine reduced motion", () => {
 			kind: "line",
 			series,
 			rows,
-			options: { yDomain: [0, 100], animate: true },
+			options: { animate: true },
+			yDomain: [0, 100],
 		});
-		const glideTarget = mountEngine({ kind: "line", series, rows, options: { yDomain: [0, 200] } });
-		const snapTarget = mountEngine({ kind: "line", series, rows, options: { yDomain: [0, 300] } });
+		const glideTarget = mountEngine({ kind: "line", series, rows, yDomain: [0, 200] });
+		const snapTarget = mountEngine({ kind: "line", series, rows, yDomain: [0, 300] });
 		const [dot] = await activateFirstDatum(mount);
 		const [glideDot] = await activateFirstDatum(glideTarget);
 		const [snapDot] = await activateFirstDatum(snapTarget);
@@ -1014,13 +1037,13 @@ describe("ChartEngine reduced motion", () => {
 		}
 
 		// Motion on: the axis glides, so the first frame is short of the target.
-		mount.engine.setOptions({ ...mount.options, yDomain: [0, 200] });
+		setYDomain(mount, [0, 200]);
 		await afterNextCommit();
 		expect(dotPosition(dot).y).not.toBe(dotPosition(glideDot).y);
 
 		// The preference flips on the cached list: the next change snaps.
 		preference.reduced = true;
-		mount.engine.setOptions({ ...mount.options, yDomain: [0, 300] });
+		setYDomain(mount, [0, 300]);
 		await afterNextCommit();
 		expect(dotPosition(dot).y).toBe(dotPosition(snapDot).y);
 
@@ -1162,13 +1185,13 @@ describe("ChartEngine color resolution", () => {
 			series: lineSeries,
 			rows: flatRows,
 			inView: false,
-			options: { yDomain: [0, 100] },
+			yDomain: [0, 100],
 		});
 		const reference = mountEngine({
 			kind: "line",
 			series: lineSeries,
 			rows: flatRows,
-			options: { yDomain: [0, 100] },
+			yDomain: [0, 100],
 		});
 		const [dot] = await activateFirstDatum(dormant);
 		const [expected] = await activateFirstDatum(reference);
@@ -1315,7 +1338,11 @@ describe("ChartEngine printing", () => {
 			inView: false,
 			options: { animate: true },
 		});
-		mount.store.registerYAxis({ tickFormat: undefined, tickCount: undefined });
+		mount.store.registerYAxis("left", {
+			tickFormat: undefined,
+			tickCount: undefined,
+			domain: undefined,
+		});
 		mount.store.registerGrid(undefined);
 
 		mount.engine.paintForPrint();
@@ -1505,7 +1532,12 @@ describe("ChartEngine font loads", () => {
 			options: { xScale: "band" },
 		});
 		// A reference line with no label draws a rule and no text.
-		mount.store.registerReferenceLine("limit", { y: 60, label: undefined, color: undefined });
+		mount.store.registerReferenceLine("limit", {
+			y: 60,
+			label: undefined,
+			color: undefined,
+			yAxis: "left",
+		});
 		frames.settle();
 
 		fonts.dispatchEvent(new Event("loadingdone"));
@@ -1519,7 +1551,11 @@ describe("ChartEngine font loads", () => {
 			kind: "bar",
 			options: { xScale: "band" },
 			compose: (store: ChartStore) => {
-				store.registerYAxis({ tickFormat: undefined, tickCount: undefined });
+				store.registerYAxis("left", {
+					tickFormat: undefined,
+					tickCount: undefined,
+					domain: undefined,
+				});
 			},
 		},
 		{
@@ -1527,7 +1563,12 @@ describe("ChartEngine font loads", () => {
 			kind: "bar",
 			options: { xScale: "band" },
 			compose: (store: ChartStore) => {
-				store.registerReferenceLine("limit", { y: 60, label: "Limit", color: undefined });
+				store.registerReferenceLine("limit", {
+					y: 60,
+					label: "Limit",
+					color: undefined,
+					yAxis: "left",
+				});
 			},
 		},
 		{
@@ -1778,13 +1819,14 @@ describe("ChartEngine domain chase", () => {
 					{ x: "GET", a: 50 },
 					{ x: "POST", a: 80 },
 				],
-				options: { xScale: "band", orientation, yDomain: [0, 100], animate: true },
+				options: { xScale: "band", orientation, animate: true },
+				yDomain: [0, 100],
 				// The value axis is the 20 px height when vertical and the 320 px width when horizontal.
 				size: { width: 320, height: 20 },
 			});
 			frames.settle();
 
-			mount.engine.setOptions({ ...mount.options, yDomain: [0, 101] });
+			setYDomain(mount, [0, 101]);
 
 			// The journey's own threshold, 0.1% of it, needs 40 frames on every plot.
 			expect(frames.settle()).toBe(expected);
@@ -1877,7 +1919,8 @@ describe("ChartEngine domain chase", () => {
 			series: lineSeries,
 			rows: rowsOf(2000),
 			// Why a fixed domain: only the x domain can move, so one frame shows whether it chases.
-			options: { xScale: "point", yDomain: [0, 100], animate: true },
+			options: { xScale: "point", animate: true },
+			yDomain: [0, 100],
 			// 2,000 rows on an 84 px plot is 24 rows per pixel column, so the line decimates.
 			size: { width: 100, height: 200 },
 		});
@@ -1931,8 +1974,8 @@ describe("ChartEngine motion on a chart that cannot paint", () => {
 		{
 			motion: "a value chase",
 			rows: rowsAt(0, 1),
-			start: ({ engine, options }) => {
-				engine.setOptions({ ...options, yDomain: [0, 200] });
+			start: (mount) => {
+				setYDomain(mount, [0, 200]);
 			},
 		},
 		{
@@ -1963,7 +2006,8 @@ describe("ChartEngine motion on a chart that cannot paint", () => {
 			kind: "line",
 			series: lineSeries,
 			rows,
-			options: { yDomain: [0, 100], animate: true },
+			options: { animate: true },
+			yDomain: [0, 100],
 			// The plot of a chart in a collapsed panel has no size, so no frame can paint it.
 			size: null,
 			// Why off screen at mount: the first series then enters with no reveal, so each motion runs alone.
@@ -1983,7 +2027,7 @@ describe("ChartEngine motion on a chart that cannot paint", () => {
 describe("ChartEngine category changes", () => {
 	const barSeries = [makeSeries("a", "bar")];
 	// Why a fixed domain: only the bar values can move, so one frame shows whether they tween.
-	const bandOptions: Partial<ChartOptions> = { xScale: "band", yDomain: [0, 100], animate: true };
+	const bandOptions: Partial<ChartOptions> = { xScale: "band", animate: true };
 
 	test("a window that slides by one category paints the settled bars on the first frame", () => {
 		const frames = installFrameClock();
@@ -1997,6 +2041,7 @@ describe("ChartEngine category changes", () => {
 				{ x: "09:02", a: 90 },
 			],
 			options: bandOptions,
+			yDomain: [0, 100],
 		});
 		frames.settle();
 		const before = paintedPaths(mount);
@@ -2027,7 +2072,8 @@ describe("ChartEngine category changes", () => {
 				{ x: "09:01", a: 40 },
 				{ x: "09:02", a: 90 },
 			],
-			options: { xScale: "point", yDomain: [0, 100], animate: true },
+			options: { xScale: "point", animate: true },
+			yDomain: [0, 100],
 		});
 		frames.settle();
 		const before = paintedPaths(mount);
@@ -2074,6 +2120,7 @@ describe("ChartEngine category changes", () => {
 			series: barSeries,
 			rows: rowsOf([10, 40, 90]),
 			options: bandOptions,
+			yDomain: [0, 100],
 		});
 		frames.settle();
 
@@ -2117,7 +2164,8 @@ describe("ChartEngine per-datum tweens", () => {
 			backend: createSvgBackend,
 			series: lineSeries,
 			rows: waveRows(PER_DATUM_TWEEN_LIMIT + 1, 0),
-			options: { yDomain: [0, 100], animate: true },
+			options: { animate: true },
+			yDomain: [0, 100],
 			// Wide enough that the line does not decimate: under 3 rows per pixel column.
 			size: { width: 1000, height: 200 },
 		});
@@ -2138,7 +2186,8 @@ describe("ChartEngine per-datum tweens", () => {
 			kind: "scatter",
 			series: [makeSeries("a", "scatter")],
 			rows: waveRows(2000, 0),
-			options: { yDomain: [0, 100], animate: true },
+			options: { animate: true },
+			yDomain: [0, 100],
 			// 24 rows per pixel column decimate a line. A scatter draws every point.
 			size: { width: 100, height: 200 },
 		});
@@ -2157,7 +2206,8 @@ describe("ChartEngine per-datum tweens", () => {
 			kind: "line",
 			series: lineSeries,
 			rows: waveRows(2000, 0),
-			options: { yDomain: [0, 100], animate: true },
+			options: { animate: true },
+			yDomain: [0, 100],
 			// 2,000 rows on an 84 px plot is 24 rows per pixel column, so the line decimates.
 			size: { width: 100, height: 200 },
 		});
@@ -2179,7 +2229,7 @@ describe("ChartEngine per-datum tweens", () => {
 				backend: createSvgBackend,
 				series: lineSeries,
 				rows: waveRows(4000, phase),
-				options: { yDomain: [0, 100] },
+				yDomain: [0, 100],
 				size: { width: 100, height: 100 },
 			});
 		const mount = mountWith(0);
@@ -2205,7 +2255,8 @@ describe("ChartEngine per-datum tweens", () => {
 				{ x: 1, a: 45.6 },
 			],
 			// Why a fixed domain: only the values can move, so each frame comes from a value tween.
-			options: { yDomain: [0, 100], animate: true },
+			options: { animate: true },
+			yDomain: [0, 100],
 		});
 		frames.settle();
 		// Why these decimals: `12.3 + (45.6 - 12.3)` is `45.599999999999994`, so a tween that
@@ -2228,6 +2279,205 @@ describe("ChartEngine per-datum tweens", () => {
 	});
 });
 
+describe("ChartEngine right y axis", () => {
+	const rows = [0, 1, 2, 3, 4].map((x) => ({ x, small: x * 2.5, big: x * 325 }));
+	const mountTwoAxes = (): Mounted =>
+		mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("small", "line"), makeSeries("big", "line", { yAxis: "right" })],
+			rows,
+			yDomain: ["auto", "auto"],
+			rightYDomain: ["auto", "auto"],
+		});
+	/** The painted labels of one gutter: `"end"` anchors the left, `"start"` the right. */
+	const labels = (mount: Mounted, anchor: "end" | "start"): Array<{ text: string; y: string }> =>
+		[...mount.elements.plot.querySelectorAll("svg text")]
+			.filter(
+				(text) =>
+					text instanceof SVGElement && text.style.getPropertyValue("text-anchor") === anchor,
+			)
+			.map((text) => ({ text: text.textContent ?? "", y: text.getAttribute("y") ?? "" }));
+
+	test("a right-axis series paints against its own scale", async () => {
+		const mount = mountTwoAxes();
+		const dots = () => [...hoverOf(mount).markers.children].map(dotPosition);
+		mount.engine.handleKeyDown("Home");
+		await vi.waitFor(() => {
+			expect(hoverOf(mount).markers.children).toHaveLength(2);
+		});
+		const [bottom] = dots();
+		mount.engine.handleKeyDown("End");
+		await vi.waitFor(() => {
+			expect(dots()[0]?.y).not.toBe(bottom?.y);
+		});
+		const [top, big] = dots();
+		const height = (bottom?.y ?? Number.NaN) - (top?.y ?? Number.NaN);
+
+		// Why 0.48: 10 tops the left axis, and 1,300 sits 1 - 1,300 / 2,500 of the
+		// way down the right one. On one shared scale, 10 would sit at the bottom.
+		expect(height).toBeGreaterThan(0);
+		expect(((big?.y ?? Number.NaN) - (top?.y ?? Number.NaN)) / height).toBeCloseTo(0.48);
+	});
+
+	test("the right axis labels the left grid lines with round values", () => {
+		const mount = mountTwoAxes();
+		mount.engine.commitNow();
+		const left = labels(mount, "end");
+		const right = labels(mount, "start");
+
+		// Why 500: 1,300 over the left's 5 steps needs 260 a step. Ticks of their
+		// own would step by 200 to 1,400 and miss the left grid lines.
+		expect(right.map((label) => label.text)).toEqual([
+			"0",
+			"500",
+			"1,000",
+			"1,500",
+			"2,000",
+			"2,500",
+		]);
+		expect(right.map((label) => label.y)).toEqual(left.map((label) => label.y));
+	});
+
+	test("a right axis that carries only a reference line takes its domain", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("small", "line")],
+			rows,
+			yDomain: ["auto", "auto"],
+			rightYDomain: [0, 1000],
+		});
+		mount.engine.commitNow();
+
+		// Why: with no right-axis series, the right axis still labels its own
+		// fixed range instead of a 0–1 fallback.
+		expect(
+			labels(mount, "start")
+				.map((label) => label.text)
+				.at(-1),
+		).toBe("1,000");
+	});
+
+	test("an aligned right axis keeps its tick count and whole numbers", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("small", "line"), makeSeries("big", "line", { yAxis: "right" })],
+			rows: [0, 1, 2, 3, 4].map((x) => ({ x, small: x * 2.5, big: x })),
+			yDomain: [0, 10],
+			rightYDomain: [0, 5],
+		});
+		mount.store.registerYAxis("right", { tickFormat: undefined, tickCount: 2, domain: [0, 5] });
+		mount.engine.commitNow();
+		const right = labels(mount, "start").map((label) => label.text);
+
+		// Why: the left ticks 0, 2, 4, … map to 0, 1, 2, … on the right, more than
+		// `tickCount={2}` allows; with the left at 0, 5, 10 they would map to 2.5.
+		expect(right.length).toBeLessThanOrEqual(2);
+		expect(right.every((text) => !text.includes("."))).toBe(true);
+	});
+
+	test("a resized right axis labels each tick at its own value", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("small", "line"), makeSeries("big", "line", { yAxis: "right" })],
+			rows: [0, 1].map((x) => ({ x, small: x * 10, big: 0.2 + x })),
+			yDomain: [0, 10],
+			rightYDomain: [0.2, 1.2],
+			size: { width: 400, height: 300 },
+		});
+		mount.store.registerYAxis("right", {
+			tickFormat: (value, { defaultLabel }) => `${value}=${defaultLabel}`,
+			tickCount: undefined,
+			domain: [0.2, 1.2],
+		});
+		deliverResize(mount, { width: 400, height: 80 });
+		mount.engine.commitNow();
+		const right = labels(mount, "start").map((label) => label.text.split("="));
+
+		// Why: a short plot thins the left grid to a step of 5, which maps to
+		// 0.2 and 1.2 on a step of 1; their default labels would read 0 and 1.
+		expect(right.length).toBeGreaterThan(1);
+		for (const [value, text] of right) {
+			expect(Number(text)).toBe(Number(value));
+		}
+	});
+
+	test("an aligned right axis hands tickFormat whole counts", () => {
+		const values: number[] = [];
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("small", "line"), makeSeries("big", "line", { yAxis: "right" })],
+			rows: [0, 1].map((x) => ({ x, small: 0.1 + x * 0.1, big: x * 10 })),
+			yDomain: [0.1, 0.2],
+			rightYDomain: [0, "auto"],
+		});
+		mount.store.registerYAxis("right", {
+			tickFormat: (value) => {
+				values.push(value);
+				return String(value);
+			},
+			tickCount: undefined,
+			domain: [0, "auto"],
+		});
+		mount.engine.commitNow();
+
+		// Why: a projection from 0.1-step left ticks leaves float error, such as
+		// 4.000000000000002.
+		expect(values.length).toBeGreaterThan(0);
+		expect(values.every((value) => Number.isInteger(value))).toBe(true);
+	});
+
+	test("a reference-only right axis labels a range between whole numbers", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("small", "line")],
+			rows,
+			yDomain: [0, 10],
+			rightYDomain: [0.1, 0.9],
+		});
+		mount.engine.commitNow();
+
+		// Why: no right series holds counts, so its ticks may be fractions.
+		expect(labels(mount, "start").length).toBeGreaterThan(1);
+	});
+
+	test("a pointer on a right-axis bar selects the bar, not the area under it", async () => {
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: [
+				makeSeries("under", "area", { color: "amber" }),
+				makeSeries("bar", "bar", { color: "emerald", yAxis: "right" }),
+			],
+			rows: [
+				{ x: "GET", under: 25, bar: 8.5 },
+				{ x: "POST", under: 25, bar: 8.5 },
+			],
+			yDomain: [0, 100],
+			rightYDomain: [0, 10],
+			options: { xScale: "band" },
+		});
+		const [dot] = await activateFirstDatum(mount);
+		invariant(dot != null, "expected the area's hover dot");
+		mount.engine.commitNow();
+		const four = labels(mount, "start").find((label) => label.text === "4");
+		invariant(four != null, "expected the right axis to label 4");
+		mount.engine.setCallbacks({ onDatumActivate, onActiveIndexChange: null });
+		// Why 4: the pointer sits inside the bar, which reaches 8.5 of 10, and
+		// nearer the area's edge (25 of 100) than the bar's top. Read on the left
+		// axis, the bar would reach 8.5 of 100 and miss the pointer.
+		mount.engine.handleActivate(dotPosition(dot).x - 4, Number(four.y));
+
+		expect(onDatumActivate).toHaveBeenLastCalledWith(expect.objectContaining({ dataKey: "bar" }));
+	});
+});
+
 describe("ChartEngine series of more than one mark", () => {
 	const weeks = [
 		{ x: "Apr 20", added: 17, removed: -5, total: 12 },
@@ -2241,18 +2491,21 @@ describe("ChartEngine series of more than one mark", () => {
 	const mountWeeks = (
 		series: readonly SeriesSpec[],
 		options: Partial<ChartOptions> = {},
+		yDomain: YDomain = [-10, 30],
 	): Mounted =>
 		mountEngine({
 			kind: "bar",
 			backend: createSvgBackend,
 			series,
 			rows: weeks,
-			options: { xScale: "band", yDomain: [-10, 30], ...options },
+			options: { xScale: "band", ...options },
+			yDomain,
 		});
-	/** Paint each chart to rest, and return its paths. */
+	/** Paint each chart to rest, and return the paths of its marks. */
 	const paintAll = (...mounts: Mounted[]): string[][] => {
 		frames.settle();
-		return mounts.map((mount) => paintedPaths(mount));
+		// Why drop the last path: it is the baseline that the `YAxis` draws.
+		return mounts.map((mount) => paintedPaths(mount).slice(0, -1));
 	};
 	let frames: ReturnType<typeof installFrameClock>;
 
@@ -2302,7 +2555,8 @@ describe("ChartEngine series of more than one mark", () => {
 				{ x: "Apr 20", total: 12 },
 				{ x: "Apr 27", total: null },
 			],
-			options: { xScale: "band", yDomain: [0, 30] },
+			yDomain: [0, 30],
+			options: { xScale: "band" },
 		});
 		mount.store.registerEmptySlot({ label: "No reading", paint: paintEmptySlots });
 		mount.engine.commitNow();
@@ -2326,7 +2580,8 @@ describe("ChartEngine series of more than one mark", () => {
 				{ x: "GET", under: 25, bar: 85 },
 				{ x: "POST", under: 25, bar: 85 },
 			],
-			options: { xScale: "band", yDomain: [0, 100] },
+			yDomain: [0, 100],
+			options: { xScale: "band" },
 		});
 		const [dot] = await activateFirstDatum(mount);
 		invariant(dot != null, "expected the area's hover dot");
@@ -2352,7 +2607,8 @@ describe("ChartEngine series of more than one mark", () => {
 				{ x: "GET", b: 20, a: 10, c: 80 },
 				{ x: "POST", b: 20, a: 10, c: 80 },
 			],
-			options: { xScale: "band", yDomain: [0, 100] },
+			yDomain: [0, 100],
+			options: { xScale: "band" },
 		});
 		const [dot] = await activateFirstDatum(mount);
 		invariant(dot != null, "expected the area's hover dot");
@@ -2376,7 +2632,8 @@ describe("ChartEngine series of more than one mark", () => {
 				{ x: "POST", bar: 90, line: 60 },
 				{ x: "PUT", bar: 90, line: 60 },
 			],
-			options: { xScale: "band", yDomain: [0, 100], animate: true },
+			yDomain: [0, 100],
+			options: { xScale: "band", animate: true },
 		});
 		frames.settle();
 		mount.store.registerSeries(makeSeries("line", "line", { color: "amber" }));
@@ -2402,14 +2659,16 @@ describe("ChartEngine series of more than one mark", () => {
 				backend: createSvgBackend,
 				series: [bar, makeSeries("count:upper", "line", { color: "amber" })],
 				rows,
-				options: { xScale: "band", yDomain: [0, 10], stacked: true },
+				yDomain: [0, 10],
+				options: { xScale: "band", stacked: true },
 			}),
 			mountEngine({
 				kind: "bar",
 				backend: createSvgBackend,
 				series: [bar],
 				rows,
-				options: { xScale: "band", yDomain: [0, 10], stacked: true },
+				yDomain: [0, 10],
+				options: { xScale: "band", stacked: true },
 			}),
 		);
 
@@ -2429,7 +2688,8 @@ describe("ChartEngine series of more than one mark", () => {
 					makeSeries("b", "bar", { color: "pink" }),
 				],
 				rows: first,
-				options: { xScale: "band", yDomain: [-100, 100], stacked: true, animate: true },
+				yDomain: [-100, 100],
+				options: { xScale: "band", stacked: true, animate: true },
 			});
 		const withLine = mountGlide();
 		const without = mountGlide();
@@ -2446,10 +2706,11 @@ describe("ChartEngine series of more than one mark", () => {
 	});
 
 	test("the value axis holds a line that runs far above the stacked bars", async () => {
-		const mount = mountWeeks([...bars, makeSeries("total", "line", { color: "amber" })], {
-			stacked: true,
-			yDomain: ["auto", "auto"],
-		});
+		const mount = mountWeeks(
+			[...bars, makeSeries("total", "line", { color: "amber" })],
+			{ stacked: true },
+			["auto", "auto"],
+		);
 		mount.engine.handleKeyDown("End");
 		await vi.waitFor(() => {
 			expect(hoverOf(mount).markers.children).toHaveLength(1);

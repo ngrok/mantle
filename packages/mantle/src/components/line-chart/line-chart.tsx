@@ -31,6 +31,7 @@ import type {
 	CurveKind,
 	PointShape,
 	SeriesColor,
+	YAxisSide,
 } from "../chart/types.js";
 import { createSvgBackend } from "../chart/svg-backend.js";
 
@@ -40,9 +41,8 @@ import { createSvgBackend } from "../chart/svg-backend.js";
 type LineChartListProps = ChartListPrimitiveProps;
 
 /**
- * Props for {@link LineChart.Root}. Lines encode value by vertical position,
- * not length from a baseline, so the full y domain stays overridable via
- * `yDomain`. Lines never stack, so there is no `stacked` prop.
+ * Props for {@link LineChart.Root}. Lines never stack, so there is no
+ * `stacked` prop.
  */
 type LineChartRootProps<
 	TDatum extends ChartDatum = ChartDatum,
@@ -113,6 +113,11 @@ type LineChartLineProps = {
 	 * vision. Defaults to `"circle"`.
 	 */
 	shape?: PointShape;
+	/**
+	 * The y axis whose scale places this series: `"left"` (the default) or
+	 * `"right"`. A `"right"` series needs a {@link LineChart.YAxis} with `side="right"`.
+	 */
+	yAxis?: YAxisSide;
 };
 
 /**
@@ -128,7 +133,8 @@ type LineChartGridProps = GridPrimitiveProps;
 type LineChartXAxisProps = XAxisPrimitiveProps;
 
 /**
- * Props for {@link LineChart.YAxis}.
+ * Props for {@link LineChart.YAxis}. Lines encode value by vertical position,
+ * not length from a baseline, so `domain` can fix either end.
  */
 type LineChartYAxisProps = YAxisPrimitiveProps;
 

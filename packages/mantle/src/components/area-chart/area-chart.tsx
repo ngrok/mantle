@@ -31,6 +31,7 @@ import type {
 	CurveKind,
 	PointShape,
 	SeriesColor,
+	YAxisSide,
 } from "../chart/types.js";
 import { createSvgBackend } from "../chart/svg-backend.js";
 
@@ -40,14 +41,12 @@ import { createSvgBackend } from "../chart/svg-backend.js";
 type AreaChartListProps = ChartListPrimitiveProps;
 
 /**
- * Props for {@link AreaChart.Root}. Areas fill from a shared zero baseline, so
- * the y domain minimum is fixed at `0`. A truncated-area axis is
- * unrepresentable.
+ * Props for {@link AreaChart.Root}.
  */
 type AreaChartRootProps<
 	TDatum extends ChartDatum = ChartDatum,
 	TMode extends ChartMode = "interactive",
-> = Omit<ChartRootBaseProps, "yDomain"> &
+> = ChartRootBaseProps &
 	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each `AreaChart.Area` reads one numeric key per row. */
 		data: readonly TDatum[];
@@ -60,8 +59,6 @@ type AreaChartRootProps<
 		 * `"linear"`, strings → `"point"`).
 		 */
 		xScale?: ContinuousXScale;
-		/** Override the automatic y maximum. The minimum is always the zero baseline. */
-		yDomain?: [0, number | "auto"];
 	};
 
 /**
@@ -109,6 +106,11 @@ type AreaChartAreaProps = {
 	 * distinguishable without color vision. Defaults to `"circle"`.
 	 */
 	shape?: PointShape;
+	/**
+	 * The y axis whose scale places this series: `"left"` (the default) or
+	 * `"right"`. A `"right"` series needs a {@link AreaChart.YAxis} with `side="right"`.
+	 */
+	yAxis?: YAxisSide;
 };
 
 /**
@@ -124,9 +126,11 @@ type AreaChartGridProps = GridPrimitiveProps;
 type AreaChartXAxisProps = XAxisPrimitiveProps;
 
 /**
- * Props for {@link AreaChart.YAxis}.
+ * Props for {@link AreaChart.YAxis}. Areas fill from a shared zero baseline,
+ * so the `domain` minimum is fixed at `0`. A truncated-area axis is
+ * unrepresentable.
  */
-type AreaChartYAxisProps = YAxisPrimitiveProps;
+type AreaChartYAxisProps = YAxisPrimitiveProps<[0, number | "auto"]>;
 
 /**
  * Props for {@link AreaChart.ReferenceLine}.

@@ -352,7 +352,7 @@ const linearTicksAtMost = (
  */
 const niceDomain = (domain: readonly [number, number], count: number): [number, number] => {
 	if (domain[0] > domain[1]) {
-		// An inverted domain (e.g. a yDomain override on the wrong side of the
+		// An inverted domain (e.g. a `domain` override on the wrong side of the
 		// data) would produce NaN steps; render it right-side-up instead.
 		return niceDomain([domain[1], domain[0]], count);
 	}
@@ -413,6 +413,87 @@ const niceZeroAnchoredDomain = (
 	return domain[0] === 0 ? [0, niced[1]] : niced;
 };
 
+/**
+ * The domain of a second value axis whose ticks land on the first axis's
+ * ticks, so one set of grid lines reads on both sides. The result covers
+ * `extent`, keeps each `fixed` end exactly, and puts a round value (a whole
+ * multiple of a 1/2/5 step) on each tick of the first axis. Returns `null`
+ * when no step within a few sizes of the data meets the fixed ends.
+ *
+ * @example
+ * ```ts
+ * // Left axis 0–100 with ticks every 20; right data reaches 2.2 billion.
+ * alignedDomain({
+ *   domain: [0, 100],
+ *   tick: 0,
+ *   step: 20,
+ *   extent: [0, 2.2e9],
+ *   fixed: [0, null],
+ *   integer: true,
+ * }); // [0, 2.5e9]: right ticks 0, 0.5e9, 1e9, … sit on the left's 0, 20, 40, …
+ * ```
+ */
+const alignedDomain = (options: {
+	/** The first axis's domain. */
+	domain: readonly [number, number];
+	/** A tick of the first axis. */
+	tick: number;
+	/** The distance between the first axis's ticks. */
+	step: number;
+	/** The second axis's data extent. */
+	extent: readonly [number, number];
+	/** The fixed ends of the second axis; `null` for an end that follows the data. */
+	fixed: readonly [number | null, number | null];
+	/** Whether the second axis holds whole numbers only, which keeps its step whole. */
+	integer: boolean;
+}): [number, number] | null => {
+	const { domain, tick, step, fixed, integer } = options;
+	// The first axis's ends, in steps from `tick`.
+	const below = (domain[0] - tick) / step;
+	const above = (domain[1] - tick) / step;
+	const min = fixed[0] ?? options.extent[0];
+	const max = fixed[1] ?? options.extent[1];
+	if (!(step > 0) || !(above > below) || min > max) {
+		return null;
+	}
+	const raw = (max - min) / (above - below) || Math.abs(max) || 1;
+	let power = 10 ** Math.floor(Math.log10(raw));
+	// Why a bound: past a few step sizes the second axis wastes most of its height.
+	for (let attempt = 0; attempt < 9; attempt++) {
+		const candidate = [1, 2, 5][attempt % 3] ?? 1;
+		const secondStep = candidate * power;
+		if (attempt % 3 === 2) {
+			power *= 10;
+		}
+		if (secondStep < raw || (integer && secondStep < 1)) {
+			continue;
+		}
+		// The second axis's value at `tick`, a whole multiple of its step.
+		let base = Math.floor((min - below * secondStep) / secondStep + 1e-9) * secondStep;
+		if (fixed[0] != null) {
+			base = fixed[0] - below * secondStep;
+		} else if (fixed[1] != null) {
+			// Why the top: a fixed maximum is an end the step must land on.
+			base = fixed[1] - above * secondStep;
+		}
+		const multiple = base / secondStep;
+		if (Math.abs(multiple - Math.round(multiple)) > 1e-9) {
+			continue;
+		}
+		const bottom = fixed[0] ?? base + below * secondStep;
+		const top = base + above * secondStep;
+		const tolerance = secondStep * 1e-9;
+		if (top < max - tolerance || bottom > min + tolerance) {
+			continue;
+		}
+		if (fixed[1] != null && Math.abs(top - fixed[1]) > tolerance) {
+			continue;
+		}
+		return [bottom, fixed[1] ?? top];
+	}
+	return null;
+};
+
 export type {
 	//,
 	BandLayout,
@@ -420,6 +501,7 @@ export type {
 };
 export {
 	//,
+	alignedDomain,
 	bandCenter,
 	bandHitRegion,
 	bandStart,

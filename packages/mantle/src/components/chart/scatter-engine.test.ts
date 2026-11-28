@@ -55,6 +55,7 @@ const seriesSpec = (dataKey: string): SeriesSpec => ({
 	connectNulls: false,
 	shape: "circle",
 	texture: "solid",
+	yAxis: "left",
 });
 
 /** A paint context that records the name of each call it gets. */
@@ -198,7 +199,6 @@ const mount3d = (scatter: ScatterModule, options: { inView: boolean }): Mounted 
 	engine.setOptions({
 		xKey: "x",
 		xScale: "linear",
-		yDomain: ["auto", "auto"],
 		orientation: "vertical",
 		zKey: "z",
 		sizeKey: null,

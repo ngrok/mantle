@@ -32,6 +32,7 @@ import type {
 	ChartDatum,
 	ChartDatumEvent,
 	SeriesColor,
+	YAxisSide,
 } from "../chart/types.js";
 import { createSvgBackend } from "../chart/svg-backend.js";
 
@@ -41,14 +42,12 @@ import { createSvgBackend } from "../chart/svg-backend.js";
 type BarChartListProps = ChartListPrimitiveProps;
 
 /**
- * Props for {@link BarChart.Root}. Bars encode value by length from a shared
- * zero baseline, so the y domain minimum is fixed at `0`. A truncated-bar
- * axis is unrepresentable.
+ * Props for {@link BarChart.Root}.
  */
 type BarChartRootProps<
 	TDatum extends ChartDatum = ChartDatum,
 	TMode extends ChartMode = "interactive",
-> = Omit<ChartRootBaseProps, "yDomain"> &
+> = ChartRootBaseProps &
 	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each `BarChart.Bar` reads one numeric key per row. */
 		data: readonly TDatum[];
@@ -56,8 +55,6 @@ type BarChartRootProps<
 		 * The key of each row's category (x) value. If no row has the key, the Root throws.
 		 */
 		xKey: Extract<keyof TDatum, string>;
-		/** Override the automatic y maximum. The minimum is always the zero baseline. */
-		yDomain?: [0, number | "auto"];
 		/**
 		 * The direction the bars point. This names the bars, not an axis.
 		 * `"vertical"` (default) bars stand up from a bottom baseline with
@@ -120,6 +117,11 @@ type BarChartBarProps = {
 	 * color alone cannot separate.
 	 */
 	texture?: BarTexture;
+	/**
+	 * The y axis whose scale places this series: `"left"` (the default) or
+	 * `"right"`. A `"right"` series needs a {@link BarChart.YAxis} with `side="right"`.
+	 */
+	yAxis?: YAxisSide;
 };
 
 /**
@@ -134,9 +136,11 @@ type BarChartGridProps = GridPrimitiveProps;
 type BarChartXAxisProps = XAxisPrimitiveProps;
 
 /**
- * Props for {@link BarChart.YAxis}.
+ * Props for {@link BarChart.YAxis}. Bars encode value by length from a shared
+ * zero baseline, so the `domain` minimum is fixed at `0`. A truncated-bar axis
+ * is unrepresentable.
  */
-type BarChartYAxisProps = YAxisPrimitiveProps;
+type BarChartYAxisProps = YAxisPrimitiveProps<[0, number | "auto"]>;
 
 /**
  * Props for {@link BarChart.ReferenceLine}.

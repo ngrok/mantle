@@ -127,9 +127,17 @@ export function LineOverBarsBarChartExample() {
 			<BarChart.Grid />
 			<BarChart.XAxis />
 			<BarChart.YAxis tickFormat={(value) => compact.format(value)} />
+			<BarChart.YAxis side="right" tickFormat={(value) => compact.format(value)} />
 			<BarChart.Bar dataKey="added" label="Added" color="success" />
 			<BarChart.Bar dataKey="deleted" label="Deleted" color="danger" />
-			<LineChart.Line dataKey="total" label="Total lines" color="amber" curve="monotone" markers />
+			<LineChart.Line
+				dataKey="total"
+				label="Total lines (right axis)"
+				color="amber"
+				curve="monotone"
+				markers
+				yAxis="right"
+			/>
 			<BarChart.Tooltip />
 			<BarChart.Legend />
 		</BarChart.Root>

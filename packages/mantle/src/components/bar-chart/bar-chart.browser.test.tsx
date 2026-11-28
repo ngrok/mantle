@@ -366,18 +366,12 @@ describe("overriding a chart color token", () => {
 	});
 });
 
-describe("BarChart yDomain", () => {
-	test("an explicit yDomain caps the value axis above the data", async () => {
+describe("BarChart.YAxis domain", () => {
+	test("an explicit domain caps the value axis above the data", async () => {
 		render(
 			<div style={{ width: 600, height: 300 }}>
-				<CanvasBarChartRoot
-					data={data}
-					xKey="month"
-					yDomain={[0, 1000]}
-					animate={false}
-					aria-label="Visitors by month"
-				>
-					<BarChart.YAxis />
+				<CanvasBarChartRoot data={data} xKey="month" animate={false} aria-label="Visitors by month">
+					<BarChart.YAxis domain={[0, 1000]} />
 					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
