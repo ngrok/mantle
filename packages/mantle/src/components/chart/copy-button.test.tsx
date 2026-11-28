@@ -29,6 +29,8 @@ const contextWith = (current: ChartContextValue["dataRef"]["current"]): ChartCon
 		kind: "line",
 		componentName: "LineChart",
 		store,
+		orientation: "vertical",
+		threeD: false,
 		engineRef: { current: null },
 		dataRef: { current },
 	};

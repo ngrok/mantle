@@ -397,6 +397,12 @@ const ChartDataTable = ({
 		() => store.getSnapshot().emptySlot?.label ?? null,
 		() => store.getSnapshot().emptySlot?.label ?? null,
 	);
+	// Why a selector: the x column's header reads the x axis's title, not the hover.
+	const xTitle = useSyncExternalStore(
+		store.subscribe,
+		() => store.getSnapshot().xTitle,
+		() => store.getSnapshot().xTitle,
+	);
 	const resolvedLabel = useResolvedChartLabel(label, labelledBy);
 	if (data.length === 0 || series.length === 0) {
 		return null;
@@ -416,7 +422,7 @@ const ChartDataTable = ({
 				</caption>
 				<thead>
 					<tr>
-						<th scope="col">{xKey}</th>
+						<th scope="col">{xTitle ?? xKey}</th>
 						{series.map((column) => (
 							<th key={column.dataKey} scope="col">
 								{column.label}

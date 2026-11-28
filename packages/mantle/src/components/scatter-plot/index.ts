@@ -45,7 +45,9 @@ import * as ScatterPlotParts from "./scatter-plot-parts.js";
  * ScatterPlot.Root
  * ├── ScatterPlot.Grid
  * ├── ScatterPlot.XAxis
+ * │   └── ScatterPlot.AxisTitle
  * ├── ScatterPlot.YAxis
+ * │   └── ScatterPlot.AxisTitle
  * ├── ScatterPlot.Point (one per series)
  * ├── ScatterPlot.ReferenceLine
  * ├── ScatterPlot.Tooltip
@@ -88,6 +90,7 @@ export type {
 	//,
 	ChartDatumEvent,
 	ChartMode,
+	ScatterPlotAxisTitleProps,
 	ScatterPlotCopyButtonProps,
 	ScatterPlotGridProps,
 	ScatterPlotLegendProps,

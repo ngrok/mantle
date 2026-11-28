@@ -1082,3 +1082,74 @@ test("an AreaChart.Area composes inside LineChart.Root, and the readout lists bo
 	expect(tooltip?.textContent).toContain("p99480");
 	expect(tooltip?.textContent).toContain("p50120");
 });
+
+describe("LineChart.AxisTitle", () => {
+	test("the x title heads the data table's x column, and a y title heads nothing", () => {
+		render(
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.YAxis>
+					<LineChart.AxisTitle>Latency</LineChart.AxisTitle>
+				</LineChart.YAxis>
+				<LineChart.XAxis>
+					<LineChart.AxisTitle>
+						Time <abbr title="Coordinated Universal Time">UTC</abbr>
+					</LineChart.AxisTitle>
+				</LineChart.XAxis>
+			</LineChart.Root>,
+		);
+		engageChart();
+		const headers = screen.getAllByRole("columnheader").map((header) => header.textContent);
+		expect(headers).toEqual(["Time UTC", "p50"]);
+	});
+
+	test("the x column falls back to the xKey when the x title unmounts", () => {
+		const chart = (title: boolean) => (
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.XAxis>
+					{title && <LineChart.AxisTitle>When</LineChart.AxisTitle>}
+				</LineChart.XAxis>
+			</LineChart.Root>
+		);
+		const { rerender } = render(chart(true));
+		engageChart();
+		expect(screen.getByRole("columnheader", { name: "When" })).toBeInTheDocument();
+		rerender(chart(false));
+		expect(screen.getByRole("columnheader", { name: "time" })).toBeInTheDocument();
+	});
+
+	test("renders visible text with its slot and axis, and an asChild element keeps them", () => {
+		const { container } = render(
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.XAxis>
+					<LineChart.AxisTitle>Time</LineChart.AxisTitle>
+				</LineChart.XAxis>
+				<LineChart.YAxis side="right">
+					<LineChart.AxisTitle asChild>
+						<h3>Errors</h3>
+					</LineChart.AxisTitle>
+				</LineChart.YAxis>
+			</LineChart.Root>,
+		);
+		const titles = [...container.querySelectorAll('[data-slot="line-chart-axis-title"]')];
+		expect(
+			titles.map((title) => [title.tagName, title.getAttribute("data-axis"), title.textContent]),
+		).toEqual([
+			["DIV", "x", "Time"],
+			["H3", "y", "Errors"],
+		]);
+	});
+
+	test("throws outside an axis", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+					<LineChart.AxisTitle>Time</LineChart.AxisTitle>
+				</LineChart.Root>,
+			),
+		).toThrow(/LineChart\.AxisTitle must be composed inside LineChart\.XAxis or LineChart\.YAxis/);
+	});
+});

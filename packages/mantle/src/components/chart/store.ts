@@ -88,14 +88,17 @@ type StoreSnapshot = {
 	tooltip: TooltipConfig | null;
 	/** The bar direction the Root registered (DOM consumers: legend texture keys). */
 	orientation: BarOrientation;
+	/** The content of the x axis's `AxisTitle`, which heads the data table's x column. `null` when none is composed. */
+	xTitle: ReactNode;
 };
 
 /**
  * What a registration changed, which picks the engine hook: `"series"` needs
- * a new ingest and `"presentation"` a repaint. `"tooltip"` calls no hook,
- * because the engine paints nothing from the tooltip config.
+ * a new ingest and `"presentation"` a repaint. `"tooltip"` and `"title"` call
+ * no hook, because the engine paints nothing from the tooltip config or an
+ * axis title.
  */
-type RegistrationChange = "series" | "presentation" | "tooltip";
+type RegistrationChange = "series" | "presentation" | "tooltip" | "title";
 
 /** The glyph a series wears when it sets no `shape`. */
 const DEFAULT_SHAPE: PointShape = "circle";
@@ -115,6 +118,7 @@ class ChartStore {
 		emptySlot: null,
 		tooltip: null,
 		orientation: "vertical",
+		xTitle: null,
 	};
 
 	#seriesByKey = new Map<string, { spec: SeriesSpec; sequence: number }>();
@@ -138,6 +142,8 @@ class ChartStore {
 	#referenceLineSequenceById = new Map<string, number>();
 	#emptySlot: EmptySlotSpec | null = null;
 	#tooltip: TooltipConfig | null = null;
+	/** Boxed, so a cleanup can tell its own registration from an equal string that replaced it. */
+	#xTitle: { title: ReactNode } | null = null;
 	#hover: HoverSnapshot | null = null;
 	#hoverEver = false;
 	#readoutSpace = 0;
@@ -420,6 +426,19 @@ class ChartStore {
 		};
 	}
 
+	registerXTitle(title: ReactNode): () => void {
+		// Singleton part: last registration wins.
+		const entry = { title };
+		this.#xTitle = entry;
+		this.#publishRegistrations("title");
+		return () => {
+			if (this.#xTitle === entry) {
+				this.#xTitle = null;
+				this.#publishRegistrations("title");
+			}
+		};
+	}
+
 	/** Engine-side: publish the current hover/keyboard snapshot (or clear it). */
 	publishHover(hover: HoverSnapshot | null): void {
 		if (this.#hover === hover) {
@@ -471,6 +490,7 @@ class ChartStore {
 			emptySlot: this.#emptySlot,
 			tooltip: this.#tooltip,
 			orientation: this.#orientation,
+			xTitle: this.#xTitle?.title ?? null,
 		};
 		this.#emit();
 		if (change === "series") {

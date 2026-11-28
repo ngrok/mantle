@@ -1,5 +1,7 @@
 "use client";
 
+import { ChartAxisTitlePrimitive } from "../chart/axis-title.js";
+import type { AxisTitlePrimitiveProps } from "../chart/axis-title.js";
 import type { ChartAccessibilityProps, ChartMode } from "../chart/context.js";
 import { ChartCopyButtonPrimitive } from "../chart/copy-button.js";
 import type { CopyButtonPrimitiveProps } from "../chart/copy-button.js";
@@ -342,6 +344,45 @@ const XAxis = (props: ScatterPlotXAxisProps) => useXAxisPrimitive("ScatterPlot.X
 const YAxis = (props: ScatterPlotYAxisProps) => useYAxisPrimitive("ScatterPlot.YAxis", props);
 
 /**
+ * Props for {@link ScatterPlot.AxisTitle}.
+ */
+type ScatterPlotAxisTitleProps = AxisTitlePrimitiveProps;
+
+/**
+ * Names the axis it sits in, as HTML text beside the plot. Compose it inside
+ * `ScatterPlot.XAxis` or `ScatterPlot.YAxis`. An x title sits under the plot and also heads
+ * the x column of the sr-only data table. A y title reads bottom to top on
+ * the left, and top to bottom beside a right axis. The title is one line, and
+ * it truncates with an ellipsis, so keep it short. A 3D plot draws no axes and
+ * no titles.
+ *
+ * Renders a `div`; `asChild` swaps the element.
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"scatter-plot-axis-title"` | Targets the title. |
+ * | `data-axis` | `"x"` \| `"y"` | The axis the title names: `"y"` for a left or a right axis. |
+ *
+ * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotaxistitle
+ *
+ * @example
+ * ```tsx
+ * <ScatterPlot.Root data={data} xKey="tokens" aria-label="Time to first token by prompt length">
+ *   <ScatterPlot.XAxis>
+ *     <ScatterPlot.AxisTitle>tokens</ScatterPlot.AxisTitle>
+ *   </ScatterPlot.XAxis>
+ *   <ScatterPlot.YAxis>
+ *     <ScatterPlot.AxisTitle>value</ScatterPlot.AxisTitle>
+ *   </ScatterPlot.YAxis>
+ *   <ScatterPlot.Point dataKey="ttft" label="Cached" color="blue" />
+ * </ScatterPlot.Root>
+ * ```
+ */
+const AxisTitle = (props: ScatterPlotAxisTitleProps) => (
+	<ChartAxisTitlePrimitive partName="ScatterPlot.AxisTitle" slotName="scatter-plot" {...props} />
+);
+
+/**
  * A dashed horizontal marker at a y value. Renderless (painted on canvas); 2D
  * only (ignored in the 3D projection).
  *
@@ -490,6 +531,7 @@ export type {
 	//,
 	ChartDatumEvent,
 	ChartMode,
+	ScatterPlotAxisTitleProps,
 	ScatterPlotCopyButtonProps,
 	ScatterPlotGridProps,
 	ScatterPlotLegendProps,
@@ -508,6 +550,7 @@ export {
 	Grid,
 	XAxis,
 	YAxis,
+	AxisTitle,
 	ReferenceLine,
 	Tooltip,
 	Legend,

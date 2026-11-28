@@ -546,3 +546,17 @@ describe("ScatterPlot decorative mode", () => {
 		expect(screen.queryByRole("status")).not.toBeInTheDocument();
 	});
 });
+
+test("a 3D scatter draws no axis titles, and its table keeps the xKey header", () => {
+	const { container } = render(
+		<ScatterPlot.Root data={data3d} xKey="latency" zKey="depth" aria-label="Latency by depth">
+			<ScatterPlot.XAxis>
+				<ScatterPlot.AxisTitle>Latency (ms)</ScatterPlot.AxisTitle>
+			</ScatterPlot.XAxis>
+			<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
+		</ScatterPlot.Root>,
+	);
+	engageChart();
+	expect(container.querySelector("[data-axis]")).toBeNull();
+	expect(screen.getByRole("columnheader", { name: "latency" })).toBeInTheDocument();
+});

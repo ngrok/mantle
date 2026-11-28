@@ -1380,7 +1380,9 @@ Compose the parts of a `BarChart` together to build your own:
 BarChart.Root
 ├── BarChart.Grid
 ├── BarChart.XAxis
+│   └── BarChart.AxisTitle
 ├── BarChart.YAxis (one for each side)
+│   └── BarChart.AxisTitle
 ├── BarChart.Bar (one per series)
 ├── LineChart.Line or AreaChart.Area (optional, over vertical bars)
 ├── BarChart.ReferenceLine
@@ -1584,6 +1586,7 @@ Category labels for the bars (renderless; the chart paints it): along the bottom
 | ------------- | -------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tickFormat?` | `(value: string \| number \| Date, context: { defaultLabel: string }) => string` |         | Format a tick label. Receives the row's category value. The second argument is `{ defaultLabel }`: the label the axis paints without a formatter. The chart compares the function by identity, so a new function paints the chart again. With the React Compiler in your build, an inline function stays stable; without it, define the function outside the component. |
 | `tickCount?`  | `number`                                                                         |         | Target tick count (continuous scales only). Bar charts use a band scale, where label density is automatic: colliding labels are skipped.                                                                                                                                                                                                                                |
+| `children?`   | `ReactNode`                                                                      |         | The axis's [`BarChart.AxisTitle`](#barchartaxistitle).                                                                                                                                                                                                                                                                                                                  |
 
 ### BarChart.YAxis
 
@@ -1595,6 +1598,27 @@ Value tick labels (renderless; the chart paints it): along the left for vertical
 | `tickCount?`  | `number`                                                                     |                             | Maximum tick count. When omitted, the axis aims for about 5 ticks. The axis can render fewer: ticks land on human-friendly steps, a vertical axis keeps about 28px for each tick, and a label that would overlap its neighbor is skipped. Integer-valued data never renders fractional ticks.                                                                                                                              |
 | `side?`       | `"left" \| "right"`                                                          | `"left"`                    | The edge the axis paints on. A series or a reference line with `yAxis="right"` reads the right axis's scale, and the right axis puts a round value on each left grid line when its `domain` allows it. See [Two y axes](/components/charts/line-chart#two-y-axes). Horizontal bars take no right axis, so they throw.                                                                                                      |
 | `domain?`     | `[0, number \| "auto"]`                                                      | `[0, "auto"]`               | Fix the axis maximum. An `"auto"` maximum follows the data, and the minimum is always the zero baseline.                                                                                                                                                                                                                                                                                                                   |
+| `children?`   | `ReactNode`                                                                  |                             | The axis's [`BarChart.AxisTitle`](#barchartaxistitle).                                                                                                                                                                                                                                                                                                                                                                     |
+
+### BarChart.AxisTitle
+
+Names the axis it sits in, as HTML text beside the plot. Compose it inside `BarChart.XAxis` or `BarChart.YAxis`. An x title sits under the plot and also heads the x column of the screen-reader data table. A y title reads bottom to top on the left, and top to bottom beside a right axis. On horizontal bars, the x title sits on the left and the y title sits under the plot. When a title is a child of the Root, the Root lays out as a grid, so each title takes its own cell in any source order.
+
+The title is one line, and it truncates with an ellipsis, so keep it short. Set `className="whitespace-normal"` to let it wrap.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type        | Default | Description                                                         |
+| ---------- | ----------- | ------- | ------------------------------------------------------------------- |
+| `children` | `ReactNode` |         | The title. The x axis's title also heads the data table's x column. |
+| `asChild?` | `boolean`   | `false` | Render the title on its child element instead of a `div`.           |
+
+**Data attributes**
+
+| Data Attribute | Value                    | Description                                                 |
+| -------------- | ------------------------ | ----------------------------------------------------------- |
+| `data-slot`    | `"bar-chart-axis-title"` | The title.                                                  |
+| `data-axis`    | `"x" \| "y"`             | The axis the title names: `"y"` for a left or a right axis. |
 
 ### BarChart.ReferenceLine
 

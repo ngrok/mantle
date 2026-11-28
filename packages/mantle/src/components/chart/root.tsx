@@ -461,16 +461,16 @@ const ChartRootPrimitive = ({
 		() => false,
 	);
 	const resolvedXScale: XScaleKind = kind === "bar" ? "band" : (xScale ?? detectXScale(data, xKey));
-	// Why a hoisted ref: the context object is state, so a write through
-	// `context.dataRef.current` reads as a state mutation to the React Compiler.
+	// Why a hoisted ref: the context object is a memo, so a write through
+	// `context.dataRef.current` reads as a mutation to the React Compiler.
 	const dataRef = useRef({ data, xKey, xScale: resolvedXScale, zKey });
-	const [context] = useState<ChartContextValue>(() => ({
-		kind,
-		componentName,
-		store,
-		engineRef,
-		dataRef,
-	}));
+	const threeD = zKey != null;
+	// Why a memo on the layout facts: an axis title reads them at render time,
+	// so the server places it where it stays. A data update keeps the object.
+	const context = useMemo<ChartContextValue>(
+		() => ({ kind, componentName, store, orientation, threeD, engineRef, dataRef }),
+		[kind, componentName, store, orientation, threeD],
+	);
 
 	useLayoutEffect(() => {
 		dataRef.current = { data, xKey, xScale: resolvedXScale, zKey };

@@ -9,12 +9,14 @@ import type { ChartKeyNames } from "./datum.js";
 import type { XSummary } from "./describe.js";
 import type { ChartStore, TooltipConfig } from "./store.js";
 import type {
+	BarOrientation,
 	ChartDatum,
 	ChartDatumEvent,
 	HoverSnapshot,
 	SeriesMark,
 	SeriesMeta,
 	XScaleKind,
+	YAxisSide,
 } from "./types.js";
 
 /**
@@ -221,6 +223,10 @@ type ChartContextValue = {
 	/** The public namespace name, e.g. `"BarChart"`, used in error messages. */
 	componentName: string;
 	store: ChartStore;
+	/** The bar direction the Root renders, read at render time by an axis title. */
+	orientation: BarOrientation;
+	/** Whether the plot is a 3D scatter, which draws no axes and so no axis titles. */
+	threeD: boolean;
 	engineRef: { current: ChartEngine | null };
 	/**
 	 * The Root's current data props, read at interaction time (never at render
@@ -239,6 +245,14 @@ type ChartContextValue = {
 };
 
 const ChartContext = createContext<ChartContextValue | null>(null);
+
+/**
+ * The axis an `AxisTitle` names: `"x"`, or the side of its `YAxis`. `null`
+ * outside an axis part.
+ */
+type ChartAxisContextValue = "x" | YAxisSide | null;
+
+const ChartAxisContext = createContext<ChartAxisContextValue>(null);
 
 /**
  * Read the chart context, throwing a descriptive invariant when a part is
@@ -334,6 +348,7 @@ export type {
 
 export {
 	//,
+	ChartAxisContext,
 	ChartContext,
 	useChartContext,
 	useShallowStable,

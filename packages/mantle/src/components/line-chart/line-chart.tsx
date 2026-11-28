@@ -1,5 +1,7 @@
 "use client";
 
+import { ChartAxisTitlePrimitive } from "../chart/axis-title.js";
+import type { AxisTitlePrimitiveProps } from "../chart/axis-title.js";
 import type { ChartAccessibilityProps, ChartMode } from "../chart/context.js";
 import { ChartCopyButtonPrimitive } from "../chart/copy-button.js";
 import type { CopyButtonPrimitiveProps } from "../chart/copy-button.js";
@@ -312,6 +314,44 @@ const XAxis = (props: LineChartXAxisProps) => useXAxisPrimitive("LineChart.XAxis
 const YAxis = (props: LineChartYAxisProps) => useYAxisPrimitive("LineChart.YAxis", props);
 
 /**
+ * Props for {@link LineChart.AxisTitle}.
+ */
+type LineChartAxisTitleProps = AxisTitlePrimitiveProps;
+
+/**
+ * Names the axis it sits in, as HTML text beside the plot. Compose it inside
+ * `LineChart.XAxis` or `LineChart.YAxis`. An x title sits under the plot and also heads
+ * the x column of the sr-only data table. A y title reads bottom to top on
+ * the left, and top to bottom beside a right axis. The title is one line, and
+ * it truncates with an ellipsis, so keep it short.
+ *
+ * Renders a `div`; `asChild` swaps the element.
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"line-chart-axis-title"` | Targets the title. |
+ * | `data-axis` | `"x"` \| `"y"` | The axis the title names: `"y"` for a left or a right axis. |
+ *
+ * @see https://mantle.ngrok.com/components/charts/line-chart#linechartaxistitle
+ *
+ * @example
+ * ```tsx
+ * <LineChart.Root data={data} xKey="time" aria-label="Request latency">
+ *   <LineChart.XAxis>
+ *     <LineChart.AxisTitle>time</LineChart.AxisTitle>
+ *   </LineChart.XAxis>
+ *   <LineChart.YAxis>
+ *     <LineChart.AxisTitle>value</LineChart.AxisTitle>
+ *   </LineChart.YAxis>
+ *   <LineChart.Line dataKey="p50" label="p50" color="blue" />
+ * </LineChart.Root>
+ * ```
+ */
+const AxisTitle = (props: LineChartAxisTitleProps) => (
+	<ChartAxisTitlePrimitive partName="LineChart.AxisTitle" slotName="line-chart" {...props} />
+);
+
+/**
  * A dashed horizontal marker at a y value, such as an SLO threshold, a budget,
  * or a limit (renderless; the chart paints it).
  *
@@ -463,6 +503,7 @@ export type {
 	//,
 	ChartDatumEvent,
 	ChartMode,
+	LineChartAxisTitleProps,
 	LineChartCopyButtonProps,
 	LineChartGridProps,
 	LineChartLegendProps,
@@ -481,6 +522,7 @@ export {
 	Grid,
 	XAxis,
 	YAxis,
+	AxisTitle,
 	ReferenceLine,
 	Tooltip,
 	Legend,
